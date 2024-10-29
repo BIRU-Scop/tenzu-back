@@ -1,0 +1,21 @@
+<!--
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+Copyright (c) 2023-present Kaleidos INC
+-->
+<mj-raw>
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+</mj-raw>
+<mj-font
+  name="Ubuntu"
+  href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500" />
+<mj-font
+    name="Atkinson Hyperlegible"
+    href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700"
+/>
+<mj-include path="../styles/common.mjml" />
+<mj-include path="../styles/attributes.mjml" />
+<mj-include path="../styles/dark_mode.mjml" />

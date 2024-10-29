@@ -1,0 +1,62 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        files: 'src/'
+      - id: end-of-file-fixer
+        files: 'src/'
+      - id: check-docstring-first
+        files: 'src/'
+      #      - id: debug-statements
+      #        files: 'src/'
+      - id: check-yaml
+        files: '.'
+      - id: check-shebang-scripts-are-executable
+        files: 'src/manage.py'
+      - id: mixed-line-ending
+        args:
+          - --fix=lf
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        additional_dependencies: [ flake8-typing-imports==1.16.0 ]
+        files: 'src/'
+        args: [ --config=.flake8 ]
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        files: 'src/'
+        args: [ "--config=.black", "--fast" ]
+
+#  - repo: https://github.com/pre-commit/mirrors-mypy
+#    rev: v1.12.1
+#    hooks:
+#      - id: mypy
+##        language: system
+#        files: 'src/'
+#        exclude: '/tests/|/migrations/'
+#        additional_dependencies:
+#          - pydantic
+#          - django-stubs
+#        args: [ --config-file=.mypy.ini ]
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        files: 'src/'
+        args: [ --settings-path=.isort.cfg ]
+
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: insert-license
+        files: '(src/).*\.py$'
+        args:
+          - --license-filepath
+          - .license_header_template_python.txt          # defaults to: LICENSE.txt

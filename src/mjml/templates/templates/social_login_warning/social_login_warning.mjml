@@ -1,0 +1,57 @@
+<!--
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+Copyright (c) 2023-present Kaleidos INC
+-->
+<mjml>
+  <mj-head>
+      <mj-title>{% trans %}emails.social_login_warning.title{% endtrans %}</mj-title>
+    <mj-include path="../../components/head.mjml" />
+  </mj-head>
+  <mj-body css-class="body">
+    <mj-wrapper css-class="body-content">
+      <mj-include path="../../components/header-logo.mjml" />
+      <mj-section mj-class="padding-section">
+        <mj-column>
+          <mj-text css-class="dm-title"
+            mj-class="font-heading1 color-gray100">
+            {% trans name=full_name %}emails.social_warning_login.hi{% endtrans %}
+          </mj-text>
+          <mj-text css-class="tertiary-link dm-text "
+            mj-class="font-body">
+            {% trans method=login_method %}emails.social_login_warning.method{% endtrans %}
+          </mj-text>
+          <mj-text css-class="dm-text"
+            mj-class="padding-top-32 padding-bottom-32 font-body">
+            <ul class="list list-no-bullets">
+                <li><strong>{% trans %}emails.social_login_warning.time{% endtrans %}</strong> {{ login_time | format_datetime("long") }}</li>
+            </ul>
+          </mj-text>
+          <mj-text css-class="dm-text"
+            mj-class="font-body">
+            {% trans support_email=settings.SUPPORT_EMAIL %}emails.social_login_warning.not_you{% endtrans %}
+            </a><br>
+          </mj-text>
+          <mj-text css-class="dm-text"
+            mj-class="padding-paragraph font-body">
+            {% trans %}emails.social_login_warning.ignore{% endtrans %}
+          </mj-text>
+          <mj-text css-class="dm-text"
+            mj-class="font-body">
+            {% trans %}emails.social_login_warning.cheers{% endtrans %}
+          </mj-text>
+          <mj-text css-class="dm-text"
+            mj-class="font-body padding-bottom-48">
+            {% trans %}emails.commons.team{% endtrans %}
+          </mj-text>
+          <mj-divider border-width="1px"
+            border-color="#DADFE9"
+            padding="0" />
+          <mj-include path="../../components/footer.mjml" />
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>

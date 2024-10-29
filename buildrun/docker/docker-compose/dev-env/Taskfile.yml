@@ -1,0 +1,90 @@
+version: '3'
+
+vars:
+  SERVICE: tenzu-back
+
+tasks:
+  # SETUP TASKS
+  install-precommit:
+    - brew install pre-commit
+    - pre-commit install
+  install-black:
+    - pip install black
+  install-deps:
+    cmds:
+      - task: install-precommit
+      - task: install-black
+  # OTHER
+  execute-service:
+    internal: true
+    cmds:
+      - docker compose exec {{ .SERVICE }} {{ .COMMAND }}
+  build-app:
+    cmds:
+      - docker compose build
+  up:
+    cmds:
+      - docker compose up -d --wait
+  reset-db:
+    dotenv:
+      - "../../tenzu/dev.env"
+    cmds:
+      # cannot use execute-service because dotenv are not supported in internal/included tasks
+      - docker compose exec tenzu-db dropdb -f -U $TENZU_DB_USER  -p 5432 --if-exists $TENZU_DB_NAME
+      - docker compose exec tenzu-db createdb -U $TENZU_DB_USER  -p 5432 $TENZU_DB_NAME
+      - task: execute-service
+        vars:
+          COMMAND: "python manage.py migrate --no-input"
+  init-data:
+    cmds:
+      - task: execute-service
+        vars:
+          COMMAND: "python manage.py collectstatic --no-input"
+      - task: execute-service
+        vars: 
+          COMMAND: "python manage.py loaddata initial_user initial_project_templates"
+      # can pass --no-demo to import less data
+      # can pass --no-test as well for no test data
+      - task: execute-service
+        vars:
+          COMMAND: "python manage.py load_sampledata {{ .CLI_ARGS }}"
+  init-app:
+    cmds:
+      - task: build
+      - task: up
+      - task: reset-db
+      - task: init-data
+      - task: execute-service
+        vars:
+          COMMAND: "python ./__main__.py i18n compile-catalog"
+  bash:
+    cmds:
+      - task: execute-service
+        vars:
+          COMMAND: bash
+
+  test:
+    cmds:
+      - task: execute-service
+        vars:
+          COMMAND: pytest {{ .CLI_ARGS }}
+  shell:
+    cmds:
+      - task: execute-service
+        vars:
+          COMMAND: "python manage.py shell"
+  compose:
+    cmds:
+      - docker compose {{ .CLI_ARGS }}
+  logs:
+    cmds:
+      - docker compose logs -f {{ .CLI_ARGS }}
+  build:
+    cmds:
+      - docker compose build
+  stop:
+    cmds:
+      - docker compose stop
+  down:
+    cmds:
+      - docker compose down -v

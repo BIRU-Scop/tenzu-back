@@ -1,0 +1,28 @@
+# python
+**.mypy_cache
+**.pytest_cache
+.Python
+.cache
+.dockerignore
+.env
+**__pycache__
+**media
+!apps/tenzu/src/tenzu/base/sampledata/media
+**pytest.ini
+!apps/tenzu/requirements/prod.txt
+**scripts
+**static
+!**emails/static
+**tests
+.venv
+
+# common
+**docs
+.git
+.github
+.gitignore
+AUTHORS.md
+CODE_OF_CONDUCT.md
+DCOLICENSE
+LICENSE
+README.md

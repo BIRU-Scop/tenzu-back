@@ -1,0 +1,25 @@
+<!--
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+Copyright (c) 2023-present Kaleidos INC
+-->
+<mj-section mj-class="padding-bottom-24">
+  <mj-column>
+    <mj-raw>
+      <tr>
+        <td>
+          <a href="{{ settings.FRONTEND_URL }}">
+            <img alt="Tenzu logo" class="light-image" align="left" padding="0" width="100" src="{{ 'emails/tenzu-logo.png' | static_url }}" />
+            <!--[if !mso]><! -->
+            <div class="dark-image-wrapper" style="mso-hide: all; display: none;">
+              <img alt="Tenzu logo" style="display: none;" class="dark-image" align="left" padding="0" width="100" src="{{ 'emails/tenzu-logo.png' | static_url }}" />
+            </div>
+            <!--<![endif]-->
+          </a>
+        </td>
+      </tr>
+    </mj-raw>
+  </mj-column>
+</mj-section>

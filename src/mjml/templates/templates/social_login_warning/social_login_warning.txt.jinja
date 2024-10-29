@@ -1,0 +1,23 @@
+{#
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+Copyright (c) 2023-present Kaleidos INC
+#}
+
+{% trans name=full_name %}emails.social_warning_login.hi{% endtrans %}
+
+{% trans method=login_method %}emails.social_login_warning.method{% endtrans %}
+
+{% trans %}emails.social_login_warning.time{% endtrans %}: {{ login_time | format_datetime("long") }}
+
+{% trans support_email=settings.SUPPORT_EMAIL %}emails.social_login_warning.not_you{% endtrans %}
+
+{% trans %}emails.social_login_warning.ignore{% endtrans %}
+
+{% trans %}emails.social_login_warning.cheers{% endtrans %}
+
+{% trans %}emails.commons.team{% endtrans %}
+
+{% trans support_email=settings.SUPPORT_EMAIL %}emails.commons.support_txt{% endtrans %}

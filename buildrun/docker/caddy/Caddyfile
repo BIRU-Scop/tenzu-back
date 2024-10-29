@@ -1,0 +1,43 @@
+{
+    debug
+}
+
+local-tenzu.biru.ovh {
+   tls {
+    dns ovh {
+        endpoint {$OVH_ENDPOINT}
+        application_key {$OVH_APPLICATION_KEY}
+        application_secret {$OVH_APPLICATION_SECRET}
+        consumer_key {$OVH_CONSUMER_KEY}
+    }
+   }
+   @static {
+       path  /static/*
+   }
+   route @static {
+         header Access-Control-Allow-Origin *
+         header Access-Control-Allow-Headers *
+         header Access-Control-Allow-Methods *
+         root * /tenzu/
+         file_server {
+             precompressed br gzip
+         }
+   }
+   @media {
+       path  /media/*
+   }
+   route @media {
+         header Access-Control-Allow-Origin *
+         header Access-Control-Allow-Headers *
+         header Access-Control-Allow-Methods *
+         root * /tenzu/
+         file_server {
+             precompressed br gzip
+         }
+   }
+
+   reverse_proxy /api/* tenzu-back:8000
+   reverse_proxy /admin/* tenzu-back:8000
+   reverse_proxy /events/ tenzu-back:8000
+   reverse_proxy host.docker.internal:4200
+}

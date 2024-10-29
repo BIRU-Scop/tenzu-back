@@ -1,0 +1,51 @@
+[
+{
+    "model": "projects.projecttemplate",
+    "pk": "00000000-0000-0000-0000-000000000001",
+    "fields": {
+        "name": "Kanban",
+        "slug": "kanban",
+        "roles": [
+            {
+                "slug": "admin",
+                "name": "Administrator",
+                "order": 1,
+                "is_admin": true,
+                "permissions": [
+                  "add_story",
+                  "comment_story",
+                  "delete_story",
+                  "modify_story",
+                  "view_story"
+                ]
+            },
+            {
+                "slug": "general",
+                "name": "General",
+                "order": 2,
+                "is_admin": false,
+                "permissions": [
+                  "add_story",
+                  "comment_story",
+                  "delete_story",
+                  "modify_story",
+                  "view_story"
+                ]
+            }
+        ],
+        "workflows": [
+            {
+                "slug": "main",
+                "name": "Main",
+                "order": 1
+            }
+        ],
+        "workflow_statuses": [
+            {"name": "New", "order": 1, "color": 1},
+            {"name": "Ready", "order": 2, "color": 2},
+            {"name": "In progress", "order": 3, "color": 3},
+            {"name": "Done", "order": 4, "color": 4}
+        ]
+    }
+}
+]

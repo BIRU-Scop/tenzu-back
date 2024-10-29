@@ -1,0 +1,26 @@
+{#
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+Copyright (c) 2023-present Kaleidos INC
+#}
+
+{% set verify_url = resolve_front_url("VERIFY_SIGNUP", verification_token=verification_token) -%}
+
+{% trans %}emails.sign_up.title{% endtrans %}
+
+{% trans %}emails.sign_up.verify{% endtrans %}
+
+{% trans %}emails.sign_up.copy_link{% endtrans %}
+{{ verify_url }}
+
+{% trans %}emails.sign_up.welcome{% endtrans %}
+
+{% trans %}emails.commons.team{% endtrans %}
+
+{% trans expiration=display_lifetime(settings.VERIFY_USER_TOKEN_LIFETIME) %}emails.expiration_date.expiration{% endtrans %}
+
+{% trans %}emails.expiration_date.ignore{% endtrans %}
+
+{% trans support_email=settings.SUPPORT_EMAIL %}emails.commons.support_txt{% endtrans %}

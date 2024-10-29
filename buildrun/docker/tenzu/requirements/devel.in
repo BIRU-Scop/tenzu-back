@@ -1,0 +1,27 @@
+-r commons.in
+
+# Testing
+pytest
+pytest-cov
+pytest-django
+pytest-asyncio
+git+https://github.com/FactoryBoy/factory_boy@master#egg=factory-boy # factory-boy > 3.2.1
+validators
+pytest_httpx
+daphne
+bump-pydantic
+django-watchfiles
+# for dev part
+mypy
+
+# requirements tooling
+pip-tools
+
+# Typing stubs
+django-stubs  # django
+types-babel  # babel
+types-python-slugify  # python-slugify
+types-redis  # redis
+types-redis  # redis
+types-requests # requests
+types-Pillow # Pillow/PIL

@@ -1,0 +1,14 @@
+<!--
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+Copyright (c) 2023-present Kaleidos INC
+-->
+<mj-section>
+  <mj-column mj-class="padding-top-24">
+    <mj-text css-class="secondary-link dm-text" mj-class="font-body color-gray70 dm-link">
+      {% trans email=settings.SUPPORT_EMAIL %}emails.footer.help_support{% endtrans %}
+    </mj-text>
+  </mj-column>
+</mj-section>

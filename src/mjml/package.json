@@ -1,0 +1,17 @@
+{
+  "name": "mjml",
+  "version": "1.0.0",
+  "scripts": {
+    "emails:compile-html": "npx mjml --config.keepComments=0 ./templates/**/templates/*/*.mjml -o ../emails/templates",
+    "emails:copy-text": "npx copyfiles -f ./templates/**/*.txt.jinja ../emails/templates",
+    "emails:copy-subject": "npx copyfiles -f ./templates/**/*.subject.jinja ../emails/templates",
+    "emails:copy-static": "npx copyfiles -f ./templates/static/emails/**/*.* ../emails/static/emails",
+    "emails": "npm run emails:compile-html && npm run emails:copy-text && npm run emails:copy-subject && npm run emails:copy-static"
+  },
+  "private": true,
+  "license": "ISC",
+  "dependencies": {
+    "copyfiles": "^2.4.1",
+    "mjml": "^4.15.3"
+  }
+}

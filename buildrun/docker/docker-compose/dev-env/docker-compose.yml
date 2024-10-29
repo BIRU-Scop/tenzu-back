@@ -1,0 +1,138 @@
+services:
+  tenzu-back:
+    # command: "init-and-serve"
+    # environment: *default-back-environment
+    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
+    build:
+      target: dev-image
+      context: ../../../../
+      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+    volumes:
+      - ../../../../src/:/tenzu/
+      - tenzu-static:/tenzu/static
+      - tenzu-media:/tenzu/media
+    networks:
+      - tenzu
+    env_file:
+      - ../../${MODULE_NAME}/dev.env
+      - ../../${MODULE_NAME}/secrets.env
+    depends_on:
+      tenzu-worker:
+        condition: service_started
+      caddy:
+        condition: service_started
+      tenzu-db:
+        condition: service_healthy
+      tenzu-redis:
+        condition: service_healthy
+    command: ["python", "./manage.py", "runserver", "0.0.0.0:8000", "--settings=configurations.dev"]
+#    ports:
+#      - 8000:8000
+  tenzu-worker:
+    # command: "tasksqueue worker -n main -c 4"
+    command: "python manage.py procrastinate worker"
+    volumes:
+      - ../../../../src/:/tenzu/
+      - tenzu-static:/tenzu/static
+      - tenzu-media:/tenzu/media
+    networks:
+      - tenzu
+    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
+    build:
+      target: dev-image
+      context: ../../../../
+      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+    env_file:
+      - ../../${MODULE_NAME}/dev.env
+      - ../../${MODULE_NAME}/secrets.env
+    depends_on:
+      tenzu-db:
+        condition: service_healthy
+
+
+  tenzu-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: "tenzu"
+      POSTGRES_USER: "tenzu"
+      POSTGRES_PASSWORD: "tenzu"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenzu"]
+      interval: 2s
+      timeout: 15s
+      retries: 5
+    ports:
+      - 5432:5432
+
+    volumes:
+      - tenzu-db-data:/var/lib/postgresql/data
+    networks:
+      - tenzu
+
+  tenzu-redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 15s
+      retries: 5
+    networks:
+      - tenzu
+
+  caddy:
+    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}-caddy:develop
+    env_file:
+      - ../../caddy/caddy.env
+    build:
+      context: ../../caddy
+      dockerfile: ./Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    #      - "8383:8383"
+    volumes:
+      - ../../caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ../../caddy/.caddy/config/:/config/
+      - ../../caddy/.caddy/data/:/data/
+      - tenzu-static:/tenzu/static
+      - tenzu-media:/tenzu/media
+    networks:
+      - tenzu
+#  compile-dep:
+#    build:
+#      context: ../../../../
+#      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+#      target: base-image
+#    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:compile
+#    restart: on-failure
+##    profiles:
+##      - compile
+#    command: >
+#      sh -c
+#      "uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in"
+#      "uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in"
+#    volumes:
+#      - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
+#  compile-dep-upgrade:
+#    build:
+#      context: ../../../../
+#      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+#      target: base-image
+#    image: gitlab.biru.sh:4567/biru/dev/${MODULE_NAME}:compile
+#    restart: on-failure
+##    profiles:
+##      - compile-update
+#    command: >
+#      sh -c
+#      uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in
+#      uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in
+#    volumes:
+#      - ../../backend/requirements/:/code/requirements/
+
+volumes:
+  tenzu-db-data:
+  tenzu-media:
+  tenzu-static:
+
+networks:
+  tenzu:

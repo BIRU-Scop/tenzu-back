@@ -1,0 +1,70 @@
+<!--
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+Copyright (c) 2023-present Kaleidos INC
+-->
+<mj-attributes>
+  <!-- components overrides -->
+  <mj-section padding="0" />
+  <mj-text font-family="Atkinson Hyperlegible, sans-serif" padding="0" color="#505C74" />
+
+  <!-- buttons -->
+  <mj-class
+    name="btn-primary"
+    background-color="#9ca4ff"
+    border-radius="4px"
+    color="#4e56ae"
+    font-family="Atkinson Hyperlegible"
+    font-size="18px"
+    font-weight="500"
+    inner-padding="10px"
+    line-height="21px"
+    text-align="center"
+    padding="0 0 24px"
+    width="100%"/>
+
+  <!-- fonts -->
+  <mj-class
+    name="font-heading1"
+    font-weight="500"
+    font-size="21px"
+    line-height="24px"
+    padding-bottom="24px" />
+  <mj-class
+    name="font-heading2"
+    font-size="18px"
+    font-weight="400"
+    line-height="150%"
+    padding-bottom="24px" />
+  <mj-class
+    name="font-body"
+    font-size="14px"
+    font-weight="400"
+    line-height="21px" />
+  <mj-class
+    name="font-small"
+    font-size="12px"
+    font-weight="400"
+    line-height="1.5" />
+
+  <!-- colors -->
+  <mj-class name="color-gray100" color="#262C39" />
+  <mj-class name="color-gray90" color="#384051" />
+  <mj-class name="color-gray80" color="#505C74" />
+  <mj-class name="color-gray70" color="#63738F" />
+
+  <!-- spacing -->
+  <mj-class name="padding-paragraph" padding-bottom="16px" />
+  <mj-class name="padding-8" padding="8px" />
+  <mj-class name="padding-top-24" padding-top="24px" />
+  <mj-class name="padding-top-32" padding-top="32px" />
+  <mj-class name="padding-bottom-24" padding-bottom="24px" />
+  <mj-class name="padding-bottom-32" padding-bottom="32px" />
+  <mj-class name="padding-bottom-48" padding-bottom="48px" />
+  <mj-class name="padding-section" padding-top="24px" padding-bottom="24px" />
+
+  <!-- width -->
+  <mj-class name="full-width" width="100%" />
+</mj-attributes>

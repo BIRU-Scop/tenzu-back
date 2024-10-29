@@ -1,0 +1,52 @@
+include:
+  - component: $CI_SERVER_FQDN/biru/project-components/merge-branches@0.0.16
+    inputs:
+      dev-branch: main
+      token: $DEV_TOKEN
+  - component: $CI_SERVER_FQDN/biru/project-components/build-deploy@0.0.16
+    inputs:
+      project-name: tenzu
+      application-name: api
+      dockerfile: buildrun/docker/tenzu/Dockerfile
+      target: production-image
+  - component: $CI_SERVER_FQDN/biru/project-components/release@0.0.16
+    inputs:
+      token: $DEV_TOKEN
+stages:
+  - release
+  - build-deploy
+  - merge
+
+
+launch-demo-deploy:
+  stage: merge
+  variables:
+    GIT_STRATEGY: none
+    GIT_DISCOVERY_ACROSS_FILESYSTEM: 1
+  needs:
+    - job: get-released-tag
+    - job: build-image-and-push
+  before_script:
+    - git clone https://oauth2:$DEPLOY_TOKEN@${CI_SERVER_HOST}/biru/sre/argocd -b main
+    - cd argocd
+    - git config --local user.email "bot@biru.sh"
+    - git config --local user.name "Bot Biru"
+    - git fetch --all
+  script:
+    # construct the values path with the inputs value
+    - PROJECT_NAME="tenzu"
+    - APP_NAME="api"
+    - ENV_NAME="demo"
+    - VALUES_FOLDER="values"
+    - FILE="$VALUES_FOLDER/$PROJECT_NAME/$APP_NAME/values-$ENV_NAME.yaml"
+    - echo $FILE $VALUE $NEXT_VERSION
+    - yq -i ".image.tag=\"$NEXT_VERSION\"" "$FILE"
+    - git add $FILE
+    - git commit -m "deploy($PROJECT_NAME/$APP_NAME) $NEXT_VERSION on $ENV_NAME"
+    - git push origin HEAD:main
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging" && $CI_COMMIT_MESSAGE =~ /^chore\(release\).*-.*/ '
+      when: manual
+  environment:
+    name: demo
+

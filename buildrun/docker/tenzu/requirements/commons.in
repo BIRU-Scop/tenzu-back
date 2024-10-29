@@ -1,0 +1,64 @@
+# channel
+channels[daphne]
+channels_redis
+django-extensions
+# Common API packages
+fastapi
+pydantic[email,dotenv]>2
+# add
+pydantic-settings
+email-validator
+aiosmtplib
+orjson
+django-ninja
+uvloop>=0.18.0
+##
+python-multipart
+a2wsgi # WSGI to ASGI adapter
+uvicorn[standard]
+httpx
+
+# ORM + Django
+Django
+psycopg2
+easy-thumbnails # Images and thumbnails
+django-nonrelated-inlines # admin
+
+# Mailing module
+#Fastapi-Mailman # Email sender
+jinja2 # Templates system
+
+# Task Queue Module
+procrastinate[django]==2.6.0
+
+# Events Module
+redis[hiredis]
+
+# I18n & l10n
+babel
+
+# Auth
+PyJWT # For auth
+cryptography # For auth
+
+# Utils & tools
+faker # For sampledata
+pyhumps # For transform texts: camelCase/snake_case
+python-json-logger # JSON logger
+python-slugify # To generate slugs
+requests # As http client
+svglib # Needed by easy-thumbnails
+typer[all] # For manage CLI
+
+
+# TODO [FIXME]: there is an error if django-stubs-ext is not installed:
+#
+#     File "/home/bameda/kaleidos-ventures/projects/tenzu/python/src/tenzu/src/tenzu/base/db/models/tmp.py", line 24, in <module>
+#      from tenzu.base.db.models.fields import *  # noqa
+#     File "/home/bameda/kaleidos-ventures/projects/tenzu/python/src/tenzu/src/tenzu/base/db/models/fields.py", line 15, in <module>
+#      class SaveAsLowerCaseMixin(Field[StrOrNone, str]):
+#   TypeError: 'type' object is not subscriptable
+django-stubs
+django-cors-headers
+sentry-sdk
+django-environ
