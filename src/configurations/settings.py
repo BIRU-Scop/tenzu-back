@@ -256,7 +256,7 @@ CHANNEL_LAYERS = {
         "CONFIG": {
             "hosts": [
                 {
-                    "address": f"redis://:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
+                    "address": f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
                     **settings.EVENTS.REDIS_OPTIONS,
                 }
 
