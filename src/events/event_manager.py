@@ -16,7 +16,8 @@
 #
 # You can contact BIRU at ask@biru.sh
 from channels.layers import get_channel_layer
-
+from redis import AuthenticationError, ConnectionError
+from sentry_sdk import capture_message, capture_exception
 from events import channels
 from events.actions import EventResponse
 from events.events import Event, EventContent
@@ -31,13 +32,17 @@ class EventsManager:
 
     async def publish(self, channel: str, event: Event) -> None:
         event = EventResponse(channel=channel, event=event)
-        await self.channel_layer.send(
-            channel,
-            {
-                "type": "emit.event",
-                "event": event.model_dump(by_alias=True, mode="json"),
-            },
-        )
+        try:
+            await self.channel_layer.send(
+                channel,
+                {
+                    "type": "emit.event",
+                    "event": event.model_dump(by_alias=True, mode="json"),
+                },
+            )
+        except (AuthenticationError, ConnectionError) as e:
+            capture_exception(e)
+
 
     def _generate_event(self, type: str, content: EventContent = None) -> Event:
         return Event(
