@@ -252,11 +252,14 @@ THUMBNAIL_ALIASES = {"": settings.IMAGES.THUMBNAIL_ALIASES}
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer",
-        # "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "BACKEND": f"{settings.EVENTS.PUBSUB_BACKEND.value}",
         "CONFIG": {
             "hosts": [
-                f"redis://:{env.str("REDIS_PASSWORD","")}@{env.str("REDIS_HOST", "tenzu-redis")}:{env.int("REDIS_PORT", 6379)}/0"
+                {
+                    "address": f"redis://:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
+                    **settings.EVENTS.REDIS_OPTIONS,
+                }
+
             ],
         },
     },
@@ -300,5 +303,5 @@ if dns := env.str("SENTRY_DSN", default=None):
     sentry_sdk.init(
         integrations=[DjangoIntegration()],
         auto_session_tracking=False,
-        traces_sample_rate=0,
+        traces_sample_rate=1.0,
     )
