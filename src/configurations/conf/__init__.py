@@ -153,7 +153,7 @@ class Settings(BaseSettings):
         env_prefix="TENZU_",
         env_nested_delimiter="__",
         case_sensitive=True,
-        env_file=os.getenv("TENZU_ENV_FILE", "caddy.env"),
+        env_file=os.getenv("TENZU_ENV_FILE", ".env"),
         env_file_encoding=os.getenv("TENZU_ENV_FILE_ENCODING", "utf-8"),
     )
 

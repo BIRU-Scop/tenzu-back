@@ -18,13 +18,14 @@
 # You can contact BIRU at ask@biru.sh
 
 from enum import Enum
+from typing import Dict
 
 from pydantic_settings import BaseSettings
 
 
 class PubSubBackendChoices(Enum):
-    MEMORY = "memory"
-    REDIS = "redis"
+    MEMORY = "channels.layers.InMemoryChannelLayer"
+    REDIS = "channels_redis.pubsub.RedisPubSubChannelLayer"
 
 
 class EventsSettings(BaseSettings):
@@ -34,8 +35,9 @@ class EventsSettings(BaseSettings):
     # -- none --
 
     # Settings for PubSubBackendChoices.REDIS
-    REDIS_HOST: str = "localhost"
+    REDIS_HOST: str = "tenzu-redis"
     REDIS_PORT: int = 6379
-    REDIS_USERNAME: str | None = None
-    REDIS_PASSWORD: str | None = None
+    REDIS_USERNAME: str = ""
+    REDIS_PASSWORD: str = ""
     REDIS_DATABASE: int = 0
+    REDIS_OPTIONS: Dict[str, str|int] = {}
