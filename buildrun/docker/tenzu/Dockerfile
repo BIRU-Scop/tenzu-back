@@ -11,15 +11,14 @@ RUN apt-get update &&\
   apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 RUN pip install uv
 
-# Create and set the working directory
-# TODO switch tenzu directory to code directory
-WORKDIR /tenzu
+
 
 ####
 # Production part
 ####
 
 FROM base-image AS production-image
+WORKDIR /tenzu
 COPY ./src/ /tenzu/
 COPY ./buildrun/docker/tenzu/requirements/prod.txt /tenzu/prod.txt
 RUN uv pip sync --system /tenzu/prod.txt && rm /tenzu/prod.txt
@@ -30,6 +29,7 @@ RUN python ./__main__.py i18n compile-catalog
 ####
 
 FROM base-image AS base-test-image
+WORKDIR /tenzu
 RUN echo "must be implemented"
 
 ####
@@ -37,7 +37,7 @@ RUN echo "must be implemented"
 ####
 
 FROM base-image AS dev-image
-
+WORKDIR /tenzu
 RUN apt-get update && apt-get install -y --no-install-recommends gettext && apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 COPY ./buildrun/docker/tenzu/requirements/devel.txt /tenzu/devel.txt
 RUN uv pip sync --system /tenzu/devel.txt && rm /tenzu/devel.txt
