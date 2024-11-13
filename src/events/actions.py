@@ -55,14 +55,17 @@ class SignInAction(PydanticBaseModel):
             consumer.scope["user"] = user
             channel = channels.user_channel(user)
             await consumer.subscribe(channel)
-            await consumer.send_action_response(ActionResponse(action=self, content={"channel": channel}))
+            await consumer.broadcast_action_response(
+                channel=channel,
+                action=ActionResponse(action=self, content={"channel": channel}),
+            )
         except AuthenticationFailed:
-            await consumer.send_action_response(
+            await consumer.send_without_broadcast_action_response(
                 ActionResponse(
                     action=self,
                     status="error",
                     content={"detail": "invalid-credentials"},
-                )
+                ).model_dump()
             )
 
 
@@ -71,15 +74,20 @@ class SignOutAction(PydanticBaseModel):
 
     async def run(self, consumer: "EventConsumer") -> None:
         user = consumer.scope["user"]
+
         if consumer.scope["user"].is_authenticated:
             channel = channels.user_channel(user)
+            await consumer.broadcast_action_response(
+                channel=channel, action=ActionResponse(action=self)
+            )
             await consumer.unsubscribe(channel)
             consumer.scope["user"] = AnonymousUser()
 
-            await consumer.send_action_response(ActionResponse(action=self))
         else:
-            await consumer.send_action_response(
-                ActionResponse(action=self, status="error", content={"detail": "not-signed-in"})
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "not-signed-in"}
+                ).model_dump()
             )
 
 
@@ -87,7 +95,9 @@ class PingAction(PydanticBaseModel):
     command: Literal["ping"] = "ping"
 
     async def run(self, consumer: "EventConsumer") -> None:
-        await consumer.send_action_response(ActionResponse(action=self, content={"message": "pong"}))
+        await consumer.send_action_response(
+            ActionResponse(action=self, content={"message": "pong"}).model_dump()
+        )
 
 
 # Project
@@ -96,7 +106,9 @@ class PingAction(PydanticBaseModel):
 PROJECT_PERMISSIONS = CanViewProject()
 
 
-async def can_user_subscribe_to_project_channel(user: AbstractUser, project: Project) -> bool:
+async def can_user_subscribe_to_project_channel(
+    user: AbstractUser, project: Project
+) -> bool:
     try:
         await check_permissions(permissions=PROJECT_PERMISSIONS, user=user, obj=project)
         return True
@@ -113,27 +125,36 @@ class SubscribeToProjectEventsAction(PydanticBaseModel):
 
         project_id = decode_b64str_to_uuid(self.project)
         project = await projects_services.get_project(id=project_id)
-
         if project:
-            if await can_user_subscribe_to_project_channel(user=consumer.scope["user"], project=project):
+            if await can_user_subscribe_to_project_channel(
+                user=consumer.scope["user"], project=project
+            ):
                 channel = channels.project_channel(self.project)
                 content = {"channel": channel}
                 await consumer.subscribe(channel)
-                await consumer.send_action_response(ActionResponse(action=self, content=content))
+                await consumer.broadcast_action_response(
+                    channel=channel, action=ActionResponse(action=self, content=content)
+                )
             else:
                 # Not enough permissions
-                await consumer.send_action_response(
-                    ActionResponse(action=self, status="error", content={"detail": "not-allowed"})
+                await consumer.send_without_broadcast_action_response(
+                    ActionResponse(
+                        action=self, status="error", content={"detail": "not-allowed"}
+                    ).model_dump()
                 )
         else:
             # Project does not exist
-            await consumer.send_action_response(
-                ActionResponse(action=self, status="error", content={"detail": "not-found"})
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "not-found"}
+                ).model_dump()
             )
 
 
 class UnsubscribeFromProjectEventsAction(PydanticBaseModel):
-    command: Literal["unsubscribe_from_project_events"] = "unsubscribe_from_project_events"
+    command: Literal["unsubscribe_from_project_events"] = (
+        "unsubscribe_from_project_events"
+    )
     project: str
 
     async def run(self, consumer: "EventConsumer") -> None:
@@ -141,19 +162,27 @@ class UnsubscribeFromProjectEventsAction(PydanticBaseModel):
             channel = channels.project_channel(self.project)
             ok = await consumer.unsubscribe(channel=channel)
             if ok:
-                await consumer.send_action_response(ActionResponse(action=self))
+                await consumer.send_without_broadcast_action_response(
+                    ActionResponse(action=self).model_dump()
+                )
             else:
-                await consumer.send_action_response(
-                    ActionResponse(action=self, status="error", content={"detail": "not-subscribe"})
+                await consumer.send_without_broadcast_action_response(
+                    ActionResponse(
+                        action=self, status="error", content={"detail": "not-subscribe"}
+                    ).model_dump()
                 )
         else:
-            await consumer.send_action_response(
-                ActionResponse(action=self, status="error", content={"detail": "not-allowed"})
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "not-allowed"}
+                ).model_dump()
             )
 
 
 class CheckProjectEventsSubscriptionAction(PydanticBaseModel):
-    command: Literal["check_project_events_subscription"] = "check_project_events_subscription"
+    command: Literal["check_project_events_subscription"] = (
+        "check_project_events_subscription"
+    )
     project: str
 
     async def run(self, consumer: "EventConsumer") -> None:
@@ -162,11 +191,15 @@ class CheckProjectEventsSubscriptionAction(PydanticBaseModel):
         project_id = decode_b64str_to_uuid(self.project)
         project = await projects_services.get_project(id=project_id)
 
-        if project and not await can_user_subscribe_to_project_channel(user=consumer.scope["user"], project=project):
+        if project and not await can_user_subscribe_to_project_channel(
+            user=consumer.scope["user"], project=project
+        ):
             channel = channels.project_channel(self.project)
             await consumer.unsubscribe(channel=channel)
-            await consumer.send_action_response(
-                ActionResponse(action=self, status="error", content={"detail": "lost-permissions"})
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "lost-permissions"}
+                ).model_dump()
             )
 
 
@@ -175,9 +208,13 @@ class CheckProjectEventsSubscriptionAction(PydanticBaseModel):
 WORKSPACE_PERMISSIONS = HasPerm("view_workspace")
 
 
-async def can_user_subscribe_to_workspace_channel(user: AbstractUser, workspace: Workspace) -> bool:
+async def can_user_subscribe_to_workspace_channel(
+    user: AbstractUser, workspace: Workspace
+) -> bool:
     try:
-        await check_permissions(permissions=WORKSPACE_PERMISSIONS, user=user, obj=workspace)
+        await check_permissions(
+            permissions=WORKSPACE_PERMISSIONS, user=user, obj=workspace
+        )
         return True
     except ForbiddenError:
         return False
@@ -194,25 +231,42 @@ class SubscribeToWorkspaceEventsAction(PydanticBaseModel):
         workspace = await workspaces_services.get_workspace(id=workspace_id)
 
         if workspace:
-            if await can_user_subscribe_to_workspace_channel(user=consumer.scope["user"], workspace=workspace):
+            if await can_user_subscribe_to_workspace_channel(
+                user=consumer.scope["user"], workspace=workspace
+            ):
                 channel = channels.workspace_channel(self.workspace)
                 content = {"channel": channel}
                 await consumer.subscribe(channel=channel)
-                await consumer.send_action_response(ActionResponse(action=self, content=content))
+                await consumer.broadcast_action_response(
+                    channel=channel, action=ActionResponse(action=self, content=content)
+                )
             else:
                 # Not enough permissions
-                await consumer.send_action_response(
-                    ActionResponse(action=self, status="error", content={"detail": "not-allowed"})
+                await consumer.send_without_broadcast_action_response(
+                    ActionResponse(
+                        action=self, status="error", content={"detail": "not-allowed"}
+                    ).model_dump()
                 )
         else:
             # Workspace does not exist
-            await consumer.send_action_response(
-                ActionResponse(action=self, status="error", content={"detail": "not-found"})
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "not-found"}
+                ).model_dump()
             )
 
 
 class UnsubscribeFromWorkspaceEventsAction(PydanticBaseModel):
-    command: Literal["unsubscribe_from_workspace_events"] = "unsubscribe_from_workspace_events"
+    """
+    Represents an action to unsubscribe a user from workspace events.
+
+    This class is used to initiate the process of unsubscribing a user from a specific
+    workspace's events. Always call this action when you switch of workspace into the front end
+    """
+
+    command: Literal["unsubscribe_from_workspace_events"] = (
+        "unsubscribe_from_workspace_events"
+    )
     workspace: str
 
     async def run(self, consumer: "EventConsumer") -> None:
@@ -220,19 +274,27 @@ class UnsubscribeFromWorkspaceEventsAction(PydanticBaseModel):
             channel = channels.workspace_channel(self.workspace)
             ok = await consumer.unsubscribe(channel=channel)
             if ok:
-                await consumer.send_action_response(ActionResponse(action=self))
+                await consumer.send_without_broadcast_action_response(
+                    ActionResponse(action=self).model_dump()
+                )
             else:
-                await consumer.send_action_response(
-                    ActionResponse(action=self, status="error", content={"detail": "not-subscribe"})
+                await consumer.send_without_broadcast_action_response(
+                    ActionResponse(
+                        action=self, status="error", content={"detail": "not-subscribe"}
+                    ).model_dump()
                 )
         else:
-            await consumer.send_action_response(
-                ActionResponse(action=self, status="error", content={"detail": "not-allowed"})
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "not-allowed"}
+                ).model_dump()
             )
 
 
 class CheckWorkspaceEventsSubscriptionAction(PydanticBaseModel):
-    command: Literal["check_workspace_events_subscription"] = "check_workspace_events_subscription"
+    command: Literal["check_workspace_events_subscription"] = (
+        "check_workspace_events_subscription"
+    )
     workspace: str
 
     async def run(self, consumer: "EventConsumer") -> None:
@@ -246,29 +308,28 @@ class CheckWorkspaceEventsSubscriptionAction(PydanticBaseModel):
         ):
             channel = channels.workspace_channel(self.workspace)
             await consumer.unsubscribe(channel=channel)
-            await consumer.send_action_response(
-                ActionResponse(action=self, status="error", content={"detail": "lost-permissions"})
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "lost-permissions"}
+                ).model_dump()
             )
 
 
-ActionList = Annotated[
-    Union[
-        SignInAction,
-        SignOutAction,
-        PingAction,
-        SubscribeToProjectEventsAction,
-        UnsubscribeFromProjectEventsAction,
-        CheckProjectEventsSubscriptionAction,
-        SubscribeToWorkspaceEventsAction,
-        UnsubscribeFromWorkspaceEventsAction,
-        CheckWorkspaceEventsSubscriptionAction,
-    ],
-    Field(..., discriminator="command"),
+ActionList = Union[
+    SignInAction,
+    SignOutAction,
+    PingAction,
+    SubscribeToProjectEventsAction,
+    UnsubscribeFromProjectEventsAction,
+    CheckProjectEventsSubscriptionAction,
+    SubscribeToWorkspaceEventsAction,
+    UnsubscribeFromWorkspaceEventsAction,
+    CheckWorkspaceEventsSubscriptionAction,
 ]
 
 
 class Action(PydanticBaseModel):
-    action: ActionList
+    action: ActionList = Field(..., discriminator="command")
 
     def run(self, consumer: "EventConsumer"):
         raise NotImplementedError
@@ -276,7 +337,7 @@ class Action(PydanticBaseModel):
 
 class ActionResponse(PydanticBaseModel):
     type: Literal["action"] = "action"
-    action: ActionList
+    action: ActionList = Field(..., discriminator="command")
     status: Literal["ok", "error"] = "ok"
     content: dict[str, Any] | None = None
 
@@ -293,7 +354,9 @@ class EventResponse(PydanticBaseModel):
     event: Event
 
 
-ResponseList = Annotated[SystemResponse | EventResponse | ActionResponse, Field(..., discriminator="type")]
+ResponseList = Annotated[
+    SystemResponse | EventResponse | ActionResponse, Field(..., discriminator="type")
+]
 
 
 class Response(PydanticBaseModel):
