@@ -19,9 +19,10 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from base.logging.context import get_current_correlation_id
+from base.serializers import BaseModel
 
 EventContent = BaseModel | None
 
@@ -40,8 +41,12 @@ class Event(BaseModel):
         )
 
     def __repr__(self) -> str:
-        _content = self.content.dict(by_alias=True) if isinstance(self.content, BaseModel) else self.content
+        _content = (
+            self.content.model_dump(by_alias=True)
+            if isinstance(self.content, BaseModel)
+            else self.content
+        )
         return f"Event(type={self.type!r}, correlation_id={self.correlation_id}, content={_content!r})"
 
     def __str__(self) -> str:
-        return self.json(by_alias=True)
+        return self.model_dump_json(by_alias=True)

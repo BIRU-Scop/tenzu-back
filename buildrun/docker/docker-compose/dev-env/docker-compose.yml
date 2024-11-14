@@ -98,36 +98,36 @@ services:
       - tenzu-media:/tenzu/media
     networks:
       - tenzu
-#  compile-dep:
-#    build:
-#      context: ../../../../
-#      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
-#      target: base-image
-#    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:compile
-#    restart: on-failure
-##    profiles:
-##      - compile
-#    command: >
-#      sh -c
-#      "uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in"
-#      "uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in"
-#    volumes:
-#      - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
-#  compile-dep-upgrade:
-#    build:
-#      context: ../../../../
-#      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
-#      target: base-image
-#    image: gitlab.biru.sh:4567/biru/dev/${MODULE_NAME}:compile
-#    restart: on-failure
-##    profiles:
-##      - compile-update
-#    command: >
-#      sh -c
-#      uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in
-#      uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in
-#    volumes:
-#      - ../../backend/requirements/:/code/requirements/
+  compile-dep:
+    build:
+      context: ../../../../
+      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+      target: base-image
+    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:compile
+    restart: on-failure
+    profiles:
+      - compile
+    command: >
+      sh -c
+      "uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in"
+      "uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in"
+    volumes:
+      - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
+  compile-dep-upgrade:
+    build:
+      context: ../../../../
+      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+      target: base-image
+    image: gitlab.biru.sh:4567/biru/dev/${MODULE_NAME}:compile
+    restart: on-failure
+    profiles:
+      - compile-update
+    command: >
+      sh -c
+      uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in
+      uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in
+    volumes:
+      - ../../backend/requirements/:/code/requirements/
 
 volumes:
   tenzu-db-data:

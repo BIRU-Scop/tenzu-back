@@ -27,7 +27,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-import os
 from pathlib import Path
 
 import environ
@@ -100,7 +99,7 @@ INSTALLED_APPS = [
     "ninja_jwt.token_blacklist",
     "procrastinate.contrib.django",
     "corsheaders",
-    'django_extensions',
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
@@ -109,6 +108,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "base.logging.middlewares.AsyncCorrelationIdMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -259,7 +259,6 @@ CHANNEL_LAYERS = {
                     "address": f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
                     **settings.EVENTS.REDIS_OPTIONS,
                 }
-
             ],
         },
     },

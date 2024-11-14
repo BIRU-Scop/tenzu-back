@@ -18,20 +18,14 @@ repos:
         args:
           - --fix=lf
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.1.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.7.3
     hooks:
-      - id: flake8
-        additional_dependencies: [ flake8-typing-imports==1.16.0 ]
-        files: 'src/'
-        args: [ --config=.flake8 ]
-
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-      - id: black
-        files: 'src/'
-        args: [ "--config=.black", "--fast" ]
+      # Run the linter.
+      - id: ruff
+      # Run the formatter.
+      - id: ruff-format
 
 #  - repo: https://github.com/pre-commit/mirrors-mypy
 #    rev: v1.12.1

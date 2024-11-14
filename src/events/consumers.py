@@ -15,10 +15,10 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-import json
 import logging
+from typing import Any
 
-from channels.generic.websocket import AsyncJsonWebsocketConsumer, WebsocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from pydantic import ValidationError
 
 from events.actions import Action, ActionResponse, SystemResponse
@@ -50,8 +50,19 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, close_code):
         pass
 
-    async def send_action_response(self, action: ActionResponse):
-        await self.send_json(action.model_dump())
+    async def broadcast_action_response(self, channel: str, action: ActionResponse):
+        """
+        use this to broadcast a action response
+        """
+        await self.channel_layer.group_send(
+            channel, {"type": "send_action_response", "data": action.model_dump()}
+        )
+
+    async def send_action_response(self, action: dict[str, Any]):
+        await self.send_json(action["data"])
+
+    async def send_without_broadcast_action_response(self, action: dict[str, Any]):
+        await self.send_json(action)
 
     async def subscribe(self, channel: str):
         await self.channel_layer.group_add(channel, self.channel_name)
