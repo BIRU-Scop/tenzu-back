@@ -21,7 +21,7 @@ gunicorn
 httpx
 
 # ORM + Django
-Django
+Django[argon2]
 psycopg2
 easy-thumbnails # Images and thumbnails
 django-nonrelated-inlines # admin

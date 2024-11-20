@@ -12,6 +12,10 @@ anyio==4.6.2.post1
     #   procrastinate
     #   starlette
     #   watchfiles
+argon2-cffi==23.1.0
+    # via django
+argon2-cffi-bindings==21.2.0
+    # via argon2-cffi
 asgiref==3.8.1
     # via
     #   channels
@@ -43,7 +47,9 @@ certifi==2024.8.30
     #   requests
     #   sentry-sdk
 cffi==1.17.1
-    # via cryptography
+    # via
+    #   argon2-cffi-bindings
+    #   cryptography
 channels==4.1.0
     # via
     #   -r requirements/commons.in
