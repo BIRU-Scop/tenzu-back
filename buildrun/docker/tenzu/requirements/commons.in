@@ -51,13 +51,6 @@ svglib # Needed by easy-thumbnails
 typer[all] # For manage CLI
 
 
-# TODO [FIXME]: there is an error if django-stubs-ext is not installed:
-#
-#     File "/home/bameda/kaleidos-ventures/projects/tenzu/python/src/tenzu/src/tenzu/base/db/models/tmp.py", line 24, in <module>
-#      from tenzu.base.db.models.fields import *  # noqa
-#     File "/home/bameda/kaleidos-ventures/projects/tenzu/python/src/tenzu/src/tenzu/base/db/models/fields.py", line 15, in <module>
-#      class SaveAsLowerCaseMixin(Field[StrOrNone, str]):
-#   TypeError: 'type' object is not subscriptable
 django-stubs
 django-cors-headers
 sentry-sdk

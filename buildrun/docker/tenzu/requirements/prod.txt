@@ -106,8 +106,6 @@ faker==30.8.0
     # via -r requirements/commons.in
 fastapi==0.115.3
     # via -r requirements/commons.in
-gunicorn==23.0.0
-    # via -r requirements/prod.in
 h11==0.14.0
     # via
     #   httpcore
@@ -148,8 +146,6 @@ msgpack==1.1.0
     # via channels-redis
 orjson==3.10.10
     # via -r requirements/commons.in
-packaging==24.1
-    # via gunicorn
 pillow==11.0.0
     # via
     #   easy-thumbnails

@@ -1,7 +1,5 @@
 services:
   tenzu-back:
-    # command: "init-and-serve"
-    # environment: *default-back-environment
     image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
     build:
       target: dev-image
@@ -29,7 +27,6 @@ services:
 #    ports:
 #      - 8000:8000
   tenzu-worker:
-    # command: "tasksqueue worker -n main -c 4"
     command: "python manage.py procrastinate worker"
     volumes:
       - ../../../../src/:/tenzu/

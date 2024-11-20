@@ -8,12 +8,12 @@ tasks:
   install-precommit:
     - brew install pre-commit
     - pre-commit install
-  install-black:
-    - pip install black
+  install-ruff:
+    - brew install ruff
   install-deps:
     cmds:
       - task: install-precommit
-      - task: install-black
+      - task: install-ruff
   # OTHER
   execute-service:
     internal: true
