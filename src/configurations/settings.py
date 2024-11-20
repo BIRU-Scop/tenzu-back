@@ -30,6 +30,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 
 import environ
+from corsheaders.defaults import default_headers
 
 from .conf import settings
 
@@ -57,12 +58,13 @@ CSRF_TRUSTED_ORIGINS = [
     str(settings.FRONTEND_URL).rstrip("/"),
     *[str(cors).rstrip("/") for cors in settings.EXTRA_CORS],
 ]
-
 CORS_ALLOWED_ORIGINS = [
     str(settings.BACKEND_URL).rstrip("/"),
     str(settings.FRONTEND_URL).rstrip("/"),
     *[str(cors).rstrip("/") for cors in settings.EXTRA_CORS],
 ]
+CORS_ALLOW_HEADERS = (*default_headers, "correlation-id")
+
 
 # Application definition
 
