@@ -100,14 +100,15 @@ services:
       context: ../../../../
       dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
       target: base-image
+    working_dir: /tenzu
     image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:compile
     restart: on-failure
     profiles:
       - compile
     command: >
       sh -c
-      "uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in"
-      "uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in"
+      "uv pip compile --output-file requirements/devel.txt requirements/devel.in &&
+      uv pip compile --output-file requirements/prod.txt requirements/prod.in"
     volumes:
       - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
   compile-dep-upgrade:
@@ -115,16 +116,17 @@ services:
       context: ../../../../
       dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
       target: base-image
+    working_dir: /tenzu
     image: gitlab.biru.sh:4567/biru/dev/${MODULE_NAME}:compile
     restart: on-failure
     profiles:
       - compile-update
     command: >
       sh -c
-      uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in
-      uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in
+      "uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in &&
+      uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in"
     volumes:
-      - ../../backend/requirements/:/code/requirements/
+      - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
 
 volumes:
   tenzu-db-data:
