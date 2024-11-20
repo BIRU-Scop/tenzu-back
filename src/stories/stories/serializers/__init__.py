@@ -21,10 +21,13 @@ from datetime import datetime
 
 from pydantic import ConfigDict
 
-from base.serializers import BaseModel, UUIDB64
+from base.serializers import UUIDB64, BaseModel
 from stories.stories.serializers.nested import StoryNeighborSerializer
 from users.serializers.nested import UserNestedSerializer
-from workflows.serializers.nested import WorkflowNestedSerializer, WorkflowStatusNestedSerializer
+from workflows.serializers.nested import (
+    WorkflowNestedSerializer,
+    WorkflowStatusNestedSerializer,
+)
 
 
 class StorySummarySerializer(BaseModel):
@@ -32,6 +35,7 @@ class StorySummarySerializer(BaseModel):
     title: str
     status: WorkflowStatusNestedSerializer
     workflow_id: UUIDB64
+    project_id: UUIDB64
     version: int
     assignees: list[UserNestedSerializer] | None = None
     model_config = ConfigDict(from_attributes=True)
@@ -43,6 +47,7 @@ class StoryDetailSerializer(BaseModel):
     description: str | None = None
     status: WorkflowStatusNestedSerializer
     workflow_id: UUIDB64
+    project_id: UUIDB64
     workflow: WorkflowNestedSerializer
     created_by: UserNestedSerializer | None = None
     created_at: datetime
