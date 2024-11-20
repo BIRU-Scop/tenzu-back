@@ -19,7 +19,6 @@
 
 from uuid import UUID
 
-from fastapi import UploadFile
 from ninja import UploadedFile
 
 from attachments import repositories as attachments_repositories

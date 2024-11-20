@@ -29,15 +29,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
-import environ
+import sentry_sdk
 from corsheaders.defaults import default_headers
 
 from .conf import settings
-
-env = environ.Env(
-    # set casting, default value
-    DEBUG=(bool, settings.DEBUG)
-)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -110,7 +105,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "base.logging.middlewares.AsyncCorrelationIdMiddleware",
+    "events.middlewares.AsyncCorrelationIdMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -297,12 +292,10 @@ LOGGING = {
     },
 }
 
-if dns := env.str("SENTRY_DSN", default=None):
-    import sentry_sdk
-    from sentry_sdk.integrations.django import DjangoIntegration
-
-    sentry_sdk.init(
-        integrations=[DjangoIntegration()],
-        auto_session_tracking=False,
-        traces_sample_rate=1.0,
-    )
+# Django integration is automatically enabled
+# sentry-sdk will search for a SENTRY_DSN env variable and use it if set
+# if it is empty or does not exist, no data will be sent
+sentry_sdk.init(
+    auto_session_tracking=False,
+    traces_sample_rate=1.0,
+)

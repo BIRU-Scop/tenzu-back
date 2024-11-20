@@ -18,13 +18,12 @@
 # You can contact BIRU at ask@biru.sh
 
 import logging.config
-import os
 import secrets
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
-from pydantic import AnyHttpUrl, EmailStr, Field, field_validator, validator
+from pydantic import AnyHttpUrl, EmailStr, Field, field_validator
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -40,8 +39,13 @@ from configurations.conf.tokens import TokensSettings
 _BASE_DIR = Path(__file__).resolve().parent.parent.parent  # is 'src'
 _DEFAULT_BACKEND_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=8000)
 _DEFAULT_FRONTEND_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=4200)
-_DEFAULT_STATIC_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=8000, path="/static/")
-_DEFAULT_MEDIA_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=8000, path="/media/")
+_DEFAULT_STATIC_URL = AnyHttpUrl.build(
+    scheme="http", host="localhost", port=8000, path="/static/"
+)
+_DEFAULT_MEDIA_URL = AnyHttpUrl.build(
+    scheme="http", host="localhost", port=8000, path="/media/"
+)
+
 
 class Settings(BaseSettings):
     # Commons
@@ -132,12 +136,20 @@ class Settings(BaseSettings):
     @field_validator("STATIC_URL")
     @classmethod
     def set_static_url(cls, v: AnyHttpUrl, info: ValidationInfo) -> str:
-        return v if v != _DEFAULT_STATIC_URL else urljoin(str(info.data["BACKEND_URL"]), "/static/")
+        return (
+            v
+            if v != _DEFAULT_STATIC_URL
+            else urljoin(str(info.data["BACKEND_URL"]), "/static/")
+        )
 
     @field_validator("MEDIA_URL")
     @classmethod
     def set_media_url(cls, v: AnyHttpUrl, info: ValidationInfo) -> str:
-        return v if v != _DEFAULT_MEDIA_URL else urljoin(str(info.data["BACKEND_URL"]), "/media/")
+        return (
+            v
+            if v != _DEFAULT_MEDIA_URL
+            else urljoin(str(info.data["BACKEND_URL"]), "/media/")
+        )
 
     @field_validator("LANG")
     @classmethod
@@ -146,15 +158,15 @@ class Settings(BaseSettings):
 
         if not i18n.is_language_available(v):
             available_languages_for_display = "\n".join(i18n.available_languages)
-            raise ValueError(f"LANG should be one of \n{ available_languages_for_display }\n")
+            raise ValueError(
+                f"LANG should be one of \n{ available_languages_for_display }\n"
+            )
         return v
 
     model_config = SettingsConfigDict(
         env_prefix="TENZU_",
         env_nested_delimiter="__",
         case_sensitive=True,
-        env_file=os.getenv("TENZU_ENV_FILE", ".env"),
-        env_file_encoding=os.getenv("TENZU_ENV_FILE_ENCODING", "utf-8"),
     )
 
 

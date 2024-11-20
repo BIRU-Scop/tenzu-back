@@ -19,7 +19,7 @@
 
 from fastapi import FastAPI
 
-from base.logging.middlewares import CorrelationIdMiddleware
+from events.middlewares import CorrelationIdMiddleware
 from tests.utils.testclient import TestClient
 
 app = FastAPI()

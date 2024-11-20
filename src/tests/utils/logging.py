@@ -23,7 +23,7 @@ from typing import Callable, ContextManager
 
 import pytest
 
-from base.logging import context
+from events import context
 
 
 @pytest.fixture

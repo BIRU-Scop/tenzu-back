@@ -4,7 +4,7 @@ channels_redis
 django-extensions
 # Common API packages
 fastapi
-pydantic[email,dotenv]>2
+pydantic[email]>2
 # add
 pydantic-settings
 email-validator
@@ -16,6 +16,8 @@ uvloop>=0.18.0
 python-multipart
 a2wsgi # WSGI to ASGI adapter
 uvicorn[standard]
+uvicorn-worker
+gunicorn
 httpx
 
 # ORM + Django
@@ -48,10 +50,9 @@ python-json-logger # JSON logger
 python-slugify # To generate slugs
 requests # As http client
 svglib # Needed by easy-thumbnails
-typer[all] # For manage CLI
+typer # For manage CLI
 
 
 django-stubs
 django-cors-headers
 sentry-sdk
-django-environ
