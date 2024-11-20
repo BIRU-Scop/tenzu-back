@@ -1,5 +1,0 @@
-[flake8]
-min_python_version = 3.12
-# See https://black.readthedocs.io/en/stable/guides/using_black_with_other_tools.html?highlight=flake8#flake8
-max-line-length = 120
-extend-ignore = E203,E501
