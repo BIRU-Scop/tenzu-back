@@ -66,9 +66,9 @@ class Settings(BaseSettings):
 
     # Media and Static files
     STATIC_URL: AnyHttpUrl = _DEFAULT_STATIC_URL
-    STATIC_ROOT: Path = _BASE_DIR.parent.joinpath("static/")
+    STATIC_ROOT: Path = _BASE_DIR.parent / "public" / "static"
     MEDIA_URL: AnyHttpUrl = _DEFAULT_MEDIA_URL
-    MEDIA_ROOT: Path = _BASE_DIR.parent.joinpath("media/")
+    MEDIA_ROOT: Path = _BASE_DIR.parent / "public" / "media"
     MAX_UPLOAD_FILE_SIZE: int = 100 * 1024 * 1024  # 100 MB
 
     # I18N

@@ -7,8 +7,8 @@ services:
       dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
     volumes:
       - ../../../../src/:/tenzu/
-      - tenzu-static:/tenzu/static
-      - tenzu-media:/tenzu/media
+      - tenzu-static:/public/static
+      - tenzu-media:/public/media
     networks:
       - tenzu
     env_file:
@@ -30,8 +30,8 @@ services:
     command: "python manage.py procrastinate worker"
     volumes:
       - ../../../../src/:/tenzu/
-      - tenzu-static:/tenzu/static
-      - tenzu-media:/tenzu/media
+      - tenzu-static:/public/static
+      - tenzu-media:/public/media
     networks:
       - tenzu
     image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
@@ -91,8 +91,8 @@ services:
       - ../../caddy/Caddyfile:/etc/caddy/Caddyfile
       - ../../caddy/.caddy/config/:/config/
       - ../../caddy/.caddy/data/:/data/
-      - tenzu-static:/tenzu/static
-      - tenzu-media:/tenzu/media
+      - tenzu-static:/public/static
+      - tenzu-media:/public/media
     networks:
       - tenzu
   compile-dep:

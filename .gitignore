@@ -339,7 +339,8 @@ logs/
 
 
 # Ignore volume
-/src/static/
-/src/media/
+static/
+media/
+public/
 
 /src/mjml/node_modules/*
