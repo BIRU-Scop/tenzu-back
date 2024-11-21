@@ -18,7 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 from events import events_manager
-from stories.assignments.events.content import CreateStoryAssignmentContent, DeleteStoryAssignmentContent
+from stories.assignments.events.content import (
+    CreateStoryAssignmentContent,
+    DeleteStoryAssignmentContent,
+)
 from stories.assignments.models import StoryAssignment
 from stories.assignments.serializers import StoryAssignmentSerializer
 
@@ -32,13 +35,17 @@ async def emit_event_when_story_assignment_is_created(
     await events_manager.publish_on_user_channel(
         user=story_assignment.user,
         type=CREATE_STORY_ASSIGNMENT,
-        content=CreateStoryAssignmentContent(story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)),
+        content=CreateStoryAssignmentContent(
+            story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)
+        ),
     )
 
     await events_manager.publish_on_project_channel(
         project=story_assignment.story.project,
         type=CREATE_STORY_ASSIGNMENT,
-        content=CreateStoryAssignmentContent(story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)),
+        content=CreateStoryAssignmentContent(
+            story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)
+        ),
     )
 
 
@@ -48,11 +55,15 @@ async def emit_event_when_story_assignment_is_deleted(
     await events_manager.publish_on_user_channel(
         user=story_assignment.user,
         type=DELETE_STORY_ASSIGNMENT,
-        content=DeleteStoryAssignmentContent(story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)),
+        content=DeleteStoryAssignmentContent(
+            story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)
+        ),
     )
 
     await events_manager.publish_on_project_channel(
         project=story_assignment.story.project,
         type=DELETE_STORY_ASSIGNMENT,
-        content=DeleteStoryAssignmentContent(story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)),
+        content=DeleteStoryAssignmentContent(
+            story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)
+        ),
     )

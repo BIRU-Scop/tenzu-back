@@ -24,6 +24,9 @@ repos:
     hooks:
       # Run the linter.
       - id: ruff
+        args:
+          - '--select=I'
+          - --fix
       # Run the formatter.
       - id: ruff-format
 
@@ -38,13 +41,8 @@ repos:
 #          - pydantic
 #          - django-stubs
 #        args: [ --config-file=.mypy.ini ]
+#
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        files: 'src/'
-        args: [ --settings-path=.isort.cfg ]
 
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5

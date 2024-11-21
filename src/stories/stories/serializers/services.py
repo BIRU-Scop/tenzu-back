@@ -21,7 +21,11 @@ from typing import Any
 
 from base.repositories.neighbors import Neighbor
 from stories.stories.models import Story
-from stories.stories.serializers import ReorderStoriesSerializer, StoryDetailSerializer, StorySummarySerializer
+from stories.stories.serializers import (
+    ReorderStoriesSerializer,
+    StoryDetailSerializer,
+    StorySummarySerializer,
+)
 from users.models import User
 from workflows.models import WorkflowStatus
 
@@ -37,6 +41,7 @@ def serialize_story_detail(
         description=story.description,
         status=story.status,
         workflow_id=story.workflow_id,
+        project_id=story.project_id,
         workflow=story.workflow,
         created_by=story.created_by,
         created_at=story.created_at,
@@ -59,6 +64,7 @@ def serialize_story_list(
         ref=story.ref,
         title=story.title,
         workflow_id=story.workflow_id,
+        project_id=story.project_id,
         status=story.status,
         version=story.version,
         assignees=assignees,

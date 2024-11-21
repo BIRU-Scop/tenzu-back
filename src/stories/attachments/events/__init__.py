@@ -22,11 +22,14 @@ from typing import cast
 from attachments.models import Attachment
 from events import events_manager
 from projects.projects.models import Project
-from stories.attachments.events.content import CreateStoryAttachmentContent, DeleteStoryAttachmentContent
+from stories.attachments.events.content import (
+    CreateStoryAttachmentContent,
+    DeleteStoryAttachmentContent,
+)
 from stories.stories.models import Story
 
-CREATE_STORY_ATTACHMENT = "stories.attachments.create"
-DELETE_STORY_ATTACHMENT = "stories.attachments.delete"
+CREATE_STORY_ATTACHMENT = "storiesattachments.create"
+DELETE_STORY_ATTACHMENT = "storiesattachments.delete"
 
 
 async def emit_event_when_story_attachment_is_created(
