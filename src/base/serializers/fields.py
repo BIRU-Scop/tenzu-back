@@ -44,6 +44,10 @@ CamelizeDict = Annotated[
     PlainSerializer(lambda x: camelize(x).__str__(), return_type=str),
 ]
 
+CamelizeDictJson = Annotated[
+    dict,
+    PlainSerializer(lambda x: camelize(x), return_type=str),
+]
 # class UUIDB64(UUID):
 #     @classmethod
 #     # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.

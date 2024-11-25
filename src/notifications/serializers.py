@@ -21,7 +21,8 @@ from datetime import datetime
 
 from pydantic import ConfigDict
 
-from base.serializers import UUIDB64, BaseModel, CamelizeDict
+from base.serializers import UUIDB64, BaseModel
+from base.serializers.fields import CamelizeDictJson
 from users.serializers.nested import UserNestedSerializer
 
 
@@ -31,7 +32,7 @@ class NotificationSerializer(BaseModel):
     created_by: UserNestedSerializer | None = None
     created_at: datetime
     read_at: datetime | None = None
-    content: CamelizeDict
+    content: CamelizeDictJson
     model_config = ConfigDict(from_attributes=True)
 
 
