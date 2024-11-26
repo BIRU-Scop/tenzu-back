@@ -19,12 +19,12 @@
 
 from typing import List, Set
 
+from django.conf import settings
 from pydantic import Field, field_validator
 from typing_extensions import Annotated
 
 from base.utils.emails import is_email
 from base.validators import BaseModel, StrNotEmpty
-from configurations.conf import settings
 
 
 class WorkspaceInvitationValidator(BaseModel):
@@ -38,7 +38,9 @@ class WorkspaceInvitationValidator(BaseModel):
                 return v
 
             domain = v.split("@")[1]
-            assert domain in settings.USER_EMAIL_ALLOWED_DOMAINS, "Email domain not allowed"
+            assert (
+                domain in settings.USER_EMAIL_ALLOWED_DOMAINS
+            ), "Email domain not allowed"
         return v
 
 

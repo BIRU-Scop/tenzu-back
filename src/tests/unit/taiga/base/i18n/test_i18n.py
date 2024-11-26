@@ -32,14 +32,18 @@ def test_i18n_is_created_with_the_falback_lang():
     assert len(i18n._translations_cache) == 1
 
 
-def test_i18n_is_initialized_with_the_config_lang(override_settings, initialize_template_env):
+def test_i18n_is_initialized_with_the_config_lang(
+    override_settings, initialize_template_env
+):
     settings_lang = "es-ES"
-    with override_settings({"LANG": settings_lang}), initialize_template_env():
+    with override_settings({"LANGUAGE_CODE": settings_lang}), initialize_template_env():
         i18n = I18N()
 
         orig_trans = i18n.translations
         assert orig_trans.info()["language"] == str(FALLBACK_LOCALE)
-        assert "jinja2.ext.InternationalizationExtension" not in templating.env.extensions
+        assert (
+            "jinja2.ext.InternationalizationExtension" not in templating.env.extensions
+        )
         assert "gettext" not in templating.env.globals
         assert len(i18n._translations_cache) == 1
 
@@ -55,7 +59,7 @@ def test_i18n_is_initialized_with_the_config_lang(override_settings, initialize_
 def test_i18n_set_lang(override_settings, initialize_template_env):
     settings_lang = "en-US"
     lang = "es-ES"
-    with override_settings({"LANG": settings_lang}), initialize_template_env():
+    with override_settings({"LANGUAGE_CODE": settings_lang}), initialize_template_env():
         i18n = I18N()
         i18n.initialize()
 
@@ -74,11 +78,13 @@ def test_i18n_set_lang(override_settings, initialize_template_env):
         assert len(i18n._translations_cache) == 2
 
 
-def test_i18n_set_lang_with_invalid_identifier(override_settings, initialize_template_env):
+def test_i18n_set_lang_with_invalid_identifier(
+    override_settings, initialize_template_env
+):
     settings_lang = "en-US"
     invalid_lang = "invalid"
 
-    with override_settings({"LANG": settings_lang}), initialize_template_env():
+    with override_settings({"LANGUAGE_CODE": settings_lang}), initialize_template_env():
         i18n = I18N()
         i18n.initialize()
 
@@ -101,7 +107,7 @@ def test_i18n_set_lang_with_invalid_identifier(override_settings, initialize_tem
 def test_i18n_reset_lang(override_settings):
     settings_lang = "es-ES"
     lang = "en-US"
-    with override_settings({"LANG": settings_lang}):
+    with override_settings({"LANGUAGE_CODE": settings_lang}):
         i18n = I18N()
         i18n.initialize()
         i18n.set_lang(lang)
@@ -116,7 +122,7 @@ def test_i18n_reset_lang(override_settings):
 def test_i18n_use_contextmanager(override_settings):
     settings_lang = "es-ES"
     lang = "en-US"
-    with override_settings({"LANG": settings_lang}):
+    with override_settings({"LANGUAGE_CODE": settings_lang}):
         i18n = I18N()
         i18n.initialize()
 

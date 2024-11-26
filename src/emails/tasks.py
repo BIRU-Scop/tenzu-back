@@ -21,11 +21,11 @@ import logging
 from typing import Any
 
 from aiosmtplib import SMTPConnectError
+from django.conf import settings
 from jinja2 import TemplateNotFound
 from procrastinate.contrib.django import app
 
 from base.i18n import i18n
-from configurations.conf import settings
 from emails import exceptions as ex
 from emails.emails import Emails
 from emails.render import render_email_html, render_email_txt, render_subject
@@ -40,13 +40,15 @@ async def send_email(
     to: str | list[str],
     context: dict[str, Any] = {},
     attachment_paths: list[str] = [],
-    lang: str = settings.LANG,
+    lang: str = settings.LANGUAGE_CODE,
 ) -> None:
     # validate the email template
     try:
         Emails(email_name)
     except ValueError:
-        raise ex.EmailTemplateError(f"The email `{email_name}` it's not an allowed `Emails` instance")
+        raise ex.EmailTemplateError(
+            f"The email `{email_name}` it's not an allowed `Emails` instance"
+        )
 
     # prepare the email recipients
     to_emails = to
@@ -63,7 +65,9 @@ async def send_email(
             subject = render_subject(email_name, context)
             body_html = render_email_html(email_name, context)
         except TemplateNotFound as template_exception:
-            raise ex.EmailTemplateError(f"Missing or invalid email template. {template_exception}")
+            raise ex.EmailTemplateError(
+                f"Missing or invalid email template. {template_exception}"
+            )
 
     # send the email message using the configured backend
     try:
@@ -75,8 +79,14 @@ async def send_email(
             attachment_paths=attachment_paths,
         )
     except SMTPConnectError as smtp_exception:
-        raise ex.EmailSMTPError(f"SMTP connection could not be established. {smtp_exception}")
+        raise ex.EmailSMTPError(
+            f"SMTP connection could not be established. {smtp_exception}"
+        )
     except FileNotFoundError as file_attachments_exception:
-        raise ex.EmailAttachmentError(f"Email attachment error. {file_attachments_exception}")
+        raise ex.EmailAttachmentError(
+            f"Email attachment error. {file_attachments_exception}"
+        )
     except Exception as delivery_exception:
-        raise ex.EmailDeliveryError(f"Unknown error while delivering an email. {delivery_exception}")
+        raise ex.EmailDeliveryError(
+            f"Unknown error while delivering an email. {delivery_exception}"
+        )

@@ -19,11 +19,11 @@
 
 from dataclasses import dataclass
 
+from django.conf import settings
 from django.http import HttpResponse
 from fastapi import Query
 
 from base.serializers import BaseModel
-from configurations.conf import settings
 
 
 @dataclass

@@ -29,7 +29,11 @@ from django.db.models import *  # noqa
 # isort: on
 
 from django.apps import apps
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation  # noqa
+from django.conf import settings
+from django.contrib.contenttypes.fields import (  # noqa
+    GenericForeignKey,
+    GenericRelation,
+)
 from django.contrib.contenttypes.models import ContentType  # noqa
 from django.contrib.postgres.fields import ArrayField  # noqa
 from django.contrib.postgres.lookups import Unaccent  # noqa
@@ -39,7 +43,6 @@ from django.db.models.functions import Coalesce, Lower, StrIndex, TruncDate  # n
 
 from base.db.models.fields import *  # noqa
 from base.utils.uuid import encode_uuid_to_b64str
-from configurations.conf import settings
 
 get_model = apps.get_model
 

@@ -25,11 +25,16 @@ Before using any of the tasks, [install go-task](https://taskfile.dev/installati
 
 This tools allows you to run sets of commands contained in the [Taskfile.yml](buildrun/docker/docker-compose/dev-env/Taskfile.yml).
 
+### Brew
+We use [brew](https://brew.sh/) to install some of our dependencies, which is available for Mac, 
+Linux and WSL. If you don't use brew, please look at the
+`install-deps` task and install those by your preferred method.
+
 ### Dependencies bundle
 
 You can install the rest of the dependencies by simply running:
 ```shell
-# Installs pre-commit and black packages, then installs pre-commit hooks.
+# Installs pre-commit and ruff packages and installs pre-commit hooks.
 task install-deps
 ```
 

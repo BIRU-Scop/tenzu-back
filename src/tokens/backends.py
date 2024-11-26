@@ -46,11 +46,16 @@
 from typing import Any
 
 import jwt
-from jwt import ExpiredSignatureError, InvalidAlgorithmError, InvalidTokenError, algorithms
+from django.conf import settings
+from jwt import (
+    ExpiredSignatureError,
+    InvalidAlgorithmError,
+    InvalidTokenError,
+    algorithms,
+)
 
 from base.utils import json
-from configurations.conf import settings
-from configurations.conf.tokens import ALLOWED_ALGORITHMS
+from ninja_jwt.backends import ALLOWED_ALGORITHMS
 from tokens import exceptions as ex
 
 
@@ -83,7 +88,9 @@ class TokenBackend:
             raise ex.TokenBackendError(f"Unrecognized algorithm type '{algorithm}'")
 
         if algorithm in algorithms.requires_cryptography and not algorithms.has_crypto:
-            raise ex.TokenBackendError(f"You must have cryptography installed to use '{algorithm}'.")
+            raise ex.TokenBackendError(
+                f"You must have cryptography installed to use '{algorithm}'."
+            )
 
     def encode(self, payload: dict[str, Any]) -> str:
         """
@@ -132,9 +139,9 @@ class TokenBackend:
 
 
 token_backend = TokenBackend(
-    algorithm=settings.TOKENS.ALGORITHM,
-    signing_key=settings.TOKENS.SIGNING_KEY or settings.SECRET_KEY,
-    verifying_key=settings.TOKENS.VERIFYING_KEY,
-    audience=settings.TOKENS.AUDIENCE,
-    issuer=settings.TOKENS.ISSUER,
+    algorithm=settings.NINJA_JWT["ALGORITHM"],
+    signing_key=settings.NINJA_JWT["SIGNING_KEY"] or settings.SECRET_KEY,
+    verifying_key=settings.NINJA_JWT["VERIFYING_KEY"],
+    audience=settings.NINJA_JWT["AUDIENCE"],
+    issuer=settings.NINJA_JWT["ISSUER"],
 )

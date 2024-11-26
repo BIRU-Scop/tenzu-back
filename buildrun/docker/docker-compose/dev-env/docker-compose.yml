@@ -1,7 +1,5 @@
 services:
   tenzu-back:
-    # command: "init-and-serve"
-    # environment: *default-back-environment
     image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
     build:
       target: dev-image
@@ -9,8 +7,8 @@ services:
       dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
     volumes:
       - ../../../../src/:/tenzu/
-      - tenzu-static:/tenzu/static
-      - tenzu-media:/tenzu/media
+      - tenzu-static:/public/static
+      - tenzu-media:/public/media
     networks:
       - tenzu
     env_file:
@@ -29,12 +27,11 @@ services:
 #    ports:
 #      - 8000:8000
   tenzu-worker:
-    # command: "tasksqueue worker -n main -c 4"
     command: "python manage.py procrastinate worker"
     volumes:
       - ../../../../src/:/tenzu/
-      - tenzu-static:/tenzu/static
-      - tenzu-media:/tenzu/media
+      - tenzu-static:/public/static
+      - tenzu-media:/public/media
     networks:
       - tenzu
     image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
@@ -94,40 +91,42 @@ services:
       - ../../caddy/Caddyfile:/etc/caddy/Caddyfile
       - ../../caddy/.caddy/config/:/config/
       - ../../caddy/.caddy/data/:/data/
-      - tenzu-static:/tenzu/static
-      - tenzu-media:/tenzu/media
+      - tenzu-static:/public/static
+      - tenzu-media:/public/media
     networks:
       - tenzu
-#  compile-dep:
-#    build:
-#      context: ../../../../
-#      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
-#      target: base-image
-#    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:compile
-#    restart: on-failure
-##    profiles:
-##      - compile
-#    command: >
-#      sh -c
-#      "uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in"
-#      "uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in"
-#    volumes:
-#      - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
-#  compile-dep-upgrade:
-#    build:
-#      context: ../../../../
-#      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
-#      target: base-image
-#    image: gitlab.biru.sh:4567/biru/dev/${MODULE_NAME}:compile
-#    restart: on-failure
-##    profiles:
-##      - compile-update
-#    command: >
-#      sh -c
-#      uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in
-#      uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in
-#    volumes:
-#      - ../../backend/requirements/:/code/requirements/
+  compile-dep:
+    build:
+      context: ../../../../
+      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+      target: base-image
+    working_dir: /tenzu
+    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:compile
+    restart: on-failure
+    profiles:
+      - compile
+    command: >
+      sh -c
+      "uv pip compile --output-file requirements/devel.txt requirements/devel.in &&
+      uv pip compile --output-file requirements/prod.txt requirements/prod.in"
+    volumes:
+      - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
+  compile-dep-upgrade:
+    build:
+      context: ../../../../
+      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+      target: base-image
+    working_dir: /tenzu
+    image: gitlab.biru.sh:4567/biru/dev/${MODULE_NAME}:compile
+    restart: on-failure
+    profiles:
+      - compile-update
+    command: >
+      sh -c
+      "uv pip compile  --upgrade --output-file requirements/devel.txt requirements/devel.in &&
+      uv pip compile  --upgrade --output-file requirements/prod.txt requirements/prod.in"
+    volumes:
+      - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
 
 volumes:
   tenzu-db-data:

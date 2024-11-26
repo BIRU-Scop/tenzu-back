@@ -17,22 +17,31 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from configurations.conf import settings
+from django.conf import settings
+
 from integrations.auth import services as integrations_auth_services
 from integrations.google import exceptions as ex
 from integrations.google import services as google_services
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 
 
-async def google_login(code: str, redirect_uri: str, lang: str | None = None) -> TokenObtainPairOutputSchema:
+async def google_login(
+    code: str, redirect_uri: str, lang: str | None = None
+) -> TokenObtainPairOutputSchema:
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
-        raise ex.GoogleLoginError("Login with Google is not available. Contact with the platform administrators.")
+        raise ex.GoogleLoginError(
+            "Login with Google is not available. Contact with the platform administrators."
+        )
 
-    access_token = await google_services.get_access_to_google(code=code, redirect_uri=redirect_uri)
+    access_token = await google_services.get_access_to_google(
+        code=code, redirect_uri=redirect_uri
+    )
     if not access_token:
         raise ex.GoogleLoginAuthenticationError("The provided code is not valid.")
 
-    user_info = await google_services.get_user_info_from_google(access_token=access_token)
+    user_info = await google_services.get_user_info_from_google(
+        access_token=access_token
+    )
     if not user_info:
         raise ex.GoogleAPIError("Google API is not responding.")
 

@@ -25,6 +25,7 @@ from projects.projects.serializers.mixins import ProjectLogoMixin
 
 class ProjectNestedSerializer(BaseModel, ProjectLogoMixin):
     id: UUIDB64
+    workspace_id: UUIDB64
     name: str
     slug: str
     description: str
@@ -34,6 +35,7 @@ class ProjectNestedSerializer(BaseModel, ProjectLogoMixin):
 
 class ProjectLinkNestedSerializer(BaseModel):
     id: UUIDB64
+    workspace_id: UUIDB64
     name: str
     slug: str
     model_config = ConfigDict(from_attributes=True)
@@ -41,6 +43,7 @@ class ProjectLinkNestedSerializer(BaseModel):
 
 class ProjectSmallNestedSerializer(BaseModel):
     id: UUIDB64
+    workspace_id: UUIDB64
     name: str
     slug: str
     anon_user_can_view: bool

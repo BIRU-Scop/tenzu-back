@@ -21,14 +21,16 @@ from pathlib import Path
 from typing import Final
 
 import typer
+from django.conf import settings
 
 from base.i18n import i18n
 from base.utils import json, pprint
-from configurations.conf import settings
 from emails import render as email_render
 from emails.emails import EmailPart, Emails
 
-TEMPLATES_PATH: Final[Path] = Path(__file__).resolve().parent.joinpath("templates")  # src/tenzu/emails/templates
+TEMPLATES_PATH: Final[Path] = (
+    Path(__file__).resolve().parent.joinpath("templates")
+)  # src/tenzu/emails/templates
 
 
 cli = typer.Typer(
@@ -46,9 +48,11 @@ def list() -> None:
 
 @cli.command(help="Render one email part to test it")
 def render(
-    part: EmailPart = typer.Option(EmailPart.HTML.value, "--part", "-p", help="Part of the email to render."),
+    part: EmailPart = typer.Option(
+        EmailPart.HTML.value, "--part", "-p", help="Part of the email to render."
+    ),
     lang: str = typer.Option(
-        settings.LANG,
+        settings.LANGUAGE_CODE,
         "--lang",
         "-l",
         help=f"Language used to render. Availables are: {', '.join(i18n.available_languages)}.",
@@ -70,11 +74,17 @@ def render(
     with i18n.use(lang):
         match part:
             case EmailPart.SUBJECT:
-                syntax = pprint.Syntax(email_render.render_subject(email_name, context), "txt")
+                syntax = pprint.Syntax(
+                    email_render.render_subject(email_name, context), "txt"
+                )
                 console.print(syntax)
             case EmailPart.TXT:
-                syntax = pprint.Syntax(email_render.render_email_txt(email_name, context), "txt")
+                syntax = pprint.Syntax(
+                    email_render.render_email_txt(email_name, context), "txt"
+                )
                 console.print(syntax)
             case EmailPart.HTML:
-                syntax = pprint.Syntax(email_render.render_email_html(email_name, context), "html")
+                syntax = pprint.Syntax(
+                    email_render.render_email_html(email_name, context), "html"
+                )
                 console.print(syntax)

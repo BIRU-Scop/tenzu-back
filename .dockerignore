@@ -21,8 +21,4 @@
 .git
 .github
 .gitignore
-AUTHORS.md
-CODE_OF_CONDUCT.md
-DCOLICENSE
-LICENSE
-README.md
+*.md

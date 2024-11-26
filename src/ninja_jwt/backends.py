@@ -38,7 +38,7 @@
 
 import json
 from datetime import timedelta
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, Literal, Optional, Type, Union, get_args
 
 import jwt
 from django.utils.translation import gettext_lazy as _
@@ -54,7 +54,7 @@ try:
 except ImportError:
     JWK_CLIENT_AVAILABLE = False
 
-ALLOWED_ALGORITHMS = {
+AllowedAlgorithmsType = Literal[
     "HS256",
     "HS384",
     "HS512",
@@ -64,13 +64,14 @@ ALLOWED_ALGORITHMS = {
     "ES256",
     "ES384",
     "ES512",
-}
+]
+ALLOWED_ALGORITHMS: set[AllowedAlgorithmsType] = set(get_args(AllowedAlgorithmsType))
 
 
 class TokenBackend:
     def __init__(
         self,
-        algorithm,
+        algorithm: AllowedAlgorithmsType,
         signing_key=None,
         verifying_key="",
         audience=None,
@@ -94,16 +95,22 @@ class TokenBackend:
         self.leeway = leeway
         self.json_encoder = json_encoder
 
-    def _validate_algorithm(self, algorithm) -> None:
+    def _validate_algorithm(self, algorithm: AllowedAlgorithmsType) -> None:
         """
         Ensure that the nominated algorithm is recognized, and that cryptography is installed for those
         algorithms that require it
         """
         if algorithm not in ALLOWED_ALGORITHMS:
-            raise TokenBackendError(format_lazy(_("Unrecognized algorithm type '{}'"), algorithm))
+            raise TokenBackendError(
+                format_lazy(_("Unrecognized algorithm type '{}'"), algorithm)
+            )
 
         if algorithm in algorithms.requires_cryptography and not algorithms.has_crypto:
-            raise TokenBackendError(format_lazy(_("You must have cryptography installed to use {}."), algorithm))
+            raise TokenBackendError(
+                format_lazy(
+                    _("You must have cryptography installed to use {}."), algorithm
+                )
+            )
 
     def get_leeway(self) -> timedelta:
         if self.leeway is None:
@@ -115,7 +122,9 @@ class TokenBackend:
         else:
             raise TokenBackendError(
                 format_lazy(
-                    _("Unrecognized type '{}', 'leeway' must be of type int, float or timedelta."),
+                    _(
+                        "Unrecognized type '{}', 'leeway' must be of type int, float or timedelta."
+                    ),
                     type(self.leeway),
                 )
             )

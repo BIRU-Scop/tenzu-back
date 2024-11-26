@@ -20,12 +20,9 @@
 from typing import ClassVar, Protocol
 from uuid import uuid4
 
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.requests import Request
-from starlette.responses import Response
-from starlette.types import ASGIApp
+from asgiref.sync import iscoroutinefunction, markcoroutinefunction
 
-from base.logging.context import correlation_id
+from events.context import correlation_id
 
 
 class Generator(Protocol):
@@ -33,7 +30,7 @@ class Generator(Protocol):
         pass
 
 
-class CorrelationIdMiddleware(BaseHTTPMiddleware):
+class AsyncCorrelationIdMiddleware:
     """
     Middleware for reading or generating correlation IDs for each incoming request. Correlation IDs can then be
     added to the log traces, making it simple to retrieve all logs generated from a single HTTP request.
@@ -53,21 +50,28 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
 
     CORRELATION_ID_HEADER_NAME: ClassVar = "correlation-id"
     _generator: Generator
+    async_capable = True
+    sync_capable = False
 
-    def __init__(self, app: ASGIApp, *, generator: Generator = lambda: uuid4().hex) -> None:
-        super().__init__(app)
+    def __init__(self, get_response, generator: Generator = lambda: uuid4().hex):
+        self.get_response = get_response
         self._generator = generator
+        if iscoroutinefunction(self.get_response):
+            markcoroutinefunction(self)
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def __call__(self, request):
         """
         Load request ID from headers if present. Generate one otherwise.
         """
         # Try to load correlation ID from the request headers or generate a new ID if none was found
-        id_value = request.headers.get(self.CORRELATION_ID_HEADER_NAME.lower()) or self._generator()
+        id_value = (
+            request.headers.get(self.CORRELATION_ID_HEADER_NAME.lower())
+            or self._generator()
+        )
 
         token = correlation_id.set(id_value)
 
-        response = await call_next(request)
+        response = await self.get_response(request)
         response.headers[self.CORRELATION_ID_HEADER_NAME] = id_value
 
         correlation_id.reset(token)

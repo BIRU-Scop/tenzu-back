@@ -121,7 +121,9 @@ class I18N:
                 str(FALLBACK_LOCALE),
                 Translations.load(TRANSLATION_DIRECTORY, [FALLBACK_LOCALE]),
             )
-            translations = Translations.load(TRANSLATION_DIRECTORY, [self.locale, FALLBACK_LOCALE])
+            translations = Translations.load(
+                TRANSLATION_DIRECTORY, [self.locale, FALLBACK_LOCALE]
+            )
             translations.add_fallback(fallback_translations)
             self._translations_cache[str(self.locale)] = translations
 
@@ -151,9 +153,9 @@ class I18N:
         """
         Reset the object to use the current config lang.
         """
-        from configurations.conf import settings
+        from django.conf import settings
 
-        self.set_lang(settings.LANG)
+        self.set_lang(settings.LANGUAGE_CODE)
 
     @contextmanager
     def use(self, code: str) -> Generator[None, None, None]:
@@ -213,7 +215,9 @@ class I18N:
         :return a list of locale codes
         :rtype list[str]
         """
-        locale_ids = [get_locale_code(loc_id) for loc_id in localedata.locale_identifiers()]
+        locale_ids = [
+            get_locale_code(loc_id) for loc_id in localedata.locale_identifiers()
+        ]
         locale_ids.sort()
         return locale_ids
 
@@ -241,7 +245,7 @@ class I18N:
         :return a list of `LanguageSchema` objects
         :rtype list[tenzu.base.i18n.schemas.LanguageSchema]
         """
-        from configurations.conf import settings
+        from django.conf import settings
 
         langs: list[LanguageSchema] = []
         for loc in i18n.locales:
@@ -254,7 +258,7 @@ class I18N:
             )
             english_name = loc.english_name or code
             text_direction = TextDirection(loc.text_direction)
-            is_default = code == settings.LANG
+            is_default = code == settings.LANGUAGE_CODE
 
             langs.append(
                 LanguageSchema(

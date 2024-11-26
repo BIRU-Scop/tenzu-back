@@ -19,16 +19,17 @@
 
 from datetime import timedelta
 
+from django.conf import settings
 from procrastinate.contrib.django import app
 
 from base.utils.datetime import aware_utcnow
 from commons.storage import services as storage_services
-from configurations.conf import settings
 
 
 @app.periodic(cron=settings.STORAGE.CLEAN_DELETED_STORAGE_OBJECTS_CRON)  # type: ignore
 @app.task
 async def clean_deleted_storaged_objects(timestamp: int) -> int:
     return await storage_services.clean_deleted_storaged_objects(
-        before=aware_utcnow() - timedelta(days=settings.STORAGE.DAYS_TO_STORE_DELETED_STORAGED_OBJECTS)
+        before=aware_utcnow()
+        - timedelta(days=settings.STORAGE.DAYS_TO_STORE_DELETED_STORAGED_OBJECTS)
     )

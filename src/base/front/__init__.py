@@ -21,8 +21,9 @@ from enum import StrEnum
 from typing import Any
 from urllib.parse import urlencode, urljoin
 
+from django.conf import settings
+
 from base.front.exceptions import InvalidFrontUrl
-from configurations.conf import settings
 
 
 class Urls(StrEnum):
@@ -34,7 +35,9 @@ class Urls(StrEnum):
     WORKSPACE_INVITATION = "/accept-workspace-invitation/{invitation_token}"
 
 
-def resolve_front_url(url_key: str, query_params: dict[str, str] | None = None, **kwargs: Any) -> str:
+def resolve_front_url(
+    url_key: str, query_params: dict[str, str] | None = None, **kwargs: Any
+) -> str:
     try:
         url_pattern = Urls[url_key]
     except KeyError:

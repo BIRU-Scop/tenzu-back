@@ -47,9 +47,9 @@ from unittest.mock import patch
 
 import pytest
 from asgiref.sync import sync_to_async
+from django.conf import settings
 
 from base.utils.datetime import epoch_to_datetime
-from configurations.conf import settings
 from tests.utils import factories as f
 from tokens import commands
 from tokens.base import DenylistMixin, Token
@@ -77,7 +77,9 @@ class UniqueToken(DenylistMixin, Token):
 
 
 ot_count = sync_to_async(OutstandingToken.objects.count)
-ot_first = sync_to_async(OutstandingToken.objects.select_related("denylistedtoken").first)
+ot_first = sync_to_async(
+    OutstandingToken.objects.select_related("denylistedtoken").first
+)
 ot_last = sync_to_async(OutstandingToken.objects.select_related("denylistedtoken").last)
 
 dt_count = sync_to_async(DenylistedToken.objects.count)
@@ -189,7 +191,9 @@ async def test_flush_expired_tokens_should_delete_any_expired_tokens():
     await not_expired_3.denylist()
 
     # Make tokens with fake exp time that will expire soon
-    now = datetime.now(timezone.utc) - timedelta(minutes=settings.REFRESH_TOKEN_LIFETIME)
+    now = datetime.now(timezone.utc) - timedelta(
+        minutes=settings.REFRESH_TOKEN_LIFETIME
+    )
 
     with patch("tokens.base.aware_utcnow") as fake_aware_utcnow:
         fake_aware_utcnow.return_value = now
@@ -214,7 +218,11 @@ async def test_flush_expired_tokens_should_delete_any_expired_tokens():
     assert await ot_count() == 4
     assert await dt_count() == 2
 
-    ots = await sync_to_async(lambda: list(OutstandingToken.objects.order_by("id").values_list("jti", flat=True)))()
+    ots = await sync_to_async(
+        lambda: list(
+            OutstandingToken.objects.order_by("id").values_list("jti", flat=True)
+        )
+    )()
     assert ots == [
         not_expired_1["jti"],
         not_expired_2["jti"],
@@ -223,7 +231,9 @@ async def test_flush_expired_tokens_should_delete_any_expired_tokens():
     ]
 
     dts = await sync_to_async(
-        lambda: list(DenylistedToken.objects.order_by("id").values_list("token__jti", flat=True))
+        lambda: list(
+            DenylistedToken.objects.order_by("id").values_list("token__jti", flat=True)
+        )
     )()
     assert dts == [not_expired_2["jti"], not_expired_3["jti"]]
 

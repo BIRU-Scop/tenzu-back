@@ -18,20 +18,17 @@ repos:
         args:
           - --fix=lf
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.1.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.7.3
     hooks:
-      - id: flake8
-        additional_dependencies: [ flake8-typing-imports==1.16.0 ]
-        files: 'src/'
-        args: [ --config=.flake8 ]
-
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-      - id: black
-        files: 'src/'
-        args: [ "--config=.black", "--fast" ]
+      # Run the linter.
+      - id: ruff
+        args:
+          - '--select=I'
+          - --fix
+      # Run the formatter.
+      - id: ruff-format
 
 #  - repo: https://github.com/pre-commit/mirrors-mypy
 #    rev: v1.12.1
@@ -44,13 +41,8 @@ repos:
 #          - pydantic
 #          - django-stubs
 #        args: [ --config-file=.mypy.ini ]
+#
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        files: 'src/'
-        args: [ --settings-path=.isort.cfg ]
 
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
@@ -59,4 +51,4 @@ repos:
         files: '(src/).*\.py$'
         args:
           - --license-filepath
-          - .license_header_template_python.txt          # defaults to: LICENSE.txt
+          - .license_header_template.txt          # defaults to: LICENSE.txt

@@ -19,12 +19,14 @@
 
 from pydantic import ConfigDict
 
-from base.serializers import BaseModel
+from base.serializers import UUIDB64, BaseModel
 
 
 class StoryNestedSerializer(BaseModel):
     ref: int
     title: str
+    project_id: UUIDB64
+    workflow_id: UUIDB64
     model_config = ConfigDict(from_attributes=True)
 
 

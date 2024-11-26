@@ -18,7 +18,7 @@ local-tenzu.biru.ovh {
          header Access-Control-Allow-Origin *
          header Access-Control-Allow-Headers *
          header Access-Control-Allow-Methods *
-         root * /tenzu/
+         root * /public/
          file_server {
              precompressed br gzip
          }
@@ -30,7 +30,7 @@ local-tenzu.biru.ovh {
          header Access-Control-Allow-Origin *
          header Access-Control-Allow-Headers *
          header Access-Control-Allow-Methods *
-         root * /tenzu/
+         root * /public/
          file_server {
              precompressed br gzip
          }

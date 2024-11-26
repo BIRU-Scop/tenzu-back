@@ -16,36 +16,23 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from datetime import timedelta
 
-from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel
 
-ALLOWED_ALGORITHMS = (
-    "HS256",
-    "HS384",
-    "HS512",
-    "RS256",
-    "RS384",
-    "RS512",
-)
+from ninja_jwt.backends import AllowedAlgorithmsType
 
 
-class TokensSettings(BaseSettings):
-    ALGORITHM: str = "HS256"
-    SIGNING_KEY: str = ""
+class TokensSettings(BaseModel):
+    SIGNING_KEY: str
+    ALGORITHM: AllowedAlgorithmsType = "HS512"
     VERIFYING_KEY: str = ""
     AUDIENCE: str | None = None
     ISSUER: str | None = None
+    ACCESS_TOKEN_LIFETIME: timedelta = timedelta(minutes=5)
+    REFRESH_TOKEN_LIFETIME: timedelta = timedelta(hours=4)
 
     TOKEN_TYPE_CLAIM: str = "token_type"
     JTI_CLAIM: str = "jti"
-
-    # Validators
-    @field_validator("ALGORITHM", mode="before")
-    @classmethod
-    def validate_algorithm(cls, v: str) -> str:
-        if v not in ALLOWED_ALGORITHMS:
-            raise ValueError(v)
-        return v
-
-    model_config = SettingsConfigDict(case_sensitive=True)
+    USER_ID_FIELD: str = "id"
+    USER_ID_CLAIM: str = "username"

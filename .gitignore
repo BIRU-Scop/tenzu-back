@@ -338,17 +338,9 @@ cython_debug/
 logs/
 
 
-# Ignore Caddy env and data
-/buildrun/caddy/.caddy/
-/buildrun/caddy/caddy.env
-/buildrun/docker/caddy/.caddy/
-
-# Ignore mounted volume
-/buildrun/static/
-/buildrun/media/
-
 # Ignore volume
-/src/static/
-/src/media/
+static/
+media/
+public/
 
 /src/mjml/node_modules/*

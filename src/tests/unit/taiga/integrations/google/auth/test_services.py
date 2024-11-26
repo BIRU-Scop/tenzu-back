@@ -20,8 +20,8 @@
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
 
-from configurations.conf import settings
 from integrations.google import exceptions as ex
 from integrations.google.auth import services
 from integrations.google.services import GoogleUserProfile
@@ -35,7 +35,9 @@ async def test_google_login_ok():
     settings.GOOGLE_CLIENT_ID = "id"
     settings.GOOGLE_CLIENT_SECRET = "secret"
     with (
-        patch("integrations.google.auth.services.google_services", autospec=True) as fake_google_services,
+        patch(
+            "integrations.google.auth.services.google_services", autospec=True
+        ) as fake_google_services,
         patch(
             "integrations.google.auth.services.integrations_auth_services",
             autospec=True,
@@ -45,7 +47,9 @@ async def test_google_login_ok():
         fake_google_services.get_user_info_from_google.return_value = GoogleUserProfile(
             email="email@test.com", full_name="Full Name", google_id="1", bio="Bio"
         )
-        await services.google_login(code="code", redirect_uri="https://redirect.uri", lang="es-ES")
+        await services.google_login(
+            code="code", redirect_uri="https://redirect.uri", lang="es-ES"
+        )
         fake_integrations_auth_services.social_login.assert_awaited_once()
 
 
@@ -60,7 +64,9 @@ async def test_google_login_invalid_code():
     settings.GOOGLE_CLIENT_ID = "id"
     settings.GOOGLE_CLIENT_SECRET = "secret"
     with (
-        patch("integrations.google.auth.services.google_services", autospec=True) as fake_google_services,
+        patch(
+            "integrations.google.auth.services.google_services", autospec=True
+        ) as fake_google_services,
         pytest.raises(ex.GoogleLoginAuthenticationError),
     ):
         fake_google_services.get_access_to_google.return_value = None
@@ -71,7 +77,9 @@ async def test_google_login_google_api_not_responding():
     settings.GITLAB_CLIENT_ID = "id"
     settings.GITLAB_CLIENT_SECRET = "secret"
     with (
-        patch("integrations.google.auth.services.google_services", autospec=True) as fake_google_services,
+        patch(
+            "integrations.google.auth.services.google_services", autospec=True
+        ) as fake_google_services,
         pytest.raises(ex.GoogleAPIError),
     ):
         fake_google_services.get_access_to_google.return_value = "access_token"
