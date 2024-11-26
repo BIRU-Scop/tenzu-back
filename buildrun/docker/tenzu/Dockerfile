@@ -14,7 +14,8 @@ WORKDIR /tenzu
 COPY ./src/ /tenzu/
 COPY ./buildrun/docker/tenzu/requirements/prod.txt /tenzu/prod.txt
 RUN uv pip sync --system /tenzu/prod.txt && rm /tenzu/prod.txt
-RUN python ./__main__.py i18n compile-catalog
+# pass required env var so it does not crash validation, they will not be used
+RUN TENZU_SECRET_KEY=secret TENZU_TOKENS__SIGNING_KEY=secret2 python ./__main__.py i18n compile-catalog
 
 ####
 # Testing TODO to do
