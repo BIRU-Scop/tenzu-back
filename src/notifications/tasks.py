@@ -22,29 +22,34 @@
 # #
 # # Copyright (c) 2023-present Kaleidos INC
 #
-# import logging
-# from datetime import timedelta
+import logging
+from datetime import timedelta
+
+from procrastinate.contrib.django import app
+
 #
-# from base.utils.datetime import aware_utcnow
-# from configurations.conf import settings
-# from notifications import services as notifications_services
-# from procrastinate.contrib.django import app
+from base.utils.datetime import aware_utcnow
+from configurations.conf import settings
+from notifications import services as notifications_services
+
 #
-# logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
+
 #
 #
-# @app.periodic(cron=settings.NOTIFICATIONS.CLEAN_READ_NOTIFICATIONS_CRON)  # type: ignore
-# @app.task
-# async def clean_read_notifications(timestamp: int) -> int:
-#     total_deleted = await notifications_services.clean_read_notifications(
-#         before=aware_utcnow()
-#         - timedelta(minutes=settings.NOTIFICATIONS.MINUTES_TO_STORE_READ_NOTIFICATIONS)
-#     )
-#
-#     logger.info(
-#         "deleted notifications: %s",
-#         total_deleted,
-#         extra={"deleted": total_deleted},
-#     )
-#
-#     return total_deleted
+@app.periodic(cron=settings.NOTIFICATIONS.CLEAN_READ_NOTIFICATIONS_CRON)  # type: ignore
+@app.task
+async def clean_read_notifications(timestamp: int) -> int:
+    total_deleted = await notifications_services.clean_read_notifications(
+        before=aware_utcnow()
+        - timedelta(minutes=settings.NOTIFICATIONS.MINUTES_TO_STORE_READ_NOTIFICATIONS)
+    )
+
+    logger.info(
+        "deleted notifications: %s",
+        total_deleted,
+        extra={"deleted": total_deleted},
+    )
+
+    return total_deleted

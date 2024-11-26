@@ -30,6 +30,8 @@ unauth_router = Router()
 # list languages info
 ################################################
 
+Adapter = TypeAdapter(list[LanguageSchema])
+
 
 @unauth_router.get(
     "/system/languages",
@@ -38,5 +40,4 @@ unauth_router = Router()
     response=list[LanguageSerializer],
 )
 async def list_languages(request) -> list[LanguageSchema]:
-    adapter = TypeAdapter(list[LanguageSchema])
-    return adapter.validate_python(i18n.available_languages_info)
+    return Adapter.validate_python(i18n.available_languages_info)
