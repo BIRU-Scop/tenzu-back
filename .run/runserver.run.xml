@@ -14,6 +14,13 @@
     <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
+    <PathMappingSettings>
+      <option name="pathMappings">
+        <list>
+          <mapping local-root="src" remote-root="/tenzu" />
+        </list>
+      </option>
+    </PathMappingSettings>
     <option name="launchJavascriptDebuger" value="false" />
     <option name="port" value="8000" />
     <option name="host" value="0.0.0.0" />
