@@ -42,6 +42,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = settings.SECRET_KEY
+SECRET_KEY_FALLBACKS = settings.SECRET_KEY_FALLBACKS
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = settings.DEBUG
@@ -206,25 +207,16 @@ AUTH_USER_MODEL = "users.User"
 
 NINJA_JWT = {
     # env timedelta assumes value is an integer in seconds
-    "ACCESS_TOKEN_LIFETIME": 432000,  # dev: 5 days, prod: 5min
-    "REFRESH_TOKEN_LIFETIME": 864000,  # dev: 10 days, prod: 4h
+    **settings.TOKENS.model_dump(),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
-    "ALGORITHM": "HS512",
-    "SIGNING_KEY": "azerazerazerazerzaer",
     "UPDATE_LAST_LOGIN": False,
     "VERIFYING_KEY": None,
-    "AUDIENCE": None,
-    "ISSUER": None,
     "JWK_URL": None,
     "LEEWAY": 0,
-    "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "username",
     "USER_AUTHENTICATION_RULE": "ninja_jwt.authentication.default_user_authentication_rule",
     "AUTH_TOKEN_CLASSES": ("ninja_jwt.tokens.AccessToken",),
-    "TOKEN_TYPE_CLAIM": "token_type",
     "TOKEN_USER_CLASS": "ninja_jwt.models.TokenUser",
-    "JTI_CLAIM": "jti",
 }
 
 # EMAIL

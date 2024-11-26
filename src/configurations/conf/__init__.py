@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import logging.config
-import secrets
+from datetime import timedelta
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
@@ -49,14 +49,15 @@ _DEFAULT_MEDIA_URL = AnyHttpUrl.build(
 
 class Settings(BaseSettings):
     # Commons
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    SECRET_KEY: str
+    SECRET_KEY_FALLBACKS: list[str] = Field(default_factory=list)
     UUID_NODE: int | None = None
     DEBUG: bool = False
 
     # Tenzu URLS
     BACKEND_URL: AnyHttpUrl = _DEFAULT_BACKEND_URL
     FRONTEND_URL: AnyHttpUrl = _DEFAULT_FRONTEND_URL
-    EXTRA_CORS: list[AnyHttpUrl] = []
+    EXTRA_CORS: list[AnyHttpUrl] = Field(default_factory=list)
     # Database
     DB_NAME: str = "tenzu"
     DB_USER: str = "tenzu"
@@ -79,8 +80,6 @@ class Settings(BaseSettings):
     MAX_PAGE_SIZE: int = 100
 
     # Auth
-    ACCESS_TOKEN_LIFETIME: int = 30  # 30 minutes
-    REFRESH_TOKEN_LIFETIME: int = 8 * 24 * 60  # 8 * 24 * 60 minutes = 8 days
     GITHUB_CLIENT_ID: str | None = None
     GITHUB_CLIENT_SECRET: str | None = None
     GITLAB_URL: str | None = None
@@ -90,18 +89,15 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str | None = None
 
     # Users
-    USER_EMAIL_ALLOWED_DOMAINS: list[str] = []
-    VERIFY_USER_TOKEN_LIFETIME: int = 4 * 24 * 60  # 4 * 24 * 60 minutes = 4 days
-    RESET_PASSWORD_TOKEN_LIFETIME: int = 2 * 60  # 2 * 60 minutes = 2 hours
+    USER_EMAIL_ALLOWED_DOMAINS: list[str] = Field(default_factory=list)
+    VERIFY_USER_TOKEN_LIFETIME: timedelta = timedelta(days=4)
+    RESET_PASSWORD_TOKEN_LIFETIME: timedelta = timedelta(hours=2)
 
-    # Workspaces
-    WORKSPACE_INVITATION_LIFETIME: int = 4 * 24 * 60  # 4 * 24 * 60 minutes = 4 days
+    # Workspaces & Projects
+    GENERAL_INVITATION_LIFETIME: timedelta = timedelta(days=4)
 
     # Projects
     DEFAULT_PROJECT_TEMPLATE: str = "kanban"
-
-    # TODO: move this lifetime to general invitation lifetime for pj and ws
-    PROJECT_INVITATION_LIFETIME: int = 4 * 24 * 60  # 4 * 24 * 60 minutes = 4 days
 
     # Invitations
     INVITATION_RESEND_LIMIT: int = 10
@@ -124,7 +120,8 @@ class Settings(BaseSettings):
     NOTIFICATIONS: NotificationsSettings = NotificationsSettings()
     STORAGE: StorageSettings = StorageSettings()
     TASKQUEUE: TaskQueueSettings = TaskQueueSettings()
-    TOKENS: TokensSettings = TokensSettings()
+    # can't be instantiated because it has one required value which will be set by environment
+    TOKENS: TokensSettings
 
     @field_validator("UUID_NODE")
     @classmethod

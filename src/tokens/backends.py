@@ -46,11 +46,16 @@
 from typing import Any
 
 import jwt
-from jwt import ExpiredSignatureError, InvalidAlgorithmError, InvalidTokenError, algorithms
+from jwt import (
+    ExpiredSignatureError,
+    InvalidAlgorithmError,
+    InvalidTokenError,
+    algorithms,
+)
 
 from base.utils import json
 from configurations.conf import settings
-from configurations.conf.tokens import ALLOWED_ALGORITHMS
+from ninja_jwt.backends import ALLOWED_ALGORITHMS
 from tokens import exceptions as ex
 
 
@@ -83,7 +88,9 @@ class TokenBackend:
             raise ex.TokenBackendError(f"Unrecognized algorithm type '{algorithm}'")
 
         if algorithm in algorithms.requires_cryptography and not algorithms.has_crypto:
-            raise ex.TokenBackendError(f"You must have cryptography installed to use '{algorithm}'.")
+            raise ex.TokenBackendError(
+                f"You must have cryptography installed to use '{algorithm}'."
+            )
 
     def encode(self, payload: dict[str, Any]) -> str:
         """

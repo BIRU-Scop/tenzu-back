@@ -20,7 +20,7 @@
 from enum import Enum
 from typing import Dict
 
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel, Field
 
 
 class PubSubBackendChoices(Enum):
@@ -28,7 +28,7 @@ class PubSubBackendChoices(Enum):
     REDIS = "channels_redis.pubsub.RedisPubSubChannelLayer"
 
 
-class EventsSettings(BaseSettings):
+class EventsSettings(BaseModel):
     PUBSUB_BACKEND: PubSubBackendChoices = PubSubBackendChoices.REDIS
 
     # Settings for PubSubBackendChoices.MEMORY
@@ -40,4 +40,4 @@ class EventsSettings(BaseSettings):
     REDIS_USERNAME: str = ""
     REDIS_PASSWORD: str = ""
     REDIS_DATABASE: int = 0
-    REDIS_OPTIONS: Dict[str, str|int] = {}
+    REDIS_OPTIONS: Dict[str, str | int] = Field(default_factory=dict)

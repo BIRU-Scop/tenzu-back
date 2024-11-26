@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from datetime import timedelta
 
 from configurations.conf import settings
 from tokens.base import Token
@@ -25,4 +24,4 @@ from tokens.base import Token
 
 class ProjectInvitationToken(Token):
     token_type = "project-invitation"
-    lifetime = timedelta(minutes=settings.PROJECT_INVITATION_LIFETIME)
+    lifetime = settings.GENERAL_INVITATION_LIFETIME

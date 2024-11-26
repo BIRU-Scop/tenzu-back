@@ -16,17 +16,18 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from pydantic import BaseModel, Field
 
-from pydantic_settings import BaseSettings
 
-
-class TaskQueueSettings(BaseSettings):
+class TaskQueueSettings(BaseModel):
     # We must include all the modules that define tasks.
-    TASKS_MODULES_PATHS: set[str] = {
-        "commons.storage.tasks",
-        "emails.tasks",
-        "notifications.tasks",
-        "projects.projects.tasks",
-        "tokens.tasks",
-        "users.tasks",
-    }
+    TASKS_MODULES_PATHS: set[str] = Field(
+        default={
+            "commons.storage.tasks",
+            "emails.tasks",
+            "notifications.tasks",
+            "projects.projects.tasks",
+            "tokens.tasks",
+            "users.tasks",
+        }
+    )

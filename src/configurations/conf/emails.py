@@ -19,8 +19,7 @@
 
 from enum import StrEnum
 
-from pydantic import EmailStr, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, EmailStr, Field
 
 
 class EmailBackends(StrEnum):
@@ -32,7 +31,7 @@ class EmailBackends(StrEnum):
     CONSOLE_TEXT = "emails.backends.console_text.EmailBackend"
 
 
-class EmailSettings(BaseSettings):
+class EmailSettings(BaseModel):
     # common email settings
     EMAIL_BACKEND: EmailBackends = EmailBackends.FILE
     DEFAULT_FROM_EMAIL: EmailStr = Field(default="username@domain.name")
@@ -54,4 +53,3 @@ class EmailSettings(BaseSettings):
 
     # file backend settings
     EMAIL_FILE_PATH: str = "file_emails"
-    model_config = SettingsConfigDict(case_sensitive=True)

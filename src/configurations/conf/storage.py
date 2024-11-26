@@ -16,10 +16,11 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from pydantic import BaseModel
 
-from pydantic_settings import BaseSettings
 
-
-class StorageSettings(BaseSettings):
-    CLEAN_DELETED_STORAGE_OBJECTS_CRON: str = "0 4 * * *"  # default: once a day, at 4:00 AM
+class StorageSettings(BaseModel):
+    CLEAN_DELETED_STORAGE_OBJECTS_CRON: str = (
+        "0 4 * * *"  # default: once a day, at 4:00 AM
+    )
     DAYS_TO_STORE_DELETED_STORAGED_OBJECTS: int = 90  # 90 day
