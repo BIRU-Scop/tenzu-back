@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from urllib.parse import urljoin
 
 from django.conf import settings
 from django.urls import reverse_lazy
@@ -30,15 +31,18 @@ class StoryAttachmentSerializer(AttachmentSerializer):
 
     @staticmethod
     def resolve_file(obj):
-        return str(settings.BACKEND_URL).rstrip("/") + str(
-            reverse_lazy(
-                "api-v1:project.story.attachments.file",
-                kwargs={
-                    "project_id": obj.content_object.project.b64id,
-                    "ref": obj.content_object.ref,
-                    "attachment_id": obj.b64id,
-                },
-            )
+        return urljoin(
+            str(settings.BACKEND_URL),
+            str(
+                reverse_lazy(
+                    "api-v1:project.story.attachments.file",
+                    kwargs={
+                        "project_id": obj.content_object.project.b64id,
+                        "ref": obj.content_object.ref,
+                        "attachment_id": obj.b64id,
+                    },
+                )
+            ),
         )
 
 
