@@ -24,9 +24,15 @@ from workspaces.invitations.models import WorkspaceInvitation
 
 
 def is_spam(invitation: ProjectInvitation | WorkspaceInvitation) -> bool:
-    last_send_at = invitation.resent_at if invitation.resent_at else invitation.created_at
-    time_since_last_send = int((aware_utcnow() - last_send_at).total_seconds() / 60)  # in minutes
+    last_send_at = (
+        invitation.resent_at if invitation.resent_at else invitation.created_at
+    )
+    time_since_last_send = int(
+        (aware_utcnow() - last_send_at).total_seconds() / 60
+    )  # in minutes
     return (
-        invitation.num_emails_sent == settings.INVITATION_RESEND_LIMIT  # max invitations emails already sent
-        or time_since_last_send < settings.INVITATION_RESEND_TIME  # too soon to send the invitation again
+        invitation.num_emails_sent
+        == settings.INVITATION_RESEND_LIMIT  # max invitations emails already sent
+        or time_since_last_send
+        < settings.INVITATION_RESEND_TIME  # too soon to send the invitation again
     )

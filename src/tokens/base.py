@@ -171,7 +171,9 @@ class Token:
 
         self._verify_token_type()
 
-    def _verify_exp(self, claim: str = "exp", current_time: datetime | None = None) -> None:
+    def _verify_exp(
+        self, claim: str = "exp", current_time: datetime | None = None
+    ) -> None:
         """
         Checks whether a timestamp value in the given claim has passed (since
         the given datetime value in `current_time`).  Raises a TokenError with
@@ -230,7 +232,9 @@ class Token:
         return token
 
     @classmethod
-    async def create(cls: type["TokenModel"], token: str | None = None, verify: bool = True) -> "TokenModel":
+    async def create(
+        cls: type["TokenModel"], token: str | None = None, verify: bool = True
+    ) -> "TokenModel":
         """
         Returns an authorization token or decode and verify the token than will be provided.
         """

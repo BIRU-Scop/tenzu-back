@@ -22,7 +22,13 @@ import logging
 import typer
 from babel.messages import frontend as babel_cli
 
-from base.i18n import FALLBACK_LOCALE_CODE, ROOT_DIR, TRANSLATION_DIRECTORY, get_locale_code, i18n
+from base.i18n import (
+    FALLBACK_LOCALE_CODE,
+    ROOT_DIR,
+    TRANSLATION_DIRECTORY,
+    get_locale_code,
+    i18n,
+)
 from base.utils import pprint
 from base.utils.commands import set_working_directory
 from configurations.conf import settings
@@ -84,7 +90,9 @@ def add_language(locale_code: str) -> None:
 
     if locale_code not in i18n.global_languages:
         pprint.print(f"[red]Language code '{locale_code}' does not exist[/red]")
-        pprint.print(f"Valid Language code are: [green]{'[/green], [green]'.join(i18n.global_languages)}[/green]")
+        pprint.print(
+            f"Valid Language code are: [green]{'[/green], [green]'.join(i18n.global_languages)}[/green]"
+        )
         raise typer.Exit(code=1)
 
     if i18n.is_language_available(locale_code):

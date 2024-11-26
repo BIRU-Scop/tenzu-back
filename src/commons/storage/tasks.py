@@ -30,5 +30,6 @@ from configurations.conf import settings
 @app.task
 async def clean_deleted_storaged_objects(timestamp: int) -> int:
     return await storage_services.clean_deleted_storaged_objects(
-        before=aware_utcnow() - timedelta(days=settings.STORAGE.DAYS_TO_STORE_DELETED_STORAGED_OBJECTS)
+        before=aware_utcnow()
+        - timedelta(days=settings.STORAGE.DAYS_TO_STORE_DELETED_STORAGED_OBJECTS)
     )

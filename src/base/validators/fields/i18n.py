@@ -21,9 +21,7 @@ from typing import Any, Callable, Generator, Type
 
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import CoreSchema
-from pydantic_core import core_schema
-from pydantic_core import core_schema as cs
+from pydantic_core import CoreSchema, core_schema
 
 from base.i18n import i18n
 from configurations.conf import settings
@@ -33,15 +31,19 @@ CallableGenerator = Generator[Callable[..., Any], None, None]
 
 class LanguageCode(str):
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
         return core_schema.no_info_after_validator_function(cls, handler(str))
 
     @classmethod
     # TODO[pydantic]: We couldn't refactor `__modify_schema__`,
     #  please create the `__get_pydantic_json_schema__` manually.
     # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
-    def __get_pydantic_json_schema__(cls, core_schema: cs.CoreSchema, handler: GetJsonSchemaHandler) -> JsonSchemaValue:
-        json_schema = handler(core_schema)
+    def __get_pydantic_json_schema__(
+        cls, cs: core_schema.CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        json_schema = handler(cs)
         json_schema = handler.resolve_ref_schema(json_schema)
         json_schema.update(
             type="string",

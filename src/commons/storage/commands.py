@@ -34,7 +34,9 @@ cli = typer.Typer(
 )
 
 
-@cli.command(help="Clean deleted storaged object. Remove entries from DB and files from storage")
+@cli.command(
+    help="Clean deleted storaged object. Remove entries from DB and files from storage"
+)
 def clean_storaged_objects(
     days_to_store_deleted_storaged_object: int = typer.Option(
         settings.STORAGE.DAYS_TO_STORE_DELETED_STORAGED_OBJECTS,
@@ -45,9 +47,12 @@ def clean_storaged_objects(
 ) -> None:
     total_deleted = run_async_as_sync(
         storage_services.clean_deleted_storaged_objects(
-            before=aware_utcnow() - timedelta(days=days_to_store_deleted_storaged_object)
+            before=aware_utcnow()
+            - timedelta(days=days_to_store_deleted_storaged_object)
         )
     )
 
     color = "red" if total_deleted else "white"
-    pprint.print(f"Deleted [bold][{color}]{total_deleted}[/{color}][/bold] storaged objects.")
+    pprint.print(
+        f"Deleted [bold][{color}]{total_deleted}[/{color}][/bold] storaged objects."
+    )
