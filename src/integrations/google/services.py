@@ -21,8 +21,7 @@ from dataclasses import dataclass
 from typing import Final
 
 import httpx
-
-from configurations.conf import settings
+from django.conf import settings
 
 HEADERS: Final[dict[str, str]] = {
     "Accept": "application/json",

@@ -17,12 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from datetime import timedelta
 
-from configurations.conf import settings
+from django.conf import settings
+
 from tokens.base import Token
 
 
 class WorkspaceInvitationToken(Token):
     token_type = "workspace-invitation"
-    lifetime = timedelta(minutes=settings.WORKSPACE_INVITATION_LIFETIME)
+    lifetime = settings.GENERAL_INVITATION_LIFETIME

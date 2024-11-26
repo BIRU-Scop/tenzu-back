@@ -17,22 +17,29 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from configurations.conf import settings
+from django.conf import settings
+
 from integrations.auth import services as integrations_auth_services
 from integrations.github import exceptions as ex
 from integrations.github import services as github_services
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 
 
-async def github_login(code: str, lang: str | None = None) -> TokenObtainPairOutputSchema:
+async def github_login(
+    code: str, lang: str | None = None
+) -> TokenObtainPairOutputSchema:
     if not settings.GITHUB_CLIENT_ID or not settings.GITHUB_CLIENT_SECRET:
-        raise ex.GithubLoginError("Login with Github is not available. Contact with the platform administrators.")
+        raise ex.GithubLoginError(
+            "Login with Github is not available. Contact with the platform administrators."
+        )
 
     access_token = await github_services.get_access_to_github(code=code)
     if not access_token:
         raise ex.GithubLoginAuthenticationError("The provided code is not valid.")
 
-    user_info = await github_services.get_user_info_from_github(access_token=access_token)
+    user_info = await github_services.get_user_info_from_github(
+        access_token=access_token
+    )
     if not user_info:
         raise ex.GithubAPIError("Github API is not responding.")
 

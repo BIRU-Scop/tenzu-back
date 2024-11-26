@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from configurations.conf import settings
+from django.conf import settings
 
 
 def test_overwrite_settings_in_sync_test(override_settings):

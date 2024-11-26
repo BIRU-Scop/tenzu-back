@@ -20,13 +20,13 @@
 from typing import Any, cast
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 
 from auth import services as auth_services
 from base.utils import emails
 from base.utils.datetime import aware_utcnow
 from base.utils.emails import is_email
 from commons.invitations import is_spam
-from configurations.conf import settings
 from emails.emails import Emails
 from emails.tasks import send_email
 from tokens.exceptions import TokenError
@@ -37,7 +37,10 @@ from workspaces.invitations import repositories as invitations_repositories
 from workspaces.invitations.choices import WorkspaceInvitationStatus
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.invitations.repositories import WorkspaceInvitationFilters
-from workspaces.invitations.serializers import CreateWorkspaceInvitationsSerializer, PublicWorkspaceInvitationSerializer
+from workspaces.invitations.serializers import (
+    CreateWorkspaceInvitationsSerializer,
+    PublicWorkspaceInvitationSerializer,
+)
 from workspaces.invitations.serializers import services as serializers_services
 from workspaces.invitations.services import exceptions as ex
 from workspaces.invitations.tokens import WorkspaceInvitationToken
@@ -66,26 +69,34 @@ async def create_workspace_invitations(
 
     users_emails_dict: dict[str, Any] = {}
     if len(emails) > 0:
-        users_emails_dict = await users_services.list_users_emails_as_dict(emails=emails)
+        users_emails_dict = await users_services.list_users_emails_as_dict(
+            emails=emails
+        )
     # users_emails_dict = {
     #   'user1@tenzu.demo': <User: Norma Fisher>,
     #   'user3@tenzu.demo': <User: Elisabeth Woods>,
     # }
     users_usernames_dict: dict[str, Any] = {}
     if len(usernames) > 0:
-        users_usernames_dict = await users_services.list_users_usernames_as_dict(usernames=usernames)
+        users_usernames_dict = await users_services.list_users_usernames_as_dict(
+            usernames=usernames
+        )
         # users_usernames_dict = {
         #   'user3': <User: Elizabeth Woods>,
         # }
         # all usernames should belong to a user; otherwise it's an error
         if len(users_usernames_dict) < len(usernames):
             wrong_usernames = set(usernames) - users_usernames_dict.keys()
-            raise ex.NonExistingUsernameError(f"These usernames don't exist: {wrong_usernames}")
+            raise ex.NonExistingUsernameError(
+                f"These usernames don't exist: {wrong_usernames}"
+            )
 
     invitations_to_create: dict[str, WorkspaceInvitation] = {}
     invitations_to_update: dict[str, WorkspaceInvitation] = {}
     invitations_to_send: dict[str, WorkspaceInvitation] = {}
-    workspace_members = await memberships_repositories.list_workspace_members(workspace=workspace)
+    workspace_members = await memberships_repositories.list_workspace_members(
+        workspace=workspace
+    )
 
     users_dict = users_emails_dict | users_usernames_dict
     # users_dict = {
@@ -155,7 +166,9 @@ async def create_workspace_invitations(
         await send_workspace_invitation_email(invitation=invitation)
 
     if len(invitations_to_create) + len(invitations_to_update) > 0:
-        invitations_to_publish = (invitations_to_create | invitations_to_update).values()
+        invitations_to_publish = (
+            invitations_to_create | invitations_to_update
+        ).values()
         await invitations_events.emit_event_when_workspace_invitations_are_created(
             workspace=workspace, invitations=invitations_to_publish
         )
@@ -204,7 +217,9 @@ async def get_public_workspace_invitation(
 ) -> PublicWorkspaceInvitationSerializer | None:
     if invitation := await get_workspace_invitation(token=token):
         available_logins = (
-            await auth_services.get_available_user_logins(user=invitation.user) if invitation.user else []
+            await auth_services.get_available_user_logins(user=invitation.user)
+            if invitation.user
+            else []
         )
         return serializers_services.serialize_public_workspace_invitation(
             invitation=invitation, available_logins=available_logins
@@ -224,7 +239,9 @@ async def update_user_workspaces_invitations(user: User) -> None:
         filters={"user": user, "status": WorkspaceInvitationStatus.PENDING},
         select_related=["workspace"],
     )
-    await invitations_events.emit_event_when_workspace_invitations_are_updated(invitations=invitations)
+    await invitations_events.emit_event_when_workspace_invitations_are_updated(
+        invitations=invitations
+    )
 
 
 ##########################################################
@@ -236,7 +253,9 @@ async def accept_workspace_invitation(
     invitation: WorkspaceInvitation,
 ) -> WorkspaceInvitation:
     if invitation.status == WorkspaceInvitationStatus.ACCEPTED:
-        raise ex.InvitationAlreadyAcceptedError("The invitation has already been accepted")
+        raise ex.InvitationAlreadyAcceptedError(
+            "The invitation has already been accepted"
+        )
 
     if invitation.status == WorkspaceInvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation is revoked")
@@ -249,13 +268,19 @@ async def accept_workspace_invitation(
         values={"status": WorkspaceInvitationStatus.ACCEPTED},
     )
 
-    await memberships_repositories.create_workspace_membership(workspace=invitation.workspace, user=invitation.user)
-    await invitations_events.emit_event_when_workspace_invitation_is_accepted(invitation=invitation)
+    await memberships_repositories.create_workspace_membership(
+        workspace=invitation.workspace, user=invitation.user
+    )
+    await invitations_events.emit_event_when_workspace_invitation_is_accepted(
+        invitation=invitation
+    )
 
     return accepted_invitation
 
 
-async def accept_workspace_invitation_from_token(token: str, user: User) -> WorkspaceInvitation:
+async def accept_workspace_invitation_from_token(
+    token: str, user: User
+) -> WorkspaceInvitation:
     invitation = await get_workspace_invitation(token=token)
 
     if not invitation:
@@ -295,7 +320,7 @@ async def send_workspace_invitation_email(
         email_name=Emails.WORKSPACE_INVITATION.value,
         to=email,
         context=context,
-        lang=receiver.lang if receiver else settings.LANG,
+        lang=receiver.lang if receiver else settings.LANGUAGE_CODE,
     )
 
 
@@ -308,7 +333,9 @@ async def _generate_workspace_invitation_token(invitation: WorkspaceInvitation) 
     return str(await WorkspaceInvitationToken.create_for_object(invitation))
 
 
-def is_workspace_invitation_for_this_user(invitation: WorkspaceInvitation, user: User) -> bool:
+def is_workspace_invitation_for_this_user(
+    invitation: WorkspaceInvitation, user: User
+) -> bool:
     """
     Check if a workspace invitation if for a specific user
     """

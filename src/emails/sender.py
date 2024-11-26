@@ -17,10 +17,9 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.core.mail.backends.base import BaseEmailBackend
-
-from configurations.conf import settings
 
 
 async def send_email_message(
@@ -55,9 +54,5 @@ async def send_email_message(
     message.send()
 
 
-def _get_email_backend() -> str:
-    return settings.EMAIL.EMAIL_BACKEND.value
-
-
 def _get_mail_connection() -> BaseEmailBackend:
-    return get_connection(backend=_get_email_backend())
+    return get_connection(backend=settings.EMAIL_BACKEND)

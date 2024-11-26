@@ -16,10 +16,11 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from pydantic import BaseModel
 
-from pydantic_settings import BaseSettings
 
-
-class NotificationsSettings(BaseSettings):
-    CLEAN_READ_NOTIFICATIONS_CRON: str = "30 * * * *"  # default: every hour at minute 30.
+class NotificationsSettings(BaseModel):
+    CLEAN_READ_NOTIFICATIONS_CRON: str = (
+        "30 * * * *"  # default: every hour at minute 30.
+    )
     MINUTES_TO_STORE_READ_NOTIFICATIONS: int = 2 * 60  # 120 minutes

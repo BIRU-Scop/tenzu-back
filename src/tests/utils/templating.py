@@ -32,7 +32,7 @@ def initialize_template_env(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[Callable[[], ContextManager[None]], None, None]:
     """
-    Useful to wotk with an "new" and "clean" Enviroment object at `tenzu.base.templating.env`.
+    Useful to work with an "new" and "clean" Enviroment object at `tenzu.base.templating.env`.
 
     This is a fixture that return context manager, so you can use it like this:
 

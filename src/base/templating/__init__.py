@@ -17,12 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.conf import settings
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from base import front
 from base.templating import filters
 from base.utils import datetime
-from configurations.conf import settings
 
 
 def get_environment() -> Environment:

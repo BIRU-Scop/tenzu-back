@@ -18,15 +18,16 @@
 # You can contact BIRU at ask@biru.sh
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from easy_thumbnails.exceptions import InvalidImageFormatError  # type: ignore
 from easy_thumbnails.files import ThumbnailerFieldFile, get_thumbnailer  # type: ignore
 from easy_thumbnails.source_generators import pil_image  # type: ignore
 from ninja import UploadedFile
 
-from configurations.conf import settings
 
-
-def get_thumbnail(relative_image_path: str, thumbnailer_size: str) -> ThumbnailerFieldFile:
+def get_thumbnail(
+    relative_image_path: str, thumbnailer_size: str
+) -> ThumbnailerFieldFile:
     try:
         thumbnailer = get_thumbnailer(relative_image_path)
         return thumbnailer[thumbnailer_size]

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -16,18 +15,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from pydantic import BaseModel, Field
 
 
-class TaskQueueSettings(BaseModel):
-    # We must include all the modules that define tasks.
-    TASKS_MODULES_PATHS: set[str] = Field(
-        default={
-            "commons.storage.tasks",
-            "emails.tasks",
-            "notifications.tasks",
-            "projects.projects.tasks",
-            "tokens.tasks",
-            "users.tasks",
-        }
-    )
+def add_ending_slash(url: str) -> str:
+    if url.endswith("/"):
+        return url
+    return f"{url}/"
+
+
+def remove_ending_slash(url: str) -> str:
+    return url.rstrip("/")

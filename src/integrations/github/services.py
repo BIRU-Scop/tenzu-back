@@ -21,8 +21,7 @@ from dataclasses import dataclass
 from typing import Final
 
 import httpx
-
-from configurations.conf import settings
+from django.conf import settings
 
 ACCESS_TOKEN_URL: Final[str] = "https://github.com/login/oauth/access_token"
 EMAILS_API_URL: Final[str] = "https://api.github.com/user/emails"
@@ -49,7 +48,9 @@ async def get_access_to_github(code: str) -> str | None:
         "scope": "user:emails",
     }
     async with httpx.AsyncClient() as async_client:
-        response = await async_client.post(ACCESS_TOKEN_URL, params=params, headers=headers)
+        response = await async_client.post(
+            ACCESS_TOKEN_URL, params=params, headers=headers
+        )
 
     data = response.json()
     if response.status_code != 200 or "error" in data:

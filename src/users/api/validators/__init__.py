@@ -17,11 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.conf import settings
 from pydantic import EmailStr, Field, StrictBool, StringConstraints, field_validator
 from typing_extensions import Annotated, Optional
 
 from base.validators import BaseModel, LanguageCode
-from configurations.conf import settings
 from users.api.validators.mixins import PasswordMixin
 
 #####################################################################

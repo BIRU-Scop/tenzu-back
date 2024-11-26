@@ -19,13 +19,20 @@
 
 from typing import List, Optional, Set
 
-from pydantic import ConfigDict, EmailStr, Field, field_validator, model_validator, root_validator
+from django.conf import settings
+from pydantic import (
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+    root_validator,
+)
 from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated
 
 from base.utils.emails import is_email
 from base.validators import BaseModel
-from configurations.conf import settings
 
 
 class ProjectInvitationValidator(BaseModel):
@@ -83,7 +90,9 @@ class RevokeProjectInvitationValidator(BaseModel):
                 return v
 
             domain = v.split("@")[1]
-            assert domain in settings.USER_EMAIL_ALLOWED_DOMAINS, "Email domain not allowed"
+            assert (
+                domain in settings.USER_EMAIL_ALLOWED_DOMAINS
+            ), "Email domain not allowed"
         return v
 
 
@@ -104,7 +113,9 @@ class ResendProjectInvitationValidator(BaseModel):
                 return v
 
             domain = v.split("@")[1]
-            assert domain in settings.USER_EMAIL_ALLOWED_DOMAINS, "Email domain not allowed"
+            assert (
+                domain in settings.USER_EMAIL_ALLOWED_DOMAINS
+            ), "Email domain not allowed"
         return v
 
 

@@ -51,4 +51,4 @@ repos:
         files: '(src/).*\.py$'
         args:
           - --license-filepath
-          - .license_header_template_python.txt          # defaults to: LICENSE.txt
+          - .license_header_template.txt          # defaults to: LICENSE.txt

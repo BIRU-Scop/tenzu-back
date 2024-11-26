@@ -21,8 +21,8 @@ from typing import Any
 
 from pydantic import Field
 
-from base.logging.context import get_current_correlation_id
 from base.serializers import BaseModel
+from events.context import get_current_correlation_id
 
 EventContent = BaseModel | None
 

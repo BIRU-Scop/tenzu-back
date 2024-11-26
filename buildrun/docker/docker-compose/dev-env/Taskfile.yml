@@ -4,50 +4,89 @@ vars:
   SERVICE: tenzu-back
 
 tasks:
-  # SETUP TASKS
+  # DEV ENVIRONMENT PREREQUISITES
   install-precommit:
     - brew install pre-commit
     - pre-commit install
-  install-black:
-    - pip install black
+  install-ruff:
+    - brew install ruff
   install-deps:
     cmds:
       - task: install-precommit
-      - task: install-black
-  # OTHER
+      - task: install-ruff
+
+  # GENERIC COMMAND UTILITIES
   execute-service:
     internal: true
     cmds:
       - docker compose exec {{ .SERVICE }} {{ .COMMAND }}
-  build-app:
+  manage:
+    desc: "execute a manage.py command: Usage: task manage -- collectstatic"
+    cmd:
+      task: execute-service
+      vars:
+        COMMAND: "./manage.py {{.CLI_ARGS}}"
+
+  # RUN
+  build:
     cmds:
       - docker compose build
   up:
     cmds:
       - docker compose up -d --wait
+
+  # STOP & RESET
+  stop:
+    cmds:
+      - docker compose stop
+  reset:
+    cmds:
+      - docker compose down -v
   reset-db:
     dotenv:
       - "../../tenzu/dev.env"
     cmds:
       # cannot use execute-service because dotenv are not supported in internal/included tasks
-      - docker compose exec tenzu-db dropdb -f -U $TENZU_DB_USER  -p 5432 --if-exists $TENZU_DB_NAME
-      - docker compose exec tenzu-db createdb -U $TENZU_DB_USER  -p 5432 $TENZU_DB_NAME
-      - task: execute-service
+      - docker compose exec tenzu-db dropdb -f -U $TENZU_DB__USER  -p 5432 --if-exists $TENZU_DB__NAME
+      - docker compose exec tenzu-db createdb -U $TENZU_DB__USER  -p 5432 $TENZU_DB__NAME
+      - task: manage
         vars:
-          COMMAND: "python manage.py migrate --no-input"
+          CLI_ARGS: "migrate --no-input"
+
+  # MANAGEMENT COMMANDS
+  shell:
+    cmds:
+      - task: manage
+        vars:
+          CLI_ARGS: "shell_plus"
+  migrate:
+    cmds:
+      - task: manage
+        vars:
+          CLI_ARGS: "migrate"
+  makemigrations:
+    cmds:
+      - task: manage
+        vars:
+          CLI_ARGS: "makemigrations"
+  collectstatic:
+    cmds:
+      - task: manage
+        vars:
+          CLI_ARGS: "collectstatic --noinput"
+
+  # SETUP PREFILLED ENVIRONMENT
   init-data:
     cmds:
-      - task: execute-service
-        vars:
-          COMMAND: "python manage.py collectstatic --no-input"
-      - task: execute-service
+      - task: collectstatic
+      - task: manage
         vars: 
-          COMMAND: "python manage.py loaddata initial_user initial_project_templates"
+          CLI_ARGS: "loaddata initial_user initial_project_templates"
       # can pass --no-demo to import less data
       # can pass --no-test as well for no test data
-      - task: execute-service
+      - task: manage
         vars:
-          COMMAND: "python manage.py load_sampledata {{ .CLI_ARGS }}"
+          CLI_ARGS: "load_sampledata {{ .CLI_ARGS }}"
   init-app:
     cmds:
       - task: build
@@ -57,34 +96,34 @@ tasks:
       - task: execute-service
         vars:
           COMMAND: "python ./__main__.py i18n compile-catalog"
-  bash:
-    cmds:
-      - task: execute-service
-        vars:
-          COMMAND: bash
 
+  # DEPENDENCIES
+  compile-dep:
+    cmds:
+      - docker compose up compile-dep
+  compile-dep-upgrade:
+    cmds:
+      - docker compose up compile-dep-upgrade
+  update-dep:
+    desc: build image with newly added packages without resetting data
+    cmds:
+      - task: compile-dep
+      - task: build
+      - task: up
+      - task: migrate
+      - task: collectstatic
+
+  # OTHERS
   test:
     cmds:
       - task: execute-service
         vars:
           COMMAND: pytest {{ .CLI_ARGS }}
-  shell:
+  bash:
     cmds:
       - task: execute-service
         vars:
-          COMMAND: "python manage.py shell"
-  compose:
-    cmds:
-      - docker compose {{ .CLI_ARGS }}
+          COMMAND: bash
   logs:
     cmds:
       - docker compose logs -f {{ .CLI_ARGS }}
-  build:
-    cmds:
-      - docker compose build
-  stop:
-    cmds:
-      - docker compose stop
-  down:
-    cmds:
-      - docker compose down -v

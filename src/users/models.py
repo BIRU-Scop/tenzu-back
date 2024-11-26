@@ -20,19 +20,19 @@
 import re
 from typing import Any, Iterable
 
+from django.conf import settings
 from django.core.validators import RegexValidator
 
 from base.db import models
 from base.db.users import AbstractBaseUser, AnonymousUser, UserManager
 from base.utils.colors import generate_random_color
 from base.utils.slug import generate_int_suffix, slugify_uniquely
-from configurations.conf import settings
 
 type AnyUser = AnonymousUser | "User" | AbstractBaseUser
 
 
 def default_language() -> str:
-    return settings.LANG
+    return settings.LANGUAGE_CODE
 
 
 class User(models.BaseModel, AbstractBaseUser):
@@ -43,7 +43,11 @@ class User(models.BaseModel, AbstractBaseUser):
         unique=True,
         verbose_name="username",
         help_text="Required. 255 characters or fewer. Letters, numbers and /./-/_ characters",
-        validators=[RegexValidator(re.compile(r"^[\w.-]+$"), "Enter a valid username.", "invalid")],
+        validators=[
+            RegexValidator(
+                re.compile(r"^[\w.-]+$"), "Enter a valid username.", "invalid"
+            )
+        ],
     )
     email = models.LowerEmailField(
         max_length=255,
@@ -52,7 +56,9 @@ class User(models.BaseModel, AbstractBaseUser):
         unique=True,
         verbose_name="email address",
     )
-    color = models.IntegerField(null=False, blank=True, default=generate_random_color, verbose_name="color")
+    color = models.IntegerField(
+        null=False, blank=True, default=generate_random_color, verbose_name="color"
+    )
     is_active = models.BooleanField(
         null=False,
         blank=True,
@@ -65,10 +71,15 @@ class User(models.BaseModel, AbstractBaseUser):
         blank=True,
         default=False,
         verbose_name="superuser status",
-        help_text="Designates that this user has all permissions without " "explicitly assigning them.",
+        help_text="Designates that this user has all permissions without "
+        "explicitly assigning them.",
     )
-    full_name = models.CharField(max_length=256, null=False, blank=True, default="", verbose_name="full name")
-    accepted_terms = models.BooleanField(null=False, blank=False, default=True, verbose_name="accepted terms")
+    full_name = models.CharField(
+        max_length=256, null=False, blank=True, default="", verbose_name="full name"
+    )
+    accepted_terms = models.BooleanField(
+        null=False, blank=False, default=True, verbose_name="accepted terms"
+    )
     lang = models.CharField(
         max_length=20,
         null=False,
@@ -76,8 +87,12 @@ class User(models.BaseModel, AbstractBaseUser):
         default=default_language,
         verbose_name="language",
     )
-    date_joined = models.DateTimeField(null=False, blank=False, auto_now_add=True, verbose_name="date joined")
-    date_verification = models.DateTimeField(null=True, blank=True, default=None, verbose_name="date verification")
+    date_joined = models.DateTimeField(
+        null=False, blank=False, auto_now_add=True, verbose_name="date joined"
+    )
+    date_verification = models.DateTimeField(
+        null=True, blank=True, default=None, verbose_name="date verification"
+    )
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
@@ -140,15 +155,21 @@ class AuthData(models.BaseModel):
         related_name="auth_data",
         on_delete=models.CASCADE,
     )
-    key = models.LowerSlugField(max_length=50, null=False, blank=False, verbose_name="key")
-    value = models.CharField(max_length=300, null=False, blank=False, verbose_name="value")
+    key = models.LowerSlugField(
+        max_length=50, null=False, blank=False, verbose_name="key"
+    )
+    value = models.CharField(
+        max_length=300, null=False, blank=False, verbose_name="value"
+    )
     extra = models.JSONField(null=True, blank=True, verbose_name="extra")
 
     class Meta:
         verbose_name = "user's auth data"
         verbose_name_plural = "user's auth data"
         constraints = [
-            models.UniqueConstraint(fields=["user", "key"], name="%(app_label)s_%(class)s_unique_user_key"),
+            models.UniqueConstraint(
+                fields=["user", "key"], name="%(app_label)s_%(class)s_unique_user_key"
+            ),
         ]
         indexes = [
             models.Index(fields=["user", "key"]),

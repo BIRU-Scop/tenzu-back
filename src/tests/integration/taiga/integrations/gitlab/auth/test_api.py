@@ -21,9 +21,8 @@ import re
 from typing import Final
 
 import pytest
+from django.conf import settings
 from fastapi import status
-
-from configurations.conf import settings
 
 pytestmark = pytest.mark.django_db()
 
@@ -84,7 +83,9 @@ async def test_gitlab_login_incorrect_code(client, httpx_mock):
 
     ACCESS_URL_REGEX: Final[str] = re.compile(f"{settings.GITLAB_URL}/oauth/token.*")
 
-    httpx_mock.add_response(url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"})
+    httpx_mock.add_response(
+        url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"}
+    )
 
     data = {"code": "code", "redirect_uri": "https://redirect.uri"}
     response = client.post("/auth/gitlab", json=data)

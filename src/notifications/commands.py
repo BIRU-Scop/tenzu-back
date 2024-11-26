@@ -20,11 +20,11 @@
 from datetime import timedelta
 
 import typer
+from django.conf import settings
 
 from base.utils import pprint
 from base.utils.concurrency import run_async_as_sync
 from base.utils.datetime import aware_utcnow
-from configurations.conf import settings
 from notifications import services as notifications_services
 
 cli = typer.Typer(
@@ -45,9 +45,12 @@ def clean_read_notifications(
 ) -> None:
     total_deleted = run_async_as_sync(
         notifications_services.clean_read_notifications(
-            before=aware_utcnow() - timedelta(minutes=minutes_to_store_read_notifications)
+            before=aware_utcnow()
+            - timedelta(minutes=minutes_to_store_read_notifications)
         )
     )
 
     color = "red" if total_deleted else "white"
-    pprint.print(f"Deleted [bold][{color}]{total_deleted}[/{color}][/bold] notifications.")
+    pprint.print(
+        f"Deleted [bold][{color}]{total_deleted}[/{color}][/bold] notifications."
+    )

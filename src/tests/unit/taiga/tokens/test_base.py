@@ -48,9 +48,9 @@ from unittest.mock import patch
 
 import jwt
 import pytest
+from django.conf import settings
 
 from base.utils.datetime import datetime_to_epoch
-from configurations.conf import settings
 from tokens.base import Token, token_backend
 from tokens.exceptions import ExpiredTokenError, TokenError
 
@@ -105,7 +105,7 @@ async def test_init_no_token_given() -> None:
     assert len(t.payload) == 3
     assert t.payload["exp"] == datetime_to_epoch(now + MyToken.lifetime)
     assert "jti" in t.payload
-    assert t.payload[settings.TOKENS.TOKEN_TYPE_CLAIM] == MyToken.token_type
+    assert t.payload[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]] == MyToken.token_type
 
 
 async def test_init_token_given() -> None:
@@ -134,7 +134,7 @@ async def test_init_token_given() -> None:
     assert len(t.payload) == 4
     assert t["some_value"] == "arst"
     assert t["exp"] == datetime_to_epoch(original_now + MyToken.lifetime)
-    assert t[settings.TOKENS.TOKEN_TYPE_CLAIM] == MyToken.token_type
+    assert t[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]] == MyToken.token_type
     assert "jti" in t.payload
 
 
@@ -154,7 +154,9 @@ async def test_init_token_given_without_lifetime() -> None:
     assert len(t.payload) == 3
     assert t["some_value"] == "arst"
     assert "exp" not in t.payload
-    assert t[settings.TOKENS.TOKEN_TYPE_CLAIM] == MyTokenWithoutLifetime.token_type
+    assert (
+        t[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]] == MyTokenWithoutLifetime.token_type
+    )
     assert "jti" in t.payload
 
 
@@ -162,9 +164,9 @@ async def test_init_bad_sig_token_given() -> None:
     # Test backend rejects encoded token (expired or bad signature)
     payload = {"foo": "bar"}
     payload["exp"] = datetime_to_epoch(datetime.utcnow() + timedelta(days=1))
-    token_1 = jwt.encode(payload, settings.TOKENS.SIGNING_KEY, algorithm="HS256")
+    token_1 = jwt.encode(payload, settings.NINJA_JWT["SIGNING_KEY"], algorithm="HS256")
     payload["foo"] = "baz"
-    token_2 = jwt.encode(payload, settings.TOKENS.SIGNING_KEY, algorithm="HS256")
+    token_2 = jwt.encode(payload, settings.NINJA_JWT["SIGNING_KEY"], algorithm="HS256")
 
     token_2_payload = token_2.rsplit(".", 1)[0]
     token_1_sig = token_1.rsplit(".", 1)[-1]
@@ -178,9 +180,9 @@ async def test_init_bad_sig_token_given_no_verify() -> None:
     # Test backend rejects encoded token (expired or bad signature)
     payload = {"foo": "bar"}
     payload["exp"] = datetime_to_epoch(datetime.utcnow() + timedelta(days=1))
-    token_1 = jwt.encode(payload, settings.TOKENS.SIGNING_KEY, algorithm="HS256")
+    token_1 = jwt.encode(payload, settings.NINJA_JWT["SIGNING_KEY"], algorithm="HS256")
     payload["foo"] = "baz"
-    token_2 = jwt.encode(payload, settings.TOKENS.SIGNING_KEY, algorithm="HS256")
+    token_2 = jwt.encode(payload, settings.NINJA_JWT["SIGNING_KEY"], algorithm="HS256")
 
     token_2_payload = token_2.rsplit(".", 1)[0]
     token_1_sig = token_1.rsplit(".", 1)[-1]
@@ -201,7 +203,7 @@ async def test_init_expired_token_given() -> None:
 
 async def test_init_no_type_token_given() -> None:
     t = await MyToken.create()
-    del t[settings.TOKENS.TOKEN_TYPE_CLAIM]
+    del t[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]]
 
     with pytest.raises(TokenError):
         await MyToken.create(str(t))
@@ -209,7 +211,7 @@ async def test_init_no_type_token_given() -> None:
 
 async def test_init_wrong_type_token_given() -> None:
     t = await MyToken.create()
-    t[settings.TOKENS.TOKEN_TYPE_CLAIM] = "wrong_type"
+    t[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]] = "wrong_type"
 
     with pytest.raises(TokenError):
         await MyToken.create(str(t))
@@ -234,7 +236,7 @@ async def test_str() -> None:
     # to only be a couple of possible encodings.  We're only testing that a
     # payload is successfully encoded here, not that it has specific
     # content.
-    del token[settings.TOKENS.TOKEN_TYPE_CLAIM]
+    del token[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]]
     del token["jti"]
 
     # Should encode the given token

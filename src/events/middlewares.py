@@ -22,7 +22,7 @@ from uuid import uuid4
 
 from asgiref.sync import iscoroutinefunction, markcoroutinefunction
 
-from base.logging.context import correlation_id
+from events.context import correlation_id
 
 
 class Generator(Protocol):

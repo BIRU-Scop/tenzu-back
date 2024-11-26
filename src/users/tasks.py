@@ -17,9 +17,9 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.conf import settings
 from procrastinate.contrib.django import app
 
-from configurations.conf import settings
 from users import services as users_services
 
 

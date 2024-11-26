@@ -42,8 +42,9 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 
+from django.conf import settings
+
 from auth.tokens import AccessToken, RefreshToken
-from configurations.conf import settings
 
 ##########################################################
 # RefreshToken
@@ -53,7 +54,7 @@ from configurations.conf import settings
 def test_refresh_token_init():
     # Should set token type claim
     token = RefreshToken()
-    assert token[settings.TOKENS.TOKEN_TYPE_CLAIM] == "refresh"
+    assert token[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]] == "refresh"
 
 
 def test_refresh_token_access_token_():
@@ -64,7 +65,7 @@ def test_refresh_token_access_token_():
     access = refresh.access_token
 
     assert isinstance(access, AccessToken)
-    assert access[settings.TOKENS.TOKEN_TYPE_CLAIM] == "access"
+    assert access[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]] == "access"
 
     # Should keep all copyable claims from refresh token
     assert refresh["test_claim"] == access["test_claim"]
@@ -82,4 +83,4 @@ def test_refresh_token_access_token_():
 def test_access_token_init():
     # Should set token type claim
     token = AccessToken()
-    assert token[settings.TOKENS.TOKEN_TYPE_CLAIM] == "access"
+    assert token[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]] == "access"

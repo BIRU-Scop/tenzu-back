@@ -22,11 +22,11 @@ from typing import Any
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from ninja import UploadedFile
 
 from base.utils.files import uploadfile_to_file
 from base.utils.images import get_thumbnail_url
-from configurations.conf import settings
 from events import event_handlers as actions_events
 from permissions import services as permissions_services
 from projects.invitations import services as pj_invitations_services
@@ -92,7 +92,9 @@ async def _create_project(
     if template := await projects_repositories.get_project_template(
         filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
     ):
-        await projects_repositories.apply_template_to_project(template=template, project=project)
+        await projects_repositories.apply_template_to_project(
+            template=template, project=project
+        )
     else:
         raise Exception(
             f"Default project template '{settings.DEFAULT_PROJECT_TEMPLATE}' not found. "
@@ -100,8 +102,12 @@ async def _create_project(
         )
 
     # assign 'created_by' to the project as 'admin' role
-    if admin_role := await pj_roles_repositories.get_project_role(filters={"project_id": project.id, "slug": "admin"}):
-        await pj_memberships_repositories.create_project_membership(user=created_by, project=project, role=admin_role)
+    if admin_role := await pj_roles_repositories.get_project_role(
+        filters={"project_id": project.id, "slug": "admin"}
+    ):
+        await pj_memberships_repositories.create_project_membership(
+            user=created_by, project=project, role=admin_role
+        )
     else:
         raise Exception(
             "Default project template does not have a role with the slug 'admin'. "
@@ -123,7 +129,9 @@ async def list_projects(workspace_id: UUID) -> list[Project]:
     )
 
 
-async def list_workspace_projects_for_user(workspace: Workspace, user: User) -> list[Project]:
+async def list_workspace_projects_for_user(
+    workspace: Workspace, user: User
+) -> list[Project]:
     ws_membership = await workspace_memberships_repositories.get_workspace_membership(
         filters={"workspace_id": workspace.id, "user_id": user.id},
         select_related=[],
@@ -137,7 +145,9 @@ async def list_workspace_projects_for_user(workspace: Workspace, user: User) -> 
     )
 
 
-async def list_workspace_invited_projects_for_user(workspace: Workspace, user: User) -> list[Project]:
+async def list_workspace_invited_projects_for_user(
+    workspace: Workspace, user: User
+) -> list[Project]:
     return await projects_repositories.list_projects(
         filters={
             "workspace_id": workspace.id,
@@ -158,17 +168,25 @@ async def get_project(id: UUID) -> Project | None:
     )
 
 
-async def get_project_detail(project: Project, user: AnyUser) -> ProjectDetailSerializer:
+async def get_project_detail(
+    project: Project, user: AnyUser
+) -> ProjectDetailSerializer:
     (
         is_project_admin,
         is_project_member,
         project_role_permissions,
-    ) = await permissions_services.get_user_project_role_info(user=user, project=project)
+    ) = await permissions_services.get_user_project_role_info(
+        user=user, project=project
+    )
 
-    is_workspace_member = await permissions_services.is_workspace_member(user=user, obj=project.workspace)
+    is_workspace_member = await permissions_services.is_workspace_member(
+        user=user, obj=project.workspace
+    )
 
     user_id = None if user.is_anonymous else user.id
-    workspace = await workspaces_services.get_workspace_nested(id=project.workspace_id, user_id=user_id)
+    workspace = await workspaces_services.get_workspace_nested(
+        id=project.workspace_id, user_id=user_id
+    )
 
     user_permissions = await permissions_services.get_user_permissions_for_project(
         is_project_admin=is_project_admin,
@@ -182,7 +200,9 @@ async def get_project_detail(project: Project, user: AnyUser) -> ProjectDetailSe
     user_has_pending_invitation = (
         False
         if user.is_anonymous
-        else await pj_invitations_services.has_pending_project_invitation(user=user, project=project)
+        else await pj_invitations_services.has_pending_project_invitation(
+            user=user, project=project
+        )
     )
 
     workflows = await workflows_repositories.list_workflows(
@@ -207,7 +227,9 @@ async def get_project_detail(project: Project, user: AnyUser) -> ProjectDetailSe
 ##########################################################
 
 
-async def update_project(project: Project, user: User, values: dict[str, Any] = {}) -> ProjectDetailSerializer:
+async def update_project(
+    project: Project, user: User, values: dict[str, Any] = {}
+) -> ProjectDetailSerializer:
     updated_project = await _update_project(project=project, values=values)
     return await get_project_detail(project=updated_project, user=user)
 
@@ -236,7 +258,9 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
             file_to_delete = project.logo.path
 
     # Update project
-    updated_project = await projects_repositories.update_project(project=project, values=values)
+    updated_project = await projects_repositories.update_project(
+        project=project, values=values
+    )
 
     # Delete old file if existed
     if file_to_delete:
@@ -245,13 +269,21 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
     return updated_project
 
 
-async def update_project_public_permissions(project: Project, permissions: list[str]) -> list[str]:
-    await projects_repositories.update_project(project=project, values={"public_permissions": permissions})
+async def update_project_public_permissions(
+    project: Project, permissions: list[str]
+) -> list[str]:
+    await projects_repositories.update_project(
+        project=project, values={"public_permissions": permissions}
+    )
 
     # TODO: emit an event to users/project with the new permissions when a change happens?
-    await projects_events.emit_event_when_project_permissions_are_updated(project=project)
+    await projects_events.emit_event_when_project_permissions_are_updated(
+        project=project
+    )
     if not permissions:
-        await actions_events.emit_event_action_to_check_project_subscription(project_b64id=project.b64id)
+        await actions_events.emit_event_action_to_check_project_subscription(
+            project_b64id=project.b64id
+        )
 
     return permissions
 
@@ -273,7 +305,9 @@ async def delete_project(project: Project, deleted_by: AnyUser) -> bool:
     if deleted > 0:
         # Delete old file if existed
         if file_to_delete:
-            await sync_to_async(projects_tasks.delete_old_logo.defer)(path=file_to_delete)
+            await sync_to_async(projects_tasks.delete_old_logo.defer)(
+                path=file_to_delete
+            )
 
         # Emit event
         await projects_events.emit_event_when_project_is_deleted(
@@ -293,11 +327,17 @@ async def delete_project(project: Project, deleted_by: AnyUser) -> bool:
 ##########################################################
 
 
-async def get_logo_thumbnail_url(thumbnailer_size: str, logo_relative_path: str) -> str | None:
+async def get_logo_thumbnail_url(
+    thumbnailer_size: str, logo_relative_path: str
+) -> str | None:
     if logo_relative_path:
         return await get_thumbnail_url(logo_relative_path, thumbnailer_size)
     return None
 
 
-get_logo_small_thumbnail_url = partial(get_logo_thumbnail_url, settings.IMAGES.THUMBNAIL_PROJECT_LOGO_SMALL)
-get_logo_large_thumbnail_url = partial(get_logo_thumbnail_url, settings.IMAGES.THUMBNAIL_PROJECT_LOGO_LARGE)
+get_logo_small_thumbnail_url = partial(
+    get_logo_thumbnail_url, settings.IMAGES.THUMBNAIL_PROJECT_LOGO_SMALL
+)
+get_logo_large_thumbnail_url = partial(
+    get_logo_thumbnail_url, settings.IMAGES.THUMBNAIL_PROJECT_LOGO_LARGE
+)

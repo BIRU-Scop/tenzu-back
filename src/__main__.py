@@ -18,7 +18,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-# flake8: noqa: E402
+# ruff: noqa: E402
 
 import os
 
@@ -61,7 +61,7 @@ def main(
         callback=_version_callback,
         is_eager=True,
         help="Show version information.",
-    )
+    ),
 ) -> None:
     pass
 
