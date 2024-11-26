@@ -19,7 +19,7 @@
 
 from enum import StrEnum
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class EmailBackends(StrEnum):
@@ -32,6 +32,8 @@ class EmailBackends(StrEnum):
 
 
 class EmailSettings(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
+
     # common email settings
     EMAIL_BACKEND: EmailBackends = EmailBackends.FILE
     DEFAULT_FROM_EMAIL: EmailStr = Field(default="username@domain.name")

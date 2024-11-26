@@ -19,12 +19,12 @@
 
 from typing import Any, Callable, Generator, Type
 
+from django.conf import settings
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
 
 from base.i18n import i18n
-from configurations.conf import settings
 
 CallableGenerator = Generator[Callable[..., Any], None, None]
 
@@ -47,7 +47,7 @@ class LanguageCode(str):
         json_schema = handler.resolve_ref_schema(json_schema)
         json_schema.update(
             type="string",
-            example=settings.LANG,
+            example=settings.LANGUAGE_CODE,
             enum=i18n.available_languages,
         )
         return json_schema

@@ -21,6 +21,7 @@ import logging
 
 import typer
 from babel.messages import frontend as babel_cli
+from django.conf import settings
 
 from base.i18n import (
     FALLBACK_LOCALE_CODE,
@@ -31,7 +32,6 @@ from base.i18n import (
 )
 from base.utils import pprint
 from base.utils.commands import set_working_directory
-from configurations.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ def list_languages() -> None:
         extra: list[str] = []
         if code == FALLBACK_LOCALE_CODE:
             extra.append("fallback")
-        if code == settings.LANG:
+        if code == settings.LANGUAGE_CODE:
             extra.append("default")
 
         table.add_row(code, name, language, territory, ", ".join(extra))

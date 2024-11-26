@@ -19,11 +19,11 @@
 
 from pathlib import Path
 
+from django.conf import settings
 from pydantic import BaseModel, model_validator
 
 from base.serializers import FileField
 from base.utils.concurrency import run_async_as_sync
-from configurations.conf import settings
 
 
 # TODO : extract build of logo_small and logo_large from Mixin
@@ -34,10 +34,17 @@ class ProjectLogoMixin(BaseModel):
 
     @model_validator(mode="after")
     def resolve_logo_computed(self):
-        from projects.projects.services import get_logo_large_thumbnail_url, get_logo_small_thumbnail_url
+        from projects.projects.services import (
+            get_logo_large_thumbnail_url,
+            get_logo_small_thumbnail_url,
+        )
 
         if self.logo:
-            logo_path = Path(settings.MEDIA_ROOT, self.logo.path).__str__().replace("/media/", "")
+            logo_path = (
+                Path(settings.MEDIA_ROOT, self.logo.path)
+                .__str__()
+                .replace("/media/", "")
+            )
             self.logo_small = run_async_as_sync(get_logo_small_thumbnail_url(logo_path))
             self.logo_large = run_async_as_sync(get_logo_large_thumbnail_url(logo_path))
         return self

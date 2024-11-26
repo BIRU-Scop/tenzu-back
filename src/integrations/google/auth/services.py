@@ -17,7 +17,8 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from configurations.conf import settings
+from django.conf import settings
+
 from integrations.auth import services as integrations_auth_services
 from integrations.google import exceptions as ex
 from integrations.google import services as google_services

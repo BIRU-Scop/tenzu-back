@@ -21,8 +21,9 @@ from enum import StrEnum
 from typing import Any
 from urllib.parse import urlencode, urljoin
 
+from django.conf import settings
+
 from base.front.exceptions import InvalidFrontUrl
-from configurations.conf import settings
 
 
 class Urls(StrEnum):

@@ -17,8 +17,9 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.conf import settings
+
 from base.utils.datetime import aware_utcnow
-from configurations.conf import settings
 from projects.invitations.models import ProjectInvitation
 from workspaces.invitations.models import WorkspaceInvitation
 

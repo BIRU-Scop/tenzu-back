@@ -21,11 +21,11 @@ import logging
 from typing import Any
 
 from aiosmtplib import SMTPConnectError
+from django.conf import settings
 from jinja2 import TemplateNotFound
 from procrastinate.contrib.django import app
 
 from base.i18n import i18n
-from configurations.conf import settings
 from emails import exceptions as ex
 from emails.emails import Emails
 from emails.render import render_email_html, render_email_txt, render_subject
@@ -40,7 +40,7 @@ async def send_email(
     to: str | list[str],
     context: dict[str, Any] = {},
     attachment_paths: list[str] = [],
-    lang: str = settings.LANG,
+    lang: str = settings.LANGUAGE_CODE,
 ) -> None:
     # validate the email template
     try:

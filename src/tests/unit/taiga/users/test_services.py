@@ -21,9 +21,9 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.conf import settings
 
 from auth.serializers import AccessTokenWithRefreshSerializer
-from configurations.conf import settings
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.services.exceptions import (
     BadInvitationTokenError,
@@ -119,7 +119,7 @@ async def test_create_user_default_instance_lang(tqmanager):
     password = "CorrectP4ssword$"
     lang = None
     color = 1
-    default_instance_lang = settings.LANG
+    default_instance_lang = settings.LANGUAGE_CODE
     user = f.build_user(
         id=1,
         email=email,

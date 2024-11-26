@@ -20,9 +20,9 @@
 import re
 
 import pytest
+from django.conf import settings
 from fastapi import status
 
-from configurations.conf import settings
 from integrations.github import services
 
 pytestmark = pytest.mark.django_db()
@@ -86,7 +86,9 @@ async def test_github_login_not_configured(client, httpx_mock):
 async def test_github_login_incorrect_code(client, httpx_mock):
     settings.GITHUB_CLIENT_ID = "id"
     settings.GITHUB_CLIENT_SECRET = "secret"
-    httpx_mock.add_response(url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"})
+    httpx_mock.add_response(
+        url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"}
+    )
 
     data = {"code": "code"}
     response = client.post("/auth/github", json=data)
@@ -103,7 +105,9 @@ async def test_github_login_api_not_working(client, httpx_mock):
         status_code=200,
         json={"access_token": "TOKEN"},
     )
-    httpx_mock.add_response(url=EMAILS_URL_REGEX, method="GET", status_code=400, json=[])
+    httpx_mock.add_response(
+        url=EMAILS_URL_REGEX, method="GET", status_code=400, json=[]
+    )
     httpx_mock.add_response(url=USER_URL_REGEX, method="GET", status_code=400, json=[])
 
     data = {"code": "code"}

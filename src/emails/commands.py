@@ -21,10 +21,10 @@ from pathlib import Path
 from typing import Final
 
 import typer
+from django.conf import settings
 
 from base.i18n import i18n
 from base.utils import json, pprint
-from configurations.conf import settings
 from emails import render as email_render
 from emails.emails import EmailPart, Emails
 
@@ -52,7 +52,7 @@ def render(
         EmailPart.HTML.value, "--part", "-p", help="Part of the email to render."
     ),
     lang: str = typer.Option(
-        settings.LANG,
+        settings.LANGUAGE_CODE,
         "--lang",
         "-l",
         help=f"Language used to render. Availables are: {', '.join(i18n.available_languages)}.",

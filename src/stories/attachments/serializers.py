@@ -17,12 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.conf import settings
 from django.urls import reverse_lazy
 from ninja import Schema
 
 from attachments.serializers import AttachmentSerializer
 from base.serializers import FileField
-from configurations.conf import settings
 
 
 class StoryAttachmentSerializer(AttachmentSerializer):

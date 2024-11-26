@@ -25,12 +25,6 @@ from pydantic import BaseModel, Field
 class ImageSettings(BaseModel):
     THUMBNAIL_PROJECT_LOGO_SMALL: str = "32x32_crop"
     THUMBNAIL_PROJECT_LOGO_LARGE: str = "80x80_crop"
-    THUMBNAIL_ALIASES: dict[str, Any] = Field(
-        default={
-            "32x32_crop": {"size": (32, 32), "crop": True},
-            "80x80_crop": {"size": (80, 80), "crop": True},
-        }
-    )
     VALID_CONTENT_TYPES: list[str] = Field(
         default=[
             "image/jpeg",
@@ -38,4 +32,14 @@ class ImageSettings(BaseModel):
             "image/gif",
             "image/webp",
         ]
+    )
+    # easy_thumbnails
+    THUMBNAIL_ALIASES: dict[str, Any] = Field(
+        default={
+            "": {
+                "32x32_crop": {"size": (32, 32), "crop": True},
+                "80x80_crop": {"size": (80, 80), "crop": True},
+            }
+        },
+        exclude=True,
     )

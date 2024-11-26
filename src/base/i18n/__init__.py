@@ -153,9 +153,9 @@ class I18N:
         """
         Reset the object to use the current config lang.
         """
-        from configurations.conf import settings
+        from django.conf import settings
 
-        self.set_lang(settings.LANG)
+        self.set_lang(settings.LANGUAGE_CODE)
 
     @contextmanager
     def use(self, code: str) -> Generator[None, None, None]:
@@ -245,7 +245,7 @@ class I18N:
         :return a list of `LanguageSchema` objects
         :rtype list[tenzu.base.i18n.schemas.LanguageSchema]
         """
-        from configurations.conf import settings
+        from django.conf import settings
 
         langs: list[LanguageSchema] = []
         for loc in i18n.locales:
@@ -258,7 +258,7 @@ class I18N:
             )
             english_name = loc.english_name or code
             text_direction = TextDirection(loc.text_direction)
-            is_default = code == settings.LANG
+            is_default = code == settings.LANGUAGE_CODE
 
             langs.append(
                 LanguageSchema(

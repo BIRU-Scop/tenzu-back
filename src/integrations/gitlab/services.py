@@ -21,8 +21,7 @@ from dataclasses import dataclass
 from typing import Final
 
 import httpx
-
-from configurations.conf import settings
+from django.conf import settings
 
 HEADERS: Final[dict[str, str]] = {
     "Accept": "application/json",
@@ -50,7 +49,9 @@ async def get_access_to_gitlab(code: str, redirect_uri: str) -> str | None:
     }
 
     async with httpx.AsyncClient() as async_client:
-        response = await async_client.post(ACCESS_TOKEN_URL, params=params, headers=headers)
+        response = await async_client.post(
+            ACCESS_TOKEN_URL, params=params, headers=headers
+        )
 
     data = response.json()
     if response.status_code != 200 or "error" in data:

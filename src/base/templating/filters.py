@@ -21,11 +21,11 @@ from datetime import datetime
 from typing import Literal
 from urllib.parse import urljoin
 
+from django.conf import settings
 from jinja2 import Environment
 from markupsafe import Markup
 
 from base.i18n.formatings import datetime as fmt_datetime
-from configurations.conf import settings
 
 
 def _do_wbr_split(text: str, size: int = 70) -> Markup:

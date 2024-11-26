@@ -17,10 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.conf import settings
+
 from auth import services as auth_services
 from base.utils import datetime
 from base.utils.colors import generate_random_color
-from configurations.conf import settings
 from emails.emails import Emails
 from emails.tasks import send_email
 from ninja_jwt.schema import TokenObtainPairOutputSchema
@@ -50,7 +51,7 @@ async def social_login(
     else:
         # check if the user exists (without social login yet)
         user = await users_repositories.get_user(filters={"email": email})
-        lang = lang if lang else settings.LANG
+        lang = lang if lang else settings.LANGUAGE_CODE
 
         if not user:
             # create a new user with social login data and verify it

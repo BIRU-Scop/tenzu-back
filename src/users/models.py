@@ -20,19 +20,19 @@
 import re
 from typing import Any, Iterable
 
+from django.conf import settings
 from django.core.validators import RegexValidator
 
 from base.db import models
 from base.db.users import AbstractBaseUser, AnonymousUser, UserManager
 from base.utils.colors import generate_random_color
 from base.utils.slug import generate_int_suffix, slugify_uniquely
-from configurations.conf import settings
 
 type AnyUser = AnonymousUser | "User" | AbstractBaseUser
 
 
 def default_language() -> str:
-    return settings.LANG
+    return settings.LANGUAGE_CODE
 
 
 class User(models.BaseModel, AbstractBaseUser):

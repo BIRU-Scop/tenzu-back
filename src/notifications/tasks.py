@@ -29,7 +29,7 @@ from procrastinate.contrib.django import app
 
 #
 from base.utils.datetime import aware_utcnow
-from configurations.conf import settings
+from django.conf import settings
 from notifications import services as notifications_services
 
 #

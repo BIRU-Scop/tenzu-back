@@ -17,22 +17,35 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from configurations.conf import settings
+from django.conf import settings
+
 from integrations.auth import services as integrations_auth_services
 from integrations.gitlab import exceptions as ex
 from integrations.gitlab import services as gitlab_services
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 
 
-async def gitlab_login(code: str, redirect_uri: str, lang: str | None = None) -> TokenObtainPairOutputSchema:
-    if not settings.GITLAB_CLIENT_ID or not settings.GITLAB_CLIENT_SECRET or not settings.GITLAB_URL:
-        raise ex.GitlabLoginError("Login with Gitlab is not available. Contact with the platform administrators.")
+async def gitlab_login(
+    code: str, redirect_uri: str, lang: str | None = None
+) -> TokenObtainPairOutputSchema:
+    if (
+        not settings.GITLAB_CLIENT_ID
+        or not settings.GITLAB_CLIENT_SECRET
+        or not settings.GITLAB_URL
+    ):
+        raise ex.GitlabLoginError(
+            "Login with Gitlab is not available. Contact with the platform administrators."
+        )
 
-    access_token = await gitlab_services.get_access_to_gitlab(code=code, redirect_uri=redirect_uri)
+    access_token = await gitlab_services.get_access_to_gitlab(
+        code=code, redirect_uri=redirect_uri
+    )
     if not access_token:
         raise ex.GitlabLoginAuthenticationError("The provided code is not valid.")
 
-    user_info = await gitlab_services.get_user_info_from_gitlab(access_token=access_token)
+    user_info = await gitlab_services.get_user_info_from_gitlab(
+        access_token=access_token
+    )
     if not user_info:
         raise ex.GitlabAPIError("Gitlab API is not responding.")
 

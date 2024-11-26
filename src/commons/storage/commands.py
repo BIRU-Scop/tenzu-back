@@ -20,12 +20,12 @@
 from datetime import timedelta
 
 import typer
+from django.conf import settings
 
 from base.utils import pprint
 from base.utils.concurrency import run_async_as_sync
 from base.utils.datetime import aware_utcnow
 from commons.storage import services as storage_services
-from configurations.conf import settings
 
 cli = typer.Typer(
     name="Tenzu Storage commands",

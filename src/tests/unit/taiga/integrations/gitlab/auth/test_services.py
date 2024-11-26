@@ -20,8 +20,8 @@
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
 
-from configurations.conf import settings
 from integrations.gitlab import exceptions as ex
 from integrations.gitlab.auth import services
 from integrations.gitlab.services import GitlabUserProfile
@@ -36,7 +36,9 @@ async def test_gitlab_login_ok():
     settings.GITLAB_CLIENT_SECRET = "secret"
     settings.GITLAB_URL = "https://gitlab.com"
     with (
-        patch("integrations.gitlab.auth.services.gitlab_services", autospec=True) as fake_gitlab_services,
+        patch(
+            "integrations.gitlab.auth.services.gitlab_services", autospec=True
+        ) as fake_gitlab_services,
         patch(
             "integrations.gitlab.auth.services.integrations_auth_services",
             autospec=True,
@@ -46,7 +48,9 @@ async def test_gitlab_login_ok():
         fake_gitlab_services.get_user_info_from_gitlab.return_value = GitlabUserProfile(
             email="email@test.com", full_name="Full Name", gitlab_id="1", bio="Bio"
         )
-        await services.gitlab_login(code="code", redirect_uri="https://redirect.uri", lang="es-ES")
+        await services.gitlab_login(
+            code="code", redirect_uri="https://redirect.uri", lang="es-ES"
+        )
         fake_integrations_auth_services.social_login.assert_awaited_once()
 
 
@@ -63,7 +67,9 @@ async def test_gitlab_login_invalid_code():
     settings.GITLAB_CLIENT_SECRET = "secret"
     settings.GITLAB_URL = "https://gitlab.com"
     with (
-        patch("integrations.gitlab.auth.services.gitlab_services", autospec=True) as fake_gitlab_services,
+        patch(
+            "integrations.gitlab.auth.services.gitlab_services", autospec=True
+        ) as fake_gitlab_services,
         pytest.raises(ex.GitlabLoginAuthenticationError),
     ):
         fake_gitlab_services.get_access_to_gitlab.return_value = None
@@ -75,7 +81,9 @@ async def test_gitlab_login_gitlab_api_not_responding():
     settings.GITLAB_CLIENT_SECRET = "secret"
     settings.GITLAB_URL = "https://gitlab.com"
     with (
-        patch("integrations.gitlab.auth.services.gitlab_services", autospec=True) as fake_gitlab_services,
+        patch(
+            "integrations.gitlab.auth.services.gitlab_services", autospec=True
+        ) as fake_gitlab_services,
         pytest.raises(ex.GitlabAPIError),
     ):
         fake_gitlab_services.get_access_to_gitlab.return_value = "access_token"

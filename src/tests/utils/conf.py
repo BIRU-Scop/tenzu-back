@@ -22,8 +22,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, ContextManager
 
 import pytest
-
-from configurations.conf import settings
+from django.conf import settings
 
 
 @pytest.fixture
@@ -44,7 +43,9 @@ def override_settings(
     """
 
     @contextmanager
-    def _override_settings(settings_values: dict[str, Any]) -> Generator[None, None, None]:
+    def _override_settings(
+        settings_values: dict[str, Any],
+    ) -> Generator[None, None, None]:
         # Apply changes
         for attr, val in settings_values.items():
             monkeypatch.setattr(settings, attr, val)

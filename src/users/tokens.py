@@ -18,7 +18,8 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from configurations.conf import settings
+from django.conf import settings
+
 from tokens.base import DenylistMixin, Token
 
 

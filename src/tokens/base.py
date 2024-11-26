@@ -47,8 +47,9 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 from uuid import uuid4
 
+from django.conf import settings
+
 from base.utils.datetime import aware_utcnow, datetime_to_epoch, epoch_to_datetime
-from configurations.conf import settings
 from tokens import services as tokens_services
 from tokens.backends import TokenBackend, token_backend
 from tokens.exceptions import (
@@ -89,7 +90,7 @@ class Token:
                 raise TokenError("Token is invalid")
         else:
             # New token.  Skip all the verification steps.
-            self.payload = {settings.TOKENS.TOKEN_TYPE_CLAIM: self.token_type}
+            self.payload = {settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]: self.token_type}
 
             # Set "exp" claim with default value
             if self.lifetime:
@@ -127,7 +128,7 @@ class Token:
         See here:
         https://tools.ietf.org/html/rfc7519#section-4.1.7
         """
-        self.payload[settings.TOKENS.JTI_CLAIM] = uuid4().hex
+        self.payload[settings.NINJA_JWT["JTI_CLAIM"]] = uuid4().hex
 
     def __repr__(self) -> str:
         return repr(self.payload)
@@ -166,7 +167,7 @@ class Token:
         self._verify_exp()
 
         # Ensure token id is present
-        if settings.TOKENS.JTI_CLAIM not in self.payload:
+        if settings.NINJA_JWT["JTI_CLAIM"] not in self.payload:
             raise TokenError("Token has no id")
 
         self._verify_token_type()
@@ -200,7 +201,7 @@ class Token:
         Ensures that the token type claim is present and has the correct value.
         """
         try:
-            token_type = self.payload[settings.TOKENS.TOKEN_TYPE_CLAIM]
+            token_type = self.payload[settings.NINJA_JWT["TOKEN_TYPE_CLAIM"]]
         except KeyError:
             raise TokenError("Token has no type")
 
@@ -268,7 +269,7 @@ class DenylistMixin(_BaseMixin):
         Checks if this token is in the outstanding list. Raises
         `TokenError` if it's not.
         """
-        jti = self.payload[settings.TOKENS.JTI_CLAIM]
+        jti = self.payload[settings.NINJA_JWT["JTI_CLAIM"]]
 
         if not await tokens_services.outstanding_token_exist(jti=jti):
             raise TokenError("This is not an outstanding token")
@@ -278,7 +279,7 @@ class DenylistMixin(_BaseMixin):
         Checks if this token is present in the token denylist.  Raises
         `TokenError` if so.
         """
-        jti = self.payload[settings.TOKENS.JTI_CLAIM]
+        jti = self.payload[settings.NINJA_JWT["JTI_CLAIM"]]
 
         if await tokens_services.token_is_denied(jti=jti):
             raise DeniedTokenError("Token is denylisted")
@@ -288,7 +289,7 @@ class DenylistMixin(_BaseMixin):
         Ensures this token is included in the outstanding token list and
         adds it to the denylist.
         """
-        jti = self.payload[settings.TOKENS.JTI_CLAIM]
+        jti = self.payload[settings.NINJA_JWT["JTI_CLAIM"]]
         token = str(self)
         expires_at = epoch_to_datetime(self.payload["exp"])
 
@@ -306,7 +307,7 @@ class DenylistMixin(_BaseMixin):
         """
         token = await super().create_for_object(obj)
 
-        jti = token[settings.TOKENS.JTI_CLAIM]
+        jti = token[settings.NINJA_JWT["JTI_CLAIM"]]
         created_at = token.current_time
         expires_at = epoch_to_datetime(token["exp"])
 

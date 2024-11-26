@@ -21,12 +21,12 @@ from typing import cast
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 
 from auth import services as auth_services
 from base.api.pagination import Pagination
 from base.utils.colors import generate_random_color
 from base.utils.datetime import aware_utcnow
-from configurations.conf import settings
 from emails.emails import Emails
 from emails.tasks import send_email
 from projects.invitations import events as pj_invitations_events
@@ -82,7 +82,7 @@ async def create_user(
     if user and user.is_active:
         raise ex.EmailAlreadyExistsError("Email already exists")
 
-    lang = lang if lang else settings.LANG
+    lang = lang if lang else settings.LANGUAGE_CODE
     if not user:
         # new user
         if not color:

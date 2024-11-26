@@ -46,6 +46,7 @@
 from typing import Any
 
 import jwt
+from django.conf import settings
 from jwt import (
     ExpiredSignatureError,
     InvalidAlgorithmError,
@@ -54,7 +55,6 @@ from jwt import (
 )
 
 from base.utils import json
-from configurations.conf import settings
 from ninja_jwt.backends import ALLOWED_ALGORITHMS
 from tokens import exceptions as ex
 
@@ -139,9 +139,9 @@ class TokenBackend:
 
 
 token_backend = TokenBackend(
-    algorithm=settings.TOKENS.ALGORITHM,
-    signing_key=settings.TOKENS.SIGNING_KEY or settings.SECRET_KEY,
-    verifying_key=settings.TOKENS.VERIFYING_KEY,
-    audience=settings.TOKENS.AUDIENCE,
-    issuer=settings.TOKENS.ISSUER,
+    algorithm=settings.NINJA_JWT["ALGORITHM"],
+    signing_key=settings.NINJA_JWT["SIGNING_KEY"] or settings.SECRET_KEY,
+    verifying_key=settings.NINJA_JWT["VERIFYING_KEY"],
+    audience=settings.NINJA_JWT["AUDIENCE"],
+    issuer=settings.NINJA_JWT["ISSUER"],
 )

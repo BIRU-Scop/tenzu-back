@@ -19,11 +19,11 @@
 
 from datetime import timedelta
 
+from django.conf import settings
 from procrastinate.contrib.django import app
 
 from base.utils.datetime import aware_utcnow
 from commons.storage import services as storage_services
-from configurations.conf import settings
 
 
 @app.periodic(cron=settings.STORAGE.CLEAN_DELETED_STORAGE_OBJECTS_CRON)  # type: ignore

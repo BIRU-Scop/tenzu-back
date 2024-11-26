@@ -20,8 +20,8 @@
 from unittest.mock import patch
 
 import pytest
+from django.conf import settings
 
-from configurations.conf import settings
 from integrations.github import exceptions as ex
 from integrations.github.auth import services
 from integrations.github.services import GithubUserProfile
@@ -35,7 +35,9 @@ async def test_github_login_ok():
     settings.GITHUB_CLIENT_ID = "id"
     settings.GITHUB_CLIENT_SECRET = "secret"
     with (
-        patch("integrations.github.auth.services.github_services", autospec=True) as fake_github_services,
+        patch(
+            "integrations.github.auth.services.github_services", autospec=True
+        ) as fake_github_services,
         patch(
             "integrations.github.auth.services.integrations_auth_services",
             autospec=True,
@@ -60,7 +62,9 @@ async def test_github_login_invalid_code():
     settings.GITHUB_CLIENT_ID = "id"
     settings.GITHUB_CLIENT_SECRET = "secret"
     with (
-        patch("integrations.github.auth.services.github_services", autospec=True) as fake_github_services,
+        patch(
+            "integrations.github.auth.services.github_services", autospec=True
+        ) as fake_github_services,
         pytest.raises(ex.GithubLoginAuthenticationError),
     ):
         fake_github_services.get_access_to_github.return_value = None
@@ -71,7 +75,9 @@ async def test_github_login_github_api_not_responding():
     settings.GITHUB_CLIENT_ID = "id"
     settings.GITHUB_CLIENT_SECRET = "secret"
     with (
-        patch("integrations.github.auth.services.github_services", autospec=True) as fake_github_services,
+        patch(
+            "integrations.github.auth.services.github_services", autospec=True
+        ) as fake_github_services,
         pytest.raises(ex.GithubAPIError),
     ):
         fake_github_services.get_access_to_github.return_value = "access_token"

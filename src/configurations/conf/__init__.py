@@ -23,7 +23,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urljoin
 
-from pydantic import AnyHttpUrl, EmailStr, Field, field_validator
+from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -47,33 +47,44 @@ _DEFAULT_MEDIA_URL = AnyHttpUrl.build(
 )
 
 
+class DbSettings(BaseModel):
+    NAME: str = "tenzu"
+    USER: str = "tenzu"
+    PASSWORD: str = "tenzu"
+    HOST: str = "localhost"
+    PORT: int = 5432
+
+
 class Settings(BaseSettings):
     # Commons
+    # SECURITY WARNING: keep the secret key used in production secret!
     SECRET_KEY: str
     SECRET_KEY_FALLBACKS: list[str] = Field(default_factory=list)
     UUID_NODE: int | None = None
+    # SECURITY WARNING: don't run with debug turned on in production!
     DEBUG: bool = False
 
     # Tenzu URLS
     BACKEND_URL: AnyHttpUrl = _DEFAULT_BACKEND_URL
     FRONTEND_URL: AnyHttpUrl = _DEFAULT_FRONTEND_URL
     EXTRA_CORS: list[AnyHttpUrl] = Field(default_factory=list)
+
     # Database
-    DB_NAME: str = "tenzu"
-    DB_USER: str = "tenzu"
-    DB_PASSWORD: str = "tenzu"
-    DB_HOST: str = "localhost"
-    DB_PORT: int = 5432
+    DB: DbSettings = DbSettings()
 
     # Media and Static files
+    # Static files (CSS, JavaScript, Images)
+    # https://docs.djangoproject.com/en/4.0/howto/static-files/
     STATIC_URL: AnyHttpUrl = _DEFAULT_STATIC_URL
     STATIC_ROOT: Path = _BASE_DIR.parent / "public" / "static"
+    # Media files
+    # https://docs.djangoproject.com/en/4.0/topics/files/#file-storage
     MEDIA_URL: AnyHttpUrl = _DEFAULT_MEDIA_URL
     MEDIA_ROOT: Path = _BASE_DIR.parent / "public" / "media"
     MAX_UPLOAD_FILE_SIZE: int = 100 * 1024 * 1024  # 100 MB
 
     # I18N
-    LANG: str = "en-US"
+    LANGUAGE_CODE: str = "en-US"
 
     # Pagination
     DEFAULT_PAGE_SIZE: int = 10
@@ -148,7 +159,7 @@ class Settings(BaseSettings):
             else urljoin(str(info.data["BACKEND_URL"]), "/media/")
         )
 
-    @field_validator("LANG")
+    @field_validator("LANGUAGE_CODE")
     @classmethod
     def validate_lang(cls, v: str) -> str:
         from base.i18n import i18n
@@ -156,7 +167,7 @@ class Settings(BaseSettings):
         if not i18n.is_language_available(v):
             available_languages_for_display = "\n".join(i18n.available_languages)
             raise ValueError(
-                f"LANG should be one of \n{ available_languages_for_display }\n"
+                f"LANGUAGE_CODE should be one of \n{ available_languages_for_display }\n"
             )
         return v
 

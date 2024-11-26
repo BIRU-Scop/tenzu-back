@@ -20,9 +20,9 @@
 import re
 
 import pytest
+from django.conf import settings
 from fastapi import status
 
-from configurations.conf import settings
 from integrations.google import services
 
 pytestmark = pytest.mark.django_db()
@@ -71,7 +71,9 @@ async def test_google_login_not_configured(client, httpx_mock):
 async def test_google_login_incorrect_code(client, httpx_mock):
     settings.GOOGLE_CLIENT_ID = "id"
     settings.GOOGLE_CLIENT_SECRET = "secret"
-    httpx_mock.add_response(url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"})
+    httpx_mock.add_response(
+        url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"}
+    )
 
     data = {"code": "incorrect_code", "redirect_uri": "https://redirect.uri"}
     response = client.post("/auth/google", json=data)

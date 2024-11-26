@@ -20,13 +20,13 @@
 from typing import Any, cast
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 
 from auth import services as auth_services
 from base.utils import emails
 from base.utils.datetime import aware_utcnow
 from base.utils.emails import is_email
 from commons.invitations import is_spam
-from configurations.conf import settings
 from emails.emails import Emails
 from emails.tasks import send_email
 from tokens.exceptions import TokenError
@@ -320,7 +320,7 @@ async def send_workspace_invitation_email(
         email_name=Emails.WORKSPACE_INVITATION.value,
         to=email,
         context=context,
-        lang=receiver.lang if receiver else settings.LANG,
+        lang=receiver.lang if receiver else settings.LANGUAGE_CODE,
     )
 
 
