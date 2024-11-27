@@ -122,7 +122,7 @@ email-validator==2.2.0
     # via
     #   -r requirements/commons.in
     #   pydantic
-factory-boy @ git+https://github.com/FactoryBoy/factory_boy@ac49fb40ec424276c3cd3ca0925ba99a626f05f7#egg=factory-boy
+factory-boy==3.3.1
     # via -r requirements/devel.in
 faker==33.0.0
     # via
