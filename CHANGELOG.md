@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.6](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.5...v0.0.1-staging.6) (2024-11-27)
+
+
+### Bug Fixes
+
+* prevent crash when displaying time with timedelta instead of minutes ([1509779](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/1509779d292f8ec700276c9107a7b09f0b6cee02))
+
 ## [0.0.1-staging.5](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.4...v0.0.1-staging.5) (2024-11-26)
 
 
