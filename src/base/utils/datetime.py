@@ -45,9 +45,8 @@
 
 import time
 from calendar import timegm
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from datetime import time as datetime_time
-from datetime import timedelta, timezone
 
 from base.i18n import ngettext
 
@@ -108,21 +107,32 @@ def timestamp_mics() -> int:
     return int(time.time() * 1000000)
 
 
-def display_lifetime(minutes: int) -> str:
+def display_lifetime(lifetime: timedelta) -> str:
     """
-    This function takes minutes and try to round them to days, hours or minutes.
+    This function takes timedelta and return a string to round it to days, hours or minutes.
     If minutes are less than a day, then it returns hours.
     If minutes are less than an hour, then it returns the minutes.
     """
-    days = minutes // (24 * 60)
-    if days > 0:
-        return ngettext("datetime.lifetime.day", "datetime.lifetime.days", days) % days
+    if lifetime.days > 0:
+        return (
+            ngettext("datetime.lifetime.day", "datetime.lifetime.days", lifetime.days)
+            % lifetime.days
+        )
     else:
-        hours = minutes // 60
+        hours, remainder = divmod(lifetime.seconds, 3600)
         if hours > 0:
-            return ngettext("datetime.lifetime.hour", "datetime.lifetime.hours", hours) % hours
+            return (
+                ngettext("datetime.lifetime.hour", "datetime.lifetime.hours", hours)
+                % hours
+            )
         else:
-            return ngettext("datetime.lifetime.minute", "datetime.lifetime.minutes", minutes) % minutes
+            minutes = remainder // 60
+            return (
+                ngettext(
+                    "datetime.lifetime.minute", "datetime.lifetime.minutes", minutes
+                )
+                % minutes
+            )
 
 
 def duration_iso_string(duration: timedelta) -> str:
@@ -157,4 +167,6 @@ def duration_iso_string(duration: timedelta) -> str:
 
     days, hours, minutes, seconds, microseconds = _get_duration_components(duration)
     ms = ".{:06d}".format(microseconds) if microseconds else ""
-    return "{}P{}DT{:02d}H{:02d}M{:02d}{}S".format(sign, days, hours, minutes, seconds, ms)
+    return "{}P{}DT{:02d}H{:02d}M{:02d}{}S".format(
+        sign, days, hours, minutes, seconds, ms
+    )
