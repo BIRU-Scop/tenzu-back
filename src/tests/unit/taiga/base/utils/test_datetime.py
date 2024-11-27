@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from datetime import timedelta
 
 from base.i18n import i18n
 from base.utils.datetime import display_lifetime
@@ -23,32 +24,20 @@ from base.utils.datetime import display_lifetime
 
 def test_display_lifetime():
     with i18n.use("en-US"):
-        minutes = 3 * 24 * 60  # 3 days
-        assert display_lifetime(minutes) == "3 days"
+        assert display_lifetime(timedelta(days=3)) == "3 days"
 
-        minutes = 36 * 60  # 1,5 days
-        assert display_lifetime(minutes) == "1 day"
+        assert display_lifetime(timedelta(days=1, hours=12)) == "1 day"
 
-        minutes = 24 * 60  # 1 day
-        assert display_lifetime(minutes) == "1 day"
+        assert display_lifetime(timedelta(days=1)) == "1 day"
 
-        minutes = 12 * 60  # 12 hours
-        assert display_lifetime(minutes) == "12 hours"
+        assert display_lifetime(timedelta(hours=12)) == "12 hours"
 
-        minutes = 210  # 3,5 hours
-        assert display_lifetime(minutes) == "3 hours"
+        assert display_lifetime(timedelta(hours=3, minutes=30)) == "3 hours"
 
-        minutes = 60  # 1 hour
-        assert display_lifetime(minutes) == "1 hour"
+        assert display_lifetime(timedelta(hours=1)) == "1 hour"
 
-        minutes = 45  # 45 minutes
-        assert display_lifetime(minutes) == "45 minutes"
+        assert display_lifetime(timedelta(minutes=45)) == "45 minutes"
 
-        minutes = 1  # 1 minute
-        assert display_lifetime(minutes) == "1 minute"
+        assert display_lifetime(timedelta(minutes=1)) == "1 minute"
 
-        minutes = 0  # 0 minutes
-        assert display_lifetime(minutes) == "0 minutes"
-
-        minutes = -1  # -1 minutes
-        assert display_lifetime(minutes) == "-1 minutes"
+        assert display_lifetime(timedelta(minutes=0)) == "0 minutes"
