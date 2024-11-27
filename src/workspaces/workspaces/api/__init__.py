@@ -24,13 +24,24 @@ from ninja import Path, Router
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_400, ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_400,
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm, IsAuthenticated, IsWorkspaceMember
 from workspaces.workspaces import services as workspaces_services
-from workspaces.workspaces.api.validators import UpdateWorkspaceValidator, WorkspaceValidator
+from workspaces.workspaces.api.validators import (
+    UpdateWorkspaceValidator,
+    WorkspaceValidator,
+)
 from workspaces.workspaces.models import Workspace
-from workspaces.workspaces.serializers import WorkspaceDetailSerializer, WorkspaceSerializer
+from workspaces.workspaces.serializers import (
+    WorkspaceDetailSerializer,
+    WorkspaceSerializer,
+)
 
 # PERMISSIONS
 LIST_MY_WORKSPACES = IsAuthenticated()
@@ -39,7 +50,7 @@ GET_WORKSPACE = HasPerm("view_workspace")
 DELETE_WORKSPACE = IsWorkspaceMember()
 UPDATE_WORKSPACE = IsWorkspaceMember()
 
-auth_router = Router(auth=AsyncJWTAuth())
+workspace_router = Router(auth=AsyncJWTAuth())
 
 
 ##########################################################
@@ -47,7 +58,7 @@ auth_router = Router(auth=AsyncJWTAuth())
 ##########################################################
 
 
-@auth_router.post(
+@workspace_router.post(
     "/workspaces",
     url_name="workspaces.post",
     summary="Create workspace",
@@ -62,7 +73,9 @@ async def create_workspace(request, data: WorkspaceValidator) -> WorkspaceSerial
     """
     Create a new workspace for the logged user.
     """
-    return await workspaces_services.create_workspace(name=data.name, color=data.color, created_by=request.user)
+    return await workspaces_services.create_workspace(
+        name=data.name, color=data.color, created_by=request.user
+    )
 
 
 ##########################################################
@@ -70,7 +83,7 @@ async def create_workspace(request, data: WorkspaceValidator) -> WorkspaceSerial
 ##########################################################
 
 
-@auth_router.get(
+@workspace_router.get(
     "/my/workspaces",
     url_name="workspaces.post",
     summary="List the overview of the workspaces to which I belong",
@@ -88,7 +101,7 @@ async def list_my_workspaces(request) -> list[WorkspaceDetailSerializer]:
 ##########################################################
 # get workspace
 ##########################################################
-@auth_router.get(
+@workspace_router.get(
     "/workspaces/{id}",
     url_name="workspaces.get",
     summary="Get workspace",
@@ -106,10 +119,12 @@ async def get_workspace(request, id: Path[B64UUID]) -> WorkspaceSerializer:
     """
     workspace = await get_workspace_or_404(id=id)
     await check_permissions(permissions=GET_WORKSPACE, user=request.user, obj=workspace)
-    return await workspaces_services.get_workspace_detail(id=workspace.id, user_id=request.user.id)
+    return await workspaces_services.get_workspace_detail(
+        id=workspace.id, user_id=request.user.id
+    )
 
 
-@auth_router.get(
+@workspace_router.get(
     "/my/workspaces/{id}",
     url_name="my.workspaces.get",
     summary="Get the overview of a workspace to which I belong",
@@ -126,7 +141,9 @@ async def get_my_workspace(request, id: Path[B64UUID]) -> WorkspaceDetailSeriali
     Get the workspaces overview for the logged user.
     """
     await check_permissions(permissions=GET_MY_WORKSPACE, user=request.user, obj=None)
-    workspace_overview = await workspaces_services.get_user_workspace(user=request.user, id=id)
+    workspace_overview = await workspaces_services.get_user_workspace(
+        user=request.user, id=id
+    )
     if workspace_overview is None:
         raise ex.NotFoundError(f"Workspace {id} does not exist")
     return workspace_overview
@@ -137,7 +154,7 @@ async def get_my_workspace(request, id: Path[B64UUID]) -> WorkspaceDetailSeriali
 ##########################################################
 
 
-@auth_router.patch(
+@workspace_router.patch(
     "/workspaces/{id}",
     url_name="workspace.update",
     summary="Update workspace",
@@ -159,10 +176,14 @@ async def update_workspace(
     Update workspace
     """
     workspace = await get_workspace_or_404(id)
-    await check_permissions(permissions=UPDATE_WORKSPACE, user=request.user, obj=workspace)
+    await check_permissions(
+        permissions=UPDATE_WORKSPACE, user=request.user, obj=workspace
+    )
 
     values = form.dict(exclude_unset=True)
-    return await workspaces_services.update_workspace(workspace=workspace, user=request.user, values=values)
+    return await workspaces_services.update_workspace(
+        workspace=workspace, user=request.user, values=values
+    )
 
 
 ##########################################################
@@ -170,7 +191,7 @@ async def update_workspace(
 ##########################################################
 
 
-@auth_router.delete(
+@workspace_router.delete(
     "/workspaces/{id}",
     url_name="workspace.delete",
     summary="Delete workspace",
@@ -188,9 +209,13 @@ async def delete_workspace(request, id: Path[B64UUID]) -> tuple[int, None]:
     Delete a workspace
     """
     workspace = await get_workspace_or_404(id=id)
-    await check_permissions(permissions=DELETE_WORKSPACE, user=request.user, obj=workspace)
+    await check_permissions(
+        permissions=DELETE_WORKSPACE, user=request.user, obj=workspace
+    )
 
-    await workspaces_services.delete_workspace(workspace=workspace, deleted_by=request.user)
+    await workspaces_services.delete_workspace(
+        workspace=workspace, deleted_by=request.user
+    )
     return 204, None
 
 

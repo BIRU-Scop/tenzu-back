@@ -24,7 +24,7 @@ from base.i18n import i18n
 from base.i18n.schemas import LanguageSchema
 from system.serializers import LanguageSerializer
 
-unauth_router = Router()
+system_router = Router()
 
 ################################################
 # list languages info
@@ -33,7 +33,7 @@ unauth_router = Router()
 Adapter = TypeAdapter(list[LanguageSchema])
 
 
-@unauth_router.get(
+@system_router.get(
     "/system/languages",
     url_name="system.languages.list",
     summary="List system available languages",
