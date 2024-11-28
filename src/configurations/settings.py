@@ -134,7 +134,13 @@ WSGI_APPLICATION = "configurations.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {"ENGINE": "django.db.backends.postgresql", **settings.DB.model_dump()}
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        **settings.DB.model_dump(),
+        "OPTIONS": {
+            "pool": True,
+        },
+    }
 }
 
 # Password validation

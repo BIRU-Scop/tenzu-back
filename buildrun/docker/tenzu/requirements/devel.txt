@@ -122,7 +122,7 @@ email-validator==2.2.0
     # via
     #   -r requirements/commons.in
     #   pydantic
-factory-boy @ git+https://github.com/FactoryBoy/factory_boy@ac49fb40ec424276c3cd3ca0925ba99a626f05f7#egg=factory-boy
+factory-boy==3.3.1
     # via -r requirements/devel.in
 faker==33.0.0
     # via
@@ -202,11 +202,13 @@ pluggy==1.5.0
 procrastinate==2.6.0
     # via -r requirements/commons.in
 psycopg==3.2.3
-    # via procrastinate
+    # via
+    #   -r requirements/commons.in
+    #   procrastinate
+psycopg-c==3.2.3
+    # via psycopg
 psycopg-pool==3.2.4
     # via psycopg
-psycopg2==2.9.10
-    # via -r requirements/commons.in
 pyasn1==0.6.1
     # via
     #   pyasn1-modules

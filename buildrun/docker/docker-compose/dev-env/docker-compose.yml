@@ -96,13 +96,12 @@ services:
     networks:
       - tenzu
   compile-dep:
+    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
     build:
       context: ../../../../
       dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
-      target: base-image
+      target: dev-image
     working_dir: /tenzu
-    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:compile
-    restart: on-failure
     profiles:
       - compile
     command: >
@@ -112,12 +111,12 @@ services:
     volumes:
       - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
   compile-dep-upgrade:
+    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
     build:
       context: ../../../../
       dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
-      target: base-image
+      target: dev-image
     working_dir: /tenzu
-    image: gitlab.biru.sh:4567/biru/dev/${MODULE_NAME}:compile
     restart: on-failure
     profiles:
       - compile-update
