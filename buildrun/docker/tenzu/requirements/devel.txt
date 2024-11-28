@@ -202,11 +202,13 @@ pluggy==1.5.0
 procrastinate==2.6.0
     # via -r requirements/commons.in
 psycopg==3.2.3
-    # via procrastinate
+    # via
+    #   -r requirements/commons.in
+    #   procrastinate
+psycopg-c==3.2.3
+    # via psycopg
 psycopg-pool==3.2.4
     # via psycopg
-psycopg2==2.9.10
-    # via -r requirements/commons.in
 pyasn1==0.6.1
     # via
     #   pyasn1-modules
