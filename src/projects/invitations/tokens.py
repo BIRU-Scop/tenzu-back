@@ -20,7 +20,7 @@
 
 from django.conf import settings
 
-from tokens.base import Token
+from ninja_jwt.tokens import Token
 
 
 class ProjectInvitationToken(Token):

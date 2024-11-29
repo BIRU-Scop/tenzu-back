@@ -29,6 +29,7 @@ from base.utils.datetime import aware_utcnow
 from commons.invitations import is_spam
 from emails.emails import Emails
 from emails.tasks import send_email
+from ninja_jwt.exceptions import TokenError
 from projects.invitations import events as invitations_events
 from projects.invitations import repositories as invitations_repositories
 from projects.invitations.choices import ProjectInvitationStatus
@@ -45,7 +46,6 @@ from projects.memberships import repositories as memberships_repositories
 from projects.projects.models import Project
 from projects.roles import repositories as pj_roles_repositories
 from projects.roles import services as pj_roles_services
-from tokens.exceptions import TokenError
 from users import services as users_services
 from users.models import AnyUser, User
 
@@ -244,9 +244,9 @@ async def list_pending_project_invitations(
 
 async def get_project_invitation(token: str) -> ProjectInvitation | None:
     try:
-        invitation_token = await ProjectInvitationToken.create(token=token)
+        invitation_token = ProjectInvitationToken(token=token)
     except TokenError:
-        raise ex.BadInvitationTokenError("Invalid token")
+        raise ex.BadInvitationTokenError("Invalid or expired token")
 
     invitation_data = cast(ProjectInvitationFilters, invitation_token.object_data)
     return await invitations_repositories.get_project_invitation(

@@ -41,7 +41,7 @@ from .api import api
 urlpatterns: list[URLPattern | URLResolver] = []
 
 urlpatterns += [
-    path("api/v2/", api.urls),
+    path(f"api/{settings.API_VERSION}/", api.urls),
 ]
 
 

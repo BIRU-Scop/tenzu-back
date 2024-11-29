@@ -36,7 +36,6 @@ from commons.storage.commands import cli as storage_cli
 from emails.commands import cli as emails_cli
 from notifications.commands import cli as notifications_cli
 from tmp import __version__
-from tokens.commands import cli as tokens_cli
 from users.commands import cli as users_cli
 
 cli = typer.Typer(
@@ -72,7 +71,6 @@ cli.add_typer(i18n_cli, name="i18n")
 cli.add_typer(notifications_cli, name="notifications")
 cli.add_typer(sampledata_cli, name="sampledata")
 cli.add_typer(storage_cli, name="storage")
-cli.add_typer(tokens_cli, name="tokens")
 cli.add_typer(users_cli, name="users")
 
 

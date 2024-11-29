@@ -15,6 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.conf import settings
 from ninja import NinjaAPI, Router
 
 from base.services.exceptions import TenzuServiceException
@@ -48,7 +49,7 @@ api = NinjaAPI(
     parser=ORJSONParser(),
     renderer=ORJSONRenderer(),
     title="Tenzu API",
-    version="v1",
+    version=settings.API_VERSION,
 )
 
 

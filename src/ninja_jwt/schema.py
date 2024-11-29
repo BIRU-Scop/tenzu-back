@@ -40,10 +40,10 @@ import typing
 import warnings
 from typing import Any, Dict, Optional, Type, cast
 
-from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.models import AbstractUser, update_last_login
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import update_last_login
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from ninja import ModelSchema, Schema
 from ninja.schema import DjangoGetter
@@ -51,7 +51,7 @@ from pydantic import model_validator
 
 import ninja_jwt.exceptions as exceptions
 from ninja_jwt.utils import token_error
-from users import repositories as users_repositories
+from users.models import User
 
 from .settings import api_settings
 from .tokens import RefreshToken, SlidingToken, UntypedToken
@@ -59,12 +59,12 @@ from .tokens import RefreshToken, SlidingToken, UntypedToken
 if api_settings.BLACKLIST_AFTER_ROTATION:
     from .token_blacklist.models import BlacklistedToken
 
-user_name_field = get_user_model().USERNAME_FIELD  # type: ignore
+user_name_field = User.USERNAME_FIELD  # type: ignore
 
 
 class AuthUserSchema(ModelSchema):
     class Config:
-        model = get_user_model()
+        model = User
         model_fields = [user_name_field]
 
 
@@ -79,16 +79,20 @@ class InputSchemaMixin:
 
 
 class TokenInputSchemaMixin(InputSchemaMixin):
-    _user: Optional[AbstractUser] = None
+    _user: Optional[User] = None
 
-    _default_error_messages = {"no_active_account": _("No active account found with the given credentials")}
+    _default_error_messages = {
+        "no_active_account": _("No active account found with the given credentials")
+    }
 
     def check_user_authentication_rule(self) -> None:
         if not api_settings.USER_AUTHENTICATION_RULE(self._user):
-            raise exceptions.AuthenticationFailed(self._default_error_messages["no_active_account"])
+            raise exceptions.AuthenticationFailed(
+                self._default_error_messages["no_active_account"]
+            )
 
     @classmethod
-    def validate_values(cls, values: Dict) -> Dict:
+    def validate_values(cls, request: HttpRequest, values: Dict) -> Dict:
         if user_name_field not in values and "password" not in values:
             raise exceptions.ValidationError(
                 {
@@ -98,49 +102,44 @@ class TokenInputSchemaMixin(InputSchemaMixin):
             )
 
         if not values.get(user_name_field):
-            raise exceptions.ValidationError({user_name_field: f"{user_name_field} is required"})
-        user = async_to_sync(users_repositories.get_user)(
-            filters={"username_or_email": values.get(user_name_field), "is_active": True}
-        )
-        if not user:
-            raise exceptions.AuthenticationFailed(cls._default_error_messages["no_active_account"])
-        values[user_name_field] = user.username
+            raise exceptions.ValidationError(
+                {user_name_field: f"{user_name_field} is required"}
+            )
+
         if not values.get("password"):
             raise exceptions.ValidationError({"password": "password is required"})
 
-        _user = authenticate(**values)
-
+        _user = authenticate(request, **values)
         cls._user = _user
 
         if not (_user is not None and _user.is_active):
-            raise exceptions.AuthenticationFailed(cls._default_error_messages["no_active_account"])
+            raise exceptions.AuthenticationFailed(
+                cls._default_error_messages["no_active_account"]
+            )
 
         return values
 
-    def output_schema(self) -> Schema:
-        warnings.warn(
-            "output_schema() is deprecated in favor of " "to_response_schema()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.to_response_schema()
-
     @classmethod
-    def get_token(cls, user: AbstractUser) -> Dict:
-        raise NotImplementedError("Must implement `get_token` method for `TokenObtainSerializer` subclasses")
+    def get_token(cls, user: User) -> Dict:
+        raise NotImplementedError(
+            "Must implement `get_token` method for `TokenObtainSerializer` subclasses"
+        )
 
 
 class TokenObtainInputSchemaBase(ModelSchema, TokenInputSchemaMixin):
     class Config:
         # extra = "allow"
-        model = get_user_model()
+        model = User
         model_fields = ["password", user_name_field]
 
     @model_validator(mode="before")
     def validate_inputs(cls, values: DjangoGetter) -> DjangoGetter:
         input_values = values._obj
+        request = values._context.get("request")
         if isinstance(input_values, dict):
-            values._obj.update(cls.validate_values(input_values))
+            values._obj.update(
+                cls.validate_values(request=request, values=input_values)
+            )
             return values
         return values
 
@@ -172,7 +171,9 @@ class TokenObtainInputSchemaBase(ModelSchema, TokenInputSchemaMixin):
         return values
 
     def get_response_schema_init_kwargs(self) -> dict:
-        return dict(self.dict(exclude={"password"}), **self.__dict__.get("token_data", {}))
+        return dict(
+            self.dict(exclude={"password"}), **self.__dict__.get("token_data", {})
+        )
 
     def to_response_schema(self):
         _schema_type = self.get_response_schema()
@@ -181,7 +182,7 @@ class TokenObtainInputSchemaBase(ModelSchema, TokenInputSchemaMixin):
 
 class TokenObtainPairOutputSchema(AuthUserSchema):
     refresh: str
-    token: str
+    access: str
 
 
 class TokenObtainPairInputSchema(TokenObtainInputSchemaBase):
@@ -190,12 +191,12 @@ class TokenObtainPairInputSchema(TokenObtainInputSchemaBase):
         return TokenObtainPairOutputSchema
 
     @classmethod
-    def get_token(cls, user: AbstractUser) -> Dict:
+    def get_token(cls, user: User) -> Dict:
         values = {}
         refresh = RefreshToken.for_user(user)
         refresh = cast(RefreshToken, refresh)
         values["refresh"] = str(refresh)
-        values["token"] = str(refresh.access_token)
+        values["access"] = str(refresh.access_token)
         return values
 
 
@@ -209,7 +210,7 @@ class TokenObtainSlidingInputSchema(TokenObtainInputSchemaBase):
         return TokenObtainSlidingOutputSchema
 
     @classmethod
-    def get_token(cls, user: AbstractUser) -> Dict:
+    def get_token(cls, user: User) -> Dict:
         values = {}
         slide_token = SlidingToken.for_user(user)
         values["token"] = str(slide_token)
@@ -235,7 +236,7 @@ class TokenRefreshInputSchema(Schema, InputSchemaMixin):
 
 class TokenRefreshOutputSchema(Schema):
     refresh: str
-    token: Optional[str]
+    access: Optional[str]
 
     @model_validator(mode="before")
     @token_error
@@ -244,11 +245,13 @@ class TokenRefreshOutputSchema(Schema):
 
         if isinstance(values, dict):
             if not values.get("refresh"):
-                raise exceptions.ValidationError({"refresh": "refresh token is required"})
+                raise exceptions.ValidationError(
+                    {"refresh": "refresh token is required"}
+                )
 
             refresh = RefreshToken(values["refresh"])
 
-            data = {"token": str(refresh.access_token)}
+            data = {"access": str(refresh.access_token)}
 
             if api_settings.ROTATE_REFRESH_TOKENS:
                 if api_settings.BLACKLIST_AFTER_ROTATION:
@@ -324,7 +327,10 @@ class TokenVerifyInputSchema(Schema, InputSchemaMixin):
                 raise exceptions.ValidationError({"token": "token is required"})
             token = UntypedToken(values["token"])
 
-            if api_settings.BLACKLIST_AFTER_ROTATION and "ninja_jwt.token_blacklist" in settings.INSTALLED_APPS:
+            if (
+                api_settings.BLACKLIST_AFTER_ROTATION
+                and "ninja_jwt.token_blacklist" in settings.INSTALLED_APPS
+            ):
                 jti = token.get(api_settings.JTI_CLAIM)
                 if BlacklistedToken.objects.filter(token__jti=jti).exists():
                     raise exceptions.ValidationError("Token is blacklisted")
@@ -349,7 +355,9 @@ class TokenBlacklistInputSchema(Schema, InputSchemaMixin):
 
         if isinstance(values, dict):
             if not values.get("refresh"):
-                raise exceptions.ValidationError({"refresh": "refresh token is required"})
+                raise exceptions.ValidationError(
+                    {"refresh": "refresh token is required"}
+                )
             refresh = RefreshToken(values["refresh"])
             try:
                 refresh.blacklist()

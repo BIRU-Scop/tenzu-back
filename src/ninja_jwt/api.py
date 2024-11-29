@@ -38,6 +38,12 @@
 
 from ninja.router import Router
 
+from ninja_jwt.routers import (
+    blacklist_router,
+    obtain_pair_router,
+    sliding_router,
+    verify_router,
+)
 from ninja_jwt.schema_control import SchemaControl
 from ninja_jwt.settings import api_settings
 
@@ -46,63 +52,7 @@ schema = SchemaControl(api_settings)
 auth_router = Router()
 
 
-@auth_router.post(
-    "/auth/token",
-    response=schema.obtain_pair_schema.get_response_schema(),
-    url_name="token_obtain_pair",
-    auth=None,
-)
-def obtain_token(request, user_token: schema.obtain_pair_schema):
-    user_token.check_user_authentication_rule()
-    return user_token.output_schema()
-
-
-@auth_router.post(
-    "/auth/token/refresh",
-    response=schema.obtain_pair_refresh_schema.get_response_schema(),
-    url_name="token_refresh",
-    auth=None,
-)
-def refresh_token(request, refresh_token: schema.obtain_pair_refresh_schema):
-    return refresh_token.to_response_schema()
-
-
-@auth_router.post(
-    "/auth/token/deny",
-    response={200: schema.blacklist_schema.get_response_schema()},
-    url_name="token_blacklist",
-    auth=None,
-)
-def blacklist_token(request, refresh: schema.blacklist_schema):
-    return refresh.to_response_schema()
-
-
-@auth_router.post(
-    "/auth/sliding",
-    response=schema.obtain_sliding_schema.get_response_schema(),
-    url_name="token_obtain_sliding",
-    auth=None,
-)
-def obtain_token_sliding_token(request, user_token: schema.obtain_sliding_schema):
-    user_token.check_user_authentication_rule()
-    return user_token.to_response_schema()
-
-
-@auth_router.post(
-    "/auth/sliding/refresh",
-    response=schema.obtain_sliding_refresh_schema.get_response_schema(),
-    url_name="token_refresh_sliding",
-    auth=None,
-)
-def refresh_token_sliding(request, refresh_token: schema.obtain_sliding_refresh_schema):
-    return refresh_token.to_response_schema()
-
-
-@auth_router.post(
-    "/auth/verify",
-    response={200: schema.verify_schema.get_response_schema()},
-    url_name="token_verify",
-    auth=None,
-)
-def verify_token(request, token: schema.verify_schema):
-    return token.to_response_schema()
+auth_router.add_router("/auth", blacklist_router)
+auth_router.add_router("/auth", obtain_pair_router)
+auth_router.add_router("/auth", sliding_router)
+auth_router.add_router("/auth", verify_router)

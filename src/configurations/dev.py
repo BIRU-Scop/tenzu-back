@@ -27,7 +27,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from .settings import *
+from .settings import *  # noqa
+from .settings import INSTALLED_APPS
 
 INSTALLED_APPS = [
     *INSTALLED_APPS,
