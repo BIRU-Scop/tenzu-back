@@ -42,7 +42,7 @@ async def test_login_successfuly(client):
 
     response = client.post("/auth/token", json=data)
     assert response.status_code == 200, response.text
-    assert response.json().keys() == {"token", "refresh"}
+    assert response.json().keys() == {"access", "refresh"}
 
 
 def test_login_error_invalid_credentials(client):
@@ -70,7 +70,7 @@ async def test_refresh_successfuly(client):
 
     response = client.post("/auth/token/refresh", json=data)
     assert response.status_code == 200, response.text
-    assert response.json().keys() == {"token", "refresh"}
+    assert response.json().keys() == {"access", "refresh"}
 
 
 def test_refresh_error_invalid_token(client):

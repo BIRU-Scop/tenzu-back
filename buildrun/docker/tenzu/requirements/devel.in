@@ -6,6 +6,7 @@ pytest-cov
 pytest-django
 pytest-asyncio
 factory-boy
+freezegun
 validators
 pytest_httpx
 daphne

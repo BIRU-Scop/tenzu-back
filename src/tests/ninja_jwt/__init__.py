@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -16,32 +15,3 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-import os
-
-from base.django.settings import *  # noqa
-from base.django.settings import INSTALLED_APPS
-
-DEBUG = True
-
-MEDIA_ROOT = "/tmp/tenzu/media"
-STATIC_ROOT = "/tmp/tenzu/static"
-
-
-INSTALLED_APPS += [
-    "tests.samples.occ",
-]
-
-
-# This is only for GitHubActions
-if os.getenv("GITHUB_WORKFLOW"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": "tenzu",
-            "USER": "postgres",
-            "PASSWORD": "postgres",
-            "HOST": "localhost",
-            "PORT": "5432",
-        }
-    }

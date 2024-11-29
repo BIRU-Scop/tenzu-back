@@ -20,15 +20,15 @@
 import asyncio
 
 import pytest
-import pytest_asyncio
 
-from base.django.commands import call_django_command
+# import pytest_asyncio
+from django.core.management import call_command
 
 from .fixtures import *  # noqa
 
 
 #
-# Supporting async pytest fixrures for non-function scope
+# Supporting async pytest fixtures for non-function scope
 #
 #     According to https://github.com/pytest-dev/pytest-asyncio#async-fixtures
 #
@@ -58,7 +58,7 @@ def event_loop():
 @pytest.fixture(scope="function")
 def django_db_setup(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
-        call_django_command("loaddata", "initial_project_templates.json", verbosity=0)
+        call_command("loaddata", "initial_project_templates.json", verbosity=0)
 
 
 #
@@ -66,22 +66,26 @@ def django_db_setup(django_db_setup, django_db_blocker):
 #
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def connect_events_manage_on_startup():
-    from events import connect_events_manager, disconnect_events_manager
-
-    await connect_events_manager()
-    yield
-    await disconnect_events_manager()
+# @pytest_asyncio.fixture(scope="session", autouse=True)
+# async def connect_events_manage_on_startup():
+#     from events import connect_events_manager, disconnect_events_manager
+#
+#     await connect_events_manager()
+#     yield
+#     await disconnect_events_manager()
 
 
 #
 # Manage slow tests
 #
 def pytest_addoption(parser):
-    parser.addoption("--slow_only", action="store_true", default=False, help="run slow tests only")
+    parser.addoption(
+        "--slow_only", action="store_true", default=False, help="run slow tests only"
+    )
 
-    parser.addoption("--fast_only", action="store_true", default=False, help="exclude slow tests")
+    parser.addoption(
+        "--fast_only", action="store_true", default=False, help="exclude slow tests"
+    )
 
 
 def pytest_collection_modifyitems(config, items):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -17,7 +16,18 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from tests.utils.conf import override_settings  # noqa
-from tests.utils.logging import correlation_id  # noqa
-from tests.utils.templating import initialize_template_env  # noqa
-# from tests.utils.testclient import client, non_mocked_hosts  # noqa
+import pytest
+from ninja.testing import TestClient
+
+from tests.ninja_jwt.urls import sync_api
+
+
+@pytest.fixture(scope="function", autouse=True)
+def set_settings(settings):
+    settings.ROOT_URLCONF = "tests.ninja_jwt.urls"
+
+
+@pytest.fixture(scope="function")
+def client(set_settings, monkeypatch):
+    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
+    return TestClient(sync_api)
