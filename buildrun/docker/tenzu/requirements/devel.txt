@@ -130,6 +130,8 @@ faker==33.0.0
     #   factory-boy
 fastapi==0.115.5
     # via -r requirements/commons.in
+freezegun==1.5.1
+    # via -r requirements/devel.in
 gunicorn==23.0.0
     # via
     #   -r requirements/commons.in
@@ -258,6 +260,7 @@ python-dateutil==2.9.0.post0
     # via
     #   croniter
     #   faker
+    #   freezegun
     #   procrastinate
 python-dotenv==1.0.1
     # via

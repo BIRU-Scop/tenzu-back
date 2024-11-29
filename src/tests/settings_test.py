@@ -17,7 +17,23 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from tests.utils.conf import override_settings  # noqa
-from tests.utils.logging import correlation_id  # noqa
-from tests.utils.templating import initialize_template_env  # noqa
-# from tests.utils.testclient import client, non_mocked_hosts  # noqa
+
+from configurations.settings import *  # noqa
+from configurations.settings import INSTALLED_APPS
+
+DEBUG = True
+
+MEDIA_ROOT = "/tmp/tenzu/media"
+STATIC_ROOT = "/tmp/tenzu/static"
+
+INSTALLED_APPS += [
+    "tests.samples.occ",
+]
+
+DEBUG_PROPAGATE_EXCEPTIONS = (True,)
+SITE_ID = (1,)
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+NINJA_JWT = {
+    "BLACKLIST_AFTER_ROTATION": True,
+    "SIGNING_KEY": "not very secret in tests",
+}

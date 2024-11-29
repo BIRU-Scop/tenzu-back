@@ -55,7 +55,7 @@ async def test_google_login(client, httpx_mock):
     response = client.post("/auth/google", json=data)
 
     assert response.status_code == status.HTTP_200_OK, response.text
-    assert response.json().keys() == {"token", "refresh"}
+    assert response.json().keys() == {"access", "refresh"}
 
 
 async def test_google_login_not_configured(client, httpx_mock):

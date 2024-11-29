@@ -30,13 +30,13 @@ async def test_refresh_token_regenerate() -> None:
     # and continue to use it without problems, postponing the creation of the OutstandingToken.
     user = await f.create_user(is_active=True)
     token = await RefreshToken.create_for_object(user)
-    await token.denylist()
+    await token.blacklist()
 
     token1 = token.regenerate()
     token1_copy = await RefreshToken.create(token=str(token1))
     assert str(token1) == str(token1_copy)
 
-    await token1.denylist()
+    await token1.blacklist()
     token2 = token1.regenerate()
 
     token2_copy = await RefreshToken.create(token=str(token2))
