@@ -29,6 +29,7 @@ from base.utils.colors import generate_random_color
 from base.utils.datetime import aware_utcnow
 from emails.emails import Emails
 from emails.tasks import send_email
+from ninja_jwt.exceptions import TokenError
 from projects.invitations import events as pj_invitations_events
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations import services as project_invitations_services
@@ -41,7 +42,6 @@ from projects.projects import repositories as projects_repositories
 from projects.projects import services as projects_services
 from projects.projects.models import Project
 from projects.roles import repositories as pj_roles_repositories
-from tokens import exceptions as tokens_ex
 from users import events as users_events
 from users import repositories as users_repositories
 from users.models import User
@@ -170,19 +170,16 @@ async def verify_user(user: User) -> None:
 async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
     # Get token and deny it
     try:
-        verify_token = await VerifyUserToken.create(token)
-    except tokens_ex.DeniedTokenError:
-        raise ex.UsedVerifyUserTokenError("The token has already been used.")
-    except tokens_ex.ExpiredTokenError:
-        raise ex.ExpiredVerifyUserTokenError("The token has expired.")
-    except tokens_ex.TokenError:
-        raise ex.BadVerifyUserTokenError("Invalid or malformed token.")
+        verify_token = VerifyUserToken(token)
+    except TokenError:
+        raise ex.BadVerifyUserTokenError("Invalid or expired token.")
 
-    await verify_token.denylist()
+    verify_token.blacklist()
 
     # Get user and verify it
+    user_id_field = settings.NINJA_JWT["USER_ID_CLAIM"]
     user = await users_repositories.get_user(
-        filters=cast(UserFilters, verify_token.object_data)
+        filters=cast(UserFilters, {user_id_field: verify_token.get(user_id_field)})
     )
     if not user:
         raise ex.BadVerifyUserTokenError("The user doesn't exist.")
@@ -473,27 +470,23 @@ async def _get_user_and_reset_password_token(
     token: str,
 ) -> tuple[ResetPasswordToken, User]:
     try:
-        reset_token = await ResetPasswordToken.create(token)
-    except tokens_ex.DeniedTokenError:
-        raise ex.UsedResetPasswordTokenError("The token has already been used.")
-    except tokens_ex.ExpiredTokenError:
-        raise ex.ExpiredResetPassswordTokenError("The token has expired.")
-    except tokens_ex.TokenError:
-        raise ex.BadResetPasswordTokenError("Invalid or malformed token.")
+        reset_token = await ResetPasswordToken(token)
+    except TokenError:
+        raise ex.BadResetPasswordTokenError("Invalid or expired token.")
 
     # Get user
     user = await users_repositories.get_user(
         filters={"id": reset_token.object_data["id"], "is_active": True}
     )
     if not user:
-        await reset_token.denylist()
+        await reset_token.blacklist()
         raise ex.BadResetPasswordTokenError("Invalid or malformed token.")
 
     return reset_token, user
 
 
 async def _generate_reset_password_token(user: User) -> str:
-    return str(await ResetPasswordToken.create_for_object(user))
+    return str(ResetPasswordToken.for_user(user))
 
 
 async def _send_reset_password_email(user: User) -> None:
@@ -523,7 +516,7 @@ async def reset_password(token: str, password: str) -> User | None:
 
     if user:
         await users_repositories.change_password(user=user, password=password)
-        await reset_token.denylist()
+        await reset_token.blacklist()
         return user
 
     return None

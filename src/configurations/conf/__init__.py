@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     FRONTEND_URL: AnyHttpUrl = _DEFAULT_FRONTEND_URL
     EXTRA_CORS: list[AnyHttpUrl] = Field(default_factory=list)
 
+    API_VERSION: str = "v1"
+
     # Database
     DB: DbSettings = DbSettings()
 

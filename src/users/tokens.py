@@ -20,15 +20,15 @@
 
 from django.conf import settings
 
-from tokens.base import DenylistMixin, Token
+from ninja_jwt.tokens import BlacklistMixin, Token
 
 
-class VerifyUserToken(DenylistMixin, Token):
+class VerifyUserToken(BlacklistMixin, Token):
     token_type = "verify-user"
     lifetime = settings.VERIFY_USER_TOKEN_LIFETIME
     is_unique = True
 
 
-class ResetPasswordToken(DenylistMixin, Token):
+class ResetPasswordToken(BlacklistMixin, Token):
     token_type = "reset-password"
     lifetime = settings.RESET_PASSWORD_TOKEN_LIFETIME

@@ -39,11 +39,11 @@ from base.db.models import (
     Value,
 )
 from base.db.users import django_update_last_login
+from ninja_jwt.token_blacklist.models import OutstandingToken
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
 from projects.projects.models import Project
-from tokens.models import OutstandingToken
 from users.models import AuthData, User
 from users.tokens import VerifyUserToken
 from workspaces.invitations.choices import WorkspaceInvitationStatus
@@ -82,12 +82,16 @@ def _apply_filters_to_queryset(
 
     if "usernames" in filter_data:
         usernames = filter_data.pop("usernames")
-        filter_tmp = reduce(or_, (Q(username__iexact=username) for username in usernames))  # type: ignore[attr-defined]
+        filter_tmp = reduce(
+            or_, (Q(username__iexact=username) for username in usernames)
+        )  # type: ignore[attr-defined]
         qs = qs.filter(filter_tmp)
 
     if "username_or_email" in filter_data:
         username_or_email = filter_data.pop("username_or_email")
-        qs = qs.filter(Q(username__iexact=username_or_email) | Q(email__iexact=username_or_email))
+        qs = qs.filter(
+            Q(username__iexact=username_or_email) | Q(email__iexact=username_or_email)
+        )
 
     if "guest_in_ws_for_project" in filter_data:
         project = filter_data.pop("guest_in_ws_for_project")
@@ -136,7 +140,9 @@ def _apply_order_by_to_queryset(
 
 
 @sync_to_async
-def create_user(email: str, full_name: str, color: int, lang: str, password: str | None) -> User:
+def create_user(
+    email: str, full_name: str, color: int, lang: str, password: str | None
+) -> User:
     user = User.objects.create(
         email=email,
         full_name=full_name,
@@ -216,7 +222,9 @@ def list_workspace_users_by_text(
     return list(qs)
 
 
-def _list_users_by_text_qs(text_search: str = "", exclude_inactive: bool = True) -> QuerySet[User]:
+def _list_users_by_text_qs(
+    text_search: str = "", exclude_inactive: bool = True
+) -> QuerySet[User]:
     """
     Get all the users that match a full text search (against their full_name and username fields).
 
@@ -230,7 +238,9 @@ def _list_users_by_text_qs(text_search: str = "", exclude_inactive: bool = True)
         users_qs &= users_qs.exclude(is_active=False)
 
     if text_search:
-        users_matching_full_text_search = _list_users_by_fullname_or_username(text_search, users_qs)
+        users_matching_full_text_search = _list_users_by_fullname_or_username(
+            text_search, users_qs
+        )
         users_qs = users_matching_full_text_search
 
     return users_qs
@@ -248,7 +258,9 @@ def _list_project_users_by_text_qs(
     :param exclude_inactive: true (return just active users), false (returns all users)
     :return: a prioritized queryset of users
     """
-    users_qs = _list_users_by_text_qs(text_search=text_search, exclude_inactive=exclude_inactive)
+    users_qs = _list_users_by_text_qs(
+        text_search=text_search, exclude_inactive=exclude_inactive
+    )
 
     if project_id:
         # List all the users matching the full-text search criteria, ordering results by their proximity to a project :
@@ -257,7 +269,9 @@ def _list_project_users_by_text_qs(
         #     3rd. rest of users (the priority for this group is not too important)
 
         # 1st: Users that share the same project
-        memberships = ProjectMembership.objects.filter(user__id=OuterRef("pk"), project__id=project_id)
+        memberships = ProjectMembership.objects.filter(
+            user__id=OuterRef("pk"), project__id=project_id
+        )
         pending_invitations = ProjectInvitation.objects.filter(
             user__id=OuterRef("pk"),
             project__id=project_id,
@@ -268,7 +282,9 @@ def _list_project_users_by_text_qs(
             .annotate(user_is_member=Exists(memberships))
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
         )
-        sorted_project_users_qs = _sort_queryset_if_unsorted(project_users_qs, text_search)
+        sorted_project_users_qs = _sort_queryset_if_unsorted(
+            project_users_qs, text_search
+        )
 
         # 2nd: Users that are members of the project's workspace but are NOT project members
         workspace_users_qs = (
@@ -277,7 +293,9 @@ def _list_project_users_by_text_qs(
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
             .exclude(projects__id=project_id)
         )
-        sorted_workspace_users_qs = _sort_queryset_if_unsorted(workspace_users_qs, text_search)
+        sorted_workspace_users_qs = _sort_queryset_if_unsorted(
+            workspace_users_qs, text_search
+        )
 
         # 3rd: Users that are neither a project member nor a member of its workspace
         other_users_qs = (
@@ -311,7 +329,9 @@ def _list_workspace_users_by_text_qs(
     :param exclude_inactive: true (return just active users), false (returns all users)
     :return: a prioritized queryset of users
     """
-    users_qs = _list_users_by_text_qs(text_search=text_search, exclude_inactive=exclude_inactive)
+    users_qs = _list_users_by_text_qs(
+        text_search=text_search, exclude_inactive=exclude_inactive
+    )
 
     if workspace_id:
         # List all the users matching the full-text search criteria, ordering results by their proximity to a workspace:
@@ -320,7 +340,9 @@ def _list_workspace_users_by_text_qs(
         #     3rd. rest of users (the priority for this group is not too important)
 
         # 1st: Users that share the same workspace
-        memberships = WorkspaceMembership.objects.filter(user__id=OuterRef("pk"), workspace__id=workspace_id)
+        memberships = WorkspaceMembership.objects.filter(
+            user__id=OuterRef("pk"), workspace__id=workspace_id
+        )
         pending_invitations = WorkspaceInvitation.objects.filter(
             user__id=OuterRef("pk"),
             workspace__id=workspace_id,
@@ -331,7 +353,9 @@ def _list_workspace_users_by_text_qs(
             .annotate(user_is_member=Exists(memberships))
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
         )
-        sorted_workspace_users_qs = _sort_queryset_if_unsorted(workspace_users_qs, text_search)
+        sorted_workspace_users_qs = _sort_queryset_if_unsorted(
+            workspace_users_qs, text_search
+        )
 
         # # 2nd: Users that are members of the workspace's projects but are NOT workspace members
         ws_projects_users_qs = (
@@ -341,7 +365,9 @@ def _list_workspace_users_by_text_qs(
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
             .distinct()
         )
-        sorted_ws_projects_users_qs = _sort_queryset_if_unsorted(ws_projects_users_qs, text_search)
+        sorted_ws_projects_users_qs = _sort_queryset_if_unsorted(
+            ws_projects_users_qs, text_search
+        )
 
         # 3rd: Users that are neither a workspace member nor a member of the workspace's projects
         other_users_qs = (
@@ -361,15 +387,21 @@ def _list_workspace_users_by_text_qs(
     return _sort_queryset_if_unsorted(users_qs, text_search)
 
 
-def _sort_queryset_if_unsorted(users_qs: QuerySet[User], text_search: str) -> QuerySet[User]:
+def _sort_queryset_if_unsorted(
+    users_qs: QuerySet[User], text_search: str
+) -> QuerySet[User]:
     if not text_search:
-        return _apply_order_by_to_queryset(order_by=["full_name", "username"], qs=users_qs)
+        return _apply_order_by_to_queryset(
+            order_by=["full_name", "username"], qs=users_qs
+        )
 
     # the queryset has already been sorted by the "Full Text Search" and its annotated 'rank' field
     return users_qs
 
 
-def _list_users_by_fullname_or_username(text_search: str, user_qs: QuerySet[User]) -> QuerySet[User]:
+def _list_users_by_fullname_or_username(
+    text_search: str, user_qs: QuerySet[User]
+) -> QuerySet[User]:
     """
     This method searches for users matching a text in their full names and usernames (being accent and case
     insensitive) and order the results according to:
@@ -383,17 +415,25 @@ def _list_users_by_fullname_or_username(text_search: str, user_qs: QuerySet[User
     """
     # Prepares the SearchQuery text by escaping it and fixing spaces for searches over several words
     parsed_text_search = repr(text_search.strip()).replace(" ", " & ")
-    search_query = SearchQuery(f"{parsed_text_search}:*", search_type="raw", config="simple_unaccent")
-    search_vector = SearchVector("full_name", weight="A", config="simple_unaccent") + SearchVector(
-        "username", weight="B", config="simple_unaccent"
+    search_query = SearchQuery(
+        f"{parsed_text_search}:*", search_type="raw", config="simple_unaccent"
     )
+    search_vector = SearchVector(
+        "full_name", weight="A", config="simple_unaccent"
+    ) + SearchVector("username", weight="B", config="simple_unaccent")
     # By default values: [0.1, 0.2, 0.4, 1.0]
     # [D-weight, C-weight, B-weight, A-weight]
     rank_weights = [0.0, 0.0, 0.5, 0.5]
 
     full_text_matching_users = (
-        user_qs.annotate(rank=SearchRank(search_vector, search_query, weights=rank_weights))
-        .annotate(first_match=StrIndex(Unaccent(Lower("full_name")), Unaccent(Lower(Value(text_search)))))
+        user_qs.annotate(
+            rank=SearchRank(search_vector, search_query, weights=rank_weights)
+        )
+        .annotate(
+            first_match=StrIndex(
+                Unaccent(Lower("full_name")), Unaccent(Lower(Value(text_search)))
+            )
+        )
         .filter(rank__gte=0.2)
         .order_by("-rank", "first_match", "full_name", "username")
     )
@@ -479,7 +519,11 @@ def clean_expired_users() -> None:
     # and don't have an outstanding token associated (exclude)
     (
         User.objects.filter(is_active=False, date_verification=None)
-        .exclude(id__in=OutstandingToken.objects.filter(token_type=VerifyUserToken.token_type).values_list("object_id"))
+        .exclude(
+            id__in=OutstandingToken.objects.filter(
+                token_type=VerifyUserToken.token_type
+            ).values_list("object_id")
+        )
         .delete()
     )
 
@@ -565,7 +609,9 @@ def _apply_select_related_to_auth_data_queryset(
 
 
 @sync_to_async
-def create_auth_data(user: User, key: str, value: str, extra: dict[str, str] = {}) -> AuthData:
+def create_auth_data(
+    user: User, key: str, value: str, extra: dict[str, str] = {}
+) -> AuthData:
     return AuthData.objects.create(user=user, key=key, value=value, extra=extra)
 
 
@@ -579,8 +625,12 @@ def list_auths_data(
     filters: AuthDataListFilters = {},
     select_related: AuthDataSelectRelated = ["user"],
 ) -> list[AuthData]:
-    qs = _apply_filters_to_auth_data_queryset_list(qs=DEFAULT_AUTH_DATA_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_auth_data_queryset(qs=qs, select_related=select_related)
+    qs = _apply_filters_to_auth_data_queryset_list(
+        qs=DEFAULT_AUTH_DATA_QUERYSET, filters=filters
+    )
+    qs = _apply_select_related_to_auth_data_queryset(
+        qs=qs, select_related=select_related
+    )
 
     return list(qs)
 
@@ -595,8 +645,12 @@ def get_auth_data(
     filters: AuthDataFilters = {},
     select_related: AuthDataSelectRelated = ["user"],
 ) -> AuthData | None:
-    qs = _apply_filters_to_auth_data_queryset(qs=DEFAULT_AUTH_DATA_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_auth_data_queryset(qs=qs, select_related=select_related)
+    qs = _apply_filters_to_auth_data_queryset(
+        qs=DEFAULT_AUTH_DATA_QUERYSET, filters=filters
+    )
+    qs = _apply_select_related_to_auth_data_queryset(
+        qs=qs, select_related=select_related
+    )
 
     try:
         return qs.get()

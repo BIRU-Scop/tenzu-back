@@ -94,7 +94,7 @@ async def test_deny_refresh_token_success(client):
     }
 
     client.login(user)
-    response = client.post("/auth/token/deny", json=data)
+    response = client.post("/auth/blacklist", json=data)
     assert response.status_code == status.HTTP_204_NO_CONTENT, response.text
 
 
@@ -106,7 +106,7 @@ async def test_deny_refresh_token_error_bad_refresh_token(client):
     }
 
     client.login(user)
-    response = client.post("/auth/token/deny", json=data)
+    response = client.post("/auth/blacklist", json=data)
     assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
 
 
@@ -120,7 +120,7 @@ async def test_deny_refresh_token_error_forbidden_user(client):
     }
 
     client.login(other_user)
-    response = client.post("/auth/token/deny", json=data)
+    response = client.post("/auth/blacklist", json=data)
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
 
@@ -132,5 +132,5 @@ async def test_deny_refresh_token_error_annonymous_user(client):
         "refresh": str(token),
     }
 
-    response = client.post("/auth/token/deny", json=data)
+    response = client.post("/auth/blacklist", json=data)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED, response.text
