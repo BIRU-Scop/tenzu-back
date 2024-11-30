@@ -22,10 +22,16 @@ import json
 from pydantic import ValidationError
 
 
-def check_validation_errors(validation_errors: ValidationError, error_fields: list[str], error_msgs: list[str]):
+def check_validation_errors(
+    validation_errors: ValidationError, error_fields: list[str], error_msgs: list[str]
+):
     validation_errors_json = json.loads(validation_errors.value.json())
-    assert len(validation_errors_json) == len(error_fields), "Wrong number of validation errors"
+    assert len(validation_errors_json) == len(
+        error_fields
+    ), "Wrong number of validation errors"
 
     for error in validation_errors_json:
         if error["loc"][0] in error_fields:
-            assert error["msg"] in error_msgs, f"'{error['msg']}' is not one of the expected errors {error_msgs}"
+            assert (
+                error["msg"] in error_msgs
+            ), f"'{error['msg']}' is not one of the expected errors {error_msgs}"
