@@ -38,7 +38,7 @@
 
 from typing import Any, Type
 
-import django
+from asgiref.sync import sync_to_async
 from django.contrib.auth.models import AbstractUser, AnonymousUser
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
@@ -152,27 +152,26 @@ def default_user_authentication_rule(user) -> bool:
     return user is not None and user.is_active
 
 
-if not django.VERSION < (3, 1):
-    from asgiref.sync import sync_to_async
+class AsyncJWTBaseAuthentication(JWTBaseAuthentication):
+    async def async_jwt_authenticate(
+        self, request: HttpRequest, token: str
+    ) -> Type[AbstractUser]:
+        request.user = AnonymousUser()
+        get_validated_token = sync_to_async(self.get_validated_token)
+        validated_token = await get_validated_token(token)
+        get_user = sync_to_async(self.get_user)
+        user = await get_user(validated_token)
+        request.user = user
+        return user
 
-    class AsyncJWTBaseAuthentication(JWTBaseAuthentication):
-        async def async_jwt_authenticate(
-            self, request: HttpRequest, token: str
-        ) -> Type[AbstractUser]:
-            request.user = AnonymousUser()
-            get_validated_token = sync_to_async(self.get_validated_token)
-            validated_token = await get_validated_token(token)
-            get_user = sync_to_async(self.get_user)
-            user = await get_user(validated_token)
-            request.user = user
-            return user
 
-    class AsyncJWTAuth(AsyncJWTBaseAuthentication, JWTAuth, AsyncHttpBearer):
-        async def authenticate(self, request: HttpRequest, token: str) -> Any:
-            return await self.async_jwt_authenticate(request, token)
+class AsyncJWTAuth(AsyncJWTBaseAuthentication, JWTAuth, AsyncHttpBearer):
+    async def authenticate(self, request: HttpRequest, token: str) -> Any:
+        return await self.async_jwt_authenticate(request, token)
 
-    class AsyncJWTTokenUserAuth(
-        AsyncJWTBaseAuthentication, JWTTokenUserAuth, AsyncHttpBearer
-    ):
-        async def authenticate(self, request: HttpRequest, token: str) -> Any:
-            return await self.async_jwt_authenticate(request, token)
+
+class AsyncJWTTokenUserAuth(
+    AsyncJWTBaseAuthentication, JWTTokenUserAuth, AsyncHttpBearer
+):
+    async def authenticate(self, request: HttpRequest, token: str) -> Any:
+        return await self.async_jwt_authenticate(request, token)
