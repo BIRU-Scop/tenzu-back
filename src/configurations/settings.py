@@ -200,6 +200,8 @@ NINJA_JWT = {
     "TOKEN_USER_CLASS": "ninja_jwt.models.TokenUser",
 }
 
+AUTHENTICATION_BACKENDS = ["auth.backends.EmailOrUsernameModelBackend"]
+
 # EMAIL
 
 locals().update(settings.EMAIL.model_dump(exclude={"EMAIL_FILE_PATH"}))

@@ -94,6 +94,7 @@ class User(models.BaseModel, AbstractBaseUser):
         null=True, blank=True, default=None, verbose_name="date verification"
     )
 
+    EMAIL_FIELD = "email"
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
 
