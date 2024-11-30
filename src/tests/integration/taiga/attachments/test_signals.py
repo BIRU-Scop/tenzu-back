@@ -22,7 +22,6 @@ import pytest
 from attachments import repositories as attachments_repositories
 from attachments.models import Attachment
 from attachments.signals import mark_attachment_file_to_delete
-from tests.utils import db as db_utils
 from tests.utils import factories as f
 from tests.utils import signals as signals_utils
 from workspaces.workspaces import repositories as workspaces_repositories
@@ -31,7 +30,9 @@ pytestmark = pytest.mark.django_db(transaction=True)
 
 
 def test_mark_attachment_file_to_delete_is_connected():
-    assert mark_attachment_file_to_delete in signals_utils.get_receivers_for_model("post_delete", Attachment)
+    assert mark_attachment_file_to_delete in signals_utils.get_receivers_for_model(
+        "post_delete", Attachment
+    )
 
 
 async def test_mark_attachment_file_to_delete_when_delete_first_level_related_model():
@@ -41,8 +42,10 @@ async def test_mark_attachment_file_to_delete_when_delete_first_level_related_mo
 
     assert storaged_object.deleted_at is None
 
-    assert await attachments_repositories.delete_attachments(filters={"id": attachment.id})
-    await db_utils.refresh_model_from_db(storaged_object)
+    assert await attachments_repositories.delete_attachments(
+        filters={"id": attachment.id}
+    )
+    await storaged_object.refresh_from_db()
 
     assert storaged_object.deleted_at
 
@@ -67,9 +70,9 @@ async def test_mark_attachment_file_to_delete_when_delete_n_level_related_object
 
     assert await workspaces_repositories.delete_workspaces(filters={"id": workspace.id})
 
-    await db_utils.refresh_model_from_db(storaged_object11)
-    await db_utils.refresh_model_from_db(storaged_object12)
-    await db_utils.refresh_model_from_db(storaged_object21)
+    await storaged_object11.refresh_from_db()
+    await storaged_object12.refresh_from_db()
+    await storaged_object21.refresh_from_db()
 
     assert storaged_object11.deleted_at
     assert storaged_object12.deleted_at

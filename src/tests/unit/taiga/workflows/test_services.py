@@ -21,6 +21,7 @@ from decimal import Decimal
 from unittest.mock import call, patch
 
 import pytest
+from django.test import override_settings
 
 from base.repositories.neighbors import Neighbor
 from tests.utils import factories as f
@@ -43,20 +44,30 @@ async def test_create_workflow_ok():
     workflow = f.build_workflow(project=project)
 
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.projects_repositories", autospec=True) as fake_projects_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.projects_repositories", autospec=True
+        ) as fake_projects_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
         fake_workflows_repo.list_workflows.return_value = None
         fake_workflows_repo.create_workflow.return_value = workflow
         fake_workflows_repo.list_workflow_statuses.return_value = []
 
-        workflow = await services.create_workflow(project=workflow.project, name=workflow.name)
+        workflow = await services.create_workflow(
+            project=workflow.project, name=workflow.name
+        )
 
         fake_workflows_repo.list_workflows.assert_awaited_once_with(
             filters={"project_id": project.id}, order_by=["-order"]
         )
-        fake_workflows_repo.create_workflow.assert_awaited_once_with(project=project, name=workflow.name, order=100)
+        fake_workflows_repo.create_workflow.assert_awaited_once_with(
+            project=project, name=workflow.name, order=100
+        )
         fake_projects_repo.get_project_template.assert_awaited_once()
         fake_workflows_repo.apply_default_workflow_statuses.assert_awaited_once()
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once()
@@ -66,16 +77,22 @@ async def test_create_workflow_ok():
         )
 
 
-async def test_create_workflow_reached_num_workflows_error(override_settings):
+async def test_create_workflow_reached_num_workflows_error():
     project = f.build_project()
     workflow1 = f.build_workflow(project=project)
     workflow2 = f.build_workflow(project=project)
 
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.projects_repositories", autospec=True) as fake_projects_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
-        override_settings({"MAX_NUM_WORKFLOWS": 1}),
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.projects_repositories", autospec=True
+        ) as fake_projects_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
+        override_settings(**{"MAX_NUM_WORKFLOWS": 1}),
         pytest.raises(ex.MaxNumWorkflowCreatedError),
     ):
         fake_workflows_repo.list_workflows.return_value = [workflow1]
@@ -101,7 +118,9 @@ async def test_list_workflows_ok():
     workflow_status = f.build_workflow_status()
     workflows = [f.build_workflow(statuses=[workflow_status])]
 
-    with patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo:
+    with patch(
+        "workflows.services.workflows_repositories", autospec=True
+    ) as fake_workflows_repo:
         fake_workflows_repo.list_workflows.return_value = workflows
         fake_workflows_repo.list_workflow_statuses.return_value = [workflow_status]
         await services.list_workflows(project_id=workflows[0].project.id)
@@ -119,9 +138,13 @@ async def test_list_workflows_ok():
 async def test_get_workflow_ok():
     workflow = f.build_workflow()
 
-    with patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo:
+    with patch(
+        "workflows.services.workflows_repositories", autospec=True
+    ) as fake_workflows_repo:
         fake_workflows_repo.get_workflow.return_value = workflow
-        await services.get_workflow(project_id=workflow.project.id, workflow_slug=workflow.slug)
+        await services.get_workflow(
+            project_id=workflow.project.id, workflow_slug=workflow.slug
+        )
         fake_workflows_repo.get_workflow.assert_awaited_once()
 
 
@@ -130,8 +153,12 @@ async def test_get_detailed_workflow_ok():
     workflow = f.build_workflow(statuses=[workflow_status])
 
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.serializers_services", autospec=True) as fake_workflows_serializers,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.serializers_services", autospec=True
+        ) as fake_workflows_serializers,
     ):
         fake_workflows_repo.get_workflow.return_value = workflow
         fake_workflows_repo.list_workflow_statuses.return_value = [workflow_status]
@@ -142,34 +169,48 @@ async def test_get_detailed_workflow_ok():
             order=workflow.order,
             statuses=[workflow_status],
         )
-        await services.get_workflow_detail(project_id=workflow.project_id, workflow_slug=workflow.slug)
+        await services.get_workflow_detail(
+            project_id=workflow.project_id, workflow_slug=workflow.slug
+        )
         fake_workflows_repo.get_workflow.assert_awaited_once()
         fake_workflows_serializers.serialize_workflow.assert_called_once()
 
 
 async def test_get_delete_workflow_detail_ok():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.serializers_services", autospec=True) as fake_workflows_serializers,
-        patch("workflows.services.stories_services", autospec=True) as fake_stories_services,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.serializers_services", autospec=True
+        ) as fake_workflows_serializers,
+        patch(
+            "workflows.services.stories_services", autospec=True
+        ) as fake_stories_services,
     ):
         workflow_status = f.build_workflow_status()
         workflow = f.build_workflow(statuses=[workflow_status])
-        fake_workflows_serializers.serialize_delete_workflow_detail.return_value = DeleteWorkflowSerializer(
-            id=workflow.id,
-            name=workflow.name,
-            slug=workflow.slug,
-            order=workflow.order,
-            statuses=[workflow_status],
-            stories=[],
+        fake_workflows_serializers.serialize_delete_workflow_detail.return_value = (
+            DeleteWorkflowSerializer(
+                id=workflow.id,
+                name=workflow.name,
+                slug=workflow.slug,
+                order=workflow.order,
+                statuses=[workflow_status],
+                stories=[],
+            )
         )
         fake_stories_services.list_all_stories.return_value = []
         workflow_statuses = [workflow_status]
         fake_workflows_repo.get_workflow.return_value = workflow
         fake_workflows_repo.list_workflow_statuses.return_value = workflow_statuses
-        await services.get_delete_workflow_detail(project_id=workflow.project_id, workflow_slug=workflow.slug)
+        await services.get_delete_workflow_detail(
+            project_id=workflow.project_id, workflow_slug=workflow.slug
+        )
         fake_workflows_repo.get_workflow.assert_awaited_once()
-        fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(filters={"workflow_id": workflow.id})
+        fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
+            filters={"workflow_id": workflow.id}
+        )
         fake_stories_services.list_all_stories.assert_awaited_once_with(
             project_id=workflow.project_id,
             workflow_slug=workflow.slug,
@@ -188,12 +229,20 @@ async def test_update_workflow_ok():
     values = {"name": "updated name"}
 
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
         patch("workflows.services.get_workflow_detail", autospec=True),
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
-        updated_workflow = await services.update_workflow(project_id=project.id, workflow=workflow, values=values)
-        fake_workflows_repo.update_workflow.assert_awaited_once_with(workflow=workflow, values=values)
+        updated_workflow = await services.update_workflow(
+            project_id=project.id, workflow=workflow, values=values
+        )
+        fake_workflows_repo.update_workflow.assert_awaited_once_with(
+            workflow=workflow, values=values
+        )
         fake_workflows_events.emit_event_when_workflow_is_updated.assert_awaited_once_with(
             project=project,
             workflow=updated_workflow,
@@ -210,8 +259,12 @@ async def test_create_workflow_status_ok():
     status = f.build_workflow_status(workflow=workflow)
 
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
         fake_workflows_repo.list_workflow_statuses.return_value = None
         fake_workflows_repo.create_workflow_status.return_value = status
@@ -250,12 +303,18 @@ async def test_update_workflow_status_ok():
     values = {"name": "New status name"}
 
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
         fake_workflows_repo.update_workflow_status.return_value = status
         await services.update_workflow_status(workflow_status=status, values=values)
-        fake_workflows_repo.update_workflow_status.assert_awaited_once_with(workflow_status=status, values=values)
+        fake_workflows_repo.update_workflow_status.assert_awaited_once_with(
+            workflow_status=status, values=values
+        )
         fake_workflows_events.emit_event_when_workflow_status_is_updated.assert_awaited_once_with(
             project=workflow.project, workflow_status=status
         )
@@ -266,10 +325,16 @@ async def test_update_workflow_status_noop():
     values = {}
 
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
-        ret_status = await services.update_workflow_status(workflow_status=status, values=values)
+        ret_status = await services.update_workflow_status(
+            workflow_status=status, values=values
+        )
 
         assert ret_status == status
         fake_workflows_repo.update_workflow_status.assert_not_awaited()
@@ -282,8 +347,12 @@ async def test_update_workflow_status_none_name():
 
     with (
         pytest.raises(ex.TenzuServiceException),
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
         await services.update_workflow_status(workflow_status=status, values=values)
         fake_workflows_repo.update_workflow_status.assert_not_awaited()
@@ -297,9 +366,15 @@ async def test_update_workflow_status_none_name():
 
 async def test_delete_workflow_no_target_workflow_ok():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
-        patch("workflows.services.get_delete_workflow_detail", autospec=True) as fake_get_delete_workflow_detail,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
+        patch(
+            "workflows.services.get_delete_workflow_detail", autospec=True
+        ) as fake_get_delete_workflow_detail,
     ):
         workflow = f.build_workflow()
         status1 = f.build_workflow_status(workflow=workflow, order=1)
@@ -323,23 +398,39 @@ async def test_delete_workflow_no_target_workflow_ok():
 
         ret = await services.delete_workflow(workflow=workflow)
 
-        fake_workflows_repo.delete_workflow.assert_awaited_once_with(filters={"id": workflow.id})
+        fake_workflows_repo.delete_workflow.assert_awaited_once_with(
+            filters={"id": workflow.id}
+        )
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once()
         assert ret is True
 
 
 async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.get_workflow_detail", autospec=True) as fake_get_workflow_detail,
-        patch("workflows.services.get_delete_workflow_detail", autospec=True) as fake_get_delete_workflow_detail,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.get_workflow_detail", autospec=True
+        ) as fake_get_workflow_detail,
+        patch(
+            "workflows.services.get_delete_workflow_detail", autospec=True
+        ) as fake_get_delete_workflow_detail,
         patch("workflows.services.get_workflow", autospec=True) as fake_get_workflow,
-        patch("workflows.services.reorder_workflow_statuses", autospec=True) as fake_reorder_workflow_statuses,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.reorder_workflow_statuses", autospec=True
+        ) as fake_reorder_workflow_statuses,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
-        deleted_workflow_status1 = f.build_workflow_status(workflow=deleted_workflow, order=1)
-        deleted_workflow_status2 = f.build_workflow_status(workflow=deleted_workflow, order=2)
+        deleted_workflow_status1 = f.build_workflow_status(
+            workflow=deleted_workflow, order=1
+        )
+        deleted_workflow_status2 = f.build_workflow_status(
+            workflow=deleted_workflow, order=2
+        )
         deleted_workflow_statuses = [deleted_workflow_status1, deleted_workflow_status2]
         deleted_workflow_detail = DeleteWorkflowSerializer(
             id=deleted_workflow.id,
@@ -351,8 +442,12 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         )
         fake_get_delete_workflow_detail.return_value = deleted_workflow_detail
         target_workflow = f.build_workflow(slug="target_workflow")
-        target_workflow_status1 = f.build_workflow_status(workflow=target_workflow, order=1)
-        target_workflow_status2 = f.build_workflow_status(workflow=target_workflow, order=2)
+        target_workflow_status1 = f.build_workflow_status(
+            workflow=target_workflow, order=1
+        )
+        target_workflow_status2 = f.build_workflow_status(
+            workflow=target_workflow, order=2
+        )
         target_workflow_statuses = [target_workflow_status2, target_workflow_status1]
         target_workflow_detail = WorkflowSerializer(
             id=target_workflow.id,
@@ -380,7 +475,9 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         ]
         fake_workflows_repo.delete_workflow.return_value = True
         # service call
-        ret = await services.delete_workflow(workflow=deleted_workflow, target_workflow_slug=target_workflow.slug)
+        ret = await services.delete_workflow(
+            workflow=deleted_workflow, target_workflow_slug=target_workflow.slug
+        )
         # asserts
         fake_workflows_repo.list_workflow_statuses.assert_has_awaits(
             [
@@ -396,7 +493,9 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
                 ),
             ]
         )
-        fake_workflows_repo.delete_workflow.assert_awaited_once_with(filters={"id": deleted_workflow.id})
+        fake_workflows_repo.delete_workflow.assert_awaited_once_with(
+            filters={"id": deleted_workflow.id}
+        )
         fake_reorder_workflow_statuses.assert_awaited_once_with(
             target_workflow=target_workflow,
             statuses=[status.id for status in deleted_workflow_statuses],
@@ -419,15 +518,27 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
 
 async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.get_workflow_detail", autospec=True) as fake_get_workflow_detail,
-        patch("workflows.services.get_delete_workflow_detail", autospec=True) as fake_get_delete_workflow_detail,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.get_workflow_detail", autospec=True
+        ) as fake_get_workflow_detail,
+        patch(
+            "workflows.services.get_delete_workflow_detail", autospec=True
+        ) as fake_get_delete_workflow_detail,
         patch("workflows.services.get_workflow", autospec=True) as fake_get_workflow,
-        patch("workflows.services.reorder_workflow_statuses", autospec=True) as fake_reorder_workflow_statuses,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.reorder_workflow_statuses", autospec=True
+        ) as fake_reorder_workflow_statuses,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
-        deleted_workflow_status1 = f.build_workflow_status(workflow=deleted_workflow, order=1)
+        deleted_workflow_status1 = f.build_workflow_status(
+            workflow=deleted_workflow, order=1
+        )
         deleted_workflow_statuses = [deleted_workflow_status1]
         deleted_workflow_detail = DeleteWorkflowSerializer(
             id=deleted_workflow.id,
@@ -466,7 +577,9 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         ]
         fake_workflows_repo.delete_workflow.return_value = True
         # service call
-        ret = await services.delete_workflow(workflow=deleted_workflow, target_workflow_slug=target_workflow.slug)
+        ret = await services.delete_workflow(
+            workflow=deleted_workflow, target_workflow_slug=target_workflow.slug
+        )
         # asserts
         fake_workflows_repo.list_workflow_statuses.assert_has_awaits(
             [
@@ -482,7 +595,9 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
                 ),
             ]
         )
-        fake_workflows_repo.delete_workflow.assert_awaited_once_with(filters={"id": deleted_workflow.id})
+        fake_workflows_repo.delete_workflow.assert_awaited_once_with(
+            filters={"id": deleted_workflow.id}
+        )
         fake_reorder_workflow_statuses.assert_awaited_once_with(
             target_workflow=target_workflow,
             statuses=[status.id for status in deleted_workflow_statuses],
@@ -502,11 +617,19 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
 
 async def test_delete_workflow_not_existing_target_workflow_exception():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.get_delete_workflow_detail", autospec=True) as fake_get_delete_workflow_detail,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.get_delete_workflow_detail", autospec=True
+        ) as fake_get_delete_workflow_detail,
         patch("workflows.services.get_workflow", autospec=True) as fake_get_workflow,
-        patch("workflows.services.reorder_workflow_statuses", autospec=True) as fake_reorder_workflow_statuses,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.reorder_workflow_statuses", autospec=True
+        ) as fake_reorder_workflow_statuses,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
         pytest.raises(ex.NonExistingMoveToWorkflow),
     ):
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
@@ -523,7 +646,9 @@ async def test_delete_workflow_not_existing_target_workflow_exception():
         fake_get_workflow.return_value = None
 
         # service call
-        ret = await services.delete_workflow(workflow=deleted_workflow, target_workflow_slug=target_workflow.slug)
+        ret = await services.delete_workflow(
+            workflow=deleted_workflow, target_workflow_slug=target_workflow.slug
+        )
 
         # asserts
         fake_reorder_workflow_statuses.assert_not_awaited()
@@ -535,11 +660,19 @@ async def test_delete_workflow_not_existing_target_workflow_exception():
 
 async def test_delete_workflow_same_target_workflow_exception():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.get_delete_workflow_detail", autospec=True) as fake_get_delete_workflow_detail,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.get_delete_workflow_detail", autospec=True
+        ) as fake_get_delete_workflow_detail,
         patch("workflows.services.get_workflow", autospec=True) as fake_get_workflow,
-        patch("workflows.services.reorder_workflow_statuses", autospec=True) as fake_reorder_workflow_statuses,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.reorder_workflow_statuses", autospec=True
+        ) as fake_reorder_workflow_statuses,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
         pytest.raises(ex.SameMoveToWorkflow),
     ):
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
@@ -555,7 +688,9 @@ async def test_delete_workflow_same_target_workflow_exception():
         fake_get_workflow.return_value = deleted_workflow
 
         # service call
-        ret = await services.delete_workflow(workflow=deleted_workflow, target_workflow_slug=deleted_workflow.slug)
+        ret = await services.delete_workflow(
+            workflow=deleted_workflow, target_workflow_slug=deleted_workflow.slug
+        )
 
         # asserts
         fake_reorder_workflow_statuses.assert_not_awaited()
@@ -573,13 +708,19 @@ async def test_delete_workflow_same_target_workflow_exception():
 async def test_calculate_offset() -> None:
     workflow = f.build_workflow()
 
-    with (patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,):
+    with (
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+    ):
         prev_st = f.build_workflow_status(workflow=workflow, order=150)
         reord_st = f.build_workflow_status(workflow=workflow, order=250)
         next_st = f.build_workflow_status(workflow=workflow, order=300)
 
         # after
-        fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(prev=None, next=next_st)
+        fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(
+            prev=None, next=next_st
+        )
         offset, pre_order = await services._calculate_offset(
             total_statuses_to_reorder=1,
             workflow=workflow,
@@ -589,7 +730,9 @@ async def test_calculate_offset() -> None:
         assert pre_order == reord_st.order
         assert offset == Decimal(25)
 
-        fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(next=None, prev=None)
+        fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(
+            next=None, prev=None
+        )
         offset, pre_order = await services._calculate_offset(
             total_statuses_to_reorder=1,
             workflow=workflow,
@@ -600,7 +743,9 @@ async def test_calculate_offset() -> None:
         assert offset == Decimal(100)
 
         # before
-        fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(next=None, prev=prev_st)
+        fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(
+            next=None, prev=prev_st
+        )
         offset, pre_order = await services._calculate_offset(
             total_statuses_to_reorder=1,
             workflow=workflow,
@@ -610,7 +755,9 @@ async def test_calculate_offset() -> None:
         assert pre_order == prev_st.order
         assert offset == Decimal(50)
 
-        fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(next=None, prev=None)
+        fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(
+            next=None, prev=None
+        )
         offset, pre_order = await services._calculate_offset(
             total_statuses_to_reorder=1,
             workflow=workflow,
@@ -628,9 +775,15 @@ async def test_calculate_offset() -> None:
 
 async def test_reorder_workflow_statuses_same_workflow_ok():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
         workflow = f.build_workflow()
         status1 = f.build_workflow_status(workflow=workflow, order=1)
@@ -657,9 +810,15 @@ async def test_reorder_workflow_statuses_same_workflow_ok():
 
 async def test_reorder_workflow_statuses_between_workflows_with_anchor_ok():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
         workflow1 = f.build_workflow()
         workflow2 = f.build_workflow()
@@ -693,9 +852,15 @@ async def test_reorder_workflow_statuses_between_workflows_with_anchor_ok():
 
 async def test_reorder_workflow_statuses_between_workflows_no_anchor_ok():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
     ):
         workflow1 = f.build_workflow()
         workflow2 = f.build_workflow(statuses=[])
@@ -728,7 +893,9 @@ async def test_reorder_workflow_statuses_between_workflows_no_anchor_ok():
 
 async def test_reorder_workflow_statuses_between_workflows_no_anchor_same_workflow_exception():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
         pytest.raises(ex.NonExistingMoveToStatus),
     ):
         workflow = f.build_workflow()
@@ -750,7 +917,9 @@ async def test_reorder_workflow_statuses_between_workflows_no_anchor_same_workfl
 async def test_reorder_workflow_status_repeated():
     with (
         pytest.raises(ex.InvalidWorkflowStatusError),
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         workflow = f.build_workflow()
         status = f.build_workflow_status(workflow=workflow, order=1)
@@ -765,7 +934,9 @@ async def test_reorder_workflow_status_repeated():
 
 async def test_reorder_anchor_workflow_status_does_not_exist():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
         pytest.raises(ex.InvalidWorkflowStatusError),
     ):
         fake_workflows_repo.get_workflow_status.return_value = None
@@ -779,7 +950,9 @@ async def test_reorder_anchor_workflow_status_does_not_exist():
 
 async def test_reorder_any_workflow_status_does_not_exist():
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
         pytest.raises(ex.InvalidWorkflowStatusError),
     ):
         fake_workflows_repo.get_workflow_status.return_value = None
@@ -801,14 +974,26 @@ async def test_delete_workflow_status_moving_stories_ok():
     workflow = f.build_workflow()
     workflow_status1 = f.build_workflow_status(workflow=workflow)
     workflow_status2 = f.build_workflow_status(workflow=workflow)
-    workflow_status1_stories = [f.build_story(status=workflow_status1, workflow=workflow)]
+    workflow_status1_stories = [
+        f.build_story(status=workflow_status1, workflow=workflow)
+    ]
 
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
-        patch("workflows.services.get_workflow_status", autospec=True) as fake_get_workflow_status,
-        patch("workflows.services.stories_services", autospec=True) as fake_stories_services,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
+        patch(
+            "workflows.services.get_workflow_status", autospec=True
+        ) as fake_get_workflow_status,
+        patch(
+            "workflows.services.stories_services", autospec=True
+        ) as fake_stories_services,
     ):
         fake_workflows_repo.delete_workflow_status.return_value = 1
         fake_get_workflow_status.return_value = workflow_status2
@@ -839,7 +1024,9 @@ async def test_delete_workflow_status_moving_stories_ok():
             target_status_id=workflow_status2.id,
             stories_refs=[story.ref for story in workflow_status1_stories],
         )
-        fake_workflows_repo.delete_workflow_status.assert_awaited_once_with(filters={"id": workflow_status1.id})
+        fake_workflows_repo.delete_workflow_status.assert_awaited_once_with(
+            filters={"id": workflow_status1.id}
+        )
         fake_workflows_events.emit_event_when_workflow_status_is_deleted.assert_awaited_once_with(
             project=workflow_status1.project,
             workflow_status=workflow_status1,
@@ -851,26 +1038,42 @@ async def test_delete_workflow_status_deleting_stories_ok():
     user = f.create_user()
     workflow = f.build_workflow()
     workflow_status1 = f.build_workflow_status(workflow=workflow)
-    workflow_status1_stories = [f.build_story(status=workflow_status1, workflow=workflow)]
+    workflow_status1_stories = [
+        f.build_story(status=workflow_status1, workflow=workflow)
+    ]
 
     with (
-        patch("workflows.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("workflows.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("workflows.services.workflows_events", autospec=True) as fake_workflows_events,
-        patch("workflows.services.get_workflow_status", autospec=True) as fake_get_workflow_status,
-        patch("workflows.services.stories_services", autospec=True) as fake_stories_services,
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
+        patch(
+            "workflows.services.get_workflow_status", autospec=True
+        ) as fake_get_workflow_status,
+        patch(
+            "workflows.services.stories_services", autospec=True
+        ) as fake_stories_services,
     ):
         fake_workflows_repo.delete_workflow_status.return_value = 2
         fake_workflows_repo.get_workflow_status.return_value = 1
         fake_stories_repo.list_stories.return_value = workflow_status1_stories
         fake_stories_services.reorder_stories.return_value = None
 
-        await services.delete_workflow_status(workflow_status=workflow_status1, target_status_id=None, deleted_by=user)
+        await services.delete_workflow_status(
+            workflow_status=workflow_status1, target_status_id=None, deleted_by=user
+        )
 
         fake_get_workflow_status.assert_not_awaited()
         fake_stories_repo.list_stories.assert_not_awaited()
         fake_stories_services.reorder_stories.assert_not_awaited()
-        fake_workflows_repo.delete_workflow_status.assert_awaited_once_with(filters={"id": workflow_status1.id})
+        fake_workflows_repo.delete_workflow_status.assert_awaited_once_with(
+            filters={"id": workflow_status1.id}
+        )
         fake_workflows_events.emit_event_when_workflow_status_is_deleted.assert_awaited_once_with(
             project=workflow_status1.project,
             workflow_status=workflow_status1,
@@ -885,7 +1088,9 @@ async def test_delete_workflow_status_wrong_target_status_ex():
     workflow_status2 = f.build_workflow_status(workflow=workflow)
 
     with (
-        patch("workflows.services.get_workflow_status", autospec=True) as fake_get_workflow_status,
+        patch(
+            "workflows.services.get_workflow_status", autospec=True
+        ) as fake_get_workflow_status,
         pytest.raises(ex.NonExistingMoveToStatus),
     ):
         fake_get_workflow_status.return_value = None
@@ -909,7 +1114,9 @@ async def test_delete_workflow_status_same_target_status_ex():
     workflow_status1 = f.build_workflow_status(workflow=workflow)
 
     with (
-        patch("workflows.services.get_workflow_status", autospec=True) as fake_get_workflow_status,
+        patch(
+            "workflows.services.get_workflow_status", autospec=True
+        ) as fake_get_workflow_status,
         pytest.raises(ex.SameMoveToStatus),
     ):
         fake_get_workflow_status.return_value = workflow_status1

@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from tests.utils.conf import override_settings  # noqa
 from tests.utils.logging import correlation_id  # noqa
 from tests.utils.templating import initialize_template_env  # noqa
 # from tests.utils.testclient import client, non_mocked_hosts  # noqa

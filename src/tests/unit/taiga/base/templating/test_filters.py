@@ -20,6 +20,7 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from django.test import override_settings
 from jinja2 import Environment, select_autoescape
 
 from base.i18n import i18n
@@ -74,7 +75,9 @@ def test_wbr_split_with_custom_size(text, size, result):
     [
         ("2022-06-22T14:53:07.351464+02:00", "June 22, 2022, 2:53:07 PM +0200"),
         (
-            datetime(2022, 6, 22, 14, 53, 7, 351464, tzinfo=timezone(timedelta(hours=2))),
+            datetime(
+                2022, 6, 22, 14, 53, 7, 351464, tzinfo=timezone(timedelta(hours=2))
+            ),
             "June 22, 2022, 2:53:07 PM +0200",
         ),
     ],
@@ -101,12 +104,16 @@ def test_format_datetime_with_default_format(value, result):
             "June 22, 2022, 2:53:07 PM +0200",
         ),
         (
-            datetime(2022, 6, 22, 14, 53, 7, 351464, tzinfo=timezone(timedelta(hours=2))),
+            datetime(
+                2022, 6, 22, 14, 53, 7, 351464, tzinfo=timezone(timedelta(hours=2))
+            ),
             "yyyy.MM.dd G HH:mm:ss zzz",
             "2022.06.22 AD 14:53:07 +0200",
         ),
         (
-            datetime(2022, 6, 22, 14, 53, 7, 351464, tzinfo=timezone(timedelta(hours=2))),
+            datetime(
+                2022, 6, 22, 14, 53, 7, 351464, tzinfo=timezone(timedelta(hours=2))
+            ),
             "short",
             "6/22/22, 2:53 PM",
         ),
@@ -128,15 +135,21 @@ def test_format_datetime_with_custom_format(value, format, result):
 #########################################################################################
 
 
-def test_static_url(override_settings):
-    with override_settings({"STATIC_URL": "http://localhost:8000/static/"}):
+def test_static_url():
+    with override_settings(**{"STATIC_URL": "http://localhost:8000/static/"}):
         context = {"file": "example/test1.png"}
         template = "{{ file | static_url }}"
 
-        assert env.from_string(template).render(**context) == "http://localhost:8000/static/example/test1.png"
+        assert (
+            env.from_string(template).render(**context)
+            == "http://localhost:8000/static/example/test1.png"
+        )
 
-    with override_settings({"STATIC_URL": "https://tenzu.company.com/static/"}):
+    with override_settings(**{"STATIC_URL": "https://tenzu.company.com/static/"}):
         context = {"file": "example/test2.png"}
         template = "{{ file | static_url }}"
 
-        assert env.from_string(template).render(**context) == "https://tenzu.company.com/static/example/test2.png"
+        assert (
+            env.from_string(template).render(**context)
+            == "https://tenzu.company.com/static/example/test2.png"
+        )

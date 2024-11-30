@@ -20,7 +20,7 @@
 import pytest
 
 from base.occ import repositories
-from tests.samples.occ.models import SampleOCCItem
+from tests.utils.samples.occ.models import SampleOCCItem
 
 pytestmark = pytest.mark.django_db(transaction=True)
 

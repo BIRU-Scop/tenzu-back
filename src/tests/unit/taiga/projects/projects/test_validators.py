@@ -23,8 +23,8 @@ import pytest
 from pydantic import ValidationError
 
 from projects.projects.api.validators import ProjectValidator, UpdateProjectValidator
-from tests.unit.utils import check_validation_errors
 from tests.utils import factories as f
+from tests.utils.utils import check_validation_errors
 
 ##########################################################
 # ProjectValidator
@@ -37,7 +37,9 @@ def test_validate_create_user_wrong_not_all_required_fields():
 
     expected_error_fields = ["name", "workspaceId"]
     expected_error_messages = ["field required"]
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )
 
 
 def test_validate_project_with_empty_name():
@@ -52,7 +54,9 @@ def test_validate_project_with_long_name():
     name = "Project ab c de f gh i jk l mn pw r st u vw x yz ab c de f gh i jk l mn pw r st u vw x yz"
     color = 1
     workspace_id = "6JgsbGyoEe2VExhWgGrI2w"
-    with pytest.raises(ValidationError, match=r"ensure this value has at most 80 characters"):
+    with pytest.raises(
+        ValidationError, match=r"ensure this value has at most 80 characters"
+    ):
         ProjectValidator(name=name, color=color, workspace_id=workspace_id)
 
 
@@ -67,8 +71,12 @@ def test_validate_project_with_long_description():
     color = 1
     workspace_id = "6JgsbGyoEe2VExhWgGrI2w"
 
-    with pytest.raises(ValidationError, match=r"ensure this value has at most 220 characters"):
-        ProjectValidator(name=name, description=description, color=color, workspace_id=workspace_id)
+    with pytest.raises(
+        ValidationError, match=r"ensure this value has at most 220 characters"
+    ):
+        ProjectValidator(
+            name=name, description=description, color=color, workspace_id=workspace_id
+        )
 
 
 def test_validate_project_with_invalid_color():
@@ -106,7 +114,9 @@ def test_validate_logo_content_type():
         "workspaceId",
     ]
     expected_error_messages = ["Invalid image content type", "field required"]
-    check_validation_errors(validations_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
+    )
 
 
 def test_validate_logo_content():
@@ -119,7 +129,9 @@ def test_validate_logo_content():
 
     expected_error_fields = ["logo", "workspaceId"]
     expected_error_messages = ["Invalid image content", "field required"]
-    check_validation_errors(validations_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
+    )
 
 
 ##########################################################

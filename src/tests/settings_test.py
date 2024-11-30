@@ -27,7 +27,7 @@ MEDIA_ROOT = "/tmp/tenzu/media"
 STATIC_ROOT = "/tmp/tenzu/static"
 
 INSTALLED_APPS += [
-    "tests.samples.occ",
+    "tests.utils.samples.occ",
 ]
 
 DEBUG_PROPAGATE_EXCEPTIONS = (True,)

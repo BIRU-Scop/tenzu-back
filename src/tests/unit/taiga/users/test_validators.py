@@ -20,7 +20,7 @@
 import pytest
 from pydantic import ValidationError
 
-from tests.unit.utils import check_validation_errors
+from tests.utils.utils import check_validation_errors
 from users.api.validators import CreateUserValidator, UpdateUserValidator
 
 ###############################################
@@ -62,7 +62,9 @@ def test_validate_create_user_wrong_not_all_required_fields():
 
     expected_error_fields = ["email", "password", "fullName", "acceptTerms"]
     expected_error_messages = ["field required"]
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )
 
 
 def test_validate_create_user_not_accepted_terms():
@@ -72,11 +74,15 @@ def test_validate_create_user_not_accepted_terms():
     terms = False
 
     with pytest.raises(ValidationError) as validation_errors:
-        CreateUserValidator(email=email, full_name=full_name, password=password, accept_terms=terms)
+        CreateUserValidator(
+            email=email, full_name=full_name, password=password, accept_terms=terms
+        )
 
     expected_error_fields = ["acceptTerms"]
     expected_error_messages = ["User has to accept terms of service"]
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )
 
 
 @pytest.mark.parametrize(
@@ -93,11 +99,15 @@ def test_validate_create_user_invalid_email(email):
     terms = True
 
     with pytest.raises(ValidationError) as validation_errors:
-        CreateUserValidator(email=email, full_name=full_name, password=password, accept_terms=terms)
+        CreateUserValidator(
+            email=email, full_name=full_name, password=password, accept_terms=terms
+        )
 
     expected_error_fields = ["email"]
     expected_error_messages = ["value is not a valid email address"]
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )
 
 
 @pytest.mark.parametrize(
@@ -117,7 +127,9 @@ def test_validate_create_user_invalid_password(password, error):
     terms = True
 
     with pytest.raises(ValidationError) as validation_errors:
-        CreateUserValidator(email=email, full_name=full_name, password=password, accept_terms=terms)
+        CreateUserValidator(
+            email=email, full_name=full_name, password=password, accept_terms=terms
+        )
 
     check_validation_errors(validation_errors, ["password"], [error])
 
@@ -172,7 +184,9 @@ def test_validate_update_user_wrong_not_all_required_fields():
 
     expected_error_fields = ["fullName", "lang"]
     expected_error_messages = ["field required"]
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )
 
 
 @pytest.mark.parametrize(
