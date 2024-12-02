@@ -31,6 +31,7 @@ from ninja import UploadedFile
 
 from base.sampledata import constants
 from comments.models import Comment
+from commons.colors import NUM_COLORS
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
@@ -71,7 +72,7 @@ def create_user(
         username=username,
         full_name=full_name or fake.name(),
         email=email or f"{username}@tenzu.demo",
-        color=color or fake.random_int(min=1, max=constants.NUM_USER_COLORS),
+        color=color or fake.random_int(min=1, max=NUM_COLORS),
         is_active=True,
     )
     user.set_password("123123")
@@ -84,10 +85,12 @@ def create_user(
 ################################
 
 
-async def create_workspace(created_by: User, name: str | None = None, color: int | None = None) -> Workspace:
+async def create_workspace(
+    created_by: User, name: str | None = None, color: int | None = None
+) -> Workspace:
     return await workspaces_services._create_workspace(
         name=name or fake.bs()[:35],
-        color=color or fake.random_int(min=1, max=constants.NUM_WORKSPACE_COLORS),
+        color=color or fake.random_int(min=1, max=NUM_COLORS),
         created_by=created_by,
     )
 
@@ -135,7 +138,7 @@ async def create_project(
         return await projects_services._create_project(
             name=name,
             description=description,
-            color=fake.random_int(min=1, max=constants.NUM_PROJECT_COLORS),
+            color=fake.random_int(min=1, max=NUM_COLORS),
             created_by=created_by,
             workspace=workspace,
             logo_file=logo_file,
@@ -155,16 +158,24 @@ async def create_project_memberships(project_id: UUID, users: list[User]) -> Non
     # calculate admin (at least 1/3 of the members) and no admin users
     num_admins = random.randint(0, len(users) // 3)
     for user in users[:num_admins]:
-        await pj_memberships_repositories.create_project_membership(user=user, project=project, role=admin_role)
+        await pj_memberships_repositories.create_project_membership(
+            user=user, project=project, role=admin_role
+        )
 
     if other_roles:
         for user in users[num_admins:]:
             role = random.choice(other_roles)
-            await pj_memberships_repositories.create_project_membership(user=user, project=project, role=role)
+            await pj_memberships_repositories.create_project_membership(
+                user=user, project=project, role=role
+            )
 
 
-async def create_project_membership(project: Project, user: User, role: ProjectRole) -> None:
-    await pj_memberships_repositories.create_project_membership(user=user, project=project, role=role)
+async def create_project_membership(
+    project: Project, user: User, role: ProjectRole
+) -> None:
+    await pj_memberships_repositories.create_project_membership(
+        user=user, project=project, role=role
+    )
 
 
 async def create_project_invitations(project: Project, users: list[User]) -> None:
@@ -265,14 +276,18 @@ async def create_stories(
         ):
             # Sometimes we assign all the members
             members_sample = (
-                members if fake.boolean(chance_of_getting_true=10) else fake.random_sample(elements=members)
+                members
+                if fake.boolean(chance_of_getting_true=10)
+                else fake.random_sample(elements=members)
             )
             for member in members_sample:
                 story_assignments.append(
                     StoryAssignment(
                         story=story,
                         user=member,
-                        created_at=fake.date_time_between(start_date=story.created_at, tzinfo=timezone.utc),
+                        created_at=fake.date_time_between(
+                            start_date=story.created_at, tzinfo=timezone.utc
+                        ),
                     )
                 )
 
@@ -296,7 +311,10 @@ async def _create_story(
     save: bool = True,
 ) -> Story:
     _ref = await sync_to_async(get_new_project_reference_id)(status.workflow.project_id)
-    _title = title or fake.text(max_nb_chars=random.choice(constants.STORY_TITLE_MAX_SIZE))[:500]
+    _title = (
+        title
+        or fake.text(max_nb_chars=random.choice(constants.STORY_TITLE_MAX_SIZE))[:500]
+    )
     _description = (
         description
         or '{"time":1727777794238,"blocks":[{"id":"7X6r-YHhqt","type":"paragraph","data":{"text":"azer"}},{"id":"45qpxXqs7u","type":"paragraph","data":{"text":"azer"}},{"id":"Im_opySj3l","type":"paragraph","data":{"text":"azerazer"}}],"version":"2.30.5"}'
@@ -328,9 +346,13 @@ async def create_story_comments(
     story: Story, status_name: str, pj_members: list[User], text: str | None = None
 ) -> None:
     story_comments = []
-    prob_comments = constants.PROB_STORY_COMMENTS.get(status_name, constants.PROB_STORY_COMMENTS_DEFAULT)
+    prob_comments = constants.PROB_STORY_COMMENTS.get(
+        status_name, constants.PROB_STORY_COMMENTS_DEFAULT
+    )
     if fake.random_number(digits=2) < prob_comments:
-        max_comments = constants.PROB_STORY_COMMENTS.get(status_name, constants.PROB_STORY_COMMENTS_DEFAULT)
+        max_comments = constants.PROB_STORY_COMMENTS.get(
+            status_name, constants.PROB_STORY_COMMENTS_DEFAULT
+        )
         for _ in range(fake.random_int(min=1, max=max_comments)):
             story_comments.append(
                 await _create_comment_object(
@@ -359,13 +381,16 @@ def _create_comment_object(
             else fake.date_time_between(
                 start_date=object.created_at,  # type: ignore[attr-defined]
                 tzinfo=timezone.utc,
-                end_date=object.created_at + timedelta(days=constants.MAX_DAYS_LAST_COMMENT),  # type: ignore[attr-defined]
+                end_date=object.created_at
+                + timedelta(days=constants.MAX_DAYS_LAST_COMMENT),  # type: ignore[attr-defined]
             )
         ),
     )
 
     if fake.boolean(chance_of_getting_true=constants.PROB_MODIFIED_COMMENT):
-        comment.modified_at = fake.date_time_between(start_date=comment.created_at, tzinfo=timezone.utc)
+        comment.modified_at = fake.date_time_between(
+            start_date=comment.created_at, tzinfo=timezone.utc
+        )
 
     if fake.boolean(chance_of_getting_true=constants.PROB_DELETED_COMMENT):
         comment.text = ""

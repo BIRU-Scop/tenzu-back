@@ -21,6 +21,7 @@ import functools
 
 import django.contrib.postgres.fields
 import django.contrib.postgres.fields.jsonb
+import django.core.validators
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
@@ -76,7 +77,12 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "color",
-                    models.IntegerField(blank=True, default=1, verbose_name="color"),
+                    models.IntegerField(
+                        blank=True,
+                        default=1,
+                        validators=[django.core.validators.MaxValueValidator(8)],
+                        verbose_name="color",
+                    ),
                 ),
                 (
                     "logo",
@@ -85,7 +91,9 @@ class Migration(migrations.Migration):
                         max_length=500,
                         null=True,
                         upload_to=functools.partial(
-                            base.utils.files.get_obfuscated_file_path, *(), **{"base_path": "project"}
+                            base.utils.files.get_obfuscated_file_path,
+                            *(),
+                            **{"base_path": "project"},
                         ),
                         verbose_name="logo",
                     ),
@@ -144,15 +152,21 @@ class Migration(migrations.Migration):
                 ("name", models.CharField(max_length=250, verbose_name="name")),
                 (
                     "slug",
-                    base.db.models.fields.LowerSlugField(blank=True, max_length=250, unique=True, verbose_name="slug"),
+                    base.db.models.fields.LowerSlugField(
+                        blank=True, max_length=250, unique=True, verbose_name="slug"
+                    ),
                 ),
                 (
                     "roles",
-                    django.contrib.postgres.fields.jsonb.JSONField(blank=True, null=True, verbose_name="roles"),
+                    django.contrib.postgres.fields.jsonb.JSONField(
+                        blank=True, null=True, verbose_name="roles"
+                    ),
                 ),
                 (
                     "workflows",
-                    django.contrib.postgres.fields.jsonb.JSONField(blank=True, null=True, verbose_name="workflows"),
+                    django.contrib.postgres.fields.jsonb.JSONField(
+                        blank=True, null=True, verbose_name="workflows"
+                    ),
                 ),
             ],
             options={

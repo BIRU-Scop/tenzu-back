@@ -19,8 +19,8 @@
 
 import random
 
-NUM_USER_COLORS = 8
+NUM_COLORS = 8
 
 
-def generate_random_color(min_color: int = 1, max_color: int = NUM_USER_COLORS) -> int:
+def generate_random_color(min_color: int = 1, max_color: int = NUM_COLORS) -> int:
     return random.randint(min_color, max_color)

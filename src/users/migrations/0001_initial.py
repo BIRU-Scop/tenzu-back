@@ -28,7 +28,7 @@ from django.db import migrations, models
 
 import base.db.models
 import base.db.models.fields
-import base.utils.colors
+import commons.colors
 import users.models
 
 
@@ -44,7 +44,9 @@ class Migration(migrations.Migration):
                 ("password", models.CharField(max_length=128, verbose_name="password")),
                 (
                     "last_login",
-                    models.DateTimeField(blank=True, null=True, verbose_name="last login"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="last login"
+                    ),
                 ),
                 (
                     "id",
@@ -75,13 +77,16 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "email",
-                    base.db.models.fields.LowerEmailField(max_length=255, unique=True, verbose_name="email address"),
+                    base.db.models.fields.LowerEmailField(
+                        max_length=255, unique=True, verbose_name="email address"
+                    ),
                 ),
                 (
                     "color",
                     models.IntegerField(
                         blank=True,
-                        default=base.utils.colors.generate_random_color,
+                        default=commons.colors.generate_random_color,
+                        validators=[django.core.validators.MaxValueValidator(8)],
                         verbose_name="color",
                     ),
                 ),
@@ -105,7 +110,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "full_name",
-                    models.CharField(blank=True, max_length=256, null=True, verbose_name="full name"),
+                    models.CharField(
+                        blank=True, max_length=256, null=True, verbose_name="full name"
+                    ),
                 ),
                 (
                     "accepted_terms",
@@ -160,7 +167,9 @@ class Migration(migrations.Migration):
                 ("value", models.CharField(max_length=300, verbose_name="value")),
                 (
                     "extra",
-                    django.contrib.postgres.fields.jsonb.JSONField(blank=True, null=True, verbose_name="extra"),
+                    django.contrib.postgres.fields.jsonb.JSONField(
+                        blank=True, null=True, verbose_name="extra"
+                    ),
                 ),
                 (
                     "user",
@@ -179,7 +188,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="user",
-            index=models.Index(fields=["username"], name="users_user_usernam_65d164_idx"),
+            index=models.Index(
+                fields=["username"], name="users_user_usernam_65d164_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="user",
@@ -187,10 +198,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="authdata",
-            index=models.Index(fields=["user", "key"], name="users_authd_user_id_d24d4c_idx"),
+            index=models.Index(
+                fields=["user", "key"], name="users_authd_user_id_d24d4c_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="authdata",
-            constraint=models.UniqueConstraint(fields=("user", "key"), name="users_authdata_unique_user_key"),
+            constraint=models.UniqueConstraint(
+                fields=("user", "key"), name="users_authdata_unique_user_key"
+            ),
         ),
     ]
