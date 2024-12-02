@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from asgiref.sync import sync_to_async
 from starlette.authentication import AuthenticationError as AuthorizationError
 
 from auth import backend
@@ -41,7 +42,7 @@ async def test_authenticate_success_without_token():
 
 async def test_authenticate_success_with_token():
     user = await f.create_user()
-    token = await AccessToken.create_for_object(user)
+    token = await sync_to_async(AccessToken.for_user)(user)
 
     request = Request(default_scope)
     request._headers = {"Authorization": f"Bearer {token}"}

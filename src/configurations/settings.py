@@ -31,6 +31,7 @@ from pathlib import Path
 
 import sentry_sdk
 from corsheaders.defaults import default_headers
+from django.core.serializers.json import DjangoJSONEncoder
 
 from .conf import settings
 from .utils import remove_ending_slash
@@ -198,6 +199,7 @@ NINJA_JWT = {
     "USER_AUTHENTICATION_RULE": "ninja_jwt.authentication.default_user_authentication_rule",
     "AUTH_TOKEN_CLASSES": ("ninja_jwt.tokens.AccessToken",),
     "TOKEN_USER_CLASS": "ninja_jwt.models.TokenUser",
+    "JSON_ENCODER": DjangoJSONEncoder,
 }
 
 AUTHENTICATION_BACKENDS = ["auth.backends.EmailOrUsernameModelBackend"]

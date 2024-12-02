@@ -32,9 +32,12 @@ async def create_auth_credentials(user: User) -> TokenObtainPairOutputSchema:
     await users_repositories.update_last_login(user=user)
 
     refresh: RefreshToken = await sync_to_async(RefreshToken.for_user)(user)
+    username_field = User.USERNAME_FIELD
 
     return TokenObtainPairOutputSchema(
-        token=str(refresh.access_token), refresh=str(refresh), username=user.username
+        access=str(refresh.access_token),
+        refresh=str(refresh),
+        **{username_field: getattr(user, username_field)},
     )
 
 

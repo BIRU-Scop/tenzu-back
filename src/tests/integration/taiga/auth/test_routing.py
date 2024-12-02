@@ -74,7 +74,7 @@
 #
 # async def test_auth_router_with_valid_auth_token():
 #     user = await f.create_user()
-#     token = await AccessToken.create_for_object(user)
+#     token = await sync_to_async(AccessToken.for_user)(user)
 #     headers = BASE_HEADERS | {
 #         "Authorization": f"Bearer {token}",
 #     }
@@ -117,7 +117,7 @@
 #
 # async def test_router_with_valid_auth_token():
 #     user = await f.create_user()
-#     token = await AccessToken.create_for_object(user)
+#     token = await sync_to_async(AccessToken.for_user)(user)
 #     headers = BASE_HEADERS | {
 #         "Authorization": f"Bearer {token}",
 #     }

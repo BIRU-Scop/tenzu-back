@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from asgiref.sync import sync_to_async
 from fastapi import status
 
 from auth.tokens import RefreshToken
@@ -63,7 +64,7 @@ def test_login_error_invalid_credentials(client):
 
 async def test_refresh_successfuly(client):
     user = await f.create_user(is_active=True)
-    token = await RefreshToken.create_for_object(user)
+    token = await sync_to_async(RefreshToken.for_user)(user)
     data = {
         "refresh": str(token),
     }
@@ -87,7 +88,7 @@ def test_refresh_error_invalid_token(client):
 
 async def test_deny_refresh_token_success(client):
     user = await f.create_user()
-    token = await RefreshToken.create_for_object(user)
+    token = await sync_to_async(RefreshToken.for_user)(user)
 
     data = {
         "refresh": str(token),
@@ -113,7 +114,7 @@ async def test_deny_refresh_token_error_bad_refresh_token(client):
 async def test_deny_refresh_token_error_forbidden_user(client):
     user = await f.create_user()
     other_user = await f.create_user()
-    token = await RefreshToken.create_for_object(user)
+    token = await sync_to_async(RefreshToken.for_user)(user)
 
     data = {
         "refresh": str(token),
@@ -126,7 +127,7 @@ async def test_deny_refresh_token_error_forbidden_user(client):
 
 async def test_deny_refresh_token_error_annonymous_user(client):
     user = await f.create_user()
-    token = await RefreshToken.create_for_object(user)
+    token = await sync_to_async(RefreshToken.for_user)(user)
 
     data = {
         "refresh": str(token),

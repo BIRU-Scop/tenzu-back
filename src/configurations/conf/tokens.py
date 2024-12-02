@@ -35,4 +35,4 @@ class TokensSettings(BaseModel):
     TOKEN_TYPE_CLAIM: str = "token_type"
     JTI_CLAIM: str = "jti"
     USER_ID_FIELD: str = "id"
-    USER_ID_CLAIM: str = "username"
+    USER_ID_CLAIM: str = "user_id"

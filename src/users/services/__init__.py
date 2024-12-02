@@ -145,7 +145,7 @@ async def _generate_verify_user_token(
     workspace_invitation_token: str | None = None,
     accept_workspace_invitation: bool = True,
 ) -> str:
-    verify_user_token = await VerifyUserToken.create_for_object(user)
+    verify_user_token = await sync_to_async(VerifyUserToken.for_user)(user)
     if project_invitation_token:
         verify_user_token["project_invitation_token"] = project_invitation_token
         if accept_project_invitation:
@@ -170,16 +170,22 @@ async def verify_user(user: User) -> None:
 async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
     # Get token and deny it
     try:
-        verify_token = VerifyUserToken(token)
+        verify_token = await sync_to_async(VerifyUserToken)(token)
     except TokenError:
         raise ex.BadVerifyUserTokenError("Invalid or expired token.")
 
-    verify_token.blacklist()
+    await sync_to_async(verify_token.blacklist)()
 
     # Get user and verify it
-    user_id_field = settings.NINJA_JWT["USER_ID_CLAIM"]
     user = await users_repositories.get_user(
-        filters=cast(UserFilters, {user_id_field: verify_token.get(user_id_field)})
+        filters=cast(
+            UserFilters,
+            {
+                settings.NINJA_JWT["USER_ID_FIELD"]: verify_token.get(
+                    settings.NINJA_JWT["USER_ID_CLAIM"]
+                )
+            },
+        )
     )
     if not user:
         raise ex.BadVerifyUserTokenError("The user doesn't exist.")

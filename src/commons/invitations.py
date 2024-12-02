@@ -16,10 +16,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Any, Self
 
 from django.conf import settings
 
 from base.utils.datetime import aware_utcnow
+from ninja_jwt.tokens import Token
 from projects.invitations.models import ProjectInvitation
 from workspaces.invitations.models import WorkspaceInvitation
 
@@ -37,3 +39,29 @@ def is_spam(invitation: ProjectInvitation | WorkspaceInvitation) -> bool:
         or time_since_last_send
         < settings.INVITATION_RESEND_TIME  # too soon to send the invitation again
     )
+
+
+class InvitationToken(Token):
+    token_type = "invitation"
+    lifetime = settings.GENERAL_INVITATION_LIFETIME
+    object_id_field = "id"
+    object_id_claim = "invitation_id"
+
+    @property
+    def object_data(self) -> dict[str, Any]:
+        """
+        Get the saved object data from the payload.
+        """
+        key = self.object_id_field
+        value = self.payload.get(self.object_id_claim, None)
+        return {key: value}
+
+    @classmethod
+    async def create_for_object(cls, obj: object) -> Self:
+        """
+        Returns a token for the given object that will be provided.
+        """
+        object_id = getattr(obj, cls.object_id_field)
+        token = cls()
+        token[cls.object_id_claim] = object_id
+        return token
