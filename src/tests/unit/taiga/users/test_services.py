@@ -569,7 +569,7 @@ async def test_generate_verify_ok_accept_project_invitation(
     token = {}
 
     with patch("users.services.VerifyUserToken", autospec=True) as FakeVerifyUserToken:
-        FakeVerifyUserToken.create_for_object.return_value = token
+        FakeVerifyUserToken.for_user.return_value = token
 
         verify_user_token_str = await services._generate_verify_user_token(
             user=user,
@@ -1289,11 +1289,11 @@ async def test_reset_password_generate_reset_password_token_ok():
         ) as FakeResetPasswordToken,
     ):
         fake_token = FakeResetPasswordToken()
-        FakeResetPasswordToken.create_for_object.return_value = fake_token
+        FakeResetPasswordToken.for_user.return_value = fake_token
 
         ret = await services._generate_reset_password_token(user=user)
-        FakeResetPasswordToken.create_for_object.assert_awaited_once_with(user)
-        FakeResetPasswordToken.create_for_object.assert_awaited_once_with(user)
+        FakeResetPasswordToken.for_user.assert_awaited_once_with(user)
+        FakeResetPasswordToken.for_user.assert_awaited_once_with(user)
         assert ret == str(fake_token)
 
 

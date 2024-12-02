@@ -176,7 +176,9 @@ async def test_list_workspaces_422_unprocessable_workspace_b64id(client):
     client.login(workspace.created_by)
     offset = 0
     limit = 1
-    response = client.get(f"/workspaces/{INVALID_B64ID}/invitations?offset={offset}&limit={limit}")
+    response = client.get(
+        f"/workspaces/{INVALID_B64ID}/invitations?offset={offset}&limit={limit}"
+    )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
 
 
