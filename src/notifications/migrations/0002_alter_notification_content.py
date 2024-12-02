@@ -18,9 +18,8 @@
 # You can contact BIRU at ask@biru.sh
 
 import django.contrib.postgres.fields.jsonb
+import django.core.serializers.json
 from django.db import migrations
-
-import base.utils.json
 
 
 class Migration(migrations.Migration):
@@ -34,7 +33,7 @@ class Migration(migrations.Migration):
             name="content",
             field=django.contrib.postgres.fields.jsonb.JSONField(
                 default=dict,
-                encoder=base.utils.json.JSONEncoder,
+                encoder=django.core.serializers.json.DjangoJSONEncoder,
                 verbose_name="content",
             ),
         ),
