@@ -40,6 +40,7 @@ def serialize_project_detail(
         color=project.color,
         logo=project.logo,
         workspace=workspace,
+        workspace_id=workspace.id,
         workflows=workflows,
         user_is_admin=user_is_admin,
         user_is_member=user_is_member,
