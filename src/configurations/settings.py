@@ -137,9 +137,6 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         **settings.DB.model_dump(),
-        "OPTIONS": {
-            "pool": True,
-        },
     }
 }
 
