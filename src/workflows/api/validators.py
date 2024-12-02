@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any, List
+from typing import List
 from uuid import UUID
 
 from pydantic import Field, StringConstraints, field_validator
@@ -26,11 +26,18 @@ from typing_extensions import Annotated
 
 from base.utils.uuid import decode_b64str_to_uuid
 from base.validators import B64UUID, BaseModel
+from commons.colors import NUM_COLORS
 from exceptions import api as ex
 
-WorkflowStatusName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]
-WorkflowName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
-WorkflowSlug = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
+WorkflowStatusName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)
+]
+WorkflowName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)
+]
+WorkflowSlug = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)
+]
 
 # class WorkflowStatusName(ConstrainedStr):
 #     strip_whitespace = True
@@ -69,7 +76,7 @@ class DeleteWorkflowQuery(BaseModel):
 
 class CreateWorkflowStatusValidator(BaseModel):
     name: WorkflowStatusName
-    color: Annotated[int, Field(gt=0, lt=9)]  # type: ignore
+    color: Annotated[int, Field(gt=0, lte=NUM_COLORS)]  # type: ignore
 
 
 class UpdateWorkflowValidator(BaseModel):

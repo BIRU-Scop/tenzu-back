@@ -25,8 +25,8 @@ from django.conf import settings
 
 from auth import services as auth_services
 from base.api.pagination import Pagination
-from base.utils.colors import generate_random_color
 from base.utils.datetime import aware_utcnow
+from commons.colors import generate_random_color
 from emails.emails import Emails
 from emails.tasks import send_email
 from ninja_jwt.exceptions import TokenError

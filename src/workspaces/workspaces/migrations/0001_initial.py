@@ -17,6 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+import django.core.validators
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
@@ -59,7 +60,14 @@ class Migration(migrations.Migration):
                     models.DateTimeField(auto_now=True, verbose_name="modified at"),
                 ),
                 ("name", models.CharField(max_length=40, verbose_name="name")),
-                ("color", models.IntegerField(default=1, verbose_name="color")),
+                (
+                    "color",
+                    models.IntegerField(
+                        default=1,
+                        validators=[django.core.validators.MaxValueValidator(8)],
+                        verbose_name="color",
+                    ),
+                ),
                 (
                     "created_by",
                     models.ForeignKey(

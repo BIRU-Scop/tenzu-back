@@ -19,14 +19,24 @@
 
 from typing import Any
 
+from django.core.validators import MaxValueValidator
+
 from base.db import models
-from base.utils.slug import generate_incremental_int_suffix, slugify_uniquely_for_queryset
+from base.utils.slug import (
+    generate_incremental_int_suffix,
+    slugify_uniquely_for_queryset,
+)
+from commons.colors import NUM_COLORS
 from projects.projects.models import Project
 
 
 class Workflow(models.BaseModel):
-    name = models.CharField(max_length=250, null=False, blank=False, verbose_name="name")
-    slug = models.LowerSlugField(max_length=250, null=False, blank=False, verbose_name="slug")
+    name = models.CharField(
+        max_length=250, null=False, blank=False, verbose_name="name"
+    )
+    slug = models.LowerSlugField(
+        max_length=250, null=False, blank=False, verbose_name="slug"
+    )
     order = models.DecimalField(
         max_digits=16,
         decimal_places=10,
@@ -77,7 +87,13 @@ class Workflow(models.BaseModel):
 
 class WorkflowStatus(models.BaseModel):
     name = models.CharField(max_length=30, null=False, blank=False, verbose_name="name")
-    color = models.IntegerField(null=False, blank=False, default=1, verbose_name="color")
+    color = models.IntegerField(
+        null=False,
+        blank=False,
+        default=1,
+        verbose_name="color",
+        validators=[MaxValueValidator(NUM_COLORS)],
+    )
     order = models.DecimalField(
         max_digits=16,
         decimal_places=10,

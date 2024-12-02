@@ -17,6 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+import django.core.validators
 import django.db.models.deletion
 from django.db import migrations, models
 
@@ -50,7 +51,9 @@ class Migration(migrations.Migration):
                 ("slug", models.CharField(max_length=250, verbose_name="slug")),
                 (
                     "order",
-                    models.BigIntegerField(default=base.utils.datetime.timestamp_mics, verbose_name="order"),
+                    models.BigIntegerField(
+                        default=base.utils.datetime.timestamp_mics, verbose_name="order"
+                    ),
                 ),
                 (
                     "project",
@@ -84,10 +87,19 @@ class Migration(migrations.Migration):
                 ),
                 ("name", models.CharField(max_length=250, verbose_name="name")),
                 ("slug", models.CharField(max_length=250, verbose_name="slug")),
-                ("color", models.IntegerField(default=1, verbose_name="color")),
+                (
+                    "color",
+                    models.IntegerField(
+                        default=1,
+                        validators=[django.core.validators.MaxValueValidator(8)],
+                        verbose_name="color",
+                    ),
+                ),
                 (
                     "order",
-                    models.BigIntegerField(default=base.utils.datetime.timestamp_mics, verbose_name="order"),
+                    models.BigIntegerField(
+                        default=base.utils.datetime.timestamp_mics, verbose_name="order"
+                    ),
                 ),
                 (
                     "workflow",
@@ -107,11 +119,15 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="workflowstatus",
-            index=models.Index(fields=["workflow", "slug"], name="workflows_w_workflo_b8ac5c_idx"),
+            index=models.Index(
+                fields=["workflow", "slug"], name="workflows_w_workflo_b8ac5c_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="workflow",
-            index=models.Index(fields=["project", "slug"], name="workflows_w_project_5a96f0_idx"),
+            index=models.Index(
+                fields=["project", "slug"], name="workflows_w_project_5a96f0_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="workflow",

@@ -63,7 +63,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "content",
-                    django.contrib.postgres.fields.jsonb.JSONField(default=dict, verbose_name="content"),
+                    django.contrib.postgres.fields.jsonb.JSONField(
+                        default=dict, verbose_name="content"
+                    ),
                 ),
                 (
                     "created_by",
@@ -71,6 +73,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="%(app_label)s_%(class)s_created_by",
                         to=settings.AUTH_USER_MODEL,
                         verbose_name="created by",
                     ),
@@ -90,7 +93,9 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "notifications",
                 "ordering": ["-created_at"],
                 "indexes": [
-                    models.Index(fields=["owner"], name="notificatio_owner_i_2bc47d_idx"),
+                    models.Index(
+                        fields=["owner"], name="notificatio_owner_i_2bc47d_idx"
+                    ),
                     models.Index(
                         fields=["owner", "read_at"],
                         name="notificatio_owner_i_37308f_idx",

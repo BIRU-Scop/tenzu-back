@@ -60,6 +60,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
+                related_name="%(app_label)s_%(class)s_description_updated_by",
                 to=settings.AUTH_USER_MODEL,
                 verbose_name="description updated by",
             ),
@@ -91,6 +92,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
+                related_name="%(app_label)s_%(class)s_title_updated_by",
                 to=settings.AUTH_USER_MODEL,
                 verbose_name="title updated by",
             ),
@@ -107,10 +109,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="story",
-            index=models.Index(fields=["project", "ref"], name="stories_sto_project_840ba5_idx"),
+            index=models.Index(
+                fields=["project", "ref"], name="stories_sto_project_840ba5_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="story",
-            constraint=models.UniqueConstraint(fields=("project", "ref"), name="projects_unique_refs"),
+            constraint=models.UniqueConstraint(
+                fields=("project", "ref"), name="projects_unique_refs"
+            ),
         ),
     ]

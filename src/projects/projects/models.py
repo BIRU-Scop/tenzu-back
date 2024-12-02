@@ -20,22 +20,34 @@
 import functools
 from typing import Any
 
+from django.core.validators import MaxValueValidator
 from slugify import slugify
 
 from base.db import models
 from base.db.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from base.utils.files import get_obfuscated_file_path
 from base.utils.slug import slugify_uniquely
+from commons.colors import NUM_COLORS
 from permissions.choices import ProjectPermissions
 from projects import references
 
-get_project_logo_file_path = functools.partial(get_obfuscated_file_path, base_path="project")
+get_project_logo_file_path = functools.partial(
+    get_obfuscated_file_path, base_path="project"
+)
 
 
 class Project(models.BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
     name = models.CharField(max_length=80, null=False, blank=False, verbose_name="name")
-    description = models.CharField(max_length=220, null=False, blank=True, default="", verbose_name="description")
-    color = models.IntegerField(null=False, blank=True, default=1, verbose_name="color")
+    description = models.CharField(
+        max_length=220, null=False, blank=True, default="", verbose_name="description"
+    )
+    color = models.IntegerField(
+        null=False,
+        blank=True,
+        default=1,
+        verbose_name="color",
+        validators=[MaxValueValidator(NUM_COLORS)],
+    )
     logo = models.FileField(
         max_length=500,
         null=True,
@@ -103,7 +115,9 @@ class Project(models.BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
 
     @property
     def anon_permissions(self) -> list[str]:
-        return list(filter(lambda x: x.startswith("view_"), self.public_permissions or []))
+        return list(
+            filter(lambda x: x.startswith("view_"), self.public_permissions or [])
+        )
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         super().save(*args, **kwargs)
@@ -112,11 +126,17 @@ class Project(models.BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
 
 
 class ProjectTemplate(models.BaseModel):
-    name = models.CharField(max_length=250, null=False, blank=False, verbose_name="name")
-    slug = models.LowerSlugField(max_length=250, null=False, blank=True, unique=True, verbose_name="slug")
+    name = models.CharField(
+        max_length=250, null=False, blank=False, verbose_name="name"
+    )
+    slug = models.LowerSlugField(
+        max_length=250, null=False, blank=True, unique=True, verbose_name="slug"
+    )
     roles = models.JSONField(null=True, blank=True, verbose_name="roles")
     workflows = models.JSONField(null=True, blank=True, verbose_name="workflows")
-    workflow_statuses = models.JSONField(null=True, blank=True, verbose_name="workflow statuses")
+    workflow_statuses = models.JSONField(
+        null=True, blank=True, verbose_name="workflow statuses"
+    )
 
     class Meta:
         verbose_name = "project template"

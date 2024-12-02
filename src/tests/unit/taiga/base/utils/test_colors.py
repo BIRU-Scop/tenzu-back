@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.utils.colors import generate_random_color
+from commons.colors import generate_random_color
 
 
 def test_random_color_default():

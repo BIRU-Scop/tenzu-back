@@ -20,13 +20,21 @@
 from typing import Optional
 
 from ninja import UploadedFile
-from pydantic import AfterValidator, Field, PlainValidator, StringConstraints, WithJsonSchema, field_validator
+from pydantic import (
+    AfterValidator,
+    Field,
+    PlainValidator,
+    StringConstraints,
+    WithJsonSchema,
+    field_validator,
+)
 from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated, Literal
 
 from base.utils.images import valid_content_type, valid_image_content
 from base.utils.uuid import decode_b64str_to_uuid
 from base.validators import BaseModel
+from commons.colors import NUM_COLORS
 from permissions.validators import Permissions
 
 B64UUID = Annotated[
@@ -60,7 +68,7 @@ class ProjectValidator(BaseModel):
     # description max_length validation to 220 characteres to resolve
     # this problem https://stackoverflow.com/a/69851342/2883148
     description: Annotated[str, StringConstraints(max_length=220)] | None = None  # type: ignore
-    color: Annotated[int, Field(gt=0, lt=9)] | None = None  # type: ignore
+    color: Annotated[int, Field(gt=0, lte=NUM_COLORS)] | None = None  # type: ignore
 
     @field_validator("name")
     @classmethod
