@@ -22,7 +22,7 @@ httpx
 
 # ORM + Django
 Django[argon2]
-psycopg2
+psycopg[c]
 easy-thumbnails # Images and thumbnails
 django-nonrelated-inlines # admin
 
