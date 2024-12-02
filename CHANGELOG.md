@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.7](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.6...v0.0.1-staging.7) (2024-12-02)
+
+
+### Features
+
+* Add workspace_id to project serializer ([54e1627](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/54e162765ed7c7f05a5c716889f4da5df9390caf))
+* **api:** add inline viewing option for attachments ([76b8a09](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/76b8a0927146a4263d304e989c90529527c08d3f))
+* **settings:** enable database connection pooling ([c4bab81](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/c4bab81b6889869732b015b2d5d29def6f206631))
+
+
+### Bug Fixes
+
+* **settings:** remove pool configuration for the database ([1fa2830](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/1fa2830bbd3f7595a259f7943fef35ecba02a4d1))
+
 ## [0.0.1-staging.6](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.5...v0.0.1-staging.6) (2024-11-27)
 
 
