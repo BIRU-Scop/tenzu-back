@@ -20,7 +20,7 @@
 from functools import partial
 from uuid import UUID
 
-from django.http import FileResponse
+from django.http import FileResponse, HttpRequest, HttpResponse
 from ninja import File, Path, Router, UploadedFile
 
 from attachments import services as attachments_services
@@ -29,7 +29,11 @@ from base.api.permissions import check_permissions
 from base.utils.files import iterfile
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm
 from stories.attachments import events
@@ -72,9 +76,13 @@ async def create_story_attachments(
     Create an attachment asociate to a story
     """
     story = await get_story_or_404(project_id, ref)
-    await check_permissions(permissions=CREATE_STORY_ATTACHMENT, user=request.user, obj=story)
+    await check_permissions(
+        permissions=CREATE_STORY_ATTACHMENT, user=request.user, obj=story
+    )
 
-    event_on_create = partial(events.emit_event_when_story_attachment_is_created, project=story.project)
+    event_on_create = partial(
+        events.emit_event_when_story_attachment_is_created, project=story.project
+    )
     return await attachments_services.create_attachment(
         file=file,
         object=story,
@@ -101,7 +109,7 @@ async def create_story_attachments(
     by_alias=True,
 )
 async def list_story_attachment(
-    request,
+    request: HttpRequest,
     project_id: Path[B64UUID],
     ref: int,
 ) -> list[Attachment]:
@@ -109,7 +117,9 @@ async def list_story_attachment(
     List the story attachments
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
-    await check_permissions(permissions=LIST_STORY_ATTACHMENTS, user=request.user, obj=story)
+    await check_permissions(
+        permissions=LIST_STORY_ATTACHMENTS, user=request.user, obj=story
+    )
     attachments = await attachments_services.list_attachments(
         content_object=story,
     )
@@ -143,11 +153,19 @@ async def delete_story_attachment(
     Delete a story attachment
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
-    attachment = await get_story_attachment_or_404(attachment_id=attachment_id, story=story)
-    await check_permissions(permissions=DELETE_STORY_ATTACHMENT, user=request.user, obj=story)
+    attachment = await get_story_attachment_or_404(
+        attachment_id=attachment_id, story=story
+    )
+    await check_permissions(
+        permissions=DELETE_STORY_ATTACHMENT, user=request.user, obj=story
+    )
 
-    event_on_delete = partial(events.emit_event_when_story_attachment_is_deleted, project=story.project)
-    await attachments_services.delete_attachment(attachment=attachment, event_on_delete=event_on_delete)
+    event_on_delete = partial(
+        events.emit_event_when_story_attachment_is_deleted, project=story.project
+    )
+    await attachments_services.delete_attachment(
+        attachment=attachment, event_on_delete=event_on_delete
+    )
     return 204, None
 
 
@@ -176,15 +194,29 @@ async def get_story_attachment_file(
     project_id: Path[B64UUID],
     ref: int,
     attachment_id: Path[B64UUID],
+    is_view: bool = False,
 ) -> FileResponse:
     """
     Download a story attachment file
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
-    attachment = await get_story_attachment_or_404(attachment_id=attachment_id, story=story)
+    attachment = await get_story_attachment_or_404(
+        attachment_id=attachment_id, story=story
+    )
     file = attachment.storaged_object.file
 
-    return FileResponse(iterfile(file, mode="rb"), content_type=attachment.content_type)
+    if is_view:
+        response = FileResponse(
+            iterfile(file, mode="rb"),
+            content_type=attachment.content_type,
+        )
+    else:
+        response = FileResponse(
+            iterfile(file, mode="rb"),
+            content_type="application/octet-stream; charset=utf-8",
+        )
+    response.headers["Content-Disposition"] = f"attachment; filename={attachment.name}"
+    return response
 
 
 ################################################
@@ -193,7 +225,9 @@ async def get_story_attachment_file(
 
 
 async def get_story_attachment_or_404(attachment_id: UUID, story: Story) -> Attachment:
-    attachment = await attachments_services.get_attachment(id=attachment_id, content_object=story)
+    attachment = await attachments_services.get_attachment(
+        id=attachment_id, content_object=story
+    )
     if attachment is None:
         raise ex.NotFoundError(f"Attachment {attachment_id} does not exist")
 
