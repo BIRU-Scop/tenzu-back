@@ -26,13 +26,26 @@ from base.api import PaginationQuery, set_pagination
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_401, ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_401,
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm
 from stories.stories import services as stories_services
-from stories.stories.api.validators import ReorderStoriesValidator, StoryValidator, UpdateStoryValidator
+from stories.stories.api.validators import (
+    ReorderStoriesValidator,
+    StoryValidator,
+    UpdateStoryValidator,
+)
 from stories.stories.models import Story
-from stories.stories.serializers import ReorderStoriesSerializer, StoryDetailSerializer, StorySummarySerializer
+from stories.stories.serializers import (
+    ReorderStoriesSerializer,
+    StoryDetailSerializer,
+    StorySummarySerializer,
+)
 from stories.stories.services.exceptions import InvalidStatusError, InvalidStoryRefError
 from workflows.api import get_workflow_or_404
 
@@ -73,7 +86,9 @@ async def create_story(
     """
     Creates a story in the given project workflow
     """
-    workflow = await get_workflow_or_404(project_id=project_id, workflow_slug=workflow_slug)
+    workflow = await get_workflow_or_404(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
     await check_permissions(permissions=CREATE_STORY, user=request.user, obj=workflow)
     try:
         return await stories_services.create_story(
@@ -81,7 +96,7 @@ async def create_story(
             description=form.description,
             project=workflow.project,
             workflow=workflow,
-            status_id=form.status,
+            status_id=form.status_id,
             user=request.user,
         )
     except InvalidStatusError as e:
@@ -116,7 +131,9 @@ async def list_stories(
     """
     List all the stories for a project workflow
     """
-    workflow = await get_workflow_or_404(project_id=project_id, workflow_slug=workflow_slug)
+    workflow = await get_workflow_or_404(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
     await check_permissions(permissions=LIST_STORIES, user=request.user, obj=workflow)
 
     pagination, stories = await stories_services.list_paginated_stories(
@@ -226,14 +243,18 @@ async def reorder_stories(
     """
     Reorder one or more stories; it may change priority and/or status
     """
-    workflow = await get_workflow_or_404(project_id=project_id, workflow_slug=workflow_slug)
-    await check_permissions(permissions=REORDER_STORIES, user=request.user, obj=workflow)
+    workflow = await get_workflow_or_404(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
+    await check_permissions(
+        permissions=REORDER_STORIES, user=request.user, obj=workflow
+    )
     try:
         return await stories_services.reorder_stories(
             reordered_by=request.user,
             project=workflow.project,
             workflow=workflow,
-            target_status_id=form.status,
+            target_status_id=form.status_id,
             stories_refs=form.stories,
             reorder=form.get_reorder_dict(),
         )
