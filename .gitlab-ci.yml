@@ -12,9 +12,13 @@ include:
   - component: $CI_SERVER_FQDN/biru/project-components/release@0.0.16
     inputs:
       token: $DEV_TOKEN
+  - component: $CI_SERVER_FQDN/biru/component/push@v1.7.0
+    inputs:
+      repo: github.com/BIRU-Scop/tenzu-back.git
 stages:
   - release
   - build-deploy
+  - mirror
   - merge
 
 
