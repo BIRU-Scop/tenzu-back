@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -16,27 +15,3 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from datetime import datetime
-
-from pydantic import ConfigDict
-
-from base.serializers import UUIDB64, BaseModel
-from base.serializers.fields import CamelizeDict
-from users.serializers.nested import UserNestedSerializer
-
-
-class NotificationSerializer(BaseModel):
-    id: UUIDB64
-    type: str
-    created_by: UserNestedSerializer | None = None
-    created_at: datetime
-    read_at: datetime | None = None
-    content: CamelizeDict
-    model_config = ConfigDict(from_attributes=True)
-
-
-class NotificationCountersSerializer(BaseModel):
-    read: int
-    unread: int
-    total: int
