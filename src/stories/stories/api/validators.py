@@ -25,7 +25,9 @@ from typing_extensions import Annotated
 
 from base.validators import B64UUID, BaseModel
 
-Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+Title = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)
+]
 
 
 # class Title(ConstrainedStr):
@@ -37,7 +39,7 @@ Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, ma
 class StoryValidator(BaseModel):
     title: Title
     description: str | None = None
-    status: B64UUID
+    status_id: B64UUID
 
 
 class UpdateStoryValidator(BaseModel):
@@ -45,14 +47,16 @@ class UpdateStoryValidator(BaseModel):
     title: Title | None = None
     description: str | None = None
     status: B64UUID | None = None
-    workflow: str | None = None
+    workflow_slug: str | None = None
 
     @model_validator(mode="before")
     @classmethod
     def status_or_workflow(cls, values: dict[Any, Any]) -> dict[Any, Any]:
         status = values.get("status")
-        workflow = values.get("workflow")
-        assert not (status and workflow), "It's not allowed to update both the status and workspace"
+        workflow = values.get("workflow_slug")
+        assert not (
+            status and workflow
+        ), "It's not allowed to update both the status and workspace"
         return values
 
 
@@ -68,7 +72,7 @@ class ReorderValidator(BaseModel):
 
 
 class ReorderStoriesValidator(BaseModel):
-    status: B64UUID
+    status_id: B64UUID
     stories: Annotated[List[int], Field(min_length=1)]  # type: ignore[valid-type]
     reorder: ReorderValidator | None = None
 
