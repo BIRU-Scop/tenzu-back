@@ -25,11 +25,11 @@
 import logging
 from datetime import timedelta
 
+from django.conf import settings
 from procrastinate.contrib.django import app
 
 #
 from base.utils.datetime import aware_utcnow
-from django.conf import settings
 from notifications import services as notifications_services
 
 #

@@ -18,14 +18,19 @@
 # You can contact BIRU at ask@biru.sh
 
 from workspaces.invitations.models import WorkspaceInvitation
-from workspaces.invitations.serializers import CreateWorkspaceInvitationsSerializer, PublicWorkspaceInvitationSerializer
+from workspaces.invitations.serializers import (
+    CreateWorkspaceInvitationsSerializer,
+    PublicWorkspaceInvitationSerializer,
+)
 
 
 def serialize_create_workspace_invitations(
     invitations: list[WorkspaceInvitation],
     already_members: int,
 ) -> CreateWorkspaceInvitationsSerializer:
-    return CreateWorkspaceInvitationsSerializer(invitations=invitations, already_members=already_members)
+    return CreateWorkspaceInvitationsSerializer(
+        invitations=invitations, already_members=already_members
+    )
 
 
 def serialize_public_workspace_invitation(

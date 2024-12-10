@@ -39,8 +39,12 @@ class StoragedObject(models.BaseModel, CreatedAtMetaInfoMixin, DeletedAtMetaInfo
         verbose_name = "storaged_objects"
         verbose_name_plural = "storaged_objects"
         indexes = [
-            models.Index(models.TruncDate("created_at"), "created_at", name="created_at_date_idx"),
-            models.Index(models.TruncDate("deleted_at"), "deleted_at", name="deleted_at_date_idx"),
+            models.Index(
+                models.TruncDate("created_at"), "created_at", name="created_at_date_idx"
+            ),
+            models.Index(
+                models.TruncDate("deleted_at"), "deleted_at", name="deleted_at_date_idx"
+            ),
         ]
         ordering = [
             "-created_at",

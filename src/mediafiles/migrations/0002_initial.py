@@ -49,6 +49,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="mediafile",
-            index=models.Index(fields=["project"], name="mediafiles__project_e8bd81_idx"),
+            index=models.Index(
+                fields=["project"], name="mediafiles__project_e8bd81_idx"
+            ),
         ),
     ]

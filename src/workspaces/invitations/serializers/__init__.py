@@ -37,7 +37,9 @@ class PrivateEmailWorkspaceInvitationSerializer(BaseModel):
     # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
     # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("email")
-    def avoid_to_publish_email_if_user(cls, email: str, values: dict[str, Any]) -> str | None:
+    def avoid_to_publish_email_if_user(
+        cls, email: str, values: dict[str, Any]
+    ) -> str | None:
         user = values.get("user")
         if user:
             return None

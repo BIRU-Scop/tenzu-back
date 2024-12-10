@@ -22,10 +22,16 @@ from uuid import UUID
 
 from stories.stories.serializers import StorySummarySerializer
 from workflows.models import Workflow, WorkflowStatus
-from workflows.serializers import DeleteWorkflowSerializer, ReorderWorkflowStatusesSerializer, WorkflowSerializer
+from workflows.serializers import (
+    DeleteWorkflowSerializer,
+    ReorderWorkflowStatusesSerializer,
+    WorkflowSerializer,
+)
 
 
-def serialize_workflow(workflow: Workflow, workflow_statuses: list[WorkflowStatus] = []) -> WorkflowSerializer:
+def serialize_workflow(
+    workflow: Workflow, workflow_statuses: list[WorkflowStatus] = []
+) -> WorkflowSerializer:
     return WorkflowSerializer(
         id=workflow.id,
         project_id=workflow.project_id,
@@ -54,4 +60,6 @@ def serialize_delete_workflow_detail(
 def serialize_reorder_workflow_statuses(
     workflow: Workflow, statuses: list[UUID], reorder: dict[str, Any] | None = None
 ) -> ReorderWorkflowStatusesSerializer:
-    return ReorderWorkflowStatusesSerializer(workflow=workflow, statuses=statuses, reorder=reorder)
+    return ReorderWorkflowStatusesSerializer(
+        workflow=workflow, statuses=statuses, reorder=reorder
+    )

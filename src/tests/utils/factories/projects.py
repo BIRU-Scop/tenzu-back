@@ -117,10 +117,14 @@ def create_project(**kwargs):
 
     project = ProjectFactory.create(**defaults)
     template = ProjectTemplate.objects.first()
-    projects_repositories.apply_template_to_project_sync(project=project, template=template)
+    projects_repositories.apply_template_to_project_sync(
+        project=project, template=template
+    )
 
     admin_role = project.roles.get(is_admin=True)
-    ProjectMembershipFactory.create(user=project.created_by, project=project, role=admin_role)
+    ProjectMembershipFactory.create(
+        user=project.created_by, project=project, role=admin_role
+    )
 
     return project
 

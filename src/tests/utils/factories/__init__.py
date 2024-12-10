@@ -47,7 +47,11 @@ from .projects import (  # noqa
     create_project_role,
     create_simple_project,
 )
-from .storage import StoragedObjectFactory, build_storaged_object, create_storaged_object  # noqa
+from .storage import (
+    StoragedObjectFactory,
+    build_storaged_object,
+    create_storaged_object,
+)  # noqa
 from .stories import (  # noqa
     StoryAssignmentFactory,
     StoryFactory,
@@ -56,7 +60,14 @@ from .stories import (  # noqa
     create_story,
     create_story_assignment,
 )
-from .users import AuthDataFactory, UserFactory, build_auth_data, build_user, create_auth_data, create_user  # noqa
+from .users import (
+    AuthDataFactory,
+    UserFactory,
+    build_auth_data,
+    build_user,
+    create_auth_data,
+    create_user,
+)  # noqa
 from .workflows import (  # noqa
     WorkflowFactory,
     WorkflowStatusFactory,

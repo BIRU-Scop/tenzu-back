@@ -19,7 +19,12 @@
 
 from typing import Annotated, Any, Callable, Generator
 
-from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler, PlainSerializer, TypeAdapter
+from pydantic import (
+    GetCoreSchemaHandler,
+    GetJsonSchemaHandler,
+    PlainSerializer,
+    TypeAdapter,
+)
 from pydantic.json_schema import JsonSchemaValue, WithJsonSchema
 from pydantic_core import core_schema as cs
 
@@ -29,8 +34,12 @@ CallableGenerator = Generator[Callable[..., Any], None, None]
 
 
 def validate_permissions(value: list[str]):
-    assert _permissions_are_valid(permissions=value), "One or more permissions are not valid. Maybe, there is a typo."
-    assert _permissions_are_compatible(permissions=value), "Given permissions are incompatible"
+    assert _permissions_are_valid(
+        permissions=value
+    ), "One or more permissions are not valid. Maybe, there is a typo."
+    assert _permissions_are_compatible(
+        permissions=value
+    ), "Given permissions are incompatible"
     return value
 
 
@@ -76,7 +85,9 @@ def _permissions_are_valid(permissions: list[str]) -> bool:
 
 def _permissions_are_compatible(permissions: list[str]) -> bool:
     # a user cannot edit a story if she has no view permission
-    if "view_story" not in permissions and set.intersection(set(permissions), choices.EditStoryPermissions):
+    if "view_story" not in permissions and set.intersection(
+        set(permissions), choices.EditStoryPermissions
+    ):
         return False
 
     # a user cannot have "comment_story" permissions if she has no "view_story" permission

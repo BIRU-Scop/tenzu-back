@@ -29,6 +29,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="comment",
             name="modified_at",
-            field=models.DateTimeField(blank=True, null=True, verbose_name="modified at"),
+            field=models.DateTimeField(
+                blank=True, null=True, verbose_name="modified at"
+            ),
         ),
     ]

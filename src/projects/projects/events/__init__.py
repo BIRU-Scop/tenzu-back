@@ -32,7 +32,9 @@ async def emit_event_when_project_permissions_are_updated(project: Project) -> N
     This event is emitted whenever there's a change in the project's direct permissions (public / workspace permissions)
     :param project: The project affected by the permission change
     """
-    await events_manager.publish_on_project_channel(project=project, type=PROJECT_PERMISSIONS_UPDATE)
+    await events_manager.publish_on_project_channel(
+        project=project, type=PROJECT_PERMISSIONS_UPDATE
+    )
 
 
 async def emit_event_when_project_is_deleted(

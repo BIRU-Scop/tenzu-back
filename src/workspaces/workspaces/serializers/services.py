@@ -18,11 +18,16 @@
 # You can contact BIRU at ask@biru.sh
 
 from workspaces.workspaces.models import Workspace
-from workspaces.workspaces.serializers import WorkspaceDetailSerializer, WorkspaceSerializer
+from workspaces.workspaces.serializers import (
+    WorkspaceDetailSerializer,
+    WorkspaceSerializer,
+)
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-def serialize_workspace(workspace: Workspace, user_role: str, total_projects: int) -> WorkspaceSerializer:
+def serialize_workspace(
+    workspace: Workspace, user_role: str, total_projects: int
+) -> WorkspaceSerializer:
     return WorkspaceSerializer(
         id=workspace.id,
         name=workspace.name,

@@ -26,13 +26,20 @@ from conf.emails import EmailBackends
 from fastapi_mailman import Mail
 from fastapi_mailman.config import ConnectionConfig
 
-from emails.exceptions import EmailAttachmentError, EmailDeliveryError, EmailSMTPError, EmailTemplateError
+from emails.exceptions import (
+    EmailAttachmentError,
+    EmailDeliveryError,
+    EmailSMTPError,
+    EmailTemplateError,
+)
 from emails.tasks import send_email
 
 SUBJECT = "Email sent from FastPI-Mailman"
 TO_EMAILS = ["username1@domain.name", "username2@domain.name"]
 BODY_TXT = "This is the Text message"
-BODY_HTML = "<h1>Hello Jinja2</h1><h2>One</h2><ul><li>Foo</li><li>Bar</li><li>Qux</li></ul>"
+BODY_HTML = (
+    "<h1>Hello Jinja2</h1><h2>One</h2><ul><li>Foo</li><li>Bar</li><li>Qux</li></ul>"
+)
 EMAIL_NAME = "sign_up"
 CONTEXT = {
     "verify_url": "https://testing.domain.com/verify-email/396438bb-894a-4401-8d3b-7c0d22abaf5b",
@@ -52,7 +59,9 @@ dummy_email_connection = Mail(email_config).get_connection()
 
 async def test_send_email_ok_all_params():
     with (
-        patch("emails.tasks.send_email_message", autospec=True) as fake_send_email_message,
+        patch(
+            "emails.tasks.send_email_message", autospec=True
+        ) as fake_send_email_message,
         patch("emails.tasks.render_email_txt", return_value=BODY_TXT),
         patch("emails.tasks.render_email_html", return_value=BODY_HTML),
         patch("emails.tasks.render_subject", return_value=SUBJECT),
@@ -77,7 +86,9 @@ async def test_send_email_ok_all_params():
 
 async def test_send_email_ok_single_recipient():
     with (
-        patch("emails.tasks.send_email_message", autospec=True) as fake_send_email_message,
+        patch(
+            "emails.tasks.send_email_message", autospec=True
+        ) as fake_send_email_message,
         patch("emails.tasks.render_email_txt", return_value=BODY_TXT),
         patch("emails.tasks.render_email_html", return_value=BODY_HTML),
         patch("emails.tasks.render_subject", return_value=SUBJECT),
@@ -94,7 +105,9 @@ async def test_send_email_ok_single_recipient():
 
 
 async def test_send_email_no_recipients():
-    with patch("emails.tasks.send_email_message", autospec=True) as fake_send_email_message:
+    with patch(
+        "emails.tasks.send_email_message", autospec=True
+    ) as fake_send_email_message:
         await send_email(email_name=EMAIL_NAME, context=CONTEXT, to=TO_EMAILS[0])
 
         assert not fake_send_email_message.assert_awaited()
@@ -105,7 +118,9 @@ async def test_send_email_wrong_template():
         patch("emails.tasks.send_email_message", autospec=True),
         pytest.raises(EmailTemplateError),
     ):
-        await send_email(email_name="not_a_valid_email_template", context=CONTEXT, to=TO_EMAILS[0])
+        await send_email(
+            email_name="not_a_valid_email_template", context=CONTEXT, to=TO_EMAILS[0]
+        )
 
 
 async def test_send_email_wrong_attachments():
@@ -139,7 +154,9 @@ async def test_send_email_smtp_error():
 
 async def test_send_email_unknown_error():
     with (
-        patch("emails.tasks.send_email_message", autospec=True, side_effect=Exception()),
+        patch(
+            "emails.tasks.send_email_message", autospec=True, side_effect=Exception()
+        ),
         pytest.raises(EmailDeliveryError),
     ):
         await send_email(email_name=EMAIL_NAME, context=CONTEXT, to=TO_EMAILS)

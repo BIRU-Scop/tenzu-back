@@ -18,7 +18,11 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.db import models
-from base.db.mixins import CreatedMetaInfoMixin, DeletedMetaInfoMixin, ModifiedAtMetaInfoMixin
+from base.db.mixins import (
+    CreatedMetaInfoMixin,
+    DeletedMetaInfoMixin,
+    ModifiedAtMetaInfoMixin,
+)
 from projects.projects.models import Project
 
 

@@ -18,7 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 from events import events_manager
-from notifications.events.content import CreateNotificationContent, ReadNotificationsContent
+from notifications.events.content import (
+    CreateNotificationContent,
+    ReadNotificationsContent,
+)
 from notifications.models import Notification
 from users.models import User
 
@@ -39,7 +42,9 @@ async def emit_event_when_notifications_are_created(
         )
 
 
-async def emit_event_when_notifications_are_read(user: User, notifications: list[Notification]) -> None:
+async def emit_event_when_notifications_are_read(
+    user: User, notifications: list[Notification]
+) -> None:
     await events_manager.publish_on_user_channel(
         user=user,
         type=READ_NOTIFICATIONS,

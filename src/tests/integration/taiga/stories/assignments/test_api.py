@@ -39,7 +39,9 @@ async def test_create_story_assignment_invalid_story(client):
     data = {"username": project.created_by.username}
 
     client.login(project.created_by)
-    response = client.post(f"/projects/{project.b64id}/stories/{WRONG_REF}/assignments", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/stories/{WRONG_REF}/assignments", json=data
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -51,7 +53,9 @@ async def test_create_story_assignment_user_without_permissions(client):
     data = {"username": project.created_by.username}
 
     client.login(user)
-    response = client.post(f"/projects/{project.b64id}/stories/{story.ref}/assignments", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/stories/{story.ref}/assignments", json=data
+    )
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
 
@@ -62,7 +66,9 @@ async def test_create_story_assignment_ok(client):
     data = {"username": project.created_by.username}
 
     client.login(project.created_by)
-    response = client.post(f"/projects/{project.b64id}/stories/{story.ref}/assignments", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/stories/{story.ref}/assignments", json=data
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
 
 
@@ -78,7 +84,9 @@ async def test_delete_story_assignment_invalid_story(client):
     await f.create_story_assignment(story=story, user=pj_admin)
 
     client.login(pj_admin)
-    response = client.delete(f"/projects/{project.b64id}/stories/{WRONG_REF}/assignments/{pj_admin.username}")
+    response = client.delete(
+        f"/projects/{project.b64id}/stories/{WRONG_REF}/assignments/{pj_admin.username}"
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -90,7 +98,9 @@ async def test_delete_story_assignment_user_without_permissions(client):
     await f.create_story_assignment(story=story, user=pj_admin)
 
     client.login(user)
-    response = client.delete(f"/projects/{project.b64id}/stories/{story.ref}/assignments/{pj_admin.username}")
+    response = client.delete(
+        f"/projects/{project.b64id}/stories/{story.ref}/assignments/{pj_admin.username}"
+    )
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
 
@@ -102,7 +112,9 @@ async def test_delete_story_assignment_user_not_assigned(client):
     await f.create_story_assignment(story=story, user=pj_admin)
 
     client.login(pj_admin)
-    response = client.delete(f"/projects/{project.b64id}/stories/{story.ref}/assignments/{user.username}")
+    response = client.delete(
+        f"/projects/{project.b64id}/stories/{story.ref}/assignments/{user.username}"
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -113,5 +125,7 @@ async def test_delete_story_assignment_ok(client):
     await f.create_story_assignment(story=story, user=pj_admin)
 
     client.login(pj_admin)
-    response = client.delete(f"/projects/{project.b64id}/stories/{story.ref}/assignments/{pj_admin.username}")
+    response = client.delete(
+        f"/projects/{project.b64id}/stories/{story.ref}/assignments/{pj_admin.username}"
+    )
     assert response.status_code == status.HTTP_204_NO_CONTENT, response.text

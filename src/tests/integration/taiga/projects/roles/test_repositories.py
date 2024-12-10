@@ -72,12 +72,22 @@ async def test_get_project_role_return_role():
         is_admin=True,
         project=project,
     )
-    assert await repositories.get_project_role(filters={"project_id": project.id, "slug": "role-test"}) == role
+    assert (
+        await repositories.get_project_role(
+            filters={"project_id": project.id, "slug": "role-test"}
+        )
+        == role
+    )
 
 
 async def test_get_project_role_return_none():
     project = await f.create_project()
-    assert await repositories.get_project_role(filters={"project_id": project.id, "slug": "role-not-exist"}) is None
+    assert (
+        await repositories.get_project_role(
+            filters={"project_id": project.id, "slug": "role-not-exist"}
+        )
+        is None
+    )
 
 
 async def test_get_project_role_for_user_admin():
@@ -85,23 +95,40 @@ async def test_get_project_role_for_user_admin():
     project = await f.create_project(created_by=user)
     role = await sync_to_async(project.roles.get)(slug="admin")
 
-    assert await repositories.get_project_role(filters={"user_id": user.id, "project_id": project.id}) == role
+    assert (
+        await repositories.get_project_role(
+            filters={"user_id": user.id, "project_id": project.id}
+        )
+        == role
+    )
 
 
 async def test_get_project_role_for_user_member():
     user = await f.create_user()
     project = await f.create_project()
     role = await sync_to_async(project.roles.exclude(slug="admin").first)()
-    await memberships_repositories.create_project_membership(user=user, project=project, role=role)
+    await memberships_repositories.create_project_membership(
+        user=user, project=project, role=role
+    )
 
-    assert await repositories.get_project_role(filters={"user_id": user.id, "project_id": project.id}) == role
+    assert (
+        await repositories.get_project_role(
+            filters={"user_id": user.id, "project_id": project.id}
+        )
+        == role
+    )
 
 
 async def test_get_project_role_for_user_none():
     user = await f.create_user()
     project = await f.create_project()
 
-    assert await repositories.get_project_role(filters={"user_id": user.id, "project_id": project.id}) is None
+    assert (
+        await repositories.get_project_role(
+            filters={"user_id": user.id, "project_id": project.id}
+        )
+        is None
+    )
 
 
 ##########################################################

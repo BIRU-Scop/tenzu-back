@@ -24,7 +24,12 @@ from ninja import Path, Router
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_400, ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_400,
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import CanViewProject, IsProjectAdmin, IsRelatedToTheUser
 from projects.memberships import services as memberships_services
@@ -66,7 +71,9 @@ async def list_project_memberships(
     """
 
     project = await get_project_or_404(id)
-    await check_permissions(permissions=LIST_PROJECT_MEMBERSHIPS, user=request.user, obj=project)
+    await check_permissions(
+        permissions=LIST_PROJECT_MEMBERSHIPS, user=request.user, obj=project
+    )
     return await memberships_services.list_project_memberships(project=project)
 
 
@@ -99,9 +106,13 @@ async def update_project_membership(
     """
     membership = await get_project_membership_or_404(project_id=id, username=username)
 
-    await check_permissions(permissions=UPDATE_PROJECT_MEMBERSHIP, user=request.user, obj=membership)
+    await check_permissions(
+        permissions=UPDATE_PROJECT_MEMBERSHIP, user=request.user, obj=membership
+    )
 
-    return await memberships_services.update_project_membership(membership=membership, role_slug=form.role_slug)
+    return await memberships_services.update_project_membership(
+        membership=membership, role_slug=form.role_slug
+    )
 
 
 ##########################################################
@@ -122,13 +133,17 @@ async def update_project_membership(
     },
     by_alias=True,
 )
-async def delete_project_membership(request, id: Path[B64UUID], username: str) -> tuple[int, None]:
+async def delete_project_membership(
+    request, id: Path[B64UUID], username: str
+) -> tuple[int, None]:
     """
     Delete a project membership
     """
     membership = await get_project_membership_or_404(project_id=id, username=username)
 
-    await check_permissions(permissions=DELETE_PROJECT_MEMBERSHIP, user=request.user, obj=membership)
+    await check_permissions(
+        permissions=DELETE_PROJECT_MEMBERSHIP, user=request.user, obj=membership
+    )
 
     await memberships_services.delete_project_membership(membership=membership)
     return 204, None
@@ -139,8 +154,12 @@ async def delete_project_membership(request, id: Path[B64UUID], username: str) -
 ################################################
 
 
-async def get_project_membership_or_404(project_id: UUID, username: str) -> ProjectMembership:
-    membership = await memberships_services.get_project_membership(project_id=project_id, username=username)
+async def get_project_membership_or_404(
+    project_id: UUID, username: str
+) -> ProjectMembership:
+    membership = await memberships_services.get_project_membership(
+        project_id=project_id, username=username
+    )
     if not membership:
         raise ex.NotFoundError("Membership not found")
 

@@ -22,7 +22,13 @@ from asgiref.sync import sync_to_async
 from fastapi import status
 
 from tests.utils import factories as f
-from tests.utils.bad_params import INVALID_B64ID, INVALID_REF, NOT_EXISTING_B64ID, NOT_EXISTING_REF, NOT_EXISTING_SLUG
+from tests.utils.bad_params import (
+    INVALID_B64ID,
+    INVALID_REF,
+    NOT_EXISTING_B64ID,
+    NOT_EXISTING_REF,
+    NOT_EXISTING_SLUG,
+)
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -54,11 +60,15 @@ async def test_create_story_200_ok_being_ws_or_pj_admin_ok(client):
     }
 
     client.login(workspace.created_by)
-    response = client.post(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
 
     client.login(project.created_by)
-    response = client.post(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
 
 
@@ -74,7 +84,9 @@ async def test_create_story_200_ok_user_has_valid_perm_ok(client):
         workspace=workspace,
         public_permissions=list(FULL_PERMISSIONS),
     )
-    pj_role = await f.create_project_role(permissions=list(FULL_PERMISSIONS), is_admin=False, project=project)
+    pj_role = await f.create_project_role(
+        permissions=list(FULL_PERMISSIONS), is_admin=False, project=project
+    )
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     workflow = await f.create_workflow(project=project)
@@ -87,15 +99,21 @@ async def test_create_story_200_ok_user_has_valid_perm_ok(client):
     }
 
     client.login(ws_member)
-    response = client.post(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
 
     client.login(pj_member)
-    response = client.post(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
 
     client.login(public_user)
-    response = client.post(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
 
 
@@ -107,7 +125,9 @@ async def test_create_story_400_bad_request_invalid_status(client):
     data = {"title": "New story", "status": NOT_EXISTING_B64ID}
 
     client.login(project.created_by)
-    response = client.post(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
+    )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
 
@@ -124,7 +144,9 @@ async def test_create_story_403_forbidden_user_has_not_valid_perm(client):
         workspace=workspace,
         public_permissions=list(NO_ADD_STORY_PERMISSIONS),
     )
-    pj_role = await f.create_project_role(permissions=list(NO_ADD_STORY_PERMISSIONS), is_admin=False, project=project)
+    pj_role = await f.create_project_role(
+        permissions=list(NO_ADD_STORY_PERMISSIONS), is_admin=False, project=project
+    )
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     workflow = await f.create_workflow(project=project)
@@ -133,11 +155,15 @@ async def test_create_story_403_forbidden_user_has_not_valid_perm(client):
     data = {"title": "New story", "status": workflow_status.b64id}
 
     client.login(pj_member)
-    response = client.post(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
+    )
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
     client.login(public_user)
-    response = client.post(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
+    )
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
 
@@ -149,7 +175,9 @@ async def test_create_story_404_project_b64_id(client):
     data = {"title": "New story", "status": workflow_status.b64id}
 
     client.login(project.created_by)
-    response = client.post(f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}/stories", json=data
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -161,7 +189,9 @@ async def test_create_story_404_not_found_workflow_slug(client):
     data = {"title": "New story", "status": workflow_status.b64id}
 
     client.login(project.created_by)
-    response = client.post(f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories", json=data
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -173,7 +203,9 @@ async def test_create_story_422_unprocessable_project_b64_id(client):
     data = {"title": "New story", "status": workflow_status.b64id}
 
     client.login(project.created_by)
-    response = client.post(f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}/stories", json=data)
+    response = client.post(
+        f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}/stories", json=data
+    )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
 
 
@@ -190,7 +222,9 @@ async def test_list_workflow_stories_200_ok(client):
     await f.create_story(project=project, workflow=workflow, status=workflow_status)
 
     client.login(project.created_by)
-    response = client.get(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories")
+    response = client.get(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories"
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
     assert response.json()
 
@@ -206,7 +240,9 @@ async def test_list_workflow_stories_200_ok_with_pagination(client):
     limit = 1
 
     client.login(project.created_by)
-    response = client.get(f"/projects/{project.b64id}/workflows/{workflow.slug}/stories?offset={offset}&limit={limit}")
+    response = client.get(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories?offset={offset}&limit={limit}"
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
     assert response.json()
 
@@ -221,7 +257,9 @@ async def test_list_workflow_stories_404_not_found_project_b64id(client):
     pj_admin = await f.create_user()
 
     client.login(pj_admin)
-    response = client.get(f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}/stories")
+    response = client.get(
+        f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}/stories"
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -230,7 +268,9 @@ async def test_list_workflow_stories_404_not_found_workflow_slug(client):
     pj_admin = await f.create_user()
 
     client.login(pj_admin)
-    response = client.get(f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories")
+    response = client.get(
+        f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories"
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -239,7 +279,9 @@ async def test_list_workflow_stories_422_unprocessable_project_b64id(client):
     pj_admin = await f.create_user()
 
     client.login(pj_admin)
-    response = client.get(f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}/stories")
+    response = client.get(
+        f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}/stories"
+    )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
 
 
@@ -247,7 +289,9 @@ async def test_list_story_invalid_workflow(client):
     project = await f.create_project()
 
     client.login(project.created_by)
-    response = client.get(f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories")
+    response = client.get(
+        f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories"
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -260,7 +304,9 @@ async def test_get_story_200_ok(client):
     project = await f.create_project()
     workflow = await sync_to_async(project.workflows.first)()
     story_status = await sync_to_async(workflow.statuses.first)()
-    story = await f.create_story(project=project, workflow=workflow, status=story_status)
+    story = await f.create_story(
+        project=project, workflow=workflow, status=story_status
+    )
 
     client.login(project.created_by)
     response = client.get(f"/projects/{project.b64id}/stories/{story.ref}")
@@ -360,7 +406,9 @@ async def test_update_story_protected_400_bad_request_attribute_error_with_inval
     project = await f.create_project()
     workflow = await project.workflows.afirst()
     status1 = await workflow.statuses.afirst()
-    story = await f.create_story(project=project, workflow=workflow, status=status1, version=2)
+    story = await f.create_story(
+        project=project, workflow=workflow, status=status1, version=2
+    )
 
     data = {"version": story.version - 1, "title": "new title"}
     client.login(project.created_by)
@@ -383,7 +431,9 @@ async def test_update_story_422_unprocessable_story_ref(client):
 
     data = {"version": 1, "title": "new title"}
     client.login(project.created_by)
-    response = client.patch(f"/projects/{project.b64id}/stories/{INVALID_REF}", json=data)
+    response = client.patch(
+        f"/projects/{project.b64id}/stories/{INVALID_REF}", json=data
+    )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
 
 
@@ -402,7 +452,9 @@ async def test_update_story_404_not_found_project_b64id(client):
 
     data = {"version": 1, "title": "new title"}
     client.login(project.created_by)
-    response = client.patch(f"/projects/{NOT_EXISTING_B64ID}/stories/{story.ref}", json=data)
+    response = client.patch(
+        f"/projects/{NOT_EXISTING_B64ID}/stories/{story.ref}", json=data
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -411,7 +463,9 @@ async def test_update_story_404_not_found_story_ref(client):
 
     data = {"version": 1, "title": "new title"}
     client.login(project.created_by)
-    response = client.patch(f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}", json=data)
+    response = client.patch(
+        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}", json=data
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -434,7 +488,9 @@ async def test_reorder_stories_with_reorder_ok(client):
         "reorder": {"place": "before", "ref": s3.ref},
     }
     client.login(project.created_by)
-    response = client.post(f"/projects/{project.b64id}/workflows/main/stories/reorder", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/main/stories/reorder", json=data
+    )
 
     assert response.status_code == status.HTTP_200_OK, response.text
     res = response.json()
@@ -454,7 +510,9 @@ async def test_reorder_stories_without_reorder_ok(client):
 
     data = {"status": status_new.b64id, "stories": [s1.ref]}
     client.login(project.created_by)
-    response = client.post(f"/projects/{project.b64id}/workflows/main/stories/reorder", json=data)
+    response = client.post(
+        f"/projects/{project.b64id}/workflows/main/stories/reorder", json=data
+    )
 
     assert response.status_code == status.HTTP_200_OK, response.text
     res = response.json()

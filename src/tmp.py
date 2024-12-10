@@ -18,5 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 __title__ = "Tenzu"
-__description__ = "The opensource project management tool for multi-functional agile teams"
+__description__ = (
+    "The opensource project management tool for multi-functional agile teams"
+)
 __version__ = "0.0.0"

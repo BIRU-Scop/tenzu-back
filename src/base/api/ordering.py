@@ -38,9 +38,13 @@ class OrderQuery:
         self._allowed = allowed
         self._default = default
 
-    def __call__(self, order: list[str] = Query([], description=ORDER_DESC)) -> list[str]:  # type: ignore
+    def __call__(
+        self, order: list[str] = Query([], description=ORDER_DESC)
+    ) -> list[str]:  # type: ignore
         values: list[str] = list(map(decamelize, order)) if order else self._default  # type: ignore
         if invalids := set(values).difference(set(self._allowed)):
-            raise ex.ValidationError(f"Invalid ordering fields: {', '.join(map(camelize, invalids))}")
+            raise ex.ValidationError(
+                f"Invalid ordering fields: {', '.join(map(camelize, invalids))}"
+            )
 
         return values

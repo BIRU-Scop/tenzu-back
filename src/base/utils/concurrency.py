@@ -33,7 +33,9 @@ def run_async_as_sync(coroutine: Coroutine[Any, Any, T]) -> T:
     return pool.submit(asyncio.run, coroutine).result()
 
 
-async def run_until_first_complete(*args: tuple[Callable[..., Any], dict[str, Any]]) -> None:
+async def run_until_first_complete(
+    *args: tuple[Callable[..., Any], dict[str, Any]],
+) -> None:
     async with anyio.create_task_group() as task_group:
 
         async def run(func: Callable[[], Coroutine[None, None, None]]) -> None:

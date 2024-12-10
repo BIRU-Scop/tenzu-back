@@ -29,13 +29,19 @@ from tests.utils import factories as f
 
 async def test_social_login_user_has_authdata():
     with (
-        patch("integrations.auth.services.users_repositories", autospec=True) as fake_users_repositories,
-        patch("integrations.auth.services.auth_services", autospec=True) as fake_auth_services,
+        patch(
+            "integrations.auth.services.users_repositories", autospec=True
+        ) as fake_users_repositories,
+        patch(
+            "integrations.auth.services.auth_services", autospec=True
+        ) as fake_auth_services,
     ):
         auth_data = f.build_auth_data()
         fake_users_repositories.get_auth_data.return_value = auth_data
 
-        await services.social_login(email="", full_name="", social_key="", social_id="", bio="")
+        await services.social_login(
+            email="", full_name="", social_key="", social_id="", bio=""
+        )
 
         fake_auth_services.create_auth_credentials.assert_awaited_once()
         fake_users_repositories.get_user.assert_not_awaited()
@@ -43,14 +49,20 @@ async def test_social_login_user_has_authdata():
 
 async def test_social_login_user_no_auth_data():
     with (
-        patch("integrations.auth.services.users_repositories", autospec=True) as fake_users_repositories,
-        patch("integrations.auth.services.auth_services", autospec=True) as fake_auth_services,
+        patch(
+            "integrations.auth.services.users_repositories", autospec=True
+        ) as fake_users_repositories,
+        patch(
+            "integrations.auth.services.auth_services", autospec=True
+        ) as fake_auth_services,
     ):
         user = f.build_user()
         fake_users_repositories.get_auth_data.return_value = None
         fake_users_repositories.get_user.return_value = user
 
-        await services.social_login(email="", full_name="", social_key="", social_id="", bio="")
+        await services.social_login(
+            email="", full_name="", social_key="", social_id="", bio=""
+        )
 
         fake_auth_services.create_auth_credentials.assert_awaited_once()
         fake_users_repositories.create_auth_data.assert_awaited_once()
@@ -58,10 +70,18 @@ async def test_social_login_user_no_auth_data():
 
 async def test_social_login_no_user():
     with (
-        patch("integrations.auth.services.users_repositories", autospec=True) as fake_users_repositories,
-        patch("integrations.auth.services.users_services", autospec=True) as fake_users_services,
-        patch("integrations.auth.services.auth_services", autospec=True) as fake_auth_services,
-        patch("integrations.auth.services.project_invitations_services", autospec=True) as fake_pj_invitations_services,
+        patch(
+            "integrations.auth.services.users_repositories", autospec=True
+        ) as fake_users_repositories,
+        patch(
+            "integrations.auth.services.users_services", autospec=True
+        ) as fake_users_services,
+        patch(
+            "integrations.auth.services.auth_services", autospec=True
+        ) as fake_auth_services,
+        patch(
+            "integrations.auth.services.project_invitations_services", autospec=True
+        ) as fake_pj_invitations_services,
         patch(
             "integrations.auth.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
@@ -69,7 +89,9 @@ async def test_social_login_no_user():
         fake_users_repositories.get_auth_data.return_value = None
         fake_users_repositories.get_user.return_value = None
 
-        await services.social_login(email="", full_name="", social_key="", social_id="", bio="")
+        await services.social_login(
+            email="", full_name="", social_key="", social_id="", bio=""
+        )
 
         fake_users_repositories.create_user.assert_awaited_once()
         fake_users_services.verify_user.assert_awaited_once()

@@ -177,7 +177,9 @@ async def test_pubsub_manager_publish_on_workspace_channel(pubsub):
         async with manager.register(websocket) as subscriber:
             await manager.subscribe(subscriber, channel)
 
-            await manager.publish_on_workspace_channel(workspace=workspace, type=t, content=c)
+            await manager.publish_on_workspace_channel(
+                workspace=workspace, type=t, content=c
+            )
             res = await subscriber.get()
             assert res.type == "event"
             assert res.channel == channel

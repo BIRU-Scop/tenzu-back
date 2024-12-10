@@ -41,9 +41,15 @@ async def test_create_story_ok():
     neighbors = Neighbor(next=f.build_story(), prev=f.build_story())
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("stories.stories.services.stories_events", autospec=True) as fake_stories_events,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_events", autospec=True
+        ) as fake_stories_events,
     ):
         fake_workflows_repo.get_workflow_status.return_value = status
         fake_stories_repo.list_stories.return_value = None
@@ -87,7 +93,9 @@ async def test_create_story_invalid_status():
 
     with (
         pytest.raises(ex.InvalidStatusError),
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         fake_workflows_repo.get_workflow_status.return_value = None
         await services.create_story(
@@ -109,7 +117,11 @@ async def test_list_paginated_stories():
     story = f.build_story()
     neighbors = Neighbor(next=f.build_story(), prev=f.build_story())
 
-    with (patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,):
+    with (
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+    ):
         fake_stories_repo.get_total_stories.return_value = 1
         fake_stories_repo.list_stories.return_value = [story]
         fake_stories_repo.get_story.return_value = story
@@ -147,16 +159,24 @@ async def test_list_paginated_stories():
 
 async def test_get_story_detail_ok():
     story1 = f.build_story(ref=1)
-    story2 = f.build_story(ref=2, project=story1.project, workflow=story1.workflow, status=story1.status)
-    story3 = f.build_story(ref=3, project=story1.project, workflow=story1.workflow, status=story1.status)
+    story2 = f.build_story(
+        ref=2, project=story1.project, workflow=story1.workflow, status=story1.status
+    )
+    story3 = f.build_story(
+        ref=3, project=story1.project, workflow=story1.workflow, status=story1.status
+    )
     neighbors = Neighbor(prev=story1, next=story3)
 
-    with patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo:
+    with patch(
+        "stories.stories.services.stories_repositories", autospec=True
+    ) as fake_stories_repo:
         fake_stories_repo.get_story.return_value = story2
         fake_stories_repo.list_story_neighbors.return_value = neighbors
         fake_stories_repo.list_story_assignees.return_value = [f.build_user()]
 
-        story = await services.get_story_detail(project_id=story2.project_id, ref=story2.ref)
+        story = await services.get_story_detail(
+            project_id=story2.project_id, ref=story2.ref
+        )
 
         fake_stories_repo.get_story.assert_awaited_once_with(
             filters={"ref": story2.ref, "project_id": story2.project_id},
@@ -185,12 +205,16 @@ async def test_get_story_detail_no_neighbors():
     story1 = f.build_story(ref=1)
     neighbors = Neighbor(prev=None, next=None)
 
-    with patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo:
+    with patch(
+        "stories.stories.services.stories_repositories", autospec=True
+    ) as fake_stories_repo:
         fake_stories_repo.get_story.return_value = story1
         fake_stories_repo.list_story_neighbors.return_value = neighbors
         fake_stories_repo.list_story_assignees.return_value = [f.build_user()]
 
-        story = await services.get_story_detail(project_id=story1.project_id, ref=story1.ref)
+        story = await services.get_story_detail(
+            project_id=story1.project_id, ref=story1.ref
+        )
 
         fake_stories_repo.get_story.assert_awaited_once_with(
             filters={"ref": story1.ref, "project_id": story1.project_id},
@@ -232,14 +256,22 @@ async def test_update_story_ok():
     }
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
         patch(
             "stories.stories.services._validate_and_process_values_to_update",
             autospec=True,
         ) as fake_validate_and_process,
-        patch("stories.stories.services.get_story_detail", autospec=True) as fake_get_story_detail,
-        patch("stories.stories.services.stories_events", autospec=True) as fake_stories_events,
-        patch("stories.stories.services.stories_notifications", autospec=True) as fake_notifications,
+        patch(
+            "stories.stories.services.get_story_detail", autospec=True
+        ) as fake_get_story_detail,
+        patch(
+            "stories.stories.services.stories_events", autospec=True
+        ) as fake_stories_events,
+        patch(
+            "stories.stories.services.stories_notifications", autospec=True
+        ) as fake_notifications,
     ):
         fake_validate_and_process.return_value = values
         fake_stories_repo.update_story.return_value = True
@@ -284,9 +316,15 @@ async def test_update_story_workflow_ok():
     old_workflow = f.build_workflow(project=project)
     workflow_status1 = f.build_workflow_status(workflow=old_workflow)
     workflow_status2 = f.build_workflow_status(workflow=old_workflow)
-    story1 = f.build_story(project=project, workflow=old_workflow, status=workflow_status1)
-    story2 = f.build_story(project=project, workflow=old_workflow, status=workflow_status1)
-    story3 = f.build_story(project=project, workflow=old_workflow, status=workflow_status2)
+    story1 = f.build_story(
+        project=project, workflow=old_workflow, status=workflow_status1
+    )
+    story2 = f.build_story(
+        project=project, workflow=old_workflow, status=workflow_status1
+    )
+    story3 = f.build_story(
+        project=project, workflow=old_workflow, status=workflow_status2
+    )
     new_workflow = f.build_workflow(project=project)
     workflow_status3 = f.build_workflow_status(workflow=new_workflow)
     values = {
@@ -312,14 +350,22 @@ async def test_update_story_workflow_ok():
     }
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
         patch(
             "stories.stories.services._validate_and_process_values_to_update",
             autospec=True,
         ) as fake_validate_and_process,
-        patch("stories.stories.services.get_story_detail", autospec=True) as fake_get_story_detail,
-        patch("stories.stories.services.stories_events", autospec=True) as fake_stories_events,
-        patch("stories.stories.services.stories_notifications", autospec=True) as fake_notifications,
+        patch(
+            "stories.stories.services.get_story_detail", autospec=True
+        ) as fake_get_story_detail,
+        patch(
+            "stories.stories.services.stories_events", autospec=True
+        ) as fake_stories_events,
+        patch(
+            "stories.stories.services.stories_notifications", autospec=True
+        ) as fake_notifications,
     ):
         fake_validate_and_process.return_value = values
         fake_stories_repo.list_story_neighbors.return_value = old_neighbors
@@ -363,14 +409,22 @@ async def test_update_story_error_wrong_version():
     values = {"title": "new title"}
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
         patch(
             "stories.stories.services._validate_and_process_values_to_update",
             autospec=True,
         ) as fake_validate_and_process,
-        patch("stories.stories.services.get_story_detail", autospec=True) as fake_get_story_detail,
-        patch("stories.stories.services.stories_events", autospec=True) as fake_stories_events,
-        patch("stories.stories.services.stories_notifications", autospec=True) as fake_notifications,
+        patch(
+            "stories.stories.services.get_story_detail", autospec=True
+        ) as fake_get_story_detail,
+        patch(
+            "stories.stories.services.stories_events", autospec=True
+        ) as fake_stories_events,
+        patch(
+            "stories.stories.services.stories_notifications", autospec=True
+        ) as fake_notifications,
     ):
         fake_validate_and_process.return_value = values
         fake_stories_repo.update_story.return_value = False
@@ -410,8 +464,12 @@ async def test_validate_and_process_values_to_update_ok_without_status():
     values = {"title": "new title", "description": "new description"}
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         valid_values = await services._validate_and_process_values_to_update(
             story=story, values=values, updated_by=user
@@ -439,8 +497,12 @@ async def test_validate_and_process_values_to_update_ok_with_status_empty():
     }
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         fake_workflows_repo.get_workflow_status.return_value = status
         fake_stories_repo.list_stories.return_value = []
@@ -481,8 +543,12 @@ async def test_validate_and_process_values_to_update_ok_with_status_not_empty():
     }
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         fake_workflows_repo.get_workflow_status.return_value = status
         fake_stories_repo.list_stories.return_value = [story2]
@@ -522,8 +588,12 @@ async def test_validate_and_process_values_to_update_ok_with_same_status():
     }
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         fake_workflows_repo.get_workflow_status.return_value = status
 
@@ -556,13 +626,19 @@ async def test_validate_and_process_values_to_update_error_wrong_status():
     }
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         fake_workflows_repo.get_workflow_status.return_value = None
 
         with pytest.raises(ex.InvalidStatusError):
-            await services._validate_and_process_values_to_update(story=story, values=values, updated_by=user)
+            await services._validate_and_process_values_to_update(
+                story=story, values=values, updated_by=user
+            )
 
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
             filters={"workflow_id": story.workflow_id, "id": "wrong_status"},
@@ -583,8 +659,12 @@ async def test_validate_and_process_values_to_update_ok_with_workflow():
     values = {"version": story1.version, "workflow": workflow2.slug}
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         fake_workflows_repo.get_workflow.return_value = workflow2
         fake_workflows_repo.list_workflow_statuses.return_value = [status2]
@@ -618,13 +698,19 @@ async def test_validate_and_process_values_to_update_error_wrong_workflow():
     values = {"version": story.version, "workflow": "wrong_workflow"}
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         fake_workflows_repo.get_workflow.return_value = None
 
         with pytest.raises(ex.InvalidWorkflowError):
-            await services._validate_and_process_values_to_update(story=story, values=values, updated_by=user)
+            await services._validate_and_process_values_to_update(
+                story=story, values=values, updated_by=user
+            )
 
         fake_workflows_repo.get_workflow.assert_awaited_once_with(
             filters={"project_id": story.project_id, "slug": "wrong_workflow"},
@@ -643,14 +729,20 @@ async def test_validate_and_process_values_to_update_error_workflow_without_stat
     values = {"version": story.version, "workflow": workflow2.slug}
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
     ):
         fake_workflows_repo.get_workflow.return_value = workflow2
         fake_workflows_repo.list_workflow_statuses.return_value = []
 
         with pytest.raises(ex.WorkflowHasNotStatusesError):
-            await services._validate_and_process_values_to_update(story=story, values=values, updated_by=user)
+            await services._validate_and_process_values_to_update(
+                story=story, values=values, updated_by=user
+            )
 
         fake_workflows_repo.get_workflow.assert_awaited_once_with(
             filters={"project_id": story.project_id, "slug": workflow2.slug},
@@ -671,11 +763,17 @@ async def test_validate_and_process_values_to_update_error_workflow_and_status()
     workflow2 = f.build_workflow(project=project, statuses=None)
     values = {"version": story.version, "status": status1, "workflow": workflow2.slug}
 
-    with (patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,):
+    with (
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+    ):
         fake_workflows_repo.get_workflow_status.return_value = workflow2
 
         with pytest.raises(ex.InvalidStatusError):
-            await services._validate_and_process_values_to_update(story=story, values=values, updated_by=user)
+            await services._validate_and_process_values_to_update(
+                story=story, values=values, updated_by=user
+            )
 
 
 #######################################################
@@ -685,16 +783,24 @@ async def test_validate_and_process_values_to_update_error_workflow_and_status()
 
 async def test_calculate_offset() -> None:
     target_status = f.build_workflow_status()
-    with (patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,):
+    with (
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+    ):
         # No reorder
         latest_story = f.build_story(status=target_status, order=36)
         fake_stories_repo.list_stories.return_value = [latest_story]
-        offset, pre_order = await services._calculate_offset(total_stories_to_reorder=1, target_status=target_status)
+        offset, pre_order = await services._calculate_offset(
+            total_stories_to_reorder=1, target_status=target_status
+        )
         assert pre_order == latest_story.order
         assert offset == Decimal(100)
 
         fake_stories_repo.list_stories.return_value = None
-        offset, pre_order = await services._calculate_offset(total_stories_to_reorder=1, target_status=target_status)
+        offset, pre_order = await services._calculate_offset(
+            total_stories_to_reorder=1, target_status=target_status
+        )
         assert pre_order == Decimal(0)
         assert offset == Decimal(100)
 
@@ -704,7 +810,9 @@ async def test_calculate_offset() -> None:
         prev_st = f.build_story(status=target_status, order=150)
 
         # after
-        fake_stories_repo.list_story_neighbors.return_value = Neighbor(next=next_st, prev=None)
+        fake_stories_repo.list_story_neighbors.return_value = Neighbor(
+            next=next_st, prev=None
+        )
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1,
             target_status=target_status,
@@ -714,7 +822,9 @@ async def test_calculate_offset() -> None:
         assert pre_order == reord_st.order
         assert offset == Decimal(25)
 
-        fake_stories_repo.list_story_neighbors.return_value = Neighbor(next=None, prev=None)
+        fake_stories_repo.list_story_neighbors.return_value = Neighbor(
+            next=None, prev=None
+        )
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1,
             target_status=target_status,
@@ -725,7 +835,9 @@ async def test_calculate_offset() -> None:
         assert offset == Decimal(100)
 
         # before
-        fake_stories_repo.list_story_neighbors.return_value = Neighbor(next=None, prev=prev_st)
+        fake_stories_repo.list_story_neighbors.return_value = Neighbor(
+            next=None, prev=prev_st
+        )
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1,
             target_status=target_status,
@@ -735,7 +847,9 @@ async def test_calculate_offset() -> None:
         assert pre_order == prev_st.order
         assert offset == Decimal(50)
 
-        fake_stories_repo.list_story_neighbors.return_value = Neighbor(next=None, prev=None)
+        fake_stories_repo.list_story_neighbors.return_value = Neighbor(
+            next=None, prev=None
+        )
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1,
             target_status=target_status,
@@ -762,10 +876,18 @@ async def test_reorder_stories_ok():
     s3 = f.build_story(ref=2)
 
     with (
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
-        patch("stories.stories.services.stories_events", autospec=True) as fake_stories_events,
-        patch("stories.stories.services.stories_notifications", autospec=True) as fake_notifications,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.stories_events", autospec=True
+        ) as fake_stories_events,
+        patch(
+            "stories.stories.services.stories_notifications", autospec=True
+        ) as fake_notifications,
     ):
         fake_workflows_repo.get_workflow_status.return_value = target_status
         fake_stories_repo.get_story.return_value = reorder_story
@@ -793,7 +915,9 @@ async def test_reorder_story_workflowstatus_does_not_exist():
     workflow = f.build_workflow()
 
     with (
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
         pytest.raises(ex.InvalidStatusError),
     ):
         fake_workflows_repo.get_workflow_status.return_value = None
@@ -815,8 +939,12 @@ async def test_reorder_story_story_ref_does_not_exist():
     target_status = f.build_workflow_status()
 
     with (
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
         pytest.raises(ex.InvalidStoryRefError),
     ):
         fake_workflows_repo.get_workflow_status.return_value = target_status
@@ -841,8 +969,12 @@ async def test_reorder_story_not_all_stories_exist():
     reorder_story = f.build_story(ref=3)
 
     with (
-        patch("stories.stories.services.workflows_repositories", autospec=True) as fake_workflows_repo,
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
         pytest.raises(ex.InvalidStoryRefError),
     ):
         fake_workflows_repo.get_workflow_status.return_value = target_status
@@ -870,9 +1002,15 @@ async def test_delete_story_fail():
     story = f.build_story()
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_story_repo,
-        patch("stories.stories.services.stories_events", autospec=True) as fake_stories_events,
-        patch("stories.stories.services.stories_notifications", autospec=True) as fake_notifications,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_story_repo,
+        patch(
+            "stories.stories.services.stories_events", autospec=True
+        ) as fake_stories_events,
+        patch(
+            "stories.stories.services.stories_notifications", autospec=True
+        ) as fake_notifications,
     ):
         fake_story_repo.delete_stories.return_value = 0
 
@@ -890,9 +1028,15 @@ async def test_delete_story_ok():
     story = f.build_story()
 
     with (
-        patch("stories.stories.services.stories_repositories", autospec=True) as fake_story_repo,
-        patch("stories.stories.services.stories_events", autospec=True) as fake_stories_events,
-        patch("stories.stories.services.stories_notifications", autospec=True) as fake_notifications,
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_story_repo,
+        patch(
+            "stories.stories.services.stories_events", autospec=True
+        ) as fake_stories_events,
+        patch(
+            "stories.stories.services.stories_notifications", autospec=True
+        ) as fake_notifications,
     ):
         fake_story_repo.delete_stories.return_value = 1
 
@@ -903,7 +1047,9 @@ async def test_delete_story_ok():
         fake_stories_events.emit_event_when_story_is_deleted.assert_awaited_once_with(
             project=story.project, ref=story.ref, deleted_by=user
         )
-        fake_notifications.notify_when_story_is_deleted.assert_awaited_once_with(story=story, emitted_by=user)
+        fake_notifications.notify_when_story_is_deleted.assert_awaited_once_with(
+            story=story, emitted_by=user
+        )
 
 
 #######################################################

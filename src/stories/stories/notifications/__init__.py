@@ -31,7 +31,9 @@ STORIES_WORKFLOW_CHANGE = "stories.workflow_change"
 STORIES_DELETE = "stories.delete"
 
 
-async def notify_when_story_status_change(story: Story, status: str, emitted_by: User) -> None:
+async def notify_when_story_status_change(
+    story: Story, status: str, emitted_by: User
+) -> None:
     """
     Emit notification when a story status changes
     """
@@ -53,7 +55,9 @@ async def notify_when_story_status_change(story: Story, status: str, emitted_by:
     )
 
 
-async def notify_when_story_workflow_change(story: Story, workflow: str, status: str, emitted_by: User) -> None:
+async def notify_when_story_workflow_change(
+    story: Story, workflow: str, status: str, emitted_by: User
+) -> None:
     """
     Emit notification when a story workflow changes
     """

@@ -100,7 +100,9 @@ class ForbiddenError(HTTPException):
 
 class NotFoundError(HTTPException):
     def __init__(self, msg: str = codes.EX_NOT_FOUND.msg):
-        super().__init__(status_code=status.HTTP_404_NOT_FOUND, code=codes.EX_NOT_FOUND.code, msg=msg)
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND, code=codes.EX_NOT_FOUND.code, msg=msg
+        )
 
 
 ##############################

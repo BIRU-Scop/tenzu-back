@@ -21,13 +21,20 @@ from typing import Any
 
 from base.db import models
 from base.utils.datetime import timestamp_mics
-from base.utils.slug import generate_incremental_int_suffix, slugify_uniquely_for_queryset
+from base.utils.slug import (
+    generate_incremental_int_suffix,
+    slugify_uniquely_for_queryset,
+)
 from permissions.choices import ProjectPermissions
 
 
 class ProjectRole(models.BaseModel):
-    name = models.CharField(max_length=200, null=False, blank=False, verbose_name="name")
-    slug = models.LowerSlugField(max_length=250, null=False, blank=True, verbose_name="slug")
+    name = models.CharField(
+        max_length=200, null=False, blank=False, verbose_name="name"
+    )
+    slug = models.LowerSlugField(
+        max_length=250, null=False, blank=True, verbose_name="slug"
+    )
     permissions = models.ArrayField(
         models.TextField(null=False, blank=False, choices=ProjectPermissions.choices),
         null=False,
@@ -35,8 +42,12 @@ class ProjectRole(models.BaseModel):
         default=list,
         verbose_name="permissions",
     )
-    order = models.BigIntegerField(default=timestamp_mics, null=False, blank=False, verbose_name="order")
-    is_admin = models.BooleanField(null=False, blank=False, default=False, verbose_name="is_admin")
+    order = models.BigIntegerField(
+        default=timestamp_mics, null=False, blank=False, verbose_name="order"
+    )
+    is_admin = models.BooleanField(
+        null=False, blank=False, default=False, verbose_name="is_admin"
+    )
     project = models.ForeignKey(
         "projects.Project",
         null=False,

@@ -27,13 +27,21 @@ class Error:
     msg: str
 
 
-EX_VALIDATION_ERROR: Final = Error(code="validation-error", msg="Unable to fulfill the request due to semantic errors")
+EX_VALIDATION_ERROR: Final = Error(
+    code="validation-error", msg="Unable to fulfill the request due to semantic errors"
+)
 EX_UNKNOWN: Final = Error(code="unknown", msg="Unknown error")
-EX_NOT_FOUND: Final = Error(code="not-found", msg="The requested resource could not be found")
+EX_NOT_FOUND: Final = Error(
+    code="not-found", msg="The requested resource could not be found"
+)
 EX_AUTHORIZATION: Final = Error(
     code="authorization-error",
     msg="Invalid token or no active account found with the given credentials",
 )
-EX_FORBIDDEN: Final = Error(code="forbidden", msg="The user doesn't have permissions to perform this action")
+EX_FORBIDDEN: Final = Error(
+    code="forbidden", msg="The user doesn't have permissions to perform this action"
+)
 EX_BAD_REQUEST: Final = Error(code="bad-request", msg="The request is incorrect")
-EX_INTERNAL_SERVER_ERROR: Final = Error(code="internal-server-error", msg="Server error")
+EX_INTERNAL_SERVER_ERROR: Final = Error(
+    code="internal-server-error", msg="Server error"
+)

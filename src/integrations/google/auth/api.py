@@ -38,9 +38,13 @@ google_integration_router = Router()
     },
     by_alias=True,
 )
-async def google_login(request, form: GoogleLoginValidator) -> TokenObtainPairOutputSchema:
+async def google_login(
+    request, form: GoogleLoginValidator
+) -> TokenObtainPairOutputSchema:
     """
     Get an access and refresh token using a Google authorization.
     For a non-existing user, this process registers a new user as well.
     """
-    return await auth_google_services.google_login(code=form.code, redirect_uri=form.redirect_uri, lang=form.lang)
+    return await auth_google_services.google_login(
+        code=form.code, redirect_uri=form.redirect_uri, lang=form.lang
+    )

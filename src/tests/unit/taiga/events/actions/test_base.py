@@ -25,7 +25,9 @@ from events.actions import PingAction, SignInAction, parse_action_from_text
 
 def test_parse_action_from_text_discover_action_type():
     action_ping = parse_action_from_text("""{ "command": "ping" }""")
-    action_signin = parse_action_from_text("""{ "command": "signin", "token": "sometoken" }""")
+    action_signin = parse_action_from_text(
+        """{ "command": "signin", "token": "sometoken" }"""
+    )
 
     assert isinstance(action_ping, PingAction)
     assert isinstance(action_signin, SignInAction)

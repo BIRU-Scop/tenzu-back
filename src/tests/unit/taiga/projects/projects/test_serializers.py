@@ -31,8 +31,12 @@ def test_project_logo_mixin_serializer_with_logo():
     project = f.build_project(logo=f.build_image_file())
 
     with (
-        patch("projects.projects.services.get_logo_small_thumbnail_url", autospec=True) as fake_get_logo_small,
-        patch("projects.projects.services.get_logo_large_thumbnail_url", autospec=True) as fake_get_logo_large,
+        patch(
+            "projects.projects.services.get_logo_small_thumbnail_url", autospec=True
+        ) as fake_get_logo_small,
+        patch(
+            "projects.projects.services.get_logo_large_thumbnail_url", autospec=True
+        ) as fake_get_logo_large,
     ):
         fake_get_logo_small.return_value = "small_logo.png"
         fake_get_logo_large.return_value = "large_logo.png"
@@ -49,8 +53,12 @@ def test_project_logo_mixin_serializer_with_logo():
 
 def test_project_logo_mixin_serializer_without_logo():
     with (
-        patch("projects.projects.services.get_logo_small_thumbnail_url", autospec=True) as fake_get_logo_small,
-        patch("projects.projects.services.get_logo_large_thumbnail_url", autospec=True) as fake_get_logo_large,
+        patch(
+            "projects.projects.services.get_logo_small_thumbnail_url", autospec=True
+        ) as fake_get_logo_small,
+        patch(
+            "projects.projects.services.get_logo_large_thumbnail_url", autospec=True
+        ) as fake_get_logo_large,
     ):
         data = serializers.ProjectLogoMixin(logo=None)
 

@@ -38,7 +38,9 @@ async def test_create_mediafiles_not_associated_to_an_object():
         f.build_string_uploadfile(name="tests2", content="tests"),
     ]
 
-    mediafile = await repositories.create_mediafiles(files=files, project=project, created_by=user)
+    mediafile = await repositories.create_mediafiles(
+        files=files, project=project, created_by=user
+    )
     assert len(mediafile) == 2
     assert await project.mediafiles.acount() == 2
 

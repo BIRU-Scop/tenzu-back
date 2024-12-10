@@ -36,6 +36,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="workflow",
             name="order",
-            field=models.DecimalField(decimal_places=10, default=100, max_digits=16, verbose_name="order"),
+            field=models.DecimalField(
+                decimal_places=10, default=100, max_digits=16, verbose_name="order"
+            ),
         ),
     ]

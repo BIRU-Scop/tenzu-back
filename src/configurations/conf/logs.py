@@ -48,5 +48,7 @@ LOGGING_CONFIG = {
             "class": "logging.StreamHandler",
         }
     },
-    "loggers": {"tenzu": {"level": "INFO", "propagate": False, "handlers": ["console"]}},
+    "loggers": {
+        "tenzu": {"level": "INFO", "propagate": False, "handlers": ["console"]}
+    },
 }

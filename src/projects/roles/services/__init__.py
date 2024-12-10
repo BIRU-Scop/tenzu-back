@@ -33,7 +33,9 @@ from stories.assignments import repositories as story_assignments_repositories
 
 
 async def list_project_roles(project: Project) -> list[ProjectRole]:
-    return await pj_roles_repositories.list_project_roles(filters={"project_id": project.id})
+    return await pj_roles_repositories.list_project_roles(
+        filters={"project_id": project.id}
+    )
 
 
 async def list_project_roles_as_dict(project: Project) -> dict[str, ProjectRole]:
@@ -43,7 +45,12 @@ async def list_project_roles_as_dict(project: Project) -> dict[str, ProjectRole]
     :return: Dictionary whose key is the role slug and value the Role object
     """
 
-    return {r.slug: r for r in await pj_roles_repositories.list_project_roles(filters={"project_id": project.id})}
+    return {
+        r.slug: r
+        for r in await pj_roles_repositories.list_project_roles(
+            filters={"project_id": project.id}
+        )
+    }
 
 
 ##########################################################
@@ -52,7 +59,9 @@ async def list_project_roles_as_dict(project: Project) -> dict[str, ProjectRole]
 
 
 async def get_project_role(project_id: UUID, slug: str) -> ProjectRole | None:
-    return await pj_roles_repositories.get_project_role(filters={"project_id": project_id, "slug": slug})
+    return await pj_roles_repositories.get_project_role(
+        filters={"project_id": project_id, "slug": slug}
+    )
 
 
 ##########################################################
@@ -60,26 +69,36 @@ async def get_project_role(project_id: UUID, slug: str) -> ProjectRole | None:
 ##########################################################
 
 
-async def update_project_role_permissions(role: ProjectRole, permissions: list[str]) -> ProjectRole:
+async def update_project_role_permissions(
+    role: ProjectRole, permissions: list[str]
+) -> ProjectRole:
     if role.is_admin:
         raise ex.NonEditableRoleError("Cannot edit permissions in an admin role")
 
     # Check if new permissions have view_story
     view_story_is_deleted = False
     if role.permissions:
-        view_story_is_deleted = await permissions_services.is_view_story_permission_deleted(
-            old_permissions=role.permissions, new_permissions=permissions
+        view_story_is_deleted = (
+            await permissions_services.is_view_story_permission_deleted(
+                old_permissions=role.permissions, new_permissions=permissions
+            )
         )
 
-    project_role_permissions = await pj_roles_repositories.update_project_role_permissions(
-        role=role,
-        values={"permissions": permissions},
+    project_role_permissions = (
+        await pj_roles_repositories.update_project_role_permissions(
+            role=role,
+            values={"permissions": permissions},
+        )
     )
 
-    await pj_roles_events.emit_event_when_project_role_permissions_are_updated(role=role)
+    await pj_roles_events.emit_event_when_project_role_permissions_are_updated(
+        role=role
+    )
 
     # Unassign stories for user if the new permissions don't have view_story
     if view_story_is_deleted:
-        await story_assignments_repositories.delete_stories_assignments(filters={"role_id": role.id})
+        await story_assignments_repositories.delete_stories_assignments(
+            filters={"role_id": role.id}
+        )
 
     return project_role_permissions

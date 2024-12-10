@@ -20,9 +20,12 @@
 """
 Email backend that writes text messages to console instead of sending them.
 """
+
 from typing import Protocol
 
-from django.core.mail.backends.console import EmailBackend as BaseEmailBackend  # type: ignore[import]
+from django.core.mail.backends.console import (
+    EmailBackend as BaseEmailBackend,  # type: ignore[import]
+)
 
 
 class Message(Protocol):

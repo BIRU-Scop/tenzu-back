@@ -31,9 +31,17 @@ from base.validators import B64UUID
 from comments import services as comments_services
 from comments.models import Comment
 from comments.serializers import CommentSerializer
-from comments.validators import CommentOrderSortQuery, CreateCommentValidator, UpdateCommentValidator
+from comments.validators import (
+    CommentOrderSortQuery,
+    CreateCommentValidator,
+    UpdateCommentValidator,
+)
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm, IsNotDeleted, IsProjectAdmin, IsRelatedToTheUser
 from stories.comments import events, notifications
@@ -43,7 +51,9 @@ from stories.stories.models import Story
 # PERMISSIONS
 CREATE_STORY_COMMENT = HasPerm("comment_story")
 LIST_STORY_COMMENTS = HasPerm("view_story")
-UPDATE_STORY_COMMENT = IsNotDeleted() & IsRelatedToTheUser("created_by") & HasPerm("comment_story")
+UPDATE_STORY_COMMENT = (
+    IsNotDeleted() & IsRelatedToTheUser("created_by") & HasPerm("comment_story")
+)
 DELETE_STORY_COMMENT = IsNotDeleted() & (
     IsProjectAdmin() | (IsRelatedToTheUser("created_by") & HasPerm("comment_story"))
 )
@@ -78,7 +88,9 @@ async def create_story_comments(
     Add a comment to a story
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
-    await check_permissions(permissions=CREATE_STORY_COMMENT, user=request.user, obj=story)
+    await check_permissions(
+        permissions=CREATE_STORY_COMMENT, user=request.user, obj=story
+    )
 
     event_on_create = partial(
         events.emit_event_when_story_comment_is_created,
@@ -129,15 +141,23 @@ async def list_story_comments(
     List the story comments
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
-    await check_permissions(permissions=LIST_STORY_COMMENTS, user=request.user, obj=story)
-    pagination, total_comments, comments = await comments_services.list_paginated_comments(
+    await check_permissions(
+        permissions=LIST_STORY_COMMENTS, user=request.user, obj=story
+    )
+    (
+        pagination,
+        total_comments,
+        comments,
+    ) = await comments_services.list_paginated_comments(
         content_object=story,
         offset=pagination_params.offset,
         limit=pagination_params.limit,
         order_by=order.model_dump(),
     )
     api_pagination.set_pagination(response=response, pagination=pagination)
-    api_headers.set_headers(response=response, headers={"Total-Comments": total_comments})
+    api_headers.set_headers(
+        response=response, headers={"Total-Comments": total_comments}
+    )
     return comments
 
 
@@ -170,10 +190,14 @@ async def update_story_comments(
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
     comment = await get_story_comment_or_404(comment_id=comment_id, story=story)
-    await check_permissions(permissions=UPDATE_STORY_COMMENT, user=request.user, obj=comment)
+    await check_permissions(
+        permissions=UPDATE_STORY_COMMENT, user=request.user, obj=comment
+    )
 
     values = form.dict(exclude_unset=True)
-    event_on_update = partial(events.emit_event_when_story_comment_is_updated, project=story.project)
+    event_on_update = partial(
+        events.emit_event_when_story_comment_is_updated, project=story.project
+    )
     return await comments_services.update_comment(
         story=story, comment=comment, values=values, event_on_update=event_on_update
     )
@@ -207,9 +231,13 @@ async def delete_story_comment(
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
     comment = await get_story_comment_or_404(comment_id=comment_id, story=story)
-    await check_permissions(permissions=DELETE_STORY_COMMENT, user=request.user, obj=comment)
+    await check_permissions(
+        permissions=DELETE_STORY_COMMENT, user=request.user, obj=comment
+    )
 
-    event_on_delete = partial(events.emit_event_when_story_comment_is_deleted, project=story.project)
+    event_on_delete = partial(
+        events.emit_event_when_story_comment_is_deleted, project=story.project
+    )
     return await comments_services.delete_comment(
         comment=comment, deleted_by=request.user, event_on_delete=event_on_delete
     )
