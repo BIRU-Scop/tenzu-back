@@ -38,15 +38,21 @@ async def test_get_access_to_gitlab_ok(httpx_mock):
         status_code=200,
         json={"access_token": "TOKEN"},
     )
-    access_token = await services.get_access_to_gitlab(code=code, redirect_uri=redirect_uri)
+    access_token = await services.get_access_to_gitlab(
+        code=code, redirect_uri=redirect_uri
+    )
     assert access_token == "TOKEN"
 
 
 async def test_get_access_to_gitlab_ko(httpx_mock):
     code = "code"
     redirect_uri = "https://redirect.uri"
-    httpx_mock.add_response(url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"})
-    access_token = await services.get_access_to_gitlab(code=code, redirect_uri=redirect_uri)
+    httpx_mock.add_response(
+        url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"}
+    )
+    access_token = await services.get_access_to_gitlab(
+        code=code, redirect_uri=redirect_uri
+    )
     assert access_token is None
 
 
@@ -75,6 +81,8 @@ async def test_get_user_info_from_gitlab_ok(httpx_mock):
 
 async def test_get_user_info_from_gitlab_users_api_wrong(httpx_mock):
     access_token = "access_token"
-    httpx_mock.add_response(url=USER_URL_REGEX, method="GET", status_code=400, json={"error": "ERROR"})
+    httpx_mock.add_response(
+        url=USER_URL_REGEX, method="GET", status_code=400, json={"error": "ERROR"}
+    )
     user_profile = await services.get_user_info_from_gitlab(access_token=access_token)
     assert user_profile is None

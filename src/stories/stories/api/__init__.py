@@ -19,10 +19,11 @@
 
 from uuid import UUID
 
+from asgiref.sync import sync_to_async
 from django.http import HttpResponse
 from ninja import Path, Query, Router
 
-from base.api import PaginationQuery, set_pagination
+from base.api import Pagination, PaginationQuery, set_pagination
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
@@ -135,8 +136,10 @@ async def list_stories(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(permissions=LIST_STORIES, user=request.user, obj=workflow)
-
-    pagination, stories = await stories_services.list_paginated_stories(
+    pagination = Pagination(
+        offset=pagination_params.offset, limit=pagination_params.limit
+    )
+    stories = await sync_to_async(Story.objects.list_stories)(
         project_id=project_id,
         workflow_slug=workflow_slug,
         offset=pagination_params.offset,

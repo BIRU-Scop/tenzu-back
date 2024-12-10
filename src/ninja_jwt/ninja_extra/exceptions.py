@@ -57,7 +57,9 @@ class ErrorDetail(str):
 
     code = None
 
-    def __new__(cls, string: str, code: Optional[Union[str, int]] = None) -> "ErrorDetail":
+    def __new__(
+        cls, string: str, code: Optional[Union[str, int]] = None
+    ) -> "ErrorDetail":
         self = super().__new__(cls, string)
         self.code = code
         return self
@@ -95,7 +97,9 @@ def _get_error_details(
         ret = [_get_error_details(item, default_code) for item in data]
         return ret
     elif isinstance(data, dict):
-        ret = {key: _get_error_details(value, default_code) for key, value in data.items()}
+        ret = {
+            key: _get_error_details(value, default_code) for key, value in data.items()
+        }
         return ret
 
     text = force_str(data)

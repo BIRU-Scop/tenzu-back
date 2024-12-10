@@ -34,7 +34,9 @@ REORDER_STORIES = "stories.reorder"
 DELETE_STORY = "stories.delete"
 
 
-async def emit_event_when_story_is_created(project: Project, story: StoryDetailSerializer) -> None:
+async def emit_event_when_story_is_created(
+    project: Project, story: StoryDetailSerializer
+) -> None:
     await events_manager.publish_on_project_channel(
         project=project,
         type=CREATE_STORY,
@@ -55,7 +57,9 @@ async def emit_event_when_story_is_updated(
     )
 
 
-async def emit_when_stories_are_reordered(project: Project, reorder: ReorderStoriesSerializer) -> None:
+async def emit_when_stories_are_reordered(
+    project: Project, reorder: ReorderStoriesSerializer
+) -> None:
     await events_manager.publish_on_project_channel(
         project=project,
         type=REORDER_STORIES,
@@ -63,7 +67,9 @@ async def emit_when_stories_are_reordered(project: Project, reorder: ReorderStor
     )
 
 
-async def emit_event_when_story_is_deleted(project: Project, ref: int, deleted_by: AnyUser) -> None:
+async def emit_event_when_story_is_deleted(
+    project: Project, ref: int, deleted_by: AnyUser
+) -> None:
     await events_manager.publish_on_project_channel(
         project=project,
         type=DELETE_STORY,

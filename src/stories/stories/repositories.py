@@ -93,7 +93,9 @@ def _apply_select_related_to_queryset(
 StoryPrefetchRelated = list[Literal["assignees",]]
 
 
-def _apply_prefetch_related_to_queryset(qs: QuerySet[Story], prefetch_related: StoryPrefetchRelated) -> QuerySet[Story]:
+def _apply_prefetch_related_to_queryset(
+    qs: QuerySet[Story], prefetch_related: StoryPrefetchRelated
+) -> QuerySet[Story]:
     return qs.prefetch_related(*prefetch_related)
 
 
@@ -106,7 +108,9 @@ StoryOrderBy = list[
 ]
 
 
-def _apply_order_by_to_queryset(qs: QuerySet[Story], order_by: StoryOrderBy) -> QuerySet[Story]:
+def _apply_order_by_to_queryset(
+    qs: QuerySet[Story], order_by: StoryOrderBy
+) -> QuerySet[Story]:
     return qs.order_by(*order_by)
 
 
@@ -194,7 +198,9 @@ PROTECTED_ATTRS_ON_UPDATE: Final[list[str]] = [
 ]
 
 
-async def update_story(id: UUID, current_version: int | None = None, values: dict[str, Any] = {}) -> bool:
+async def update_story(
+    id: UUID, current_version: int | None = None, values: dict[str, Any] = {}
+) -> bool:
     return await occ_repositories.update(
         model_class=Story,
         id=id,
@@ -205,7 +211,9 @@ async def update_story(id: UUID, current_version: int | None = None, values: dic
 
 
 @sync_to_async
-def bulk_update_stories(objs_to_update: list[Story], fields_to_update: list[str]) -> None:
+def bulk_update_stories(
+    objs_to_update: list[Story], fields_to_update: list[str]
+) -> None:
     Story.objects.bulk_update(objs_to_update, fields_to_update)
 
 
@@ -248,7 +256,9 @@ def list_stories_to_reorder(filters: StoryFilters = {}) -> list[Story]:
     the order of the input references.
     """
     qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=["status", "project", "created_by"])
+    qs = _apply_select_related_to_queryset(
+        qs=qs, select_related=["status", "project", "created_by"]
+    )
     qs = _apply_prefetch_related_to_queryset(qs=qs, prefetch_related=["assignees"])
 
     stories = {s.ref: s for s in qs}
@@ -263,6 +273,6 @@ def list_story_assignees(story: Story) -> list[User]:
 async def bulk_update_workflow_to_stories(
     statuses_ids: list[UUID], old_workflow_id: UUID, new_workflow_id: UUID
 ) -> None:
-    await Story.objects.filter(status_id__in=statuses_ids, workflow_id=old_workflow_id).aupdate(
-        workflow_id=new_workflow_id
-    )
+    await Story.objects.filter(
+        status_id__in=statuses_ids, workflow_id=old_workflow_id
+    ).aupdate(workflow_id=new_workflow_id)

@@ -24,7 +24,12 @@ from ninja import Path, Query, Router
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_400, ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_400,
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm, IsProjectAdmin
 from projects.projects.api import get_project_or_404
@@ -39,7 +44,11 @@ from workflows.api.validators import (
     UpdateWorkflowValidator,
 )
 from workflows.models import Workflow, WorkflowStatus
-from workflows.serializers import ReorderWorkflowStatusesSerializer, WorkflowSerializer, WorkflowStatusSerializer
+from workflows.serializers import (
+    ReorderWorkflowStatusesSerializer,
+    WorkflowSerializer,
+    WorkflowStatusSerializer,
+)
 
 # PERMISSIONS
 CREATE_WORKFLOW = IsProjectAdmin()
@@ -144,14 +153,11 @@ async def get_workflow_by_id(
     Get the details of a workflow by id
     """
 
-    workflow = await get_workflow_by_id_or_404(
-        workflow_id=workflow_id
-    )
+    workflow = await get_workflow_by_id_or_404(workflow_id=workflow_id)
     await check_permissions(permissions=GET_WORKFLOW, user=request.user, obj=workflow)
     return await workflows_services.get_workflow_detail(
         project_id=project_id, workflow_slug=workflow.slug
     )
-
 
 
 @workflows_router.get(
@@ -174,9 +180,13 @@ async def get_workflow(
     """
     Get the details of a workflow
     """
-    workflow = await get_workflow_or_404(project_id=project_id, workflow_slug=workflow_slug)
+    workflow = await get_workflow_or_404(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
     await check_permissions(permissions=GET_WORKFLOW, user=request.user, obj=workflow)
-    return await workflows_services.get_workflow_detail(project_id=project_id, workflow_slug=workflow_slug)
+    return await workflows_services.get_workflow_detail(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
 
 
 #########################################################
@@ -205,11 +215,17 @@ async def update_workflow(
     """
     Update workflow
     """
-    workflow = await get_workflow_or_404(project_id=project_id, workflow_slug=workflow_slug)
-    await check_permissions(permissions=UPDATE_WORKFLOW, user=request.user, obj=workflow)
+    workflow = await get_workflow_or_404(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
+    await check_permissions(
+        permissions=UPDATE_WORKFLOW, user=request.user, obj=workflow
+    )
 
     values = form.dict(exclude_unset=True)
-    return await workflows_services.update_workflow(project_id=project_id, workflow=workflow, values=values)
+    return await workflows_services.update_workflow(
+        project_id=project_id, workflow=workflow, values=values
+    )
 
 
 ################################################
@@ -246,10 +262,16 @@ async def delete_workflow(
         - if received, the workflow will be deleted but its statuses and stories won't (they will be appended to the
          last status of the specified workflow).
     """
-    workflow = await get_workflow_or_404(project_id=project_id, workflow_slug=workflow_slug)
-    await check_permissions(permissions=DELETE_WORKFLOW, user=request.user, obj=workflow)
+    workflow = await get_workflow_or_404(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
+    await check_permissions(
+        permissions=DELETE_WORKFLOW, user=request.user, obj=workflow
+    )
 
-    await workflows_services.delete_workflow(workflow=workflow, target_workflow_slug=query_params.move_to)
+    await workflows_services.delete_workflow(
+        workflow=workflow, target_workflow_slug=query_params.move_to
+    )
     return 204, None
 
 
@@ -259,7 +281,9 @@ async def delete_workflow(
 
 
 async def get_workflow_or_404(project_id: UUID, workflow_slug: str) -> Workflow:
-    workflow = await workflows_services.get_workflow(project_id=project_id, workflow_slug=workflow_slug)
+    workflow = await workflows_services.get_workflow(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
     if workflow is None:
         raise ex.NotFoundError(f"Workflow {workflow_slug} does not exist")
 
@@ -267,9 +291,7 @@ async def get_workflow_or_404(project_id: UUID, workflow_slug: str) -> Workflow:
 
 
 async def get_workflow_by_id_or_404(workflow_id: UUID) -> Workflow:
-    workflow = await workflows_services.get_workflow_by_id(
-        workflow_id=workflow_id
-    )
+    workflow = await workflows_services.get_workflow_by_id(workflow_id=workflow_id)
     if workflow is None:
         raise ex.NotFoundError(f"Workflow {workflow_id} does not exist")
 
@@ -302,8 +324,12 @@ async def create_workflow_status(
     """
     Creates a workflow status in the given project workflow
     """
-    workflow = await get_workflow_or_404(project_id=project_id, workflow_slug=workflow_slug)
-    await check_permissions(permissions=CREATE_WORKFLOW_STATUS, user=request.user, obj=workflow)
+    workflow = await get_workflow_or_404(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
+    await check_permissions(
+        permissions=CREATE_WORKFLOW_STATUS, user=request.user, obj=workflow
+    )
 
     return await workflows_services.create_workflow_status(
         name=form.name,
@@ -338,8 +364,12 @@ async def reorder_workflow_statuses(
     """
     Reorder one or more workflow statuses; it may change workflow and order
     """
-    workflow = await get_workflow_or_404(project_id=project_id, workflow_slug=workflow_slug)
-    await check_permissions(permissions=REORDER_WORKFLOW_STATUSES, user=request.user, obj=workflow)
+    workflow = await get_workflow_or_404(
+        project_id=project_id, workflow_slug=workflow_slug
+    )
+    await check_permissions(
+        permissions=REORDER_WORKFLOW_STATUSES, user=request.user, obj=workflow
+    )
     model_dump = form.model_dump()
 
     return await workflows_services.reorder_workflow_statuses(
@@ -376,8 +406,12 @@ async def update_workflow_status(
     """
     Updates a workflow status in the given project workflow
     """
-    workflow_status = await get_workflow_status_or_404(project_id=project_id, workflow_slug=workflow_slug, id=id)
-    await check_permissions(permissions=UPDATE_WORKFLOW_STATUS, user=request.user, obj=workflow_status)
+    workflow_status = await get_workflow_status_or_404(
+        project_id=project_id, workflow_slug=workflow_slug, id=id
+    )
+    await check_permissions(
+        permissions=UPDATE_WORKFLOW_STATUS, user=request.user, obj=workflow_status
+    )
 
     return await workflows_services.update_workflow_status(
         workflow_status=workflow_status,
@@ -419,8 +453,12 @@ async def delete_workflow_status(
         - if received, the workflow status will be deleted but its contained stories won't (they will be first moved to
          the specified status).
     """
-    workflow_status = await get_workflow_status_or_404(project_id=project_id, workflow_slug=workflow_slug, id=id)
-    await check_permissions(permissions=DELETE_WORKFLOW_STATUS, user=request.user, obj=workflow_status)
+    workflow_status = await get_workflow_status_or_404(
+        project_id=project_id, workflow_slug=workflow_slug, id=id
+    )
+    await check_permissions(
+        permissions=DELETE_WORKFLOW_STATUS, user=request.user, obj=workflow_status
+    )
 
     await workflows_services.delete_workflow_status(
         deleted_by=request.user,
@@ -436,7 +474,9 @@ async def delete_workflow_status(
 ################################################
 
 
-async def get_workflow_status_or_404(project_id: UUID, workflow_slug: str, id: UUID) -> WorkflowStatus:
+async def get_workflow_status_or_404(
+    project_id: UUID, workflow_slug: str, id: UUID
+) -> WorkflowStatus:
     workflow_status = await workflows_services.get_workflow_status(
         project_id=project_id, workflow_slug=workflow_slug, id=id
     )

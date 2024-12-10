@@ -29,7 +29,10 @@ def test_resolve_front_url_success():
 
     url = resolve_front_url(url_key=relative_uri, verification_token=verification_token)
 
-    assert url == "http://localhost:4200/signup/verify/ayJ0eXAiOiJKV1QaLCJhbGciOiJIUzI1fiJ9"
+    assert (
+        url
+        == "http://localhost:4200/signup/verify/ayJ0eXAiOiJKV1QaLCJhbGciOiJIUzI1fiJ9"
+    )
 
 
 def test_resolve_front_url_error():
@@ -45,6 +48,11 @@ def test_resolve_front_url_with_params():
     verification_token = "ayJ0eXAiOiJKV1QaLCJhbGciOiJIUzI1fiJ9"
     query_params = {"param1": "A", "param2": "B"}
 
-    url = resolve_front_url(relative_uri, verification_token=verification_token, query_params=query_params)
+    url = resolve_front_url(
+        relative_uri, verification_token=verification_token, query_params=query_params
+    )
 
-    assert url == "http://localhost:4200/signup/verify/ayJ0eXAiOiJKV1QaLCJhbGciOiJIUzI1fiJ9?param1=A&param2=B"
+    assert (
+        url
+        == "http://localhost:4200/signup/verify/ayJ0eXAiOiJKV1QaLCJhbGciOiJIUzI1fiJ9?param1=A&param2=B"
+    )

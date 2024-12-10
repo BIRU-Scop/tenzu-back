@@ -25,10 +25,14 @@ from workspaces.workspaces.models import Workspace
 WORKSPACE_DELETE = "workspaces.delete"
 
 
-async def emit_event_when_workspace_is_deleted(workspace: Workspace, deleted_by: AnyUser) -> None:
+async def emit_event_when_workspace_is_deleted(
+    workspace: Workspace, deleted_by: AnyUser
+) -> None:
     # for ws-members, both in the home page and in the ws-detail
     await events_manager.publish_on_workspace_channel(
         workspace=workspace,
         type=WORKSPACE_DELETE,
-        content=DeleteWorkspaceContent(workspace=workspace.id, name=workspace.name, deleted_by=deleted_by),
+        content=DeleteWorkspaceContent(
+            workspace=workspace.id, name=workspace.name, deleted_by=deleted_by
+        ),
     )

@@ -112,7 +112,9 @@ def _apply_order_by_to_queryset(
 
 
 @sync_to_async
-def create_project_membership(user: User, project: Project, role: ProjectRole) -> ProjectMembership:
+def create_project_membership(
+    user: User, project: Project, role: ProjectRole
+) -> ProjectMembership:
     return ProjectMembership.objects.create(user=user, project=project, role=role)
 
 
@@ -164,7 +166,9 @@ def get_project_membership(
 
 
 @sync_to_async
-def update_project_membership(membership: ProjectMembership, values: dict[str, Any] = {}) -> ProjectMembership:
+def update_project_membership(
+    membership: ProjectMembership, values: dict[str, Any] = {}
+) -> ProjectMembership:
     for attr, value in values.items():
         setattr(membership, attr, value)
 
@@ -195,7 +199,9 @@ def list_project_members(project: Project) -> list[User]:
 
 
 @sync_to_async
-def list_project_members_excluding_user(project: Project, exclude_user: User) -> list[User]:
+def list_project_members_excluding_user(
+    project: Project, exclude_user: User
+) -> list[User]:
     return list(project.members.all().exclude(id=exclude_user.id))
 
 

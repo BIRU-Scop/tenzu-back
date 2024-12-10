@@ -92,7 +92,9 @@ async def test_list_workspace_guests_with_pagination(client):
     limit = 1
 
     client.login(user)
-    response = client.get(f"/workspaces/{workspace.b64id}/guests?offset={offset}&limit={limit}")
+    response = client.get(
+        f"/workspaces/{workspace.b64id}/guests?offset={offset}&limit={limit}"
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
     assert len(response.json()) == 1
     assert response.headers["Pagination-Offset"] == "0"
@@ -132,7 +134,9 @@ async def test_delete_workspace_membership(client):
     await f.create_workspace_membership(workspace=workspace, user=member)
 
     client.login(user)
-    response = client.delete(f"/workspaces/{workspace.b64id}/memberships/{member.username}")
+    response = client.delete(
+        f"/workspaces/{workspace.b64id}/memberships/{member.username}"
+    )
     assert response.status_code == status.HTTP_204_NO_CONTENT, response.text
 
 
@@ -142,7 +146,9 @@ async def test_delete_workspace_membership_no_permission(client):
     workspace = await f.create_workspace(created_by=user)
 
     client.login(member)
-    response = client.delete(f"/workspaces/{workspace.b64id}/memberships/{user.username}")
+    response = client.delete(
+        f"/workspaces/{workspace.b64id}/memberships/{user.username}"
+    )
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
 
@@ -151,5 +157,7 @@ async def test_delete_workspace_membership_latest_membership(client):
     workspace = await f.create_workspace(created_by=user)
 
     client.login(user)
-    response = client.delete(f"/workspaces/{workspace.b64id}/memberships/{user.username}")
+    response = client.delete(
+        f"/workspaces/{workspace.b64id}/memberships/{user.username}"
+    )
     assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text

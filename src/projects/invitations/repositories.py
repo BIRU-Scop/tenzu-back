@@ -54,7 +54,9 @@ def _apply_filters_to_queryset(
 
     if "username_or_email" in filter_data:
         username_or_email = filter_data.pop("username_or_email")
-        by_user = Q(user__username__iexact=username_or_email) | Q(user__email__iexact=username_or_email)
+        by_user = Q(user__username__iexact=username_or_email) | Q(
+            user__email__iexact=username_or_email
+        )
         by_email = Q(user__isnull=True, email__iexact=username_or_email)
         qs = qs.filter(by_user | by_email)
 
@@ -123,7 +125,9 @@ def create_project_invitations(
     objs: list[ProjectInvitation],
     select_related: ProjectInvitationSelectRelated = ["user", "project", "role"],
 ) -> list[ProjectInvitation]:
-    qs = _apply_select_related_to_queryset(qs=DEFAULT_QUERYSET, select_related=select_related)
+    qs = _apply_select_related_to_queryset(
+        qs=DEFAULT_QUERYSET, select_related=select_related
+    )
     return qs.bulk_create(objs=objs)
 
 
@@ -174,7 +178,9 @@ def get_project_invitation(
 
 
 @sync_to_async
-def update_project_invitation(invitation: ProjectInvitation, values: dict[str, Any]) -> ProjectInvitation:
+def update_project_invitation(
+    invitation: ProjectInvitation, values: dict[str, Any]
+) -> ProjectInvitation:
     for attr, value in values.items():
         setattr(invitation, attr, value)
 
@@ -183,7 +189,9 @@ def update_project_invitation(invitation: ProjectInvitation, values: dict[str, A
 
 
 @sync_to_async
-def bulk_update_project_invitations(objs_to_update: list[ProjectInvitation], fields_to_update: list[str]) -> None:
+def bulk_update_project_invitations(
+    objs_to_update: list[ProjectInvitation], fields_to_update: list[str]
+) -> None:
     ProjectInvitation.objects.bulk_update(objs_to_update, fields_to_update)
 
 

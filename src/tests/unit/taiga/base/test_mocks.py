@@ -23,7 +23,12 @@ from typing import Union
 import pytest
 from pydantic import ConfigDict
 
-from base.mocks import MAX_LIST_LENGTH, MAX_NESTED_INDEX, MIN_LIST_LENGTH, mock_serializer
+from base.mocks import (
+    MAX_LIST_LENGTH,
+    MAX_NESTED_INDEX,
+    MIN_LIST_LENGTH,
+    mock_serializer,
+)
 from base.serializers import BaseModel
 
 

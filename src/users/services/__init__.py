@@ -249,21 +249,15 @@ async def list_paginated_users_by_text(
     project_id: UUID | None = None,
 ) -> tuple[Pagination, list[User]]:
     if workspace_id:
-        total_users = await users_repositories.get_total_workspace_users_by_text(
-            text_search=text, workspace_id=workspace_id
-        )
         users = await users_repositories.list_workspace_users_by_text(
             text_search=text, workspace_id=workspace_id, offset=offset, limit=limit
         )
     else:
-        total_users = await users_repositories.get_total_project_users_by_text(
-            text_search=text, project_id=project_id
-        )
         users = await users_repositories.list_project_users_by_text(
             text_search=text, project_id=project_id, offset=offset, limit=limit
         )
 
-    pagination = Pagination(offset=offset, limit=limit, total=total_users)
+    pagination = Pagination(offset=offset, limit=limit)
 
     return pagination, users
 

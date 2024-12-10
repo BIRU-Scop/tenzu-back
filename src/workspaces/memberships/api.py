@@ -26,12 +26,19 @@ from base.api import PaginationQuery, set_pagination
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import IsWorkspaceMember
 from workspaces.memberships import services as memberships_services
 from workspaces.memberships.models import WorkspaceMembership
-from workspaces.memberships.serializers import WorkspaceGuestDetailSerializer, WorkspaceMembershipDetailSerializer
+from workspaces.memberships.serializers import (
+    WorkspaceGuestDetailSerializer,
+    WorkspaceMembershipDetailSerializer,
+)
 from workspaces.workspaces.api import get_workspace_or_404
 
 # PERMISSIONS
@@ -67,7 +74,9 @@ async def list_workspace_memberships(
     List workspace memberships
     """
     workspace = await get_workspace_or_404(id)
-    await check_permissions(permissions=LIST_WORKSPACE_MEMBERSHIPS, user=request.user, obj=workspace)
+    await check_permissions(
+        permissions=LIST_WORKSPACE_MEMBERSHIPS, user=request.user, obj=workspace
+    )
     return await memberships_services.list_workspace_memberships(workspace=workspace)
 
 
@@ -98,7 +107,9 @@ async def list_workspace_guests(
     List workspace guests
     """
     workspace = await get_workspace_or_404(id)
-    await check_permissions(permissions=LIST_WORKSPACE_GUESTS, user=request.user, obj=workspace)
+    await check_permissions(
+        permissions=LIST_WORKSPACE_GUESTS, user=request.user, obj=workspace
+    )
 
     pagination, guests = await memberships_services.list_paginated_workspace_guests(
         workspace=workspace,
@@ -129,7 +140,9 @@ async def delete_workspace_membership(
     """
     Delete a workspace membership
     """
-    membership = await get_workspace_membership_or_404(workspace_id=id, username=username)
+    membership = await get_workspace_membership_or_404(
+        workspace_id=id, username=username
+    )
     await check_permissions(
         permissions=DELETE_WORKSPACE_MEMBERSHIP,
         user=request.user,
@@ -146,9 +159,15 @@ async def delete_workspace_membership(
 ################################################
 
 
-async def get_workspace_membership_or_404(workspace_id: UUID, username: str) -> WorkspaceMembership:
-    membership = await memberships_services.get_workspace_membership(workspace_id=workspace_id, username=username)
+async def get_workspace_membership_or_404(
+    workspace_id: UUID, username: str
+) -> WorkspaceMembership:
+    membership = await memberships_services.get_workspace_membership(
+        workspace_id=workspace_id, username=username
+    )
     if membership is None:
-        raise ex.NotFoundError(f"User {username} is not a member of workspace {workspace_id}")
+        raise ex.NotFoundError(
+            f"User {username} is not a member of workspace {workspace_id}"
+        )
 
     return membership

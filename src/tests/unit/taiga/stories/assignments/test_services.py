@@ -58,13 +58,17 @@ async def test_create_story_assignment_not_member():
 async def test_create_story_assignment_user_without_view_story_permission():
     user = f.build_user()
     project = f.build_project()
-    role = f.build_project_role(project=project, permissions=list(NO_VIEW_STORY_PERMISSIONS), is_admin=False)
+    role = f.build_project_role(
+        project=project, permissions=list(NO_VIEW_STORY_PERMISSIONS), is_admin=False
+    )
     f.build_project_membership(user=user, project=project, role=role)
     story = f.build_story(project=project)
     f.build_story_assignment(story=story, user=user)
 
     with (
-        patch("stories.assignments.services.pj_memberships_repositories", autospec=True) as fake_pj_memberships_repo,
+        patch(
+            "stories.assignments.services.pj_memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repo,
         patch(
             "stories.assignments.services.story_assignments_repositories", autospec=True
         ) as fake_story_assignment_repo,
@@ -100,7 +104,9 @@ async def test_create_story_assignment_ok():
     story_assignment = f.build_story_assignment(story=story, user=user)
 
     with (
-        patch("stories.assignments.services.pj_memberships_repositories", autospec=True) as fake_pj_memberships_repo,
+        patch(
+            "stories.assignments.services.pj_memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repo,
         patch(
             "stories.assignments.services.story_assignments_repositories", autospec=True
         ) as fake_story_assignment_repo,
@@ -145,7 +151,9 @@ async def test_create_story_assignment_already_assignment():
     story_assignment = f.build_story_assignment(story=story, user=user)
 
     with (
-        patch("stories.assignments.services.pj_memberships_repositories", autospec=True) as fake_pj_memberships_repo,
+        patch(
+            "stories.assignments.services.pj_memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repo,
         patch(
             "stories.assignments.services.story_assignments_repositories", autospec=True
         ) as fake_story_assignment_repo,
@@ -210,7 +218,9 @@ async def test_get_story_assignment():
     ):
         fake_story_assignment_repo.get_story_assignment.return_value = story_assignment
 
-        await services.get_story_assignment(project_id=story.project.id, ref=story.ref, username=user.username)
+        await services.get_story_assignment(
+            project_id=story.project.id, ref=story.ref, username=user.username
+        )
 
         fake_story_assignment_repo.get_story_assignment.assert_awaited_once_with(
             filters={

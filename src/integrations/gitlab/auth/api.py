@@ -38,9 +38,13 @@ gitlab_integration_router = Router()
     },
     by_alias=True,
 )
-async def gitlab_login(request, form: GitlabLoginValidator) -> TokenObtainPairOutputSchema:
+async def gitlab_login(
+    request, form: GitlabLoginValidator
+) -> TokenObtainPairOutputSchema:
     """
     Get an access and refresh token using a Gitlab authorization.
     For a non-existing user, this process registers a new user as well.
     """
-    return await auth_gitlab_services.gitlab_login(code=form.code, redirect_uri=form.redirect_uri, lang=form.lang)
+    return await auth_gitlab_services.gitlab_login(
+        code=form.code, redirect_uri=form.redirect_uri, lang=form.lang
+    )

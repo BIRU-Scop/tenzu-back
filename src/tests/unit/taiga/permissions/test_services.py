@@ -54,7 +54,9 @@ async def test_is_project_admin_being_project_member():
         project=project,
         is_admin=False,
     )
-    await f.create_project_membership(user=user2, project=project, role=general_member_role)
+    await f.create_project_membership(
+        user=user2, project=project, role=general_member_role
+    )
 
     assert await services.is_project_admin(user=user2, obj=project) is False
 
@@ -112,7 +114,9 @@ async def test_is_project_member_not_being_project_member():
 
 async def test_is_project_member_being_project_member():
     project = await f.create_project()
-    is_member = await services.is_project_member(user=project.created_by, project=project)
+    is_member = await services.is_project_member(
+        user=project.created_by, project=project
+    )
     assert is_member is True
 
 
@@ -133,7 +137,9 @@ async def test_get_user_permissions_with_project():
     perms = choices.ProjectPermissions.values
 
     with (
-        patch("permissions.services.get_user_permissions_for_project", return_value=perms),
+        patch(
+            "permissions.services.get_user_permissions_for_project", return_value=perms
+        ),
         patch("permissions.services.get_user_permissions_for_workspace"),
     ):
         assert await services.get_user_permissions(user=user, obj=project) == perms
@@ -152,7 +158,12 @@ async def test_get_user_permissions_with_workspace():
         ),
         patch("permissions.services.get_user_permissions_for_project"),
     ):
-        assert await services.get_user_permissions(user=workspace.created_by, obj=workspace) == perms
+        assert (
+            await services.get_user_permissions(
+                user=workspace.created_by, obj=workspace
+            )
+            == perms
+        )
         services.get_user_permissions_for_workspace.assert_awaited()
         services.get_user_permissions_for_project.assert_not_awaited()
 
@@ -176,8 +187,15 @@ async def test_user_has_perm_without_perm():
     perm = []
 
     with patch("permissions.services.get_user_permissions", return_value=[]):
-        assert await services.user_has_perm(user=project.created_by, perm=perm, obj=project) is False
-        services.get_user_permissions.assert_awaited_once_with(user=project.created_by, obj=project)
+        assert (
+            await services.user_has_perm(
+                user=project.created_by, perm=perm, obj=project
+            )
+            is False
+        )
+        services.get_user_permissions.assert_awaited_once_with(
+            user=project.created_by, obj=project
+        )
 
 
 async def test_user_has_perm_with_project_ok():
@@ -185,8 +203,15 @@ async def test_user_has_perm_with_project_ok():
     perm = "view_story"
 
     with patch("permissions.services.get_user_permissions", return_value=[perm]):
-        assert await services.user_has_perm(user=project.created_by, perm=perm, obj=project) is True
-        services.get_user_permissions.assert_awaited_once_with(user=project.created_by, obj=project)
+        assert (
+            await services.user_has_perm(
+                user=project.created_by, perm=perm, obj=project
+            )
+            is True
+        )
+        services.get_user_permissions.assert_awaited_once_with(
+            user=project.created_by, obj=project
+        )
 
 
 async def test_user_has_perm_with_workspace_ok():
@@ -194,8 +219,15 @@ async def test_user_has_perm_with_workspace_ok():
     perm = "view_story"
 
     with patch("permissions.services.get_user_permissions", return_value=[perm]):
-        assert await services.user_has_perm(user=workspace.created_by, perm=perm, obj=workspace) is True
-        services.get_user_permissions.assert_awaited_once_with(user=workspace.created_by, obj=workspace)
+        assert (
+            await services.user_has_perm(
+                user=workspace.created_by, perm=perm, obj=workspace
+            )
+            is True
+        )
+        services.get_user_permissions.assert_awaited_once_with(
+            user=workspace.created_by, obj=workspace
+        )
 
 
 #####################################################
@@ -227,7 +259,9 @@ async def test_user_can_view_project_being_a_project_member():
         project=project,
         is_admin=False,
     )
-    await f.create_project_membership(user=user, project=project, role=general_member_role)
+    await f.create_project_membership(
+        user=user, project=project, role=general_member_role
+    )
 
     with (
         patch("permissions.services.is_project_member", return_value=True),
@@ -245,14 +279,20 @@ async def test_user_can_view_project_having_a_pending_invitation():
         project=project,
         is_admin=False,
     )
-    await f.create_project_invitation(user=user, project=project, role=general_member_role)
+    await f.create_project_invitation(
+        user=user, project=project, role=general_member_role
+    )
 
     with (
-        patch("permissions.services.pj_invitations_services") as fake_pj_invitations_services,
+        patch(
+            "permissions.services.pj_invitations_services"
+        ) as fake_pj_invitations_services,
         patch("permissions.services.get_user_permissions"),
     ):
         fake_has_project_invitation = AsyncMock(return_value=True)
-        fake_pj_invitations_services.has_pending_project_invitation.side_effect = fake_has_project_invitation
+        fake_pj_invitations_services.has_pending_project_invitation.side_effect = (
+            fake_has_project_invitation
+        )
         assert await services.user_can_view_project(user=user, obj=project) is True
         fake_has_project_invitation.assert_awaited_once_with(user=user, project=project)
         services.get_user_permissions.assert_not_awaited()
@@ -285,7 +325,9 @@ async def test_user_can_view_project_being_other_user_without_permission():
 
 async def get_user_project_role_info():
     project = await f.create_project()
-    with patch("permissions.services.pj_roles_repositories", autospec=True) as fake_repository:
+    with patch(
+        "permissions.services.pj_roles_repositories", autospec=True
+    ) as fake_repository:
         await get_user_project_role_info(user=project.created_by, project=project)
         fake_repository.get_project_role.assert_awaited_once()
 
@@ -297,8 +339,12 @@ async def get_user_project_role_info():
 
 async def get_user_workspace_role_info():
     workspace = await f.create_workspace()
-    with patch("permissions.services.ws_roles_repositories", autospec=True) as fake_repository:
-        await get_user_workspace_role_info(user=workspace.created_by, workspace=workspace)
+    with patch(
+        "permissions.services.ws_roles_repositories", autospec=True
+    ) as fake_repository:
+        await get_user_workspace_role_info(
+            user=workspace.created_by, workspace=workspace
+        )
         fake_repository.get_workspace_role_for_user.assert_awaited_once()
 
 
@@ -311,10 +357,16 @@ async def test_get_user_permissions_for_project():
     project = await f.create_project()
 
     params = [True, False, False, False, [], project]
-    assert await services.get_user_permissions_for_project(*params) == choices.ProjectPermissions.values
+    assert (
+        await services.get_user_permissions_for_project(*params)
+        == choices.ProjectPermissions.values
+    )
 
     params = [False, True, False, False, [], project]
-    assert await services.get_user_permissions_for_project(*params) == choices.ProjectPermissions.values
+    assert (
+        await services.get_user_permissions_for_project(*params)
+        == choices.ProjectPermissions.values
+    )
 
     params = [False, False, True, True, ["view_story"], project]
     res = await services.get_user_permissions_for_project(*params)
@@ -322,10 +374,16 @@ async def test_get_user_permissions_for_project():
     assert len(res) == 1
 
     params = [False, False, False, True, [], project]
-    assert await services.get_user_permissions_for_project(*params) == project.public_permissions
+    assert (
+        await services.get_user_permissions_for_project(*params)
+        == project.public_permissions
+    )
 
     params = [False, False, False, False, [], project]
-    assert await services.get_user_permissions_for_project(*params) == project.anon_permissions
+    assert (
+        await services.get_user_permissions_for_project(*params)
+        == project.anon_permissions
+    )
 
 
 #####################################################
@@ -335,7 +393,10 @@ async def test_get_user_permissions_for_project():
 
 async def test_get_user_permissions_for_workspace():
     workspace_role_permissions = choices.WorkspacePermissions.values
-    assert await services.get_user_permissions_for_workspace(workspace_role_permissions) == workspace_role_permissions
+    assert (
+        await services.get_user_permissions_for_workspace(workspace_role_permissions)
+        == workspace_role_permissions
+    )
 
 
 #####################################################
@@ -347,14 +408,24 @@ async def test_is_view_story_permission_deleted_false():
     old_permissions = []
     new_permissions = ["view_story"]
 
-    assert await services.is_view_story_permission_deleted(old_permissions, new_permissions) is False
+    assert (
+        await services.is_view_story_permission_deleted(
+            old_permissions, new_permissions
+        )
+        is False
+    )
 
 
 async def test_is_view_story_permission_deleted_true():
     old_permissions = ["view_story"]
     new_permissions = []
 
-    assert await services.is_view_story_permission_deleted(old_permissions, new_permissions) is True
+    assert (
+        await services.is_view_story_permission_deleted(
+            old_permissions, new_permissions
+        )
+        is True
+    )
 
 
 #####################################################
@@ -374,8 +445,18 @@ async def test_is_an_object_related_to_the_user_with_custom_field():
     user1 = f.build_user()
     user2 = f.build_user()
     story = f.build_story(created_by=user1)
-    assert await services.is_an_object_related_to_the_user(user1, story, field="created_by") is True
-    assert await services.is_an_object_related_to_the_user(user2, story, field="created_by") is False
+    assert (
+        await services.is_an_object_related_to_the_user(
+            user1, story, field="created_by"
+        )
+        is True
+    )
+    assert (
+        await services.is_an_object_related_to_the_user(
+            user2, story, field="created_by"
+        )
+        is False
+    )
 
 
 async def test_is_an_object_related_to_the_user_with_anonymous_user():

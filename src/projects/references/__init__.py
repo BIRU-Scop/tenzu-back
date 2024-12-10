@@ -42,5 +42,7 @@ def get_new_project_reference_id(project_id: UUID) -> int:
 
 
 def delete_project_references_sequences(project_ids: list[UUID]) -> None:
-    seqnames = [get_project_references_seqname(project_id) for project_id in project_ids]
+    seqnames = [
+        get_project_references_seqname(project_id) for project_id in project_ids
+    ]
     seq.delete(seqnames)

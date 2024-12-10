@@ -24,17 +24,23 @@ from base.api.pagination import PaginationQuery
 
 
 def test_validate_pagination_invalid_offset(client):
-    with pytest.raises(ValidationError, match=r"ensure this value is greater than or equal to 0"):
+    with pytest.raises(
+        ValidationError, match=r"ensure this value is greater than or equal to 0"
+    ):
         PaginationQuery(offset=-1, limit=1)
 
 
 def test_validate_pagination_invalid_limit(client):
-    with pytest.raises(ValidationError, match=r"ensure this value is greater than or equal to 1"):
+    with pytest.raises(
+        ValidationError, match=r"ensure this value is greater than or equal to 1"
+    ):
         PaginationQuery(offset=0, limit=-1)
 
 
 def test_validate_pagination_exceeded_limit(client):
-    with pytest.raises(ValidationError, match=r"ensure this value is less than or equal to 100"):
+    with pytest.raises(
+        ValidationError, match=r"ensure this value is less than or equal to 100"
+    ):
         PaginationQuery(offset=0, limit=101)
 
 

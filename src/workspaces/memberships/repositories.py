@@ -93,7 +93,9 @@ def _apply_order_by_to_queryset(
 
 
 @sync_to_async
-def create_workspace_membership(user: User, workspace: Workspace) -> WorkspaceMembership:
+def create_workspace_membership(
+    user: User, workspace: Workspace
+) -> WorkspaceMembership:
     return WorkspaceMembership.objects.create(user=user, workspace=workspace)
 
 
@@ -161,7 +163,9 @@ def list_workspace_members(workspace: Workspace) -> list[User]:
 
 
 @sync_to_async
-def list_workspace_members_excluding_user(workspace: Workspace, exclude_user: User) -> list[User]:
+def list_workspace_members_excluding_user(
+    workspace: Workspace, exclude_user: User
+) -> list[User]:
     return list(workspace.members.all().exclude(id=exclude_user.id))
 
 

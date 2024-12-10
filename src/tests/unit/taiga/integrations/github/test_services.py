@@ -44,7 +44,9 @@ async def test_get_access_to_github_ok(httpx_mock):
 
 async def test_get_access_to_github_ko(httpx_mock):
     code = "code"
-    httpx_mock.add_response(url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"})
+    httpx_mock.add_response(
+        url=ACCESS_URL_REGEX, method="POST", status_code=400, json={"error": "ERROR"}
+    )
     access_token = await services.get_access_to_github(code=code)
     assert access_token is None
 
@@ -82,7 +84,9 @@ async def test_get_user_info_from_github_ok(httpx_mock):
 
 async def test_get_user_info_from_github_emails_api_wrong(httpx_mock):
     access_token = "access_token"
-    httpx_mock.add_response(url=EMAILS_URL_REGEX, method="GET", status_code=400, json={"error": "ERROR"})
+    httpx_mock.add_response(
+        url=EMAILS_URL_REGEX, method="GET", status_code=400, json={"error": "ERROR"}
+    )
     httpx_mock.add_response(url=USER_URL_REGEX, method="GET", status_code=200, json={})
     user_profile = await services.get_user_info_from_github(access_token=access_token)
     assert user_profile is None
@@ -99,6 +103,8 @@ async def test_get_user_info_from_github_users_api_wrong(httpx_mock):
             {"email": "email2@email.com", "primary": True},
         ],
     )
-    httpx_mock.add_response(url=USER_URL_REGEX, method="GET", status_code=400, json={"error": "ERROR"})
+    httpx_mock.add_response(
+        url=USER_URL_REGEX, method="GET", status_code=400, json={"error": "ERROR"}
+    )
     user_profile = await services.get_user_info_from_github(access_token=access_token)
     assert user_profile is None

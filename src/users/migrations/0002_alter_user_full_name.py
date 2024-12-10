@@ -29,6 +29,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="user",
             name="full_name",
-            field=models.CharField(blank=True, default="", max_length=256, verbose_name="full name"),
+            field=models.CharField(
+                blank=True, default="", max_length=256, verbose_name="full name"
+            ),
         ),
     ]

@@ -17,5 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from django.contrib.auth.models import AbstractBaseUser, AnonymousUser, Group, UserManager  # noqa
-from django.contrib.auth.models import update_last_login as django_update_last_login  # noqa
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    AnonymousUser,
+    Group,
+    UserManager,
+)  # noqa
+from django.contrib.auth.models import (
+    update_last_login as django_update_last_login,  # noqa
+)

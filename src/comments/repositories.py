@@ -48,7 +48,9 @@ async def _apply_filters_to_queryset(
 
     if "content_object" in filters:
         content_object = cast(BaseModel, filter_data.pop("content_object"))
-        filter_data["object_content_type"] = await get_contenttype_for_model(content_object)
+        filter_data["object_content_type"] = await get_contenttype_for_model(
+            content_object
+        )
         filter_data["object_id"] = content_object.id
 
     return qs.filter(**filter_data)
@@ -177,7 +179,9 @@ async def get_comment(
 ) -> Comment | None:
     qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
     qs = await _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    qs = await _apply_prefetch_related_to_queryset(qs=qs, prefetch_related=prefetch_related)
+    qs = await _apply_prefetch_related_to_queryset(
+        qs=qs, prefetch_related=prefetch_related
+    )
 
     try:
         return await qs.aget()
@@ -216,7 +220,9 @@ async def delete_comments(filters: CommentFilters = {}) -> int:
 ##########################################################
 
 
-async def get_total_comments(filters: CommentFilters = {}, excludes: CommentExcludes = {}) -> int:
+async def get_total_comments(
+    filters: CommentFilters = {}, excludes: CommentExcludes = {}
+) -> int:
     qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
     qs = await _apply_excludes_to_queryset(qs=qs, excludes=excludes)
     return await qs.acount()

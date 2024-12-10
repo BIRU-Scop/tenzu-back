@@ -133,7 +133,9 @@ def get_project_role(
 
 
 @sync_to_async
-def update_project_role_permissions(role: ProjectRole, values: dict[str, Any] = {}) -> ProjectRole:
+def update_project_role_permissions(
+    role: ProjectRole, values: dict[str, Any] = {}
+) -> ProjectRole:
     for attr, value in values.items():
         setattr(role, attr, value)
 

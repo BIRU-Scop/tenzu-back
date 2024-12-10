@@ -38,7 +38,9 @@ github_integration_router = Router()
     },
     by_alias=True,
 )
-async def github_login(request, form: GithubLoginValidator) -> TokenObtainPairOutputSchema:
+async def github_login(
+    request, form: GithubLoginValidator
+) -> TokenObtainPairOutputSchema:
     """
     Get an access and refresh token using a Github authorization.
     For a non-existing user, this process registers a new user as well.

@@ -90,7 +90,9 @@ class NinjaJWTSettings(BaseModel):
     USER_ID_FIELD: str = Field("id")
     USER_ID_CLAIM: str = Field("user_id")
 
-    USER_AUTHENTICATION_RULE: Any = Field("ninja_jwt.authentication.default_user_authentication_rule")
+    USER_AUTHENTICATION_RULE: Any = Field(
+        "ninja_jwt.authentication.default_user_authentication_rule"
+    )
     TOKEN_USER_CLASS: Any = Field("ninja_jwt.models.TokenUser")
     AUTH_TOKEN_CLASSES: List[Any] = Field(["ninja_jwt.tokens.AccessToken"])
     JSON_ENCODER: Optional[Any] = Field(None)
@@ -100,19 +102,31 @@ class NinjaJWTSettings(BaseModel):
     SLIDING_TOKEN_LIFETIME: timedelta = Field(timedelta(minutes=5))
     SLIDING_TOKEN_REFRESH_LIFETIME: timedelta = Field(timedelta(days=1))
 
-    TOKEN_OBTAIN_PAIR_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenObtainPairInputSchema")
-    TOKEN_OBTAIN_PAIR_REFRESH_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenRefreshInputSchema")
+    TOKEN_OBTAIN_PAIR_INPUT_SCHEMA: Any = Field(
+        "ninja_jwt.schema.TokenObtainPairInputSchema"
+    )
+    TOKEN_OBTAIN_PAIR_REFRESH_INPUT_SCHEMA: Any = Field(
+        "ninja_jwt.schema.TokenRefreshInputSchema"
+    )
 
-    TOKEN_OBTAIN_SLIDING_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenObtainSlidingInputSchema")
-    TOKEN_OBTAIN_SLIDING_REFRESH_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenRefreshSlidingInputSchema")
+    TOKEN_OBTAIN_SLIDING_INPUT_SCHEMA: Any = Field(
+        "ninja_jwt.schema.TokenObtainSlidingInputSchema"
+    )
+    TOKEN_OBTAIN_SLIDING_REFRESH_INPUT_SCHEMA: Any = Field(
+        "ninja_jwt.schema.TokenRefreshSlidingInputSchema"
+    )
 
-    TOKEN_BLACKLIST_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenBlacklistInputSchema")
+    TOKEN_BLACKLIST_INPUT_SCHEMA: Any = Field(
+        "ninja_jwt.schema.TokenBlacklistInputSchema"
+    )
     TOKEN_VERIFY_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenVerifyInputSchema")
 
     @root_validator
     def validate_ninja_jwt_settings(cls, values):
         for item in NinjaJWT_SETTINGS_DEFAULTS.keys():
-            if isinstance(values[item], (tuple, list)) and isinstance(values[item][0], str):
+            if isinstance(values[item], (tuple, list)) and isinstance(
+                values[item][0], str
+            ):
                 values[item] = [LazyStrImport(str(klass)) for klass in values[item]]
             if isinstance(values[item], str):
                 values[item] = LazyStrImport(values[item])
@@ -129,7 +143,9 @@ def reload_api_settings(*args: Any, **kwargs: Any) -> None:
     setting, value = kwargs["setting"], kwargs["value"]
 
     if setting in ["SIMPLE_JWT", "NINJA_JWT"]:
-        api_settings = NinjaJWTSettings.from_orm(NinjaJWTUserDefinedSettingsMapper(value))
+        api_settings = NinjaJWTSettings.from_orm(
+            NinjaJWTUserDefinedSettingsMapper(value)
+        )
 
 
 setting_changed.connect(reload_api_settings)

@@ -24,7 +24,11 @@ from ninja import Path, Router
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm
 from stories.assignments import services as story_assignments_services
@@ -67,7 +71,9 @@ async def create_story_assignment(
     Create a story assignment
     """
     story = await get_story_or_404(project_id, ref)
-    await check_permissions(permissions=CREATE_STORY_ASSIGNMENT, user=request.user, obj=story)
+    await check_permissions(
+        permissions=CREATE_STORY_ASSIGNMENT, user=request.user, obj=story
+    )
 
     return await story_assignments_services.create_story_assignment(
         project_id=project_id,
@@ -122,7 +128,9 @@ async def delete_story_assignment(
 ################################################
 
 
-async def get_story_assignment_or_404(project_id: UUID, ref: int, username: str) -> StoryAssignment:
+async def get_story_assignment_or_404(
+    project_id: UUID, ref: int, username: str
+) -> StoryAssignment:
     story_assignment = await story_assignments_services.get_story_assignment(
         project_id=project_id, ref=ref, username=username
     )

@@ -26,7 +26,9 @@ from base.utils.files import get_obfuscated_file_path
 
 def get_mediafile_file_path(instance: "Mediafile", filename: str) -> str:
     label = instance.project._meta.app_label
-    model_name = instance.project._meta.model_name or instance.project.__class__.__name__
+    model_name = (
+        instance.project._meta.model_name or instance.project.__class__.__name__
+    )
 
     base_path = path.join(
         "mediafiles",

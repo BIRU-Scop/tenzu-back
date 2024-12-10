@@ -52,11 +52,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "title_updated_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="title updated at"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="title updated at"
+                    ),
                 ),
                 (
                     "description_updated_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="description updated at"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="description updated at"
+                    ),
                 ),
                 (
                     "version",
@@ -64,7 +68,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "ref",
-                    models.BigIntegerField(db_index=True, default=0, verbose_name="ref"),
+                    models.BigIntegerField(
+                        db_index=True, default=0, verbose_name="ref"
+                    ),
                 ),
                 ("title", models.CharField(max_length=500, verbose_name="title")),
                 (

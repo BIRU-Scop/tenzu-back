@@ -22,7 +22,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
-from tokens import exceptions as tokens_ex
 
 from auth.serializers import AccessTokenWithRefreshSerializer
 from projects.invitations.choices import ProjectInvitationStatus
@@ -31,6 +30,7 @@ from projects.invitations.services.exceptions import (
     InvitationDoesNotExistError,
 )
 from tests.utils import factories as f
+from tokens import exceptions as tokens_ex
 from users import services
 from users.services import exceptions as ex
 from workspaces.invitations.choices import WorkspaceInvitationStatus

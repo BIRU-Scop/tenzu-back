@@ -21,7 +21,9 @@ from base.db import models
 
 
 class VersionedMixin(models.Model):
-    version = models.PositiveBigIntegerField(null=False, blank=False, default=1, verbose_name="version")
+    version = models.PositiveBigIntegerField(
+        null=False, blank=False, default=1, verbose_name="version"
+    )
 
     class Meta:
         abstract = True

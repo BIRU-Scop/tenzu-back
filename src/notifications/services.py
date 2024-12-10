@@ -29,17 +29,23 @@ from notifications.repositories import NotificationFilters
 from users.models import User
 
 
-async def notify_users(type: str, emitted_by: User, notified_users: Iterable[User], content: BaseModel) -> None:
+async def notify_users(
+    type: str, emitted_by: User, notified_users: Iterable[User], content: BaseModel
+) -> None:
     notifications = await notifications_repositories.create_notifications(
         owners=notified_users,
         created_by=emitted_by,
         notification_type=type,
         content=content.dict(),
     )
-    await notifications_events.emit_event_when_notifications_are_created(notifications=notifications)
+    await notifications_events.emit_event_when_notifications_are_created(
+        notifications=notifications
+    )
 
 
-async def list_user_notifications(user: User, is_read: bool | None = None) -> list[Notification]:
+async def list_user_notifications(
+    user: User, is_read: bool | None = None
+) -> list[Notification]:
     filters: NotificationFilters = {"owner": user}
 
     if is_read is not None:
@@ -49,28 +55,42 @@ async def list_user_notifications(user: User, is_read: bool | None = None) -> li
 
 
 async def get_user_notification(user: User, id: UUID) -> Notification | None:
-    return await notifications_repositories.get_notification(filters={"owner": user, "id": id})
+    return await notifications_repositories.get_notification(
+        filters={"owner": user, "id": id}
+    )
 
 
-async def mark_user_notifications_as_read(user: User, id: UUID | None = None) -> list[Notification]:
+async def mark_user_notifications_as_read(
+    user: User, id: UUID | None = None
+) -> list[Notification]:
     filters: NotificationFilters = {"owner": user}
 
     if id is not None:
         filters["id"] = id
 
-    notifications = await notifications_repositories.mark_notifications_as_read(filters=filters)
+    notifications = await notifications_repositories.mark_notifications_as_read(
+        filters=filters
+    )
 
     if notifications:
-        await notifications_events.emit_event_when_notifications_are_read(user=user, notifications=notifications)
+        await notifications_events.emit_event_when_notifications_are_read(
+            user=user, notifications=notifications
+        )
 
     return notifications
 
 
 async def count_user_notifications(user: User) -> dict[str, int]:
-    total = await notifications_repositories.count_notifications(filters={"owner": user})
-    read = await notifications_repositories.count_notifications(filters={"owner": user, "is_read": True})
+    total = await notifications_repositories.count_notifications(
+        filters={"owner": user}
+    )
+    read = await notifications_repositories.count_notifications(
+        filters={"owner": user, "is_read": True}
+    )
     return {"total": total, "read": read, "unread": total - read}
 
 
 async def clean_read_notifications(before: datetime) -> int:
-    return await notifications_repositories.delete_notifications(filters={"is_read": True, "read_before": before})
+    return await notifications_repositories.delete_notifications(
+        filters={"is_read": True, "read_before": before}
+    )

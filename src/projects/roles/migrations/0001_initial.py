@@ -51,7 +51,9 @@ class Migration(migrations.Migration):
                 ("name", models.CharField(max_length=200, verbose_name="name")),
                 (
                     "slug",
-                    base.db.models.fields.LowerSlugField(blank=True, max_length=250, verbose_name="slug"),
+                    base.db.models.fields.LowerSlugField(
+                        blank=True, max_length=250, verbose_name="slug"
+                    ),
                 ),
                 (
                     "permissions",
@@ -74,7 +76,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "order",
-                    models.BigIntegerField(default=base.utils.datetime.timestamp_mics, verbose_name="order"),
+                    models.BigIntegerField(
+                        default=base.utils.datetime.timestamp_mics, verbose_name="order"
+                    ),
                 ),
                 (
                     "is_admin",
@@ -98,7 +102,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="projectrole",
-            index=models.Index(fields=["project", "slug"], name="projects_ro_project_63cac9_idx"),
+            index=models.Index(
+                fields=["project", "slug"], name="projects_ro_project_63cac9_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="projectrole",

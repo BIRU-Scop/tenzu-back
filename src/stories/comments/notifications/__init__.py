@@ -26,7 +26,9 @@ from users.models import User
 STORY_COMMENT_CREATE = "story_comment.create"
 
 
-async def notify_when_story_comment_is_created(story: Story, comment: Comment, emitted_by: User) -> None:
+async def notify_when_story_comment_is_created(
+    story: Story, comment: Comment, emitted_by: User
+) -> None:
     notified_users = {u async for u in story.assignees.all()}
     if story.created_by:
         notified_users.add(story.created_by)

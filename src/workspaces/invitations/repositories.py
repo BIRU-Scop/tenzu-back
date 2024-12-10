@@ -52,7 +52,9 @@ def _apply_filters_to_queryset(
 
     if "username_or_email" in filter_data:
         username_or_email = filter_data.pop("username_or_email")
-        by_user = Q(user__username__iexact=username_or_email) | Q(user__email__iexact=username_or_email)
+        by_user = Q(user__username__iexact=username_or_email) | Q(
+            user__email__iexact=username_or_email
+        )
         by_email = Q(user__isnull=True, email__iexact=username_or_email)
         qs = qs.filter(by_user | by_email)
 
@@ -111,7 +113,9 @@ def create_workspace_invitations(
     objs: list[WorkspaceInvitation],
     select_related: WorkspaceInvitationSelectRelated = [],
 ) -> list[WorkspaceInvitation]:
-    qs = _apply_select_related_to_queryset(qs=DEFAULT_QUERYSET, select_related=select_related)
+    qs = _apply_select_related_to_queryset(
+        qs=DEFAULT_QUERYSET, select_related=select_related
+    )
     return qs.bulk_create(objs=objs)
 
 
@@ -162,7 +166,9 @@ def get_workspace_invitation(
 
 
 @sync_to_async
-def update_workspace_invitation(invitation: WorkspaceInvitation, values: dict[str, Any]) -> WorkspaceInvitation:
+def update_workspace_invitation(
+    invitation: WorkspaceInvitation, values: dict[str, Any]
+) -> WorkspaceInvitation:
     for attr, value in values.items():
         setattr(invitation, attr, value)
 
@@ -171,7 +177,9 @@ def update_workspace_invitation(invitation: WorkspaceInvitation, values: dict[st
 
 
 @sync_to_async
-def bulk_update_workspace_invitations(objs_to_update: list[WorkspaceInvitation], fields_to_update: list[str]) -> None:
+def bulk_update_workspace_invitations(
+    objs_to_update: list[WorkspaceInvitation], fields_to_update: list[str]
+) -> None:
     WorkspaceInvitation.objects.bulk_update(objs_to_update, fields_to_update)
 
 

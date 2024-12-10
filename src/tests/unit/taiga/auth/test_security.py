@@ -34,7 +34,11 @@ client = TestClient(app)
 def get_credentials(
     credentials: HTTPAuthorizationCredentials | None = Security(HTTPBearer()),
 ):
-    return {"scheme": credentials.scheme, "credentials": credentials.credentials} if credentials else {}
+    return (
+        {"scheme": credentials.scheme, "credentials": credentials.credentials}
+        if credentials
+        else {}
+    )
 
 
 def test_security_http_bearer_success_no_credentials():
@@ -59,12 +63,20 @@ def test_security_http_bearer_error_incorrect_scheme_credentials():
 
 @app.get("/credentials-no-auto-error")
 def get_credentials_no_error(
-    credentials: HTTPAuthorizationCredentials | None = Security(HTTPBearer(auto_error=False)),
+    credentials: HTTPAuthorizationCredentials | None = Security(
+        HTTPBearer(auto_error=False)
+    ),
 ):
-    return {"scheme": credentials.scheme, "credentials": credentials.credentials} if credentials else {}
+    return (
+        {"scheme": credentials.scheme, "credentials": credentials.credentials}
+        if credentials
+        else {}
+    )
 
 
 def test_security_http_bearer_success_no_auto_error():
-    response = client.get("/credentials-no-auto-error/", headers={"Authorization": "Basic notreally"})
+    response = client.get(
+        "/credentials-no-auto-error/", headers={"Authorization": "Basic notreally"}
+    )
     assert response.status_code == 200, response.text
     assert response.json() == {}

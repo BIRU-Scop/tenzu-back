@@ -54,7 +54,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "deleted_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="deleted at"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="deleted at"
+                    ),
                 ),
                 (
                     "file",

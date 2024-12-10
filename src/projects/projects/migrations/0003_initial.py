@@ -42,6 +42,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="project",
-            index=models.Index(fields=["workspace", "id"], name="projects_pr_workspa_2e7a5b_idx"),
+            index=models.Index(
+                fields=["workspace", "id"], name="projects_pr_workspa_2e7a5b_idx"
+            ),
         ),
     ]

@@ -21,7 +21,11 @@ from ninja import File, Path, Router, UploadedFile
 
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions.api.errors import ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from mediafiles import services as mediafiles_services
 from mediafiles.models import Mediafile
 from mediafiles.serializers import MediafileSerializer
@@ -62,7 +66,9 @@ async def create_story_mediafiles(
     Add some mediafiles to a story
     """
     story = await get_story_or_404(project_id, ref)
-    await check_permissions(permissions=CREATE_STORY_MEDIAFILES, user=request.user, obj=story)
+    await check_permissions(
+        permissions=CREATE_STORY_MEDIAFILES, user=request.user, obj=story
+    )
 
     return await mediafiles_services.create_mediafiles(
         files=files,

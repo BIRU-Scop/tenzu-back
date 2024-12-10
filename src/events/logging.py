@@ -57,7 +57,9 @@ class EventsDefaultFormatter(ColourizedFormatter):
                 return "emit"
             return "default"
 
-        func = self.action_colors.get(action_type(action), self.action_colors["default"])
+        func = self.action_colors.get(
+            action_type(action), self.action_colors["default"]
+        )
         return func(action)
 
     def formatMessage(self, record: logging.LogRecord) -> str:
@@ -69,7 +71,9 @@ class EventsDefaultFormatter(ColourizedFormatter):
         if self.use_colors:
             action = self._color_action(action)
 
-        recordcopy.__dict__["action"] = f"[{typer.style('EV', bold=True, fg='yellow')}: {action}]:{action_seperator}"
+        recordcopy.__dict__["action"] = (
+            f"[{typer.style('EV', bold=True, fg='yellow')}: {action}]:{action_seperator}"
+        )
         return super().formatMessage(recordcopy)
 
 

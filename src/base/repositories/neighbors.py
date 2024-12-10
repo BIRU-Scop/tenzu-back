@@ -37,7 +37,9 @@ class Neighbor(Generic[T]):
         self.prev = prev
 
 
-def get_neighbors_sync(obj: T, model_queryset: QuerySet[T] | None = None) -> Neighbor[T]:
+def get_neighbors_sync(
+    obj: T, model_queryset: QuerySet[T] | None = None
+) -> Neighbor[T]:
     """Get the neighbors of a model instance.
 
     The neighbors are the objects that are at the left/right of `obj` that also fulfill the queryset.
@@ -63,9 +65,7 @@ def get_neighbors_sync(obj: T, model_queryset: QuerySet[T] | None = None) -> Nei
                     LEAD("id", 1) OVER() AS next
                 FROM (%s) as ID_AND_ROW)
         AS SELECTED_ID_AND_ROW
-        """ % (
-        base_sql
-    )
+        """ % (base_sql)
     query += " WHERE id=%s;"
     params = list(base_params) + [obj.id]
 

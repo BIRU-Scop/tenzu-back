@@ -22,7 +22,12 @@ from ninja import Path, Router
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_400, ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_400,
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import IsWorkspaceMember
 from workspaces.invitations import services as workspaces_invitations_services
@@ -72,7 +77,9 @@ async def create_workspace_invitations(
     Create invitations to a workspace for a list of users (identified either by their username or their email).
     """
     workspace = await get_workspace_or_404(id=id)
-    await check_permissions(permissions=CREATE_WORKSPACE_INVITATIONS, user=request.user, obj=workspace)
+    await check_permissions(
+        permissions=CREATE_WORKSPACE_INVITATIONS, user=request.user, obj=workspace
+    )
 
     return await workspaces_invitations_services.create_workspace_invitations(
         workspace=workspace,
@@ -106,9 +113,13 @@ async def list_workspace_invitations(
     List (pending) workspace invitations
     """
     workspace = await get_workspace_or_404(id)
-    await check_permissions(permissions=LIST_WORKSPACE_INVITATIONS, user=request.user, obj=workspace)
+    await check_permissions(
+        permissions=LIST_WORKSPACE_INVITATIONS, user=request.user, obj=workspace
+    )
 
-    return await workspaces_invitations_services.list_pending_workspace_invitations(workspace=workspace)
+    return await workspaces_invitations_services.list_pending_workspace_invitations(
+        workspace=workspace
+    )
 
 
 # ##########################################################
@@ -129,12 +140,18 @@ async def list_workspace_invitations(
     by_alias=True,
     auth=None,
 )
-async def get_public_workspace_invitation(request, token: str) -> PublicWorkspaceInvitationSerializer:
+async def get_public_workspace_invitation(
+    request, token: str
+) -> PublicWorkspaceInvitationSerializer:
     """
     Get public information about a workspace invitation
     """
     try:
-        invitation = await workspaces_invitations_services.get_public_workspace_invitation(token=token)
+        invitation = (
+            await workspaces_invitations_services.get_public_workspace_invitation(
+                token=token
+            )
+        )
     except BadInvitationTokenError:
         raise ex.BadRequest("Invalid token")
     if not invitation:
@@ -160,7 +177,9 @@ async def get_public_workspace_invitation(request, token: str) -> PublicWorkspac
     },
     by_alias=True,
 )
-async def accept_workspace_invitation_by_token(request, token: str) -> WorkspaceInvitation:
+async def accept_workspace_invitation_by_token(
+    request, token: str
+) -> WorkspaceInvitation:
     """
     A user accepts a workspace invitation using an invitation token
     """
@@ -175,7 +194,9 @@ async def accept_workspace_invitation_by_token(request, token: str) -> Workspace
         obj=invitation,
     )
 
-    return await workspaces_invitations_services.accept_workspace_invitation(invitation=invitation)
+    return await workspaces_invitations_services.accept_workspace_invitation(
+        invitation=invitation
+    )
 
 
 ##########################################################
@@ -184,7 +205,9 @@ async def accept_workspace_invitation_by_token(request, token: str) -> Workspace
 
 
 async def get_workspace_invitation_by_token_or_404(token: str) -> WorkspaceInvitation:
-    invitation = await workspaces_invitations_services.get_workspace_invitation(token=token)
+    invitation = await workspaces_invitations_services.get_workspace_invitation(
+        token=token
+    )
     if not invitation:
         raise ex.NotFoundError("Invitation does not exist")
 

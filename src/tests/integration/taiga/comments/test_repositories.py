@@ -36,7 +36,9 @@ async def test_create_comment_associated_to_and_object():
     story = await f.create_story(created_by=user)
     text = "some comment example"
 
-    comment = await repositories.create_comment(text=text, content_object=story, created_by=user)
+    comment = await repositories.create_comment(
+        text=text, content_object=story, created_by=user
+    )
 
     assert comment.id
     assert comment.text == text
@@ -78,9 +80,21 @@ async def tests_get_comment():
     comment22 = await f.create_comment(content_object=story2)
 
     assert await repositories.get_comment(filters={"id": comment22.id}) == comment22
-    assert await repositories.get_comment(filters={"content_object": story1}) == comment11
-    assert await repositories.get_comment(filters={"content_object": story1, "id": comment21.id}) is None
-    assert await repositories.get_comment(filters={"content_object": story1, "id": comment11.id}) == comment11
+    assert (
+        await repositories.get_comment(filters={"content_object": story1}) == comment11
+    )
+    assert (
+        await repositories.get_comment(
+            filters={"content_object": story1, "id": comment21.id}
+        )
+        is None
+    )
+    assert (
+        await repositories.get_comment(
+            filters={"content_object": story1, "id": comment11.id}
+        )
+        == comment11
+    )
 
 
 ##########################################################
@@ -126,7 +140,9 @@ async def test_get_total_comments_by_content_object():
     await f.create_comment(content_object=story1)
     await f.create_comment(content_object=story2)
 
-    total_comments = await repositories.get_total_comments(filters={"content_object": story1})
+    total_comments = await repositories.get_total_comments(
+        filters={"content_object": story1}
+    )
     assert total_comments == 2
 
 
@@ -135,7 +151,9 @@ async def test_get_total_comments_not_deleted():
     user = await f.create_user()
     await f.create_comment(content_object=story1)
     await f.create_comment(content_object=story1)
-    await f.create_comment(content_object=story1, deleted_by=user, deleted_at=aware_utcnow())
+    await f.create_comment(
+        content_object=story1, deleted_by=user, deleted_at=aware_utcnow()
+    )
 
     total_comments = await repositories.get_total_comments(
         filters={"content_object": story1},

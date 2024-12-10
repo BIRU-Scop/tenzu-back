@@ -41,7 +41,9 @@ async def test_create_project():
 
     with (
         patch("projects.projects.services._create_project") as fake_create_project,
-        patch("projects.projects.services.get_project_detail") as fake_get_project_detail,
+        patch(
+            "projects.projects.services.get_project_detail"
+        ) as fake_get_project_detail,
     ):
         await services.create_project(
             workspace=workspace,
@@ -59,8 +61,12 @@ async def test_internal_create_project():
     workspace = f.build_workspace()
 
     with (
-        patch("projects.projects.services.projects_repositories", autospec=True) as fake_project_repository,
-        patch("projects.projects.services.pj_roles_repositories", autospec=True) as fake_pj_role_repository,
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_project_repository,
+        patch(
+            "projects.projects.services.pj_roles_repositories", autospec=True
+        ) as fake_pj_role_repository,
         patch(
             "projects.projects.services.pj_memberships_repositories", autospec=True
         ) as fake_pj_memberships_repository,
@@ -89,8 +95,12 @@ async def test_create_project_with_logo():
     logo = f.build_image_uploadfile()
 
     with (
-        patch("projects.projects.services.projects_repositories", autospec=True) as fake_project_repository,
-        patch("projects.projects.services.pj_roles_repositories", autospec=True) as fake_pj_roles_repository,
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_project_repository,
+        patch(
+            "projects.projects.services.pj_roles_repositories", autospec=True
+        ) as fake_pj_roles_repository,
         patch("projects.projects.services.pj_memberships_repositories", autospec=True),
     ):
         fake_project_repository.create_project.return_value = project
@@ -114,7 +124,9 @@ async def test_create_project_with_no_logo():
     workspace = f.build_workspace()
 
     with (
-        patch("projects.projects.services.projects_repositories", autospec=True) as fake_project_repository,
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_project_repository,
         patch("projects.projects.services.pj_roles_repositories", autospec=True),
         patch("projects.projects.services.pj_memberships_repositories", autospec=True),
     ):
@@ -145,8 +157,14 @@ async def test_create_project_with_no_logo():
 async def test_list_workspace_projects_for_a_ws_member():
     workspace = await f.create_workspace()
 
-    with (patch("projects.projects.services.projects_repositories", autospec=True) as fake_projects_repo,):
-        await services.list_workspace_projects_for_user(workspace=workspace, user=workspace.created_by)
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_projects_repo,
+    ):
+        await services.list_workspace_projects_for_user(
+            workspace=workspace, user=workspace.created_by
+        )
         fake_projects_repo.list_projects.assert_awaited_once_with(
             filters={"workspace_id": workspace.id},
             select_related=["workspace"],
@@ -157,7 +175,11 @@ async def test_list_workspace_projects_not_for_a_ws_member():
     workspace = f.build_workspace()
     user = f.build_user()
 
-    with (patch("projects.projects.services.projects_repositories", autospec=True) as fake_projects_repo,):
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_projects_repo,
+    ):
         await services.list_workspace_projects_for_user(workspace=workspace, user=user)
         fake_projects_repo.list_projects.assert_awaited_once_with(
             filters={"workspace_id": workspace.id, "project_member_id": user.id},
@@ -173,8 +195,12 @@ async def test_list_workspace_projects_not_for_a_ws_member():
 async def test_list_workspace_invited_projects_for_user():
     workspace = f.build_workspace()
 
-    with patch("projects.projects.services.projects_repositories", autospec=True) as fake_projects_repo:
-        await services.list_workspace_invited_projects_for_user(workspace=workspace, user=workspace.created_by)
+    with patch(
+        "projects.projects.services.projects_repositories", autospec=True
+    ) as fake_projects_repo:
+        await services.list_workspace_invited_projects_for_user(
+            workspace=workspace, user=workspace.created_by
+        )
         fake_projects_repo.list_projects.assert_awaited_once_with(
             filters={
                 "workspace_id": workspace.id,
@@ -194,9 +220,15 @@ async def test_get_project_detail():
     project = f.build_project(created_by=workspace.created_by, workspace=workspace)
 
     with (
-        patch("projects.projects.services.permissions_services", autospec=True) as fake_permissions_services,
-        patch("projects.projects.services.workspaces_services", autospec=True) as fake_workspaces_services,
-        patch("projects.projects.services.pj_invitations_services", autospec=True) as fake_pj_invitations_services,
+        patch(
+            "projects.projects.services.permissions_services", autospec=True
+        ) as fake_permissions_services,
+        patch(
+            "projects.projects.services.workspaces_services", autospec=True
+        ) as fake_workspaces_services,
+        patch(
+            "projects.projects.services.pj_invitations_services", autospec=True
+        ) as fake_pj_invitations_services,
     ):
         fake_permissions_services.get_user_project_role_info.return_value = (
             True,
@@ -206,8 +238,10 @@ async def test_get_project_detail():
         fake_permissions_services.get_user_permissions_for_project.return_value = []
         fake_permissions_services.is_workspace_member.return_value = True
         fake_pj_invitations_services.has_pending_project_invitation.return_value = True
-        fake_workspaces_services.get_workspace_nested.return_value = WorkspaceNestedSerializer(
-            id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="admin"
+        fake_workspaces_services.get_workspace_nested.return_value = (
+            WorkspaceNestedSerializer(
+                id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="admin"
+            )
         )
         await services.get_project_detail(project=project, user=workspace.created_by)
 
@@ -237,9 +271,15 @@ async def test_get_project_detail_anonymous():
     project = f.build_project(workspace=workspace, public_permissions=permissions)
 
     with (
-        patch("projects.projects.services.permissions_services", autospec=True) as fake_permissions_services,
-        patch("projects.projects.services.workspaces_services", autospec=True) as fake_workspaces_services,
-        patch("projects.projects.services.pj_invitations_services", autospec=True) as fake_pj_invitations_services,
+        patch(
+            "projects.projects.services.permissions_services", autospec=True
+        ) as fake_permissions_services,
+        patch(
+            "projects.projects.services.workspaces_services", autospec=True
+        ) as fake_workspaces_services,
+        patch(
+            "projects.projects.services.pj_invitations_services", autospec=True
+        ) as fake_pj_invitations_services,
     ):
         fake_permissions_services.get_user_project_role_info.return_value = (
             True,
@@ -249,12 +289,16 @@ async def test_get_project_detail_anonymous():
         fake_permissions_services.get_user_permissions_for_project.return_value = []
         fake_permissions_services.is_workspace_member.return_value = True
         fake_pj_invitations_services.has_pending_project_invitation.return_value = False
-        fake_workspaces_services.get_workspace_nested.return_value = WorkspaceNestedSerializer(
-            id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="admin"
+        fake_workspaces_services.get_workspace_nested.return_value = (
+            WorkspaceNestedSerializer(
+                id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="admin"
+            )
         )
         await services.get_project_detail(project=project, user=user)
 
-        fake_permissions_services.get_user_project_role_info.assert_awaited_once_with(project=project, user=user)
+        fake_permissions_services.get_user_project_role_info.assert_awaited_once_with(
+            project=project, user=user
+        )
         fake_permissions_services.get_user_permissions_for_project.assert_awaited_once_with(
             is_project_admin=True,
             is_workspace_member=True,
@@ -264,7 +308,9 @@ async def test_get_project_detail_anonymous():
             project=project,
         )
         fake_pj_invitations_services.has_pending_project_invitation.assert_not_awaited()
-        fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(id=workspace.id, user_id=user.id)
+        fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(
+            id=workspace.id, user_id=user.id
+        )
 
 
 ##########################################################
@@ -276,9 +322,13 @@ async def test_update_project_ok(tqmanager):
     project = f.build_project()
     values = {"name": "new name", "description": ""}
 
-    with patch("projects.projects.services.projects_repositories", autospec=True) as fake_pj_repo:
+    with patch(
+        "projects.projects.services.projects_repositories", autospec=True
+    ) as fake_pj_repo:
         await services._update_project(project=project, values=values)
-        fake_pj_repo.update_project.assert_awaited_once_with(project=project, values=values)
+        fake_pj_repo.update_project.assert_awaited_once_with(
+            project=project, values=values
+        )
         assert len(tqmanager.pending_jobs) == 0
 
 
@@ -287,9 +337,13 @@ async def test_update_project_ok_with_new_logo(tqmanager):
     project = f.build_project()
     values = {"name": "new name", "description": "", "logo": new_logo}
 
-    with patch("projects.projects.services.projects_repositories", autospec=True) as fake_pj_repo:
+    with patch(
+        "projects.projects.services.projects_repositories", autospec=True
+    ) as fake_pj_repo:
         await services._update_project(project=project, values=values)
-        fake_pj_repo.update_project.assert_awaited_once_with(project=project, values=values)
+        fake_pj_repo.update_project.assert_awaited_once_with(
+            project=project, values=values
+        )
         assert len(tqmanager.pending_jobs) == 0
 
 
@@ -299,9 +353,13 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
     project = f.build_project(logo=logo)
     values = {"name": "new name", "description": "", "logo": new_logo}
 
-    with patch("projects.projects.services.projects_repositories", autospec=True) as fake_pj_repo:
+    with patch(
+        "projects.projects.services.projects_repositories", autospec=True
+    ) as fake_pj_repo:
         await services._update_project(project=project, values=values)
-        fake_pj_repo.update_project.assert_awaited_once_with(project=project, values=values)
+        fake_pj_repo.update_project.assert_awaited_once_with(
+            project=project, values=values
+        )
         assert len(tqmanager.pending_jobs) == 1
         job = tqmanager.pending_jobs[0]
         assert "delete_old_logo" in job["task_name"]
@@ -315,7 +373,9 @@ async def test_update_project_name_empty(tqmanager):
     values = {"name": "", "description": "", "logo": logo}
 
     with (
-        patch("projects.projects.services.projects_repositories", autospec=True) as fake_pj_repo,
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_pj_repo,
         pytest.raises(ex.TenzuValidationError),
     ):
         await services._update_project(project=project, values=values)
@@ -333,14 +393,22 @@ async def test_update_project_public_permissions_ok():
     permissions = ["modify_story", "view_story"]
 
     with (
-        patch("projects.projects.services.projects_repositories", autospec=True) as fake_project_repository,
-        patch("projects.projects.services.projects_events", autospec=True) as fake_projects_events,
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_project_repository,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
     ):
-        await services.update_project_public_permissions(project=project, permissions=permissions)
+        await services.update_project_public_permissions(
+            project=project, permissions=permissions
+        )
         fake_project_repository.update_project.assert_awaited_once_with(
             project=project, values={"public_permissions": permissions}
         )
-        fake_projects_events.emit_event_when_project_permissions_are_updated.assert_awaited_with(project=project)
+        fake_projects_events.emit_event_when_project_permissions_are_updated.assert_awaited_with(
+            project=project
+        )
 
 
 ##########################################################
@@ -353,9 +421,15 @@ async def test_delete_project_fail():
     project = f.build_project()
 
     with (
-        patch("projects.projects.services.projects_repositories", autospec=True) as fake_projects_repo,
-        patch("projects.projects.services.projects_events", autospec=True) as fake_projects_events,
-        patch("projects.projects.services.users_services", autospec=True) as fake_users_services,
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_projects_repo,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+        patch(
+            "projects.projects.services.users_services", autospec=True
+        ) as fake_users_services,
     ):
         fake_projects_repo.delete_projects.return_value = 0
         fake_users_services.list_guests_in_workspace_for_project.return_value = []
@@ -374,9 +448,15 @@ async def test_delete_project_ok(tqmanager):
     project = f.build_project(logo=logo)
 
     with (
-        patch("projects.projects.services.projects_repositories", autospec=True) as fake_projects_repo,
-        patch("projects.projects.services.projects_events", autospec=True) as fake_projects_events,
-        patch("projects.projects.services.users_services", autospec=True) as fake_users_services,
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_projects_repo,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+        patch(
+            "projects.projects.services.users_services", autospec=True
+        ) as fake_users_services,
     ):
         fake_projects_repo.delete_projects.return_value = 1
         fake_users_services.list_guests_in_workspace_for_project.return_value = []

@@ -24,7 +24,12 @@ from ninja import Path, Router
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_400, ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_400,
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import IsProjectAdmin
 from projects.projects.api import PermissionsValidator, get_project_or_404
@@ -63,7 +68,9 @@ async def list_project_roles(request, project_id: Path[B64UUID]):
     """
 
     project = await get_project_or_404(project_id)
-    await check_permissions(permissions=LIST_PROJECT_ROLES, user=request.user, obj=project)
+    await check_permissions(
+        permissions=LIST_PROJECT_ROLES, user=request.user, obj=project
+    )
     # noinspection PyTypeChecker
     return await roles_services.list_project_roles(project=project)
 
@@ -97,7 +104,9 @@ async def update_project_role_permissions(
     """
 
     role = await get_project_role_or_404(project_id=project_id, slug=role_slug)
-    await check_permissions(permissions=UPDATE_PROJECT_ROLE_PERMISSIONS, user=request.user, obj=role)
+    await check_permissions(
+        permissions=UPDATE_PROJECT_ROLE_PERMISSIONS, user=request.user, obj=role
+    )
 
     try:
         await roles_services.update_project_role_permissions(role, form.permissions)

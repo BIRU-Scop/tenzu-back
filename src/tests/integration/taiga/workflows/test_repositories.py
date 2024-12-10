@@ -54,7 +54,9 @@ async def test_create_workflow():
 
 async def test_list_workflows_schemas_ok() -> None:
     project = await f.create_project()
-    workflows = await repositories.list_workflows(filters={"project_id": project.id}, prefetch_related=["statuses"])
+    workflows = await repositories.list_workflows(
+        filters={"project_id": project.id}, prefetch_related=["statuses"]
+    )
 
     assert len(workflows) == 1
     assert len(await _list_workflow_statuses(workflow=workflows[0])) == 4
@@ -76,14 +78,18 @@ async def test_list_project_without_workflows_ok() -> None:
 async def test_get_workflow_ok() -> None:
     project = await f.create_project()
     workflows = await _list_workflows(project=project)
-    workflow = await repositories.get_workflow(filters={"project_id": project.id, "slug": workflows[0].slug})
+    workflow = await repositories.get_workflow(
+        filters={"project_id": project.id, "slug": workflows[0].slug}
+    )
     assert workflow is not None
     assert hasattr(workflow, "id")
 
 
 async def test_get_project_without_workflow_ok() -> None:
     project = await f.create_simple_project()
-    workflow = await repositories.get_workflow(filters={"project_id": project.id, "slug": "not-existing-slug"})
+    workflow = await repositories.get_workflow(
+        filters={"project_id": project.id, "slug": "not-existing-slug"}
+    )
     assert workflow is None
 
 
@@ -151,14 +157,20 @@ class ListWorkflowStatuses(IsolatedAsyncioTestCase):
         self.workflow = await f.create_workflow(statuses=[])
         self.workflow_status = await f.create_workflow_status(workflow=self.workflow)
         await f.create_story(status=self.workflow_status, workflow=self.workflow)
-        self.empty_workflow_status = await f.create_workflow_status(workflow=self.workflow)
+        self.empty_workflow_status = await f.create_workflow_status(
+            workflow=self.workflow
+        )
 
     async def test_list_workflows_statuses_ok(self) -> None:
-        statuses = await repositories.list_workflow_statuses(filters={"workflow_id": self.workflow.id})
+        statuses = await repositories.list_workflow_statuses(
+            filters={"workflow_id": self.workflow.id}
+        )
         assert len(statuses) > 0
 
     async def test_list_no_workflows_statuses(self) -> None:
-        statuses = await repositories.list_workflow_statuses(filters={"workflow_id": self.empty_workflow.id})
+        statuses = await repositories.list_workflow_statuses(
+            filters={"workflow_id": self.empty_workflow.id}
+        )
         assert len(statuses) == 0
 
     async def test_list_empty_statuses(self) -> None:
@@ -236,7 +248,9 @@ async def test_list_statuses_to_reorder_bad_ids() -> None:
 async def test_list_workflow_status_neighbors() -> None:
     project = await f.create_project()
     workflow = await sync_to_async(project.workflows.first)()
-    statuses = await repositories.list_workflow_statuses(filters={"workflow_id": workflow.id})
+    statuses = await repositories.list_workflow_statuses(
+        filters={"workflow_id": workflow.id}
+    )
 
     neighbors = await repositories.list_workflow_status_neighbors(
         status=statuses[0], filters={"workflow_id": workflow.id}
@@ -308,14 +322,18 @@ async def test_update_workflow_status_ok() -> None:
     new_status_name = "new status name"
     new_values = {"name": new_status_name}
 
-    updated_status = await repositories.update_workflow_status(workflow_status=status, values=new_values)
+    updated_status = await repositories.update_workflow_status(
+        workflow_status=status, values=new_values
+    )
     assert updated_status.name == new_status_name
 
 
 async def test_bulk_update_workflow_statuses_ok() -> None:
     project = await f.create_project()
     workflow = await sync_to_async(project.workflows.first)()
-    statuses = await repositories.list_workflow_statuses(filters={"workflow_id": workflow.id})
+    statuses = await repositories.list_workflow_statuses(
+        filters={"workflow_id": workflow.id}
+    )
 
     order = 1
     for status in statuses:
@@ -327,9 +345,13 @@ async def test_bulk_update_workflow_statuses_ok() -> None:
         status.order = order
         order += 1
 
-    await repositories.bulk_update_workflow_statuses(objs_to_update=statuses, fields_to_update=["order"])
+    await repositories.bulk_update_workflow_statuses(
+        objs_to_update=statuses, fields_to_update=["order"]
+    )
 
-    new_statuses = await repositories.list_workflow_statuses(filters={"workflow_id": workflow.id})
+    new_statuses = await repositories.list_workflow_statuses(
+        filters={"workflow_id": workflow.id}
+    )
     order = 100
     for status in new_statuses:
         assert status.order == order
@@ -347,7 +369,9 @@ async def test_delete_workflow_status_without_stories_ok() -> None:
     # the workflow status to delete (without containing stories)
     workflow_status = await f.create_workflow_status(workflow=workflow)
 
-    delete_ret = await repositories.delete_workflow_status(filters={"id": workflow_status.id})
+    delete_ret = await repositories.delete_workflow_status(
+        filters={"id": workflow_status.id}
+    )
     assert delete_ret == 1
 
 
@@ -360,7 +384,9 @@ async def test_delete_workflow_status_with_stories_ok() -> None:
     await f.create_story(status=workflow_status, workflow=workflow)
     await f.create_story(status=workflow_status, workflow=workflow)
 
-    delete_ret = await repositories.delete_workflow_status(filters={"id": workflow_status.id})
+    delete_ret = await repositories.delete_workflow_status(
+        filters={"id": workflow_status.id}
+    )
 
     assert delete_ret == 3
 

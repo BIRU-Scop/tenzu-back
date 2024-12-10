@@ -55,7 +55,9 @@ def mock_serializer(serialized_type: Any) -> BaseModel | list[BaseModel]:
     if typing.get_origin(serialized_type) is list:
         ret_list = list()
         for _ in range(random.randint(MIN_LIST_LENGTH, MAX_LIST_LENGTH)):
-            ret_list.append(base_model_mock_serializer(typing.get_args(serialized_type)[0]))
+            ret_list.append(
+                base_model_mock_serializer(typing.get_args(serialized_type)[0])
+            )
         return ret_list
     return base_model_mock_serializer(serialized_type)
 
@@ -89,11 +91,16 @@ def base_model_mock_serializer(
                 prop_type = prop_type.__args__[0]
 
         if _is_base_model_type(prop_type):
-            if _is_nested_property(parent_props, prop, prop_type) and current_nested_index[prop] < MAX_NESTED_INDEX:
+            if (
+                _is_nested_property(parent_props, prop, prop_type)
+                and current_nested_index[prop] < MAX_NESTED_INDEX
+            ):
                 # circular nested properties detected, allow recursion!
                 parent_props.setdefault(prop, set()).add(prop_type)
                 current_nested_index[prop] += 1
-                properties_dict[prop] = base_model_mock_serializer(prop_type, current_nested_index, parent_props)
+                properties_dict[prop] = base_model_mock_serializer(
+                    prop_type, current_nested_index, parent_props
+                )
                 current_nested_index[prop] -= 1
 
             elif (
@@ -109,7 +116,9 @@ def base_model_mock_serializer(
                 # recursion allowed, or forced iteration (searching for an Optional field to exit recursion)
                 parent_props.setdefault(prop, set()).add(prop_type)
                 current_nested_index[prop] += 1
-                properties_dict[prop] = base_model_mock_serializer(prop_type, current_nested_index, parent_props)
+                properties_dict[prop] = base_model_mock_serializer(
+                    prop_type, current_nested_index, parent_props
+                )
                 current_nested_index[prop] -= 1
 
         if _is_simple(prop_type):
@@ -120,7 +129,9 @@ def base_model_mock_serializer(
             properties_dict[prop] = []
             for count in list_range:
                 if not issubclass(typing.get_args(prop_type)[0], BaseModel):
-                    properties_dict[prop].append(_get_simple_random(typing.get_args(prop_type)[0]))
+                    properties_dict[prop].append(
+                        _get_simple_random(typing.get_args(prop_type)[0])
+                    )
                 elif current_nested_index[prop] < MAX_NESTED_INDEX:
                     parent_props.setdefault(prop, set()).add(prop_type)
                     current_nested_index[prop] += 1
@@ -136,7 +147,9 @@ def base_model_mock_serializer(
     return serialized_type(**properties_dict)
 
 
-def _is_nested_property(parent_props: dict[str, Any], property: str, type: type[Any]) -> bool:
+def _is_nested_property(
+    parent_props: dict[str, Any], property: str, type: type[Any]
+) -> bool:
     return property in parent_props.keys() and type in parent_props[property]
 
 
@@ -149,7 +162,9 @@ def _is_base_model_type(type: type[Any]) -> bool:
 
 
 def _is_simple(type: type[Any]) -> bool:
-    return type is str or type is int or type is bool or type is datetime or type is dict
+    return (
+        type is str or type is int or type is bool or type is datetime or type is dict
+    )
 
 
 def _get_simple_random(type: type[Any]) -> Any:

@@ -32,11 +32,15 @@ async def test_clean_deleted_storaged_objects():
     ]
     before_datetime = aware_utcnow() - timedelta(days=1)
 
-    with patch("commons.storage.services.storage_repositories", autospec=True) as fake_storage_repositories:
+    with patch(
+        "commons.storage.services.storage_repositories", autospec=True
+    ) as fake_storage_repositories:
         fake_storage_repositories.list_storaged_objects.return_value = storaged_objects
         fake_storage_repositories.delete_storaged_object.return_value = True
 
-        assert await services.clean_deleted_storaged_objects(before=before_datetime) == 2
+        assert (
+            await services.clean_deleted_storaged_objects(before=before_datetime) == 2
+        )
 
         fake_storage_repositories.list_storaged_objects.assert_awaited_once_with(
             filters={"deleted_before": before_datetime}

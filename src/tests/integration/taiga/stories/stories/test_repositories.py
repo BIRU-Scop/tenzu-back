@@ -74,7 +74,9 @@ async def test_list_stories() -> None:
     assert len(stories) == 2
     stories = await repositories.list_stories(filters={"workflow_id": workflow_2.id})
     assert len(stories) == 1
-    stories = await repositories.list_stories(filters={"workflow_id": workflow_1.id, "refs": [story1.ref]})
+    stories = await repositories.list_stories(
+        filters={"workflow_id": workflow_1.id, "refs": [story1.ref]}
+    )
     assert len(stories) == 1
 
 
@@ -137,10 +139,20 @@ async def test_delete_stories() -> None:
     user = await f.create_user()
     story = await f.create_story()
     await f.create_story_assignment(user=user, story=story)
-    assert await sync_to_async(StoryAssignment.objects.filter(story_id=story.id, user_id=user.id).count)() == 1
+    assert (
+        await sync_to_async(
+            StoryAssignment.objects.filter(story_id=story.id, user_id=user.id).count
+        )()
+        == 1
+    )
     deleted = await repositories.delete_stories(filters={"id": story.id})
     assert deleted == 2  # deleted story and assignment
-    assert await sync_to_async(StoryAssignment.objects.filter(story_id=story.id, user_id=user.id).count)() == 0
+    assert (
+        await sync_to_async(
+            StoryAssignment.objects.filter(story_id=story.id, user_id=user.id).count
+        )()
+        == 0
+    )
 
 
 ##########################################################
@@ -160,40 +172,60 @@ async def test_list_story_neighbors() -> None:
     story3 = await f.create_story(project=project, workflow=workflow1, status=status11)
     await f.create_story(project=project, workflow=workflow1, status=status12)
 
-    neighbors = await repositories.list_story_neighbors(story=story1, filters={"status_id": status11.id})
+    neighbors = await repositories.list_story_neighbors(
+        story=story1, filters={"status_id": status11.id}
+    )
     assert neighbors.prev is None
     assert neighbors.next.ref == story2.ref
 
-    neighbors = await repositories.list_story_neighbors(story=story2, filters={"status_id": status11.id})
+    neighbors = await repositories.list_story_neighbors(
+        story=story2, filters={"status_id": status11.id}
+    )
     assert neighbors.prev.ref == story1.ref
     assert neighbors.next.ref == story3.ref
 
-    neighbors = await repositories.list_story_neighbors(story=story3, filters={"status_id": status11.id})
+    neighbors = await repositories.list_story_neighbors(
+        story=story3, filters={"status_id": status11.id}
+    )
     assert neighbors.prev.ref == story2.ref
     assert neighbors.next is None
 
     # different statuses
     workflow2 = await f.create_workflow(project=project)
-    status21 = await f.create_workflow_status(workflow=workflow2, name="New", color=1, order=1)
-    status22 = await f.create_workflow_status(workflow=workflow2, name="In progress", color=1, order=2)
-    status23 = await f.create_workflow_status(workflow=workflow2, name="Done", color=1, order=3)
+    status21 = await f.create_workflow_status(
+        workflow=workflow2, name="New", color=1, order=1
+    )
+    status22 = await f.create_workflow_status(
+        workflow=workflow2, name="In progress", color=1, order=2
+    )
+    status23 = await f.create_workflow_status(
+        workflow=workflow2, name="Done", color=1, order=3
+    )
     story1 = await f.create_story(project=project, workflow=workflow2, status=status21)
     story2 = await f.create_story(project=project, workflow=workflow2, status=status22)
     story3 = await f.create_story(project=project, workflow=workflow2, status=status23)
 
-    neighbors = await repositories.list_story_neighbors(story=story1, filters={"workflow_id": workflow2.id})
+    neighbors = await repositories.list_story_neighbors(
+        story=story1, filters={"workflow_id": workflow2.id}
+    )
     assert neighbors.prev is None
     assert neighbors.next.ref == story2.ref
 
-    neighbors = await repositories.list_story_neighbors(story=story1, filters={"status_id": status21.id})
+    neighbors = await repositories.list_story_neighbors(
+        story=story1, filters={"status_id": status21.id}
+    )
     assert neighbors.prev is None
     assert neighbors.next is None
 
-    neighbors = await repositories.list_story_neighbors(story=story2, filters={"workflow_id": workflow2.id})
+    neighbors = await repositories.list_story_neighbors(
+        story=story2, filters={"workflow_id": workflow2.id}
+    )
     assert neighbors.prev.ref == story1.ref
     assert neighbors.next.ref == story3.ref
 
-    neighbors = await repositories.list_story_neighbors(story=story3, filters={"workflow_id": workflow2.id})
+    neighbors = await repositories.list_story_neighbors(
+        story=story3, filters={"workflow_id": workflow2.id}
+    )
     assert neighbors.prev.ref == story2.ref
     assert neighbors.next is None
 
@@ -214,7 +246,9 @@ async def test_get_total_stories() -> None:
     await f.create_story(project=project, workflow=workflow_1, status=status_1)
     await f.create_story(project=project, workflow=workflow_2, status=status_2)
 
-    total_stories = await repositories.get_total_stories(filters={"project_id": project.id})
+    total_stories = await repositories.get_total_stories(
+        filters={"project_id": project.id}
+    )
     assert total_stories == 3
     total_stories = await repositories.get_total_stories(
         filters={"project_id": project.id, "workflow_id": workflow_1.id}
@@ -280,7 +314,9 @@ async def test_bulk_update_workflow_to_stories() -> None:
         old_workflow_id=old_workflow.id,
         new_workflow_id=new_workflow.id,
     )
-    stories = await repositories.list_stories(filters={"workflow_id": old_workflow}, select_related=["workflow"])
+    stories = await repositories.list_stories(
+        filters={"workflow_id": old_workflow}, select_related=["workflow"]
+    )
     assert story1 in stories and story2 in stories
     assert stories[0].workflow == new_workflow
     assert stories[1].workflow == new_workflow

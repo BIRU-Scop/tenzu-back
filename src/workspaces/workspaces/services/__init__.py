@@ -28,7 +28,10 @@ from workspaces.memberships.services import get_workspace_role_name
 from workspaces.workspaces import events as workspaces_events
 from workspaces.workspaces import repositories as workspaces_repositories
 from workspaces.workspaces.models import Workspace
-from workspaces.workspaces.serializers import WorkspaceDetailSerializer, WorkspaceSerializer
+from workspaces.workspaces.serializers import (
+    WorkspaceDetailSerializer,
+    WorkspaceSerializer,
+)
 from workspaces.workspaces.serializers import services as serializers_services
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 from workspaces.workspaces.services import exceptions as ex
@@ -38,15 +41,21 @@ from workspaces.workspaces.services import exceptions as ex
 ##########################################################
 
 
-async def create_workspace(name: str, color: int, created_by: User) -> WorkspaceSerializer:
+async def create_workspace(
+    name: str, color: int, created_by: User
+) -> WorkspaceSerializer:
     workspace = await _create_workspace(name=name, color=color, created_by=created_by)
     return await get_workspace_detail(id=workspace.id, user_id=created_by.id)
 
 
 #  TODO: review this method after the sampledata refactor
 async def _create_workspace(name: str, color: int, created_by: User) -> Workspace:
-    workspace = await workspaces_repositories.create_workspace(name=name, color=color, created_by=created_by)
-    await ws_memberships_repositories.create_workspace_membership(user=created_by, workspace=workspace)
+    workspace = await workspaces_repositories.create_workspace(
+        name=name, color=color, created_by=created_by
+    )
+    await ws_memberships_repositories.create_workspace_membership(
+        user=created_by, workspace=workspace
+    )
     return workspace
 
 
@@ -58,7 +67,9 @@ async def _create_workspace(name: str, color: int, created_by: User) -> Workspac
 async def list_user_workspaces(user: User) -> list[WorkspaceDetailSerializer]:
     return [
         serializers_services.serialize_workspace_detail(workspace=workspace)
-        for workspace in await workspaces_repositories.list_user_workspaces_overview(user=user)
+        for workspace in await workspaces_repositories.list_user_workspaces_overview(
+            user=user
+        )
     ]
 
 
@@ -74,20 +85,28 @@ async def get_workspace(id: UUID) -> Workspace | None:
 async def get_workspace_detail(id: UUID, user_id: UUID | None) -> WorkspaceSerializer:
     workspace = cast(
         Workspace,
-        await workspaces_repositories.get_workspace_detail(filters={"id": id}, user_id=user_id),
+        await workspaces_repositories.get_workspace_detail(
+            filters={"id": id}, user_id=user_id
+        ),
     )
     return serializers_services.serialize_workspace(
         workspace=workspace,
-        user_role=await ws_memberships_services.get_workspace_role_name(workspace_id=id, user_id=user_id),
+        user_role=await ws_memberships_services.get_workspace_role_name(
+            workspace_id=id, user_id=user_id
+        ),
         total_projects=(
-            await projects_repositories.get_total_projects(filters={"workspace_id": id, "project_member_id": user_id})
+            await projects_repositories.get_total_projects(
+                filters={"workspace_id": id, "project_member_id": user_id}
+            )
             if user_id
             else 0
         ),
     )
 
 
-async def get_workspace_nested(id: UUID, user_id: UUID | None) -> WorkspaceNestedSerializer:
+async def get_workspace_nested(
+    id: UUID, user_id: UUID | None
+) -> WorkspaceNestedSerializer:
     # TODO: this service should be improved
     workspace = cast(
         Workspace,
@@ -102,7 +121,9 @@ async def get_workspace_nested(id: UUID, user_id: UUID | None) -> WorkspaceNeste
 
 
 async def get_user_workspace(user: User, id: UUID) -> WorkspaceDetailSerializer | None:
-    workspace = await workspaces_repositories.get_user_workspace_overview(user=user, id=id)
+    workspace = await workspaces_repositories.get_user_workspace_overview(
+        user=user, id=id
+    )
     if workspace:
         return serializers_services.serialize_workspace_detail(workspace=workspace)
 
@@ -114,12 +135,16 @@ async def get_user_workspace(user: User, id: UUID) -> WorkspaceDetailSerializer 
 ##########################################################
 
 
-async def update_workspace(workspace: Workspace, user: User, values: dict[str, Any] = {}) -> WorkspaceSerializer:
+async def update_workspace(
+    workspace: Workspace, user: User, values: dict[str, Any] = {}
+) -> WorkspaceSerializer:
     updated_workspace = await _update_workspace(workspace=workspace, values=values)
     return await get_workspace_detail(id=updated_workspace.id, user_id=user.id)
 
 
-async def _update_workspace(workspace: Workspace, values: dict[str, Any] = {}) -> Workspace:
+async def _update_workspace(
+    workspace: Workspace, values: dict[str, Any] = {}
+) -> Workspace:
     # Prevent hitting the database with an empty PATCH
     if not values:
         return workspace
@@ -127,7 +152,9 @@ async def _update_workspace(workspace: Workspace, values: dict[str, Any] = {}) -
     if "name" in values and values["name"] is None:
         raise ex.TenzuValidationError("Name cannot be null")
 
-    return await workspaces_repositories.update_workspace(workspace=workspace, values=values)
+    return await workspaces_repositories.update_workspace(
+        workspace=workspace, values=values
+    )
 
 
 ##########################################################
@@ -136,15 +163,21 @@ async def _update_workspace(workspace: Workspace, values: dict[str, Any] = {}) -
 
 
 async def delete_workspace(workspace: Workspace, deleted_by: User) -> bool:
-    ws_total_projects = await projects_repositories.get_total_projects(filters={"workspace_id": workspace.id})
+    ws_total_projects = await projects_repositories.get_total_projects(
+        filters={"workspace_id": workspace.id}
+    )
     if ws_total_projects:
         raise ex.WorkspaceHasProjects(
             f"This workspace has {ws_total_projects} projects. Delete the projects and try again."
         )
 
-    deleted = await workspaces_repositories.delete_workspaces(filters={"id": workspace.id})
+    deleted = await workspaces_repositories.delete_workspaces(
+        filters={"id": workspace.id}
+    )
     if deleted > 0:
-        await workspaces_events.emit_event_when_workspace_is_deleted(workspace=workspace, deleted_by=deleted_by)
+        await workspaces_events.emit_event_when_workspace_is_deleted(
+            workspace=workspace, deleted_by=deleted_by
+        )
         return True
 
     return False

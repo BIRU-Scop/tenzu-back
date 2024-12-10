@@ -150,7 +150,9 @@ async def test_unsubscribe_from_a_non_subscribed_channel(manager):
     websocket = Mock(spec=WebSocket, scope={})
     channel = "channel1"
 
-    async with (manager.register(websocket) as subscriber,):
+    async with (
+        manager.register(websocket) as subscriber,
+    ):
         assert channel not in manager._channels
 
         assert not await manager.unsubscribe(subscriber, channel)

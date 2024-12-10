@@ -70,7 +70,9 @@ async def test_create_project_invitations():
 async def test_get_project_invitation_ok() -> None:
     invitation = await f.create_project_invitation()
 
-    new_invitation = await repositories.get_project_invitation(filters={"id": invitation.id})
+    new_invitation = await repositories.get_project_invitation(
+        filters={"id": invitation.id}
+    )
 
     assert new_invitation is not None
     assert new_invitation == invitation
@@ -144,14 +146,18 @@ async def test_get_project_invitation_by_email_no_status() -> None:
 async def test_get_project_invitation_by_id() -> None:
     invitation = await f.create_project_invitation()
 
-    new_invitation = await repositories.get_project_invitation(filters={"id": invitation.id})
+    new_invitation = await repositories.get_project_invitation(
+        filters={"id": invitation.id}
+    )
 
     assert new_invitation is not None
     assert new_invitation == invitation
 
 
 async def get_project_invitation_by_id_not_found() -> None:
-    new_invitation = await repositories.get_project_invitation(filters={"id": uuid.uuid1()})
+    new_invitation = await repositories.get_project_invitation(
+        filters={"id": uuid.uuid1()}
+    )
 
     assert new_invitation is None
 
@@ -351,11 +357,17 @@ async def test_bulk_update_project_invitations():
     objs = [invitation1, invitation2]
     fields_to_update = ["role"]
 
-    await repositories.bulk_update_project_invitations(objs_to_update=objs, fields_to_update=fields_to_update)
-    updated_invitation1 = await repositories.get_project_invitation(filters={"id": invitation1.id})
+    await repositories.bulk_update_project_invitations(
+        objs_to_update=objs, fields_to_update=fields_to_update
+    )
+    updated_invitation1 = await repositories.get_project_invitation(
+        filters={"id": invitation1.id}
+    )
     assert updated_invitation1.role == role2
 
-    updated_invitation2 = await repositories.get_project_invitation(filters={"id": invitation2.id})
+    updated_invitation2 = await repositories.get_project_invitation(
+        filters={"id": invitation2.id}
+    )
     assert updated_invitation2.role == role2
 
 

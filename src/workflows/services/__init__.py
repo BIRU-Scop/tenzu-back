@@ -21,12 +21,14 @@ from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
 
 from projects.projects import repositories as projects_repositories
 from projects.projects.models import Project
 from stories.stories import repositories as stories_repositories
 from stories.stories import services as stories_services
+from stories.stories.models import Story
 from users.models import User
 from workflows import events as workflows_events
 from workflows import repositories as workflows_repositories
@@ -182,10 +184,10 @@ async def get_delete_workflow_detail(
     workflow_statuses = await workflows_repositories.list_workflow_statuses(
         filters={"workflow_id": workflow.id}
     )
-    workflow_stories = await stories_services.list_all_stories(
-        project_id=project_id,
-        workflow_slug=workflow_slug,
+    workflow_stories = await sync_to_async(Story.objects.list_stories)(
+        project_id=project_id, workflow_slug=workflow_slug
     )
+
     return serializers_services.serialize_delete_workflow_detail(
         workflow=workflow,
         workflow_statuses=workflow_statuses,

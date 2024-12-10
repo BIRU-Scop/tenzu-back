@@ -30,7 +30,9 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="project",
             name="description",
-            field=models.CharField(blank=True, default="", max_length=220, verbose_name="description"),
+            field=models.CharField(
+                blank=True, default="", max_length=220, verbose_name="description"
+            ),
         ),
         migrations.AlterField(
             model_name="project",

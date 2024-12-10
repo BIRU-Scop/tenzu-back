@@ -24,11 +24,18 @@ from ninja import Path, Router
 from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
-from exceptions.api.errors import ERROR_RESPONSE_403, ERROR_RESPONSE_404, ERROR_RESPONSE_422
+from exceptions.api.errors import (
+    ERROR_RESPONSE_403,
+    ERROR_RESPONSE_404,
+    ERROR_RESPONSE_422,
+)
 from ninja_jwt.authentication import AsyncJWTAuth
 from notifications import services as notifications_services
 from notifications.models import Notification
-from notifications.serializers import NotificationCountersSerializer, NotificationSerializer
+from notifications.serializers import (
+    NotificationCountersSerializer,
+    NotificationSerializer,
+)
 from permissions import IsAuthenticated
 from users.models import User
 
@@ -50,12 +57,18 @@ notifications_router = Router(auth=AsyncJWTAuth())
     response={200: list[NotificationSerializer], 403: ERROR_RESPONSE_403},
     by_alias=True,
 )
-async def list_my_notifications(request, read: bool | None = None) -> list[Notification]:
+async def list_my_notifications(
+    request, read: bool | None = None
+) -> list[Notification]:
     """
     List the notifications of the logged user.
     """
-    await check_permissions(permissions=LIST_MY_NOTIFICATIONS, user=request.user, obj=None)
-    return await notifications_services.list_user_notifications(user=request.user, is_read=read)
+    await check_permissions(
+        permissions=LIST_MY_NOTIFICATIONS, user=request.user, obj=None
+    )
+    return await notifications_services.list_user_notifications(
+        user=request.user, is_read=read
+    )
 
 
 ##########################################################
@@ -74,7 +87,9 @@ async def count_my_notifications(request) -> dict[str, int]:
     """
     Get user notifications counters
     """
-    await check_permissions(permissions=COUNT_MY_NOTIFICATIONS, user=request.user, obj=None)
+    await check_permissions(
+        permissions=COUNT_MY_NOTIFICATIONS, user=request.user, obj=None
+    )
     return await notifications_services.count_user_notifications(user=request.user)
 
 
@@ -102,9 +117,15 @@ async def mark_my_notification_as_read(
     """
     Mark a notification as read.
     """
-    await check_permissions(permissions=MARK_MY_NOTIFICATIONS_AS_READ, user=request.user, obj=None)
+    await check_permissions(
+        permissions=MARK_MY_NOTIFICATIONS_AS_READ, user=request.user, obj=None
+    )
     await get_notification_or_404(user=request.user, id=id)
-    return (await notifications_services.mark_user_notifications_as_read(user=request.user, id=id))[0]
+    return (
+        await notifications_services.mark_user_notifications_as_read(
+            user=request.user, id=id
+        )
+    )[0]
 
 
 ##########################################################

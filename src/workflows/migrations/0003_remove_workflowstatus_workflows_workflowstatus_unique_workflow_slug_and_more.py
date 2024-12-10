@@ -40,7 +40,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="workflowstatus",
-            index=models.Index(fields=["workflow", "id"], name="workflows_w_workflo_83740e_idx"),
+            index=models.Index(
+                fields=["workflow", "id"], name="workflows_w_workflo_83740e_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="workflowstatus",

@@ -134,8 +134,12 @@ def list_workflows(
     prefetch_related: WorkflowPrefetchRelated = ["statuses"],
     order_by: WorkflowOrderBy = ["order"],
 ) -> list[Workflow]:
-    qs = _apply_filters_to_workflow_queryset(qs=DEFAULT_QUERYSET_WORKFLOW, filters=filters)
-    qs = _apply_prefetch_related_to_workflow_queryset(qs=qs, prefetch_related=prefetch_related)
+    qs = _apply_filters_to_workflow_queryset(
+        qs=DEFAULT_QUERYSET_WORKFLOW, filters=filters
+    )
+    qs = _apply_prefetch_related_to_workflow_queryset(
+        qs=qs, prefetch_related=prefetch_related
+    )
     qs = _apply_order_by_to_workflow_queryset(order_by=order_by, qs=qs)
 
     return list(qs)
@@ -152,9 +156,15 @@ def get_workflow(
     select_related: WorkflowSelectRelated = [],
     prefetch_related: WorkflowPrefetchRelated = ["statuses"],
 ) -> Workflow | None:
-    qs = _apply_filters_to_workflow_queryset(qs=DEFAULT_QUERYSET_WORKFLOW, filters=filters)
-    qs = _apply_select_related_to_workflow_queryset(qs=qs, select_related=select_related)
-    qs = _apply_prefetch_related_to_workflow_queryset(qs=qs, prefetch_related=prefetch_related)
+    qs = _apply_filters_to_workflow_queryset(
+        qs=DEFAULT_QUERYSET_WORKFLOW, filters=filters
+    )
+    qs = _apply_select_related_to_workflow_queryset(
+        qs=qs, select_related=select_related
+    )
+    qs = _apply_prefetch_related_to_workflow_queryset(
+        qs=qs, prefetch_related=prefetch_related
+    )
 
     try:
         return qs.get()
@@ -182,7 +192,9 @@ def update_workflow(workflow: Workflow, values: dict[str, Any] = {}) -> Workflow
 
 
 async def delete_workflow(filters: WorkflowFilters = {}) -> int:
-    qs = _apply_filters_to_workflow_queryset(qs=DEFAULT_QUERYSET_WORKFLOW, filters=filters)
+    qs = _apply_filters_to_workflow_queryset(
+        qs=DEFAULT_QUERYSET_WORKFLOW, filters=filters
+    )
     count, _ = await qs.adelete()
     return count
 
@@ -302,7 +314,9 @@ def list_workflow_statuses(
     offset: int | None = None,
     limit: int | None = None,
 ) -> list[WorkflowStatus]:
-    qs = _apply_filters_to_workflow_status_queryset(qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters)
+    qs = _apply_filters_to_workflow_status_queryset(
+        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
+    )
     qs = _apply_order_by_to_workflow_status_queryset(qs=qs, order_by=order_by)
 
     if limit is not None and offset is not None:
@@ -319,7 +333,9 @@ def list_workflow_statuses_to_reorder(
     This method is very similar to "list_workflow_statuses" except this has to keep
     the order of the input ids.
     """
-    qs = _apply_filters_to_workflow_status_queryset(qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters)
+    qs = _apply_filters_to_workflow_status_queryset(
+        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
+    )
 
     statuses = {s.id: s for s in qs}
     return [statuses[id] for id in filters["ids"] if statuses.get(id) is not None]
@@ -330,7 +346,9 @@ def list_workflow_status_neighbors(
     status: WorkflowStatus,
     filters: WorkflowStatusFilters = {},
 ) -> Neighbor[WorkflowStatus]:
-    qs = _apply_filters_to_workflow_status_queryset(qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters)
+    qs = _apply_filters_to_workflow_status_queryset(
+        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
+    )
     qs = _apply_order_by_to_workflow_status_queryset(qs=qs, order_by=["order"])
 
     return neighbors_repositories.get_neighbors_sync(obj=status, model_queryset=qs)
@@ -346,8 +364,12 @@ def get_workflow_status(
     filters: WorkflowStatusFilters = {},
     select_related: WorkflowStatusSelectRelated = [],
 ) -> WorkflowStatus | None:
-    qs = _apply_filters_to_workflow_status_queryset(qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters)
-    qs = _apply_select_related_to_workflow_status_queryset(qs=qs, select_related=select_related)
+    qs = _apply_filters_to_workflow_status_queryset(
+        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
+    )
+    qs = _apply_select_related_to_workflow_status_queryset(
+        qs=qs, select_related=select_related
+    )
 
     try:
         return qs.get()
@@ -361,7 +383,9 @@ def get_workflow_status(
 
 
 @sync_to_async
-def update_workflow_status(workflow_status: WorkflowStatus, values: dict[str, Any] = {}) -> WorkflowStatus:
+def update_workflow_status(
+    workflow_status: WorkflowStatus, values: dict[str, Any] = {}
+) -> WorkflowStatus:
     for attr, value in values.items():
         setattr(workflow_status, attr, value)
 
@@ -369,7 +393,9 @@ def update_workflow_status(workflow_status: WorkflowStatus, values: dict[str, An
     return workflow_status
 
 
-async def bulk_update_workflow_statuses(objs_to_update: list[WorkflowStatus], fields_to_update: list[str]) -> None:
+async def bulk_update_workflow_statuses(
+    objs_to_update: list[WorkflowStatus], fields_to_update: list[str]
+) -> None:
     await WorkflowStatus.objects.abulk_update(objs_to_update, fields_to_update)
 
 
@@ -379,7 +405,9 @@ async def bulk_update_workflow_statuses(objs_to_update: list[WorkflowStatus], fi
 
 
 async def delete_workflow_status(filters: WorkflowStatusFilters = {}) -> int:
-    qs = _apply_filters_to_workflow_status_queryset(qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters)
+    qs = _apply_filters_to_workflow_status_queryset(
+        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
+    )
     count, _ = await qs.adelete()
     return count
 
@@ -389,7 +417,9 @@ async def delete_workflow_status(filters: WorkflowStatusFilters = {}) -> int:
 ##########################################################
 
 
-def apply_default_workflow_statuses_sync(template: ProjectTemplate, workflow: Workflow) -> None:
+def apply_default_workflow_statuses_sync(
+    template: ProjectTemplate, workflow: Workflow
+) -> None:
     for status in template.workflow_statuses:
         create_workflow_status_sync(
             name=status["name"],

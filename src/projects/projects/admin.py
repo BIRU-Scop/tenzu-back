@@ -42,7 +42,9 @@ class ProjectMembershipInline(admin.TabularInline):
     fields = ("project", "role", "user")
     extra = 0
 
-    def get_formset(self, request: HttpRequest, obj: Project | None = None, **kwargs: Any) -> Any:
+    def get_formset(
+        self, request: HttpRequest, obj: Project | None = None, **kwargs: Any
+    ) -> Any:
         self.parent_obj = obj  # Use in formfield_for_foreignkey()
         return super().get_formset(request, obj, **kwargs)
 
@@ -50,7 +52,9 @@ class ProjectMembershipInline(admin.TabularInline):
         self, db_field: ForeignKey[Any, Any], request: HttpRequest, **kwargs: Any
     ) -> ModelChoiceField:
         if db_field.name in ["role"]:
-            kwargs["queryset"] = db_field.related_model.objects.filter(project=self.parent_obj)
+            kwargs["queryset"] = db_field.related_model.objects.filter(
+                project=self.parent_obj
+            )
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
@@ -59,7 +63,9 @@ class ProjectInvitationInline(admin.TabularInline):
     model = ProjectInvitation
     extra = 0
 
-    def get_formset(self, request: HttpRequest, obj: Project | None = None, **kwargs: Any) -> Any:
+    def get_formset(
+        self, request: HttpRequest, obj: Project | None = None, **kwargs: Any
+    ) -> Any:
         self.parent_obj = obj  # Use in formfield_for_foreignkey()
         return super().get_formset(request, obj, **kwargs)
 
@@ -67,7 +73,9 @@ class ProjectInvitationInline(admin.TabularInline):
         self, db_field: ForeignKey[Any, Any], request: HttpRequest, **kwargs: Any
     ) -> ModelChoiceField:
         if db_field.name in ["role"]:
-            kwargs["queryset"] = db_field.related_model.objects.filter(project=self.parent_obj)
+            kwargs["queryset"] = db_field.related_model.objects.filter(
+                project=self.parent_obj
+            )
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
