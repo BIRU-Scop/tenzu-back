@@ -41,14 +41,13 @@ from .api import api
 urlpatterns: list[URLPattern | URLResolver] = []
 
 urlpatterns += [
-    path("api/v2/", api.urls),
+    path(f"api/{settings.API_VERSION}/", api.urls),
 ]
 
 
 if settings.DEBUG:
+    from django.conf.urls.static import static
     from django.contrib import admin
-    from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-    from django.urls import re_path
 
     ##############################################
     # Admin panel
@@ -62,26 +61,14 @@ if settings.DEBUG:
     # Media files
     ##############################################
 
-    def mediafiles_urlpatterns(prefix: str) -> list[URLPattern]:
-        """
-        Method for serve media files with runserver.
-        """
-        import re
+    # you'll need to change the caddy config not to serve the media files directly if you want this route to be used
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-        from django.views.static import serve
-
-        return [
-            re_path(
-                r"^%s(?P<path>.*)$" % re.escape(prefix.lstrip("/")),
-                serve,
-                {"document_root": settings.MEDIA_ROOT},
-            )
-        ]
-
-    urlpatterns += mediafiles_urlpatterns(prefix="/media/")
-
-    ##############################################
-    # Static files
-    ##############################################
-
-    urlpatterns += staticfiles_urlpatterns(prefix="/static/")
+##############################################
+# Static files
+##############################################
+# uncomment only if you need to serve static file with DEBUG=False,
+# otherwise the runserver is already doing it for you
+# SECURITY WARNING: never uncomment in production
+# from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+# urlpatterns += staticfiles_urlpatterns(prefix="/static/")

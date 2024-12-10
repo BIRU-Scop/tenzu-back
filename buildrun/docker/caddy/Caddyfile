@@ -11,18 +11,6 @@ local-tenzu.biru.ovh {
         consumer_key {$OVH_CONSUMER_KEY}
     }
    }
-   @static {
-       path  /static/*
-   }
-   route @static {
-         header Access-Control-Allow-Origin *
-         header Access-Control-Allow-Headers *
-         header Access-Control-Allow-Methods *
-         root * /public/
-         file_server {
-             precompressed br gzip
-         }
-   }
    @media {
        path  /media/*
    }
@@ -36,6 +24,7 @@ local-tenzu.biru.ovh {
          }
    }
 
+   reverse_proxy /static/* tenzu-back:8000
    reverse_proxy /api/* tenzu-back:8000
    reverse_proxy /admin/* tenzu-back:8000
    reverse_proxy /events/ tenzu-back:8000

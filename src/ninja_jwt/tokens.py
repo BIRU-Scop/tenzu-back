@@ -58,7 +58,7 @@ class Token:
     """
 
     token_type: Optional[str] = None
-    lifetime: Optional[datetime] = None
+    lifetime: Optional[timedelta] = None
 
     def __init__(self, token: Optional[Any] = None, verify: bool = True) -> None:
         """
@@ -135,7 +135,10 @@ class Token:
         # If the defaults are not None then we should enforce the
         # requirement of these settings.As above, the spec labels
         # these as optional.
-        if api_settings.JTI_CLAIM is not None and api_settings.JTI_CLAIM not in self.payload:
+        if (
+            api_settings.JTI_CLAIM is not None
+            and api_settings.JTI_CLAIM not in self.payload
+        ):
             raise TokenError(_("Token has no id"))
 
         if api_settings.TOKEN_TYPE_CLAIM is not None:
@@ -168,7 +171,7 @@ class Token:
         self,
         claim: str = "exp",
         from_time: Optional[datetime] = None,
-        lifetime: Optional[datetime] = None,
+        lifetime: Optional[timedelta] = None,
     ) -> None:
         """
         Updates the expiration time of a token.

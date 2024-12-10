@@ -70,7 +70,7 @@ async def test_github_login(client, httpx_mock):
     response = client.post("/auth/github", json=data)
 
     assert response.status_code == status.HTTP_200_OK, response.text
-    assert response.json().keys() == {"token", "refresh"}
+    assert response.json().keys() == {"access", "refresh"}
 
 
 async def test_github_login_not_configured(client, httpx_mock):

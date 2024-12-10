@@ -21,11 +21,7 @@
 
 from typing import TYPE_CHECKING
 
-import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient as TestClientBase
-
-from base.utils.concurrency import run_async_as_sync
+from ninja.testing import TestClient as TestClientBase
 
 if TYPE_CHECKING:
     from users.models import User
@@ -33,34 +29,27 @@ if TYPE_CHECKING:
 
 class TestClient(TestClientBase):
     def login(self, user: "User") -> None:
-        from auth.tokens import AccessToken
+        from ninja_jwt.tokens import AccessToken
 
-        token = run_async_as_sync(AccessToken.create_for_object(user))
+        token = AccessToken.for_user(user)
         self.headers["Authorization"] = f"Bearer {str(token)}"
 
     def logout(self) -> None:
         self.headers.pop("Authorization", None)
 
 
-def _get_test_app() -> FastAPI:
-    from events import app as events_app
-
-    # from main import api as api_app
-
-    test_app = FastAPI()
-    test_app.mount("/events/", app=events_app)
-    # test_app.mount("/", app=api_app)
-
-    return test_app
+# TODO have a client for websocket urls
+# See https://channels.readthedocs.io/en/latest/topics/testing.html
+# test_app.mount("/events/", app=events_app)
 
 
-@pytest.fixture
-def client() -> TestClient:
-    return TestClient(_get_test_app())
+def get_client(monkeypatch, router) -> TestClient:
+    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
+    return TestClient(router)
 
 
-@pytest.fixture
-def non_mocked_hosts() -> list[str]:
-    # This is to prevent pytest_httpx from catching calls to the TestClient
-    # https://github.com/Colin-b/pytest_httpx/tree/master#do-not-mock-some-requests
-    return ["testserver"]
+# @pytest.fixture
+# def non_mocked_hosts() -> list[str]:
+#     # This is to prevent pytest_httpx from catching calls to the TestClient
+#     # https://github.com/Colin-b/pytest_httpx/tree/master#do-not-mock-some-requests
+#     return ["testserver"]

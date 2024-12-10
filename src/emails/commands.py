@@ -20,11 +20,12 @@
 from pathlib import Path
 from typing import Final
 
+import orjson
 import typer
 from django.conf import settings
 
 from base.i18n import i18n
-from base.utils import json, pprint
+from base.utils import pprint
 from emails import render as email_render
 from emails.emails import EmailPart, Emails
 
@@ -65,7 +66,7 @@ def render(
     context_json = TEMPLATES_PATH.joinpath(f"{email_name}.json")
     try:
         with open(context_json) as context_file:
-            context = json.loads(context_file.read())
+            context = orjson.loads(context_file.read())
     except FileNotFoundError:
         context = {}
 

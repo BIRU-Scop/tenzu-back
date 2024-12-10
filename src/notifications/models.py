@@ -16,10 +16,10 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.core.serializers.json import DjangoJSONEncoder
 
 from base.db import models
 from base.db.mixins import CreatedMetaInfoMixin
-from base.utils import json
 
 #######################################################################
 # Base Notification
@@ -50,7 +50,7 @@ class Notification(models.BaseModel, CreatedMetaInfoMixin):
         null=False,
         blank=False,
         default=dict,
-        encoder=json.JSONEncoder,
+        encoder=DjangoJSONEncoder,
         verbose_name="content",
     )
 

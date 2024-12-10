@@ -31,6 +31,8 @@ from events.responses import EventResponse, SystemResponse
 from events.subscriber import Subscriber
 from tests.utils import factories as f
 
+# TODO have a websocket client, see src/tests/utils/testclient.py
+
 
 @pytest.fixture
 def subscriber(client):
@@ -176,7 +178,9 @@ async def test_subscriber_receptions_handler_with_some_response(subscriber):
     fake_ws.send_text.assert_awaited_once_with(res.json(by_alias=True))
 
 
-async def test_subscriber_receptions_handler_with_event_response_with_action(subscriber, caplog):
+async def test_subscriber_receptions_handler_with_event_response_with_action(
+    subscriber, caplog
+):
     fake_ws = Mock(spec=WebSocket)
     subscriber._websocket = fake_ws
     res = EventResponse(channel="test", event=Event(type="action"))
@@ -195,7 +199,9 @@ async def test_subscriber_receptions_handler_with_event_response_with_invalid_ac
     fake_ws = Mock(spec=WebSocket)
     fake_put = Mock()
     subscriber._websocket = fake_ws
-    res = EventResponse(channel="test", event=Event(type="action", content=PingAction()))
+    res = EventResponse(
+        channel="test", event=Event(type="action", content=PingAction())
+    )
 
     await subscriber.put(res)
     await subscriber.close()

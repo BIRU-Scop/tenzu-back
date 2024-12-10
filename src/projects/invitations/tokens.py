@@ -18,11 +18,8 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from django.conf import settings
-
-from tokens.base import Token
+from commons.invitations import InvitationToken
 
 
-class ProjectInvitationToken(Token):
+class ProjectInvitationToken(InvitationToken):
     token_type = "project-invitation"
-    lifetime = settings.GENERAL_INVITATION_LIFETIME

@@ -22,6 +22,7 @@ from pydantic import EmailStr, Field, StrictBool, StringConstraints, field_valid
 from typing_extensions import Annotated, Optional
 
 from base.validators import BaseModel, LanguageCode
+from commons.colors import NUM_COLORS
 from users.api.validators.mixins import PasswordMixin
 
 #####################################################################
@@ -33,7 +34,7 @@ class CreateUserValidator(PasswordMixin, BaseModel):
     email: EmailStr
     full_name: Annotated[str, StringConstraints(max_length=50)]  # type: ignore
     accept_terms: StrictBool
-    color: Annotated[int, Field(gt=0, lt=9)] | None = None  # type: ignore
+    color: Annotated[int, Field(gt=0, lte=NUM_COLORS)] | None = None  # type: ignore
     lang: LanguageCode | None = None
     project_invitation_token: str | None = None
     workspace_invitation_token: str | None = None

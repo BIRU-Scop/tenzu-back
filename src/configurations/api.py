@@ -15,6 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.conf import settings
 from ninja import NinjaAPI, Router
 
 from base.services.exceptions import TenzuServiceException
@@ -30,25 +31,25 @@ from ninja_jwt.ninja_extra.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from notifications.api import notifications_router
 from projects.invitations.api import invitations_router as projects_invitations_router
 from projects.memberships.api import membership_router as projects_memberships_router
-from projects.projects.api import auth_router as projects_router
+from projects.projects.api import projects_router
 from projects.roles.api import roles_router as project_roles_router
 from stories.assignments.api import assignments_router as stories_assignments_router
 from stories.attachments.api import attachments_router as stories_attachments_router
 from stories.comments.api import comments_router as stories_comments_router
 from stories.mediafiles.api import mediafiles_router as stories_mediafiles_router
 from stories.stories.api import stories_router as stories_router
-from system.api import unauth_router as system_router
+from system.api import system_router
 from users.api import users_router
 from workflows.api import workflows_router
 from workspaces.invitations.api import workspace_invit_router
 from workspaces.memberships.api import workspace_membership_router
-from workspaces.workspaces.api import auth_router as workspaces_auth_router
+from workspaces.workspaces.api import workspace_router
 
 api = NinjaAPI(
     parser=ORJSONParser(),
     renderer=ORJSONRenderer(),
-    title=f"Tenzu API",
-    version="v1",
+    title="Tenzu API",
+    version=settings.API_VERSION,
 )
 
 
@@ -93,9 +94,11 @@ api.add_router("", tags=["Stories", "Mediafiles"], router=stories_mediafiles_rou
 api.add_router("", tags=["Stories", "Attachments"], router=stories_attachments_router)
 api.add_router("", tags=["Users"], router=users_router)
 api.add_router("", tags=["Notifications"], router=notifications_router)
-api.add_router("", tags=["Workspaces"], router=workspaces_auth_router)
+api.add_router("", tags=["Workspaces"], router=workspace_router)
 api.add_router("", tags=["Workspaces", "Invitations"], router=workspace_invit_router)
-api.add_router("", tags=["Workspaces", "Memberships"], router=workspace_membership_router)
+api.add_router(
+    "", tags=["Workspaces", "Memberships"], router=workspace_membership_router
+)
 api.add_router("", tags=["Workflows"], router=workflows_router)
 api.add_router("", tags=["Auth"], router=auth_router)
 api.add_router("", tags=["Auth", "Github"], router=github_integration_router)

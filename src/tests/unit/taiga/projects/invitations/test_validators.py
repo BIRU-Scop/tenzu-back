@@ -20,8 +20,11 @@
 import pytest
 from pydantic import ValidationError
 
-from projects.invitations.api.validators import ProjectInvitationsValidator, ProjectInvitationValidator
-from tests.unit.utils import check_validation_errors
+from projects.invitations.api.validators import (
+    ProjectInvitationsValidator,
+    ProjectInvitationValidator,
+)
+from tests.utils.utils import check_validation_errors
 
 
 @pytest.mark.parametrize(
@@ -50,7 +53,9 @@ def test_email_role_slug(email, username, role_slug, error_fields, expected_erro
 
     expected_error_fields = error_fields
     expected_error_messages = expected_errors
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )
 
 
 def test_validate_invitations_more_than_50():
@@ -58,9 +63,13 @@ def test_validate_invitations_more_than_50():
     for i in range(55):
         invitations.append({"email": f"test{i}@email.com", "role_slug": "general"})
 
-    with pytest.raises(ValidationError, match=r"value_error.list.max_items") as validation_errors:
+    with pytest.raises(
+        ValidationError, match=r"value_error.list.max_items"
+    ) as validation_errors:
         ProjectInvitationsValidator(invitations=invitations)
 
     expected_error_fields = ["invitations"]
     expected_error_messages = ["ensure this value has at most 50 items"]
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )

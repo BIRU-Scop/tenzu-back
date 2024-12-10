@@ -24,6 +24,8 @@ from easy_thumbnails.files import ThumbnailerFieldFile, get_thumbnailer  # type:
 from easy_thumbnails.source_generators import pil_image  # type: ignore
 from ninja import UploadedFile
 
+from commons.utils import get_absolute_url
+
 
 def get_thumbnail(
     relative_image_path: str, thumbnailer_size: str
@@ -32,7 +34,7 @@ def get_thumbnail(
         thumbnailer = get_thumbnailer(relative_image_path)
         return thumbnailer[thumbnailer_size]
 
-    except InvalidImageFormatError as e:
+    except InvalidImageFormatError:
         return None
 
 
@@ -43,7 +45,7 @@ def get_thumbnail_url(relative_image_path: str, thumbnailer_size: str) -> str | 
     if not thumbnail:
         return None
 
-    return thumbnail.url
+    return get_absolute_url(thumbnail.url)
 
 
 def valid_content_type(uploaded_img: UploadedFile) -> bool:

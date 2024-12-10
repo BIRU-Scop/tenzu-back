@@ -21,7 +21,7 @@ import pytest
 from pydantic import ValidationError
 
 from integrations.google.auth.validators import GoogleLoginValidator
-from tests.unit.utils import check_validation_errors
+from tests.utils.utils import check_validation_errors
 
 
 def test_validate_google_login_not_available_lang():
@@ -34,4 +34,6 @@ def test_validate_google_login_not_available_lang():
 
     expected_error_fields = ["lang"]
     expected_error_messages = ["Language is not available"]
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )

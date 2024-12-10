@@ -20,8 +20,11 @@
 import pytest
 from pydantic import ValidationError
 
-from tests.unit.utils import check_validation_errors
-from workspaces.invitations.api.validators import WorkspaceInvitationsValidator, WorkspaceInvitationValidator
+from tests.utils.utils import check_validation_errors
+from workspaces.invitations.api.validators import (
+    WorkspaceInvitationsValidator,
+    WorkspaceInvitationValidator,
+)
 
 
 @pytest.mark.parametrize(
@@ -37,7 +40,9 @@ def test_email(username_or_email, error_fields, expected_errors):
 
     expected_error_fields = error_fields
     expected_error_messages = expected_errors
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )
 
 
 def test_validate_invitations_more_than_50():
@@ -45,9 +50,13 @@ def test_validate_invitations_more_than_50():
     for i in range(55):
         invitations.append({"username_or_email": f"test{i}@email.com"})
 
-    with pytest.raises(ValidationError, match=r"value_error.list.max_items") as validation_errors:
+    with pytest.raises(
+        ValidationError, match=r"value_error.list.max_items"
+    ) as validation_errors:
         WorkspaceInvitationsValidator(invitations=invitations)
 
     expected_error_fields = ["invitations"]
     expected_error_messages = ["ensure this value has at most 50 items"]
-    check_validation_errors(validation_errors, expected_error_fields, expected_error_messages)
+    check_validation_errors(
+        validation_errors, expected_error_fields, expected_error_messages
+    )
