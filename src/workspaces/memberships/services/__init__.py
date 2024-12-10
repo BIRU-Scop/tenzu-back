@@ -28,7 +28,10 @@ from workspaces.invitations import repositories as workspace_invitations_reposit
 from workspaces.memberships import events as workspace_memberships_events
 from workspaces.memberships import repositories as workspace_memberships_repositories
 from workspaces.memberships.models import WorkspaceMembership
-from workspaces.memberships.serializers import WorkspaceGuestDetailSerializer, WorkspaceMembershipDetailSerializer
+from workspaces.memberships.serializers import (
+    WorkspaceGuestDetailSerializer,
+    WorkspaceMembershipDetailSerializer,
+)
 from workspaces.memberships.serializers import services as serializer_services
 from workspaces.memberships.services import exceptions as ex
 from workspaces.workspaces.models import Workspace
@@ -41,9 +44,11 @@ from workspaces.workspaces.models import Workspace
 async def list_workspace_memberships(
     workspace: Workspace,
 ) -> list[WorkspaceMembershipDetailSerializer]:
-    ws_memberships = await workspace_memberships_repositories.list_workspace_memberships(
-        filters={"workspace_id": workspace.id},
-        select_related=["user", "workspace"],
+    ws_memberships = (
+        await workspace_memberships_repositories.list_workspace_memberships(
+            filters={"workspace_id": workspace.id},
+            select_related=["user", "workspace"],
+        )
     )
     return [
         serializer_services.serialize_workspace_membership_detail(
@@ -72,10 +77,7 @@ async def list_paginated_workspace_guests(
         offset=offset,
         limit=limit,
     )
-    total_guests = await users_repositories.get_total_users(
-        filters={"guests_in_workspace": workspace},
-    )
-    pagination = Pagination(offset=offset, limit=limit, total=total_guests)
+    pagination = Pagination(offset=offset, limit=limit)
     serialized_guests = [
         serializer_services.serialize_workspace_guest_detail(
             user=ws_guest,
@@ -115,8 +117,10 @@ async def get_workspace_membership(
 async def delete_workspace_membership(
     membership: WorkspaceMembership,
 ) -> bool:
-    workspace_total_members = await workspace_memberships_repositories.get_total_workspace_memberships(
-        filters={"workspace_id": membership.workspace_id},
+    workspace_total_members = (
+        await workspace_memberships_repositories.get_total_workspace_memberships(
+            filters={"workspace_id": membership.workspace_id},
+        )
     )
     if workspace_total_members == 1:
         raise ex.MembershipIsTheOnlyMemberError("Membership is the only member")
@@ -132,7 +136,9 @@ async def delete_workspace_membership(
                 "username_or_email": membership.user.email,
             },
         )
-        await workspace_memberships_events.emit_event_when_workspace_membership_is_deleted(membership=membership)
+        await workspace_memberships_events.emit_event_when_workspace_membership_is_deleted(
+            membership=membership
+        )
         return True
 
     return False

@@ -24,7 +24,11 @@ from base.api import Pagination
 from base.db.models import Model
 from base.utils.datetime import aware_utcnow
 from comments import repositories as comments_repositories
-from comments.events import EventOnCreateCallable, EventOnDeleteCallable, EventOnUpdateCallable
+from comments.events import (
+    EventOnCreateCallable,
+    EventOnDeleteCallable,
+    EventOnUpdateCallable,
+)
 from comments.models import Comment
 from comments.notifications import NotificationOnCreateCallable
 from comments.repositories import CommentFilters, CommentOrderBy
@@ -77,12 +81,11 @@ async def list_paginated_comments(
         limit=limit,
     )
 
-    total_comments = await comments_repositories.get_total_comments(filters=filters)
     total_not_deleted_comments = await comments_repositories.get_total_comments(
         filters=filters,
         excludes={"deleted": True},
     )
-    pagination = Pagination(offset=offset, limit=limit, total=total_comments)
+    pagination = Pagination(offset=offset, limit=limit)
 
     return pagination, total_not_deleted_comments, comments
 
@@ -111,7 +114,9 @@ async def update_comment(
     values: dict[str, Any] = {},
     event_on_update: EventOnUpdateCallable | None = None,
 ) -> Comment:
-    updated_comment = await comments_repositories.update_comment(comment=comment, values=values)
+    updated_comment = await comments_repositories.update_comment(
+        comment=comment, values=values
+    )
 
     if event_on_update:
         await event_on_update(comment=updated_comment)

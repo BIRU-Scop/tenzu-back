@@ -30,7 +30,6 @@ from base.serializers import BaseModel
 class Pagination:
     offset: int
     limit: int
-    total: int
 
 
 class PaginationQuery(BaseModel):
@@ -46,4 +45,3 @@ class PaginationQuery(BaseModel):
 def set_pagination(response: HttpResponse, pagination: Pagination) -> None:
     response.headers["Pagination-Offset"] = str(pagination.offset)
     response.headers["Pagination-Limit"] = str(pagination.limit)
-    response.headers["Pagination-Total"] = str(pagination.total)

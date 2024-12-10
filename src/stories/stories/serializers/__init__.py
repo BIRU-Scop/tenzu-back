@@ -34,12 +34,13 @@ class StorySummarySerializer(BaseModel):
     ref: int
     title: str
     status_id: UUIDB64
-    status: WorkflowStatusNestedSerializer
     workflow_id: UUIDB64
     project_id: UUIDB64
     version: int
     assignees: list[UserNestedSerializer] | None = None
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class StoryDetailSerializer(BaseModel):
