@@ -46,13 +46,13 @@ class UpdateStoryValidator(BaseModel):
     version: PositiveInt
     title: Title | None = None
     description: str | None = None
-    status: B64UUID | None = None
+    status_id: B64UUID | None = None
     workflow_slug: str | None = None
 
     @model_validator(mode="before")
     @classmethod
     def status_or_workflow(cls, values: dict[Any, Any]) -> dict[Any, Any]:
-        status = values.get("status")
+        status = values.get("status_id")
         workflow = values.get("workflow_slug")
         assert not (
             status and workflow
