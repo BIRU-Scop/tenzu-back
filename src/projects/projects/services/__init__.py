@@ -264,7 +264,7 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
 
     # Delete old file if existed
     if file_to_delete:
-        await projects_tasks.delete_old_logo.defer(path=file_to_delete)
+        await sync_to_async(projects_tasks.delete_old_logo.defer)(path=file_to_delete)
 
     return updated_project
 
