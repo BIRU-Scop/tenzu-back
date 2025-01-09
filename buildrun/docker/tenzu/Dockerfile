@@ -11,13 +11,19 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ####
 
 FROM base-image AS production-image
-WORKDIR /tenzu
-COPY ./src/ /tenzu/
-COPY ./buildrun/docker/tenzu/requirements/prod.txt /tenzu/prod.txt
+# creates a system user (-r), with no password, no home directory set, and no shell
+RUN groupadd -r default-group && useradd -r -s /bin/false -g default-group default-user
+
+COPY --chown=default-user:default-group ./src/ /tenzu/
+COPY --chown=default-user:default-group ./buildrun/docker/tenzu/requirements/prod.txt /tenzu/prod.txt
+
 RUN  apt-get update && apt-get install -y --no-install-recommends gettext build-essential libpq-dev && \
-     uv pip sync --system /tenzu/prod.txt && rm /tenzu/prod.txt&& \
+     uv pip sync --system /tenzu/prod.txt && rm /tenzu/prod.txt && \
      apt-get purge -y --auto-remove build-essential && \
      apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
+USER default-user
+WORKDIR /tenzu
+
 # pass required env var so it does not crash validation, they will not be used
 RUN TENZU_SECRET_KEY=secret TENZU_TOKENS__SIGNING_KEY=secret2 python ./__main__.py i18n compile-catalog
 
@@ -26,20 +32,20 @@ RUN TENZU_SECRET_KEY=secret TENZU_TOKENS__SIGNING_KEY=secret2 python ./__main__.
 ####
 
 FROM base-image AS base-test-image
-WORKDIR /tenzu
 RUN echo "must be implemented"
+WORKDIR /tenzu
 
 ####
 # DEVELOPMENT
 ####
 
 FROM base-image AS dev-image
-WORKDIR /tenzu
 COPY ./buildrun/docker/tenzu/requirements/devel.txt /tenzu/devel.txt
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends gettext build-essential libpq-dev && \
     uv pip sync --system /tenzu/devel.txt && rm /tenzu/devel.txt && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
+WORKDIR /tenzu
 
 # Expose port 8000 to the host
 EXPOSE 8000
