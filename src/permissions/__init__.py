@@ -58,7 +58,9 @@ class HasPerm(PermissionComponent):
     async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
         from permissions import services as permissions_services
 
-        return await permissions_services.user_has_perm(user=user, perm=self.object_perm, obj=obj)
+        return await permissions_services.user_has_perm(
+            user=user, perm=self.object_perm, obj=obj
+        )
 
 
 class IsRelatedToTheUser(PermissionComponent):
@@ -69,7 +71,9 @@ class IsRelatedToTheUser(PermissionComponent):
     async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
         from permissions import services as permissions_services
 
-        return await permissions_services.is_an_object_related_to_the_user(user=user, obj=obj, field=self.related_field)
+        return await permissions_services.is_an_object_related_to_the_user(
+            user=user, obj=obj, field=self.related_field
+        )
 
 
 class IsNotDeleted(PermissionComponent):

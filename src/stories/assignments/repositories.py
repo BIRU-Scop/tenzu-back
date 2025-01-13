@@ -97,7 +97,9 @@ def _apply_select_related_to_queryset(
 
 @sync_to_async
 def create_story_assignment(story: Story, user: User) -> tuple[StoryAssignment, bool]:
-    return StoryAssignment.objects.select_related("story", "user").get_or_create(story=story, user=user)
+    return StoryAssignment.objects.select_related("story", "user").get_or_create(
+        story=story, user=user
+    )
 
 
 ##########################################################

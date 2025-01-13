@@ -25,10 +25,11 @@ from django.conf import settings
 
 from auth import services as auth_services
 from base.api.pagination import Pagination
-from base.utils.colors import generate_random_color
 from base.utils.datetime import aware_utcnow
+from commons.colors import generate_random_color
 from emails.emails import Emails
 from emails.tasks import send_email
+from ninja_jwt.exceptions import TokenError
 from projects.invitations import events as pj_invitations_events
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations import services as project_invitations_services
@@ -41,7 +42,6 @@ from projects.projects import repositories as projects_repositories
 from projects.projects import services as projects_services
 from projects.projects.models import Project
 from projects.roles import repositories as pj_roles_repositories
-from tokens import exceptions as tokens_ex
 from users import events as users_events
 from users import repositories as users_repositories
 from users.models import User
@@ -145,7 +145,7 @@ async def _generate_verify_user_token(
     workspace_invitation_token: str | None = None,
     accept_workspace_invitation: bool = True,
 ) -> str:
-    verify_user_token = await VerifyUserToken.create_for_object(user)
+    verify_user_token = await sync_to_async(VerifyUserToken.for_user)(user)
     if project_invitation_token:
         verify_user_token["project_invitation_token"] = project_invitation_token
         if accept_project_invitation:
@@ -170,19 +170,22 @@ async def verify_user(user: User) -> None:
 async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
     # Get token and deny it
     try:
-        verify_token = await VerifyUserToken.create(token)
-    except tokens_ex.DeniedTokenError:
-        raise ex.UsedVerifyUserTokenError("The token has already been used.")
-    except tokens_ex.ExpiredTokenError:
-        raise ex.ExpiredVerifyUserTokenError("The token has expired.")
-    except tokens_ex.TokenError:
-        raise ex.BadVerifyUserTokenError("Invalid or malformed token.")
+        verify_token = await sync_to_async(VerifyUserToken)(token)
+    except TokenError:
+        raise ex.BadVerifyUserTokenError("Invalid or expired token.")
 
-    await verify_token.denylist()
+    await sync_to_async(verify_token.blacklist)()
 
     # Get user and verify it
     user = await users_repositories.get_user(
-        filters=cast(UserFilters, verify_token.object_data)
+        filters=cast(
+            UserFilters,
+            {
+                settings.NINJA_JWT["USER_ID_FIELD"]: verify_token.get(
+                    settings.NINJA_JWT["USER_ID_CLAIM"]
+                )
+            },
+        )
     )
     if not user:
         raise ex.BadVerifyUserTokenError("The user doesn't exist.")
@@ -246,21 +249,15 @@ async def list_paginated_users_by_text(
     project_id: UUID | None = None,
 ) -> tuple[Pagination, list[User]]:
     if workspace_id:
-        total_users = await users_repositories.get_total_workspace_users_by_text(
-            text_search=text, workspace_id=workspace_id
-        )
         users = await users_repositories.list_workspace_users_by_text(
             text_search=text, workspace_id=workspace_id, offset=offset, limit=limit
         )
     else:
-        total_users = await users_repositories.get_total_project_users_by_text(
-            text_search=text, project_id=project_id
-        )
         users = await users_repositories.list_project_users_by_text(
             text_search=text, project_id=project_id, offset=offset, limit=limit
         )
 
-    pagination = Pagination(offset=offset, limit=limit, total=total_users)
+    pagination = Pagination(offset=offset, limit=limit)
 
     return pagination, users
 
@@ -473,27 +470,23 @@ async def _get_user_and_reset_password_token(
     token: str,
 ) -> tuple[ResetPasswordToken, User]:
     try:
-        reset_token = await ResetPasswordToken.create(token)
-    except tokens_ex.DeniedTokenError:
-        raise ex.UsedResetPasswordTokenError("The token has already been used.")
-    except tokens_ex.ExpiredTokenError:
-        raise ex.ExpiredResetPassswordTokenError("The token has expired.")
-    except tokens_ex.TokenError:
-        raise ex.BadResetPasswordTokenError("Invalid or malformed token.")
+        reset_token = await ResetPasswordToken(token)
+    except TokenError:
+        raise ex.BadResetPasswordTokenError("Invalid or expired token.")
 
     # Get user
     user = await users_repositories.get_user(
         filters={"id": reset_token.object_data["id"], "is_active": True}
     )
     if not user:
-        await reset_token.denylist()
+        await reset_token.blacklist()
         raise ex.BadResetPasswordTokenError("Invalid or malformed token.")
 
     return reset_token, user
 
 
 async def _generate_reset_password_token(user: User) -> str:
-    return str(await ResetPasswordToken.create_for_object(user))
+    return str(ResetPasswordToken.for_user(user))
 
 
 async def _send_reset_password_email(user: User) -> None:
@@ -523,7 +516,7 @@ async def reset_password(token: str, password: str) -> User | None:
 
     if user:
         await users_repositories.change_password(user=user, password=password)
-        await reset_token.denylist()
+        await reset_token.blacklist()
         return user
 
     return None

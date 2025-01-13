@@ -71,7 +71,9 @@ def _apply_filters_to_project_queryset(
         filter_data["memberships__role__is_admin"] = filter_data.pop("is_admin")
 
     if "num_admins" in filter_data:
-        qs = qs.annotate(num_admins=Count(Case(When(memberships__role__is_admin=True, then=1))))
+        qs = qs.annotate(
+            num_admins=Count(Case(When(memberships__role__is_admin=True, then=1)))
+        )
 
     # filters for those projects where the user is the only project member
     if "is_onewoman_project" in filter_data:
@@ -160,7 +162,9 @@ def list_projects(
 ) -> list[Project]:
     qs = _apply_filters_to_project_queryset(qs=DEFAULT_QUERYSET, filters=filters)
     qs = _apply_select_related_to_project_queryset(qs=qs, select_related=select_related)
-    qs = _apply_prefetch_related_to_project_queryset(qs=qs, prefetch_related=prefetch_related)
+    qs = _apply_prefetch_related_to_project_queryset(
+        qs=qs, prefetch_related=prefetch_related
+    )
     qs = _apply_order_by_to_project_queryset(order_by=order_by, qs=qs)
     qs = qs.distinct()
 
@@ -183,7 +187,9 @@ def get_project(
 ) -> Project | None:
     qs = _apply_filters_to_project_queryset(qs=DEFAULT_QUERYSET, filters=filters)
     qs = _apply_select_related_to_project_queryset(qs=qs, select_related=select_related)
-    qs = _apply_prefetch_related_to_project_queryset(qs=qs, prefetch_related=prefetch_related)
+    qs = _apply_prefetch_related_to_project_queryset(
+        qs=qs, prefetch_related=prefetch_related
+    )
 
     try:
         return qs.get()
@@ -214,7 +220,9 @@ def update_project(project: Project, values: dict[str, Any] = {}) -> Project:
 @sync_to_async
 def delete_projects(filters: ProjectFilters = {}) -> int:
     qs = _apply_filters_to_project_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    references.delete_project_references_sequences(project_ids=list(qs.values_list("id", flat=True)))
+    references.delete_project_references_sequences(
+        project_ids=list(qs.values_list("id", flat=True))
+    )
     count, _ = qs.delete()
     return count
 
@@ -260,7 +268,9 @@ def _apply_filters_to_project_template_queryset(
 def get_project_template(
     filters: ProjectTemplateFilters = {},
 ) -> ProjectTemplate | None:
-    qs = _apply_filters_to_project_template_queryset(qs=DEFAULT_PROJECT_TEMPLATE_QUERYSET, filters=filters)
+    qs = _apply_filters_to_project_template_queryset(
+        qs=DEFAULT_PROJECT_TEMPLATE_QUERYSET, filters=filters
+    )
 
     try:
         return qs.get()

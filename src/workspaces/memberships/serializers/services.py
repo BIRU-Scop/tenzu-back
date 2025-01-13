@@ -20,7 +20,10 @@
 from projects.projects.models import Project
 from users.models import User
 from workspaces.memberships.models import WorkspaceMembership
-from workspaces.memberships.serializers import WorkspaceGuestDetailSerializer, WorkspaceMembershipDetailSerializer
+from workspaces.memberships.serializers import (
+    WorkspaceGuestDetailSerializer,
+    WorkspaceMembershipDetailSerializer,
+)
 
 
 def serialize_workspace_membership_detail(
@@ -33,7 +36,9 @@ def serialize_workspace_membership_detail(
     )
 
 
-def serialize_workspace_guest_detail(user: User, projects: list[Project]) -> WorkspaceGuestDetailSerializer:
+def serialize_workspace_guest_detail(
+    user: User, projects: list[Project]
+) -> WorkspaceGuestDetailSerializer:
     return WorkspaceGuestDetailSerializer(
         user=user,
         projects=projects,

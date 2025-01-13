@@ -18,14 +18,19 @@
 # You can contact BIRU at ask@biru.sh
 
 from projects.invitations.models import ProjectInvitation
-from projects.invitations.serializers import CreateProjectInvitationsSerializer, PublicProjectInvitationSerializer
+from projects.invitations.serializers import (
+    CreateProjectInvitationsSerializer,
+    PublicProjectInvitationSerializer,
+)
 
 
 def serialize_create_project_invitations(
     invitations: list[ProjectInvitation],
     already_members: int,
 ) -> CreateProjectInvitationsSerializer:
-    return CreateProjectInvitationsSerializer(invitations=invitations, already_members=already_members)
+    return CreateProjectInvitationsSerializer(
+        invitations=invitations, already_members=already_members
+    )
 
 
 def serialize_public_project_invitation(

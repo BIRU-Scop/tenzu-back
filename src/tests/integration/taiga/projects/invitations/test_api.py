@@ -255,7 +255,9 @@ async def test_accept_project_invitation_error_user_has_no_permission_over_this_
 
 async def test_accept_project_invitation_error_invitation_already_accepted(client):
     user = await f.create_user()
-    invitation = await f.create_project_invitation(email=user.email, status=ProjectInvitationStatus.ACCEPTED)
+    invitation = await f.create_project_invitation(
+        email=user.email, status=ProjectInvitationStatus.ACCEPTED
+    )
     token = await ProjectInvitationToken.create_for_object(invitation)
 
     client.login(user)
@@ -265,7 +267,9 @@ async def test_accept_project_invitation_error_invitation_already_accepted(clien
 
 async def test_accept_project_invitation_error_invitation_revoked(client):
     user = await f.create_user()
-    invitation = await f.create_project_invitation(email=user.email, status=ProjectInvitationStatus.REVOKED)
+    invitation = await f.create_project_invitation(
+        email=user.email, status=ProjectInvitationStatus.REVOKED
+    )
     token = await ProjectInvitationToken.create_for_object(invitation)
 
     client.login(user)
@@ -436,7 +440,9 @@ async def test_resend_project_invitation_revoked(client):
 async def test_revoke_project_invitation_for_email_ok(client):
     project = await f.create_project()
     email = "someone@email.com"
-    await f.create_project_invitation(user=None, email=email, project=project, status=ProjectInvitationStatus.PENDING)
+    await f.create_project_invitation(
+        user=None, email=email, project=project, status=ProjectInvitationStatus.PENDING
+    )
 
     client.login(project.created_by)
     data = {"username_or_email": email}
@@ -503,7 +509,9 @@ async def test_revoke_project_invitation_already_member_invalid(client):
         project=project,
     )
     user = await f.create_user()
-    await f.create_project_membership(user=user, project=project, role=general_member_role)
+    await f.create_project_membership(
+        user=user, project=project, role=general_member_role
+    )
     await f.create_project_invitation(
         user=user,
         email=user.email,
@@ -525,7 +533,9 @@ async def test_revoke_project_invitation_revoked(client):
         project=project,
     )
     user = await f.create_user()
-    await f.create_project_membership(user=user, project=project, role=general_member_role)
+    await f.create_project_membership(
+        user=user, project=project, role=general_member_role
+    )
     await f.create_project_invitation(
         user=user,
         email=user.email,
@@ -562,7 +572,9 @@ async def test_update_project_invitation_role_user_without_permission(client):
         permissions=choices.ProjectPermissions.values,
         is_admin=False,
     )
-    await f.create_project_membership(user=user, project=project, role=general_member_role)
+    await f.create_project_membership(
+        user=user, project=project, role=general_member_role
+    )
 
     invited_user = await f.create_user()
     invitation = await f.create_project_invitation(
@@ -574,7 +586,9 @@ async def test_update_project_invitation_role_user_without_permission(client):
 
     client.login(user)
     data = {"role_slug": "admin"}
-    response = client.patch(f"/projects/{project.b64id}/invitations/{invitation.id}", json=data)
+    response = client.patch(
+        f"/projects/{project.b64id}/invitations/{invitation.id}", json=data
+    )
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
 
@@ -592,5 +606,7 @@ async def test_update_project_invitation_role_ok(client):
 
     client.login(project.created_by)
     data = {"role_slug": "admin"}
-    response = client.patch(f"projects/{project.b64id}/invitations/{invitation.id}", json=data)
+    response = client.patch(
+        f"projects/{project.b64id}/invitations/{invitation.id}", json=data
+    )
     assert response.status_code == status.HTTP_200_OK, response.text

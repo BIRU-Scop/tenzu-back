@@ -58,7 +58,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "email",
-                    base.db.models.fields.LowerEmailField(max_length=255, verbose_name="email"),
+                    base.db.models.fields.LowerEmailField(
+                        max_length=255, verbose_name="email"
+                    ),
                 ),
                 (
                     "status",
@@ -79,11 +81,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "resent_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="resent at"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="resent at"
+                    ),
                 ),
                 (
                     "revoked_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="revoked at"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="revoked at"
+                    ),
                 ),
                 (
                     "invited_by",
@@ -150,11 +156,15 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="workspaceinvitation",
-            index=models.Index(fields=["workspace", "email"], name="workspaces__workspa_5b9964_idx"),
+            index=models.Index(
+                fields=["workspace", "email"], name="workspaces__workspa_5b9964_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="workspaceinvitation",
-            index=models.Index(fields=["workspace", "user"], name="workspaces__workspa_c70bed_idx"),
+            index=models.Index(
+                fields=["workspace", "user"], name="workspaces__workspa_c70bed_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="workspaceinvitation",

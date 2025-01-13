@@ -43,7 +43,12 @@ async def test_create_storaged_object():
     )
 
     assert storaged_object.id
-    assert len(await repositories.list_storaged_objects(filters={"id": storaged_object.id})) == 1
+    assert (
+        len(
+            await repositories.list_storaged_objects(filters={"id": storaged_object.id})
+        )
+        == 1
+    )
 
 
 ##########################################################
@@ -53,7 +58,9 @@ async def test_create_storaged_object():
 
 async def test_list_storage_objects():
     storaged_object1 = await f.create_storaged_object()
-    storaged_object2 = await f.create_storaged_object(deleted_at=aware_utcnow() - timedelta(days=3))
+    storaged_object2 = await f.create_storaged_object(
+        deleted_at=aware_utcnow() - timedelta(days=3)
+    )
 
     assert await repositories.list_storaged_objects() == [
         storaged_object2,
@@ -66,19 +73,26 @@ async def test_list_storage_objects_filters_by_id():
     await f.create_storaged_object(deleted_at=aware_utcnow() - timedelta(days=3))
 
     assert await repositories.list_storaged_objects(filters={"id": uuid1()}) == []
-    assert await repositories.list_storaged_objects(filters={"id": storaged_object1.id}) == [storaged_object1]
+    assert await repositories.list_storaged_objects(
+        filters={"id": storaged_object1.id}
+    ) == [storaged_object1]
 
 
 async def test_list_storage_objects_filters_by_deleted_datetime():
     await f.create_storaged_object()
-    storaged_object2 = await f.create_storaged_object(deleted_at=aware_utcnow() - timedelta(days=3))
+    storaged_object2 = await f.create_storaged_object(
+        deleted_at=aware_utcnow() - timedelta(days=3)
+    )
 
     assert (
-        await repositories.list_storaged_objects(filters={"deleted_before": aware_utcnow() - timedelta(days=4)}) == []
+        await repositories.list_storaged_objects(
+            filters={"deleted_before": aware_utcnow() - timedelta(days=4)}
+        )
+        == []
     )
-    assert await repositories.list_storaged_objects(filters={"deleted_before": aware_utcnow() - timedelta(days=2)}) == [
-        storaged_object2
-    ]
+    assert await repositories.list_storaged_objects(
+        filters={"deleted_before": aware_utcnow() - timedelta(days=2)}
+    ) == [storaged_object2]
 
 
 ##########################################################
@@ -111,7 +125,9 @@ async def test_delete_storaged_object_that_has_been_used():
     assert len(await repositories.list_storaged_objects()) == 1
     assert storage.exists(file_path)
 
-    assert not await repositories.delete_storaged_object(storaged_object=storaged_object)
+    assert not await repositories.delete_storaged_object(
+        storaged_object=storaged_object
+    )
 
     assert len(await repositories.list_storaged_objects()) == 1
     assert storage.exists(file_path)
@@ -126,5 +142,7 @@ async def test_mark_storaged_object_as_deleted():
     storaged_object = await f.create_storaged_object()
 
     assert not storaged_object.deleted_at
-    await sync_to_async(repositories.mark_storaged_object_as_deleted)(storaged_object=storaged_object)
+    await sync_to_async(repositories.mark_storaged_object_as_deleted)(
+        storaged_object=storaged_object
+    )
     assert storaged_object.deleted_at

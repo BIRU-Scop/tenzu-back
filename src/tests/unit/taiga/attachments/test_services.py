@@ -38,7 +38,11 @@ async def test_create_attachment():
     uploadfiles = (f.build_image_uploadfile(),)
     attachment = f.build_attachment()
 
-    with (patch("attachments.services.attachments_repositories", autospec=True) as fake_attachments_repositories,):
+    with (
+        patch(
+            "attachments.services.attachments_repositories", autospec=True
+        ) as fake_attachments_repositories,
+    ):
         fake_attachments_repositories.create_attachment.return_value = attachment
 
         data = await services.create_attachment(
@@ -62,7 +66,11 @@ async def test_create_attachment_and_emit_event_on_create():
     uploadfiles = (f.build_image_uploadfile(),)
     attachment = f.build_attachment()
 
-    with (patch("attachments.services.attachments_repositories", autospec=True) as fake_attachments_repositories,):
+    with (
+        patch(
+            "attachments.services.attachments_repositories", autospec=True
+        ) as fake_attachments_repositories,
+    ):
         fake_attachments_repositories.create_attachment.return_value = attachment
 
         await services.create_attachment(
@@ -95,7 +103,11 @@ async def test_list_attachments():
 
     filters = {"content_object": story}
 
-    with (patch("attachments.services.attachments_repositories", autospec=True) as fake_attachments_repositories,):
+    with (
+        patch(
+            "attachments.services.attachments_repositories", autospec=True
+        ) as fake_attachments_repositories,
+    ):
         fake_attachments_repositories.list_attachments.return_value = attachments
         attachments_list = await services.list_attachments(
             content_object=story,
@@ -116,7 +128,11 @@ async def test_get_attachment():
     story = f.build_story(id="story_id")
     attachment_id = uuid.uuid1()
 
-    with (patch("attachments.services.attachments_repositories", autospec=True) as fake_attachments_repositories,):
+    with (
+        patch(
+            "attachments.services.attachments_repositories", autospec=True
+        ) as fake_attachments_repositories,
+    ):
         await services.get_attachment(id=attachment_id, content_object=story)
         fake_attachments_repositories.get_attachment.assert_awaited_once_with(
             filters={"id": attachment_id, "content_object": story},
@@ -132,7 +148,11 @@ async def test_get_attachment():
 async def test_delete_attachment():
     attachment = f.build_attachment(id=uuid.uuid1())
 
-    with (patch("attachments.services.attachments_repositories", autospec=True) as fake_attachments_repositories,):
+    with (
+        patch(
+            "attachments.services.attachments_repositories", autospec=True
+        ) as fake_attachments_repositories,
+    ):
         fake_attachments_repositories.delete_attachments.return_value = True
 
         assert await services.delete_attachment(attachment=attachment)
@@ -146,10 +166,16 @@ async def test_delete_attachment_and_emit_event_on_delete():
     attachment = f.build_attachment(id=uuid.uuid1())
     fake_event_on_delete = AsyncMock()
 
-    with (patch("attachments.services.attachments_repositories", autospec=True) as fake_attachments_repositories,):
+    with (
+        patch(
+            "attachments.services.attachments_repositories", autospec=True
+        ) as fake_attachments_repositories,
+    ):
         fake_attachments_repositories.delete_attachments.return_value = True
 
-        assert await services.delete_attachment(attachment=attachment, event_on_delete=fake_event_on_delete)
+        assert await services.delete_attachment(
+            attachment=attachment, event_on_delete=fake_event_on_delete
+        )
 
         fake_attachments_repositories.delete_attachments.assert_awaited_once_with(
             filters={"id": attachment.id},
@@ -161,10 +187,16 @@ async def test_delete_attachment_that_does_not_exist():
     attachment = f.build_attachment(id=uuid.uuid1())
     fake_event_on_delete = AsyncMock()
 
-    with (patch("attachments.services.attachments_repositories", autospec=True) as fake_attachments_repositories,):
+    with (
+        patch(
+            "attachments.services.attachments_repositories", autospec=True
+        ) as fake_attachments_repositories,
+    ):
         fake_attachments_repositories.delete_attachments.return_value = False
 
-        assert not await services.delete_attachment(attachment=attachment, event_on_delete=fake_event_on_delete)
+        assert not await services.delete_attachment(
+            attachment=attachment, event_on_delete=fake_event_on_delete
+        )
 
         fake_attachments_repositories.delete_attachments.assert_awaited_once_with(
             filters={"id": attachment.id},

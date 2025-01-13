@@ -30,4 +30,6 @@ class IsProjectInvitationRecipient(PermissionComponent):
         if not obj or user.is_anonymous or not user.is_active:
             return False
 
-        return invitations_services.is_project_invitation_for_this_user(invitation=obj, user=user)
+        return invitations_services.is_project_invitation_for_this_user(
+            invitation=obj, user=user
+        )

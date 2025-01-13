@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from asgiref.sync import sync_to_async
 
 from auth.tokens import RefreshToken
 from tests.utils import factories as f
@@ -29,14 +30,14 @@ async def test_refresh_token_regenerate() -> None:
     # This test proves that it is possible to generate a refresh token from an existing one
     # and continue to use it without problems, postponing the creation of the OutstandingToken.
     user = await f.create_user(is_active=True)
-    token = await RefreshToken.create_for_object(user)
-    await token.denylist()
+    token = await sync_to_async(RefreshToken.for_user)(user)
+    await token.blacklist()
 
     token1 = token.regenerate()
     token1_copy = await RefreshToken.create(token=str(token1))
     assert str(token1) == str(token1_copy)
 
-    await token1.denylist()
+    await token1.blacklist()
     token2 = token1.regenerate()
 
     token2_copy = await RefreshToken.create(token=str(token2))

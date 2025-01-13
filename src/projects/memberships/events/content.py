@@ -18,7 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.serializers import UUIDB64, BaseModel
-from projects.memberships.serializers import ProjectMembershipDeletedSerializer, ProjectMembershipSerializer
+from projects.memberships.serializers import (
+    ProjectMembershipDeletedSerializer,
+    ProjectMembershipSerializer,
+)
 
 
 class ProjectMembershipContent(BaseModel):

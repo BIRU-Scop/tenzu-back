@@ -22,6 +22,7 @@ This module is a wrapper of :py:mod: `babel.dates` to use the current selected l
 
 See the docs at `Babel - Date and Time <https://babel.pocoo.org/en/latest/api/dates.html>`_.
 """
+
 from typing import Any, Callable
 
 from babel import dates

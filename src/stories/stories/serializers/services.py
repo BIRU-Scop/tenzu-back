@@ -39,6 +39,7 @@ def serialize_story_detail(
         ref=story.ref,
         title=story.title,
         description=story.description,
+        status_id=story.status_id,
         status=story.status,
         workflow_id=story.workflow_id,
         project_id=story.project_id,
@@ -65,6 +66,7 @@ def serialize_story_list(
         title=story.title,
         workflow_id=story.workflow_id,
         project_id=story.project_id,
+        status_id=story.status_id,
         status=story.status,
         version=story.version,
         assignees=assignees,
@@ -74,4 +76,6 @@ def serialize_story_list(
 def serialize_reorder_story(
     status: WorkflowStatus, stories: list[int], reorder: dict[str, Any] | None = None
 ) -> ReorderStoriesSerializer:
-    return ReorderStoriesSerializer(status=status, stories=stories, reorder=reorder)
+    return ReorderStoriesSerializer(
+        status_id=status.id, status=status, stories=stories, reorder=reorder
+    )

@@ -26,7 +26,9 @@ class WorkflowFactory(Factory):
     name = factory.Sequence(lambda n: f"Workflow {n}")
     slug = factory.Sequence(lambda n: f"workflow-{n}")
     order = factory.Sequence(lambda n: n)
-    statuses = factory.RelatedFactoryList("tests.utils.factories.WorkflowStatusFactory", "workflow", size=3)
+    statuses = factory.RelatedFactoryList(
+        "tests.utils.factories.WorkflowStatusFactory", "workflow", size=3
+    )
     project = factory.SubFactory("tests.utils.factories.ProjectFactory")
 
     class Meta:

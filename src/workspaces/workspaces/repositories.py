@@ -147,11 +147,16 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
             .values_list("id", flat=True)
         )
         total_projects = len(projects_ids)
-        projects_qs = Project.objects.filter(id__in=projects_ids[:12]).order_by("-created_at")
+        projects_qs = Project.objects.filter(id__in=projects_ids[:12]).order_by(
+            "-created_at"
+        )
         has_projects = Workspace.objects.get(id=ws_id).projects.count() > 0
         invited_projects_qs = Project.objects.filter(
             Q(invitations__user_id=user.id)
-            | (Q(invitations__user__isnull=True) & Q(invitations__email__iexact=user.email)),
+            | (
+                Q(invitations__user__isnull=True)
+                & Q(invitations__email__iexact=user.email)
+            ),
             invitations__status=ProjectInvitationStatus.PENDING,
             workspace_id=ws_id,
         )
@@ -159,7 +164,9 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
             Workspace.objects.filter(id=ws_id)
             .prefetch_related(
                 Prefetch("projects", queryset=projects_qs, to_attr="latest_projects"),
-                Prefetch("projects", queryset=invited_projects_qs, to_attr="invited_projects"),
+                Prefetch(
+                    "projects", queryset=invited_projects_qs, to_attr="invited_projects"
+                ),
             )
             .annotate(total_projects=Value(total_projects, output_field=IntegerField()))
             .annotate(has_projects=Value(has_projects, output_field=BooleanField()))
@@ -171,7 +178,8 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
     # or is not even a guest and only have invited projects
     user_pj_member = Q(memberships__user__id=user.id)
     user_invited_pj = Q(invitations__status=ProjectInvitationStatus.PENDING) & (
-        Q(invitations__user_id=user.id) | (Q(invitations__user__isnull=True) & Q(invitations__email__iexact=user.email))
+        Q(invitations__user_id=user.id)
+        | (Q(invitations__user__isnull=True) & Q(invitations__email__iexact=user.email))
     )
     guest_ws_ids = (
         Project.objects.filter(user_pj_member | user_invited_pj)
@@ -192,11 +200,16 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
             .values_list("id", flat=True)
         )
         total_projects = len(projects_ids)
-        projects_qs = Project.objects.filter(id__in=projects_ids[:12]).order_by("-created_at")
+        projects_qs = Project.objects.filter(id__in=projects_ids[:12]).order_by(
+            "-created_at"
+        )
         has_projects = Workspace.objects.get(id=ws_id).projects.count() > 0
         invited_projects_qs = Project.objects.filter(
             Q(invitations__user_id=user.id)
-            | (Q(invitations__user__isnull=True) & Q(invitations__email__iexact=user.email)),
+            | (
+                Q(invitations__user__isnull=True)
+                & Q(invitations__email__iexact=user.email)
+            ),
             invitations__status=ProjectInvitationStatus.PENDING,
             workspace_id=ws_id,
         )
@@ -204,7 +217,9 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
             Workspace.objects.filter(id=ws_id)
             .prefetch_related(
                 Prefetch("projects", queryset=projects_qs, to_attr="latest_projects"),
-                Prefetch("projects", queryset=invited_projects_qs, to_attr="invited_projects"),
+                Prefetch(
+                    "projects", queryset=invited_projects_qs, to_attr="invited_projects"
+                ),
             )
             .annotate(total_projects=Value(total_projects, output_field=IntegerField()))
             .annotate(has_projects=Value(has_projects, output_field=BooleanField()))
@@ -238,7 +253,9 @@ def get_workspace_detail(
     filters: WorkspaceFilters = {},
 ) -> Workspace | None:
     qs = _apply_filters_to_queryset(filters=filters, qs=DEFAULT_QUERYSET)
-    qs = qs.annotate(has_projects=Exists(Project.objects.filter(workspace=OuterRef("pk"))))
+    qs = qs.annotate(
+        has_projects=Exists(Project.objects.filter(workspace=OuterRef("pk")))
+    )
 
     try:
         return qs.get()
@@ -272,19 +289,25 @@ def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
     try:
         total_projects: Subquery | Count = Count("projects")
         visible_project_ids_qs = (
-            Project.objects.filter(workspace=OuterRef("workspace")).values_list("id", flat=True).order_by("-created_at")
+            Project.objects.filter(workspace=OuterRef("workspace"))
+            .values_list("id", flat=True)
+            .order_by("-created_at")
         )
-        latest_projects_qs = Project.objects.filter(id__in=Subquery(visible_project_ids_qs[:12])).order_by(
-            "-created_at"
-        )
+        latest_projects_qs = Project.objects.filter(
+            id__in=Subquery(visible_project_ids_qs[:12])
+        ).order_by("-created_at")
         return (
             Workspace.objects.filter(
                 id=id,
                 memberships__user_id=user.id,  # user_is_ws_member
             )
             .prefetch_related(
-                Prefetch("projects", queryset=latest_projects_qs, to_attr="latest_projects"),
-                Prefetch("projects", queryset=invited_projects_qs, to_attr="invited_projects"),
+                Prefetch(
+                    "projects", queryset=latest_projects_qs, to_attr="latest_projects"
+                ),
+                Prefetch(
+                    "projects", queryset=invited_projects_qs, to_attr="invited_projects"
+                ),
             )
             .annotate(total_projects=Coalesce(total_projects, 0))
             .annotate(has_projects=has_projects)
@@ -321,15 +344,21 @@ def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
             .order_by("-created_at")
             .values_list("id", flat=True)
         )
-        latest_projects_qs = Project.objects.filter(id__in=Subquery(visible_project_ids_qs[:12])).order_by(
-            "-created_at"
-        )
+        latest_projects_qs = Project.objects.filter(
+            id__in=Subquery(visible_project_ids_qs[:12])
+        ).order_by("-created_at")
         return (
-            Workspace.objects.filter(user_not_ws_member & (user_pj_member | user_invited_pj), id=id)
+            Workspace.objects.filter(
+                user_not_ws_member & (user_pj_member | user_invited_pj), id=id
+            )
             .distinct()
             .prefetch_related(
-                Prefetch("projects", queryset=latest_projects_qs, to_attr="latest_projects"),
-                Prefetch("projects", queryset=invited_projects_qs, to_attr="invited_projects"),
+                Prefetch(
+                    "projects", queryset=latest_projects_qs, to_attr="latest_projects"
+                ),
+                Prefetch(
+                    "projects", queryset=invited_projects_qs, to_attr="invited_projects"
+                ),
             )
             .annotate(total_projects=Coalesce(total_projects, 0))
             .annotate(has_projects=has_projects)

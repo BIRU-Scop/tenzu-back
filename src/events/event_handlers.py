@@ -17,7 +17,10 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from events.actions import CheckProjectEventsSubscriptionAction, CheckWorkspaceEventsSubscriptionAction
+from events.actions import (
+    CheckProjectEventsSubscriptionAction,
+    CheckWorkspaceEventsSubscriptionAction,
+)
 
 __all__ = [
     "emit_event_action_to_check_project_subscription",

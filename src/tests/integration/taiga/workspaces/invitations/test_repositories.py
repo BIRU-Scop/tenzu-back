@@ -203,7 +203,9 @@ async def test_list_workspace_invitations_all_accepted_users():
 async def test_get_workspace_invitation_ok() -> None:
     invitation = await f.create_workspace_invitation()
 
-    new_invitation = await repositories.get_workspace_invitation(filters={"id": invitation.id})
+    new_invitation = await repositories.get_workspace_invitation(
+        filters={"id": invitation.id}
+    )
 
     assert new_invitation is not None
     assert new_invitation == invitation
@@ -277,14 +279,18 @@ async def test_get_workspace_invitation_by_email_no_user() -> None:
 async def test_get_workspace_invitation_by_id() -> None:
     invitation = await f.create_workspace_invitation()
 
-    new_invitation = await repositories.get_workspace_invitation(filters={"id": invitation.id})
+    new_invitation = await repositories.get_workspace_invitation(
+        filters={"id": invitation.id}
+    )
 
     assert new_invitation is not None
     assert new_invitation == invitation
 
 
 async def get_workspace_invitation_by_id_not_found() -> None:
-    new_invitation = await repositories.get_workspace_invitation(filters={"id": uuid.uuid1()})
+    new_invitation = await repositories.get_workspace_invitation(
+        filters={"id": uuid.uuid1()}
+    )
 
     assert new_invitation is None
 
@@ -312,32 +318,46 @@ async def test_update_workspace_invitation():
 
 async def test_bulk_update_workspace_invitations():
     workspace = await f.create_workspace()
-    invitation1 = await f.create_workspace_invitation(workspace=workspace, num_emails_sent=1)
-    invitation2 = await f.create_workspace_invitation(workspace=workspace, num_emails_sent=1)
+    invitation1 = await f.create_workspace_invitation(
+        workspace=workspace, num_emails_sent=1
+    )
+    invitation2 = await f.create_workspace_invitation(
+        workspace=workspace, num_emails_sent=1
+    )
 
     invitation1.num_emails_sent = 2
     invitation2.num_emails_sent = 3
     objs = [invitation1, invitation2]
     fields_to_update = ["num_emails_sent"]
 
-    await repositories.bulk_update_workspace_invitations(objs_to_update=objs, fields_to_update=fields_to_update)
+    await repositories.bulk_update_workspace_invitations(
+        objs_to_update=objs, fields_to_update=fields_to_update
+    )
 
-    updated_invitation1 = await repositories.get_workspace_invitation(filters={"id": invitation1.id})
+    updated_invitation1 = await repositories.get_workspace_invitation(
+        filters={"id": invitation1.id}
+    )
     assert updated_invitation1.num_emails_sent == 2
 
-    updated_invitation2 = await repositories.get_workspace_invitation(filters={"id": invitation2.id})
+    updated_invitation2 = await repositories.get_workspace_invitation(
+        filters={"id": invitation2.id}
+    )
     assert updated_invitation2.num_emails_sent == 3
 
 
 async def test_update_user_workspaces_invitations():
     workspace = await f.create_workspace()
     user = await f.create_user(email="some@email.com")
-    invitation = await f.create_workspace_invitation(workspace=workspace, email="some@email.com", user=None)
+    invitation = await f.create_workspace_invitation(
+        workspace=workspace, email="some@email.com", user=None
+    )
     assert not invitation.user
 
     await repositories.update_user_workspaces_invitations(user=user)
 
-    invitation = await repositories.get_workspace_invitation(filters={"id": invitation.id}, select_related=["user"])
+    invitation = await repositories.get_workspace_invitation(
+        filters={"id": invitation.id}, select_related=["user"]
+    )
     assert invitation.user == user
 
 

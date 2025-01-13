@@ -31,6 +31,7 @@ from pathlib import Path
 
 import sentry_sdk
 from corsheaders.defaults import default_headers
+from django.core.serializers.json import DjangoJSONEncoder
 
 from .conf import settings
 from .utils import remove_ending_slash
@@ -51,6 +52,10 @@ locals().update(
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 ALLOWED_HOSTS = [settings.BACKEND_URL.host, settings.FRONTEND_URL.host]
+POD_IP = settings.POD_IP
+if POD_IP:
+    ALLOWED_HOSTS.append(POD_IP)
+
 
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS = [
     remove_ending_slash(str(settings.BACKEND_URL)),
@@ -84,7 +89,6 @@ INSTALLED_APPS = [
     "stories.stories",
     "attachments",
     "comments",
-    "tokens",
     "users",
     "workflows",
     "workspaces.invitations",
@@ -92,6 +96,7 @@ INSTALLED_APPS = [
     "workspaces.workspaces",
     # 3-party
     "easy_thumbnails",
+    "ninja_jwt",
     "ninja_jwt.token_blacklist",
     "procrastinate.contrib.django",
     "corsheaders",
@@ -191,14 +196,17 @@ NINJA_JWT = {
     **settings.TOKENS.model_dump(),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
-    "UPDATE_LAST_LOGIN": False,
+    "UPDATE_LAST_LOGIN": True,
     "VERIFYING_KEY": None,
     "JWK_URL": None,
     "LEEWAY": 0,
     "USER_AUTHENTICATION_RULE": "ninja_jwt.authentication.default_user_authentication_rule",
     "AUTH_TOKEN_CLASSES": ("ninja_jwt.tokens.AccessToken",),
     "TOKEN_USER_CLASS": "ninja_jwt.models.TokenUser",
+    "JSON_ENCODER": DjangoJSONEncoder,
 }
+
+AUTHENTICATION_BACKENDS = ["auth.backends.EmailOrUsernameModelBackend"]
 
 # EMAIL
 

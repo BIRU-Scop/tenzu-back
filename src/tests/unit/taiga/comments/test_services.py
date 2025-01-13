@@ -38,7 +38,11 @@ async def test_create_comment():
     story = f.build_story()
     comment = f.build_comment()
 
-    with (patch("comments.services.comments_repositories", autospec=True) as fake_comments_repositories,):
+    with (
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
+    ):
         fake_comments_repositories.create_comment.return_value = comment
 
         await services.create_comment(
@@ -61,7 +65,9 @@ async def test_create_comment_and_emit_event_on_creation():
     comment = f.build_comment()
 
     with (
-        patch("comments.services.comments_repositories", autospec=True) as fake_comments_repositories,
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
         patch(
             "comments.models.Comment.project",
             new_callable=PropertyMock,
@@ -92,7 +98,9 @@ async def test_create_comment_and_notify_on_creation():
     comment = f.build_comment()
 
     with (
-        patch("comments.services.comments_repositories", autospec=True) as fake_comments_repositories,
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
         patch(
             "comments.models.Comment.project",
             new_callable=PropertyMock,
@@ -113,7 +121,9 @@ async def test_create_comment_and_notify_on_creation():
             text=comment.text,
             created_by=comment.created_by,
         )
-        fake_notification_on_create.assert_awaited_once_with(comment=comment, emitted_by=comment.created_by)
+        fake_notification_on_create.assert_awaited_once_with(
+            comment=comment, emitted_by=comment.created_by
+        )
 
 
 #####################################################
@@ -137,10 +147,18 @@ async def test_list_comments():
     total = 3
     total_objs = 2
 
-    with (patch("comments.services.comments_repositories", autospec=True) as fake_comments_repositories,):
+    with (
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
+    ):
         fake_comments_repositories.list_comments.return_value = comments
         fake_comments_repositories.get_total_comments.side_effect = [total, total_objs]
-        pagination, total_comments, comments_list = await services.list_paginated_comments(
+        (
+            pagination,
+            total_comments,
+            comments_list,
+        ) = await services.list_paginated_comments(
             content_object=story, order_by=order_by, offset=offset, limit=limit
         )
         fake_comments_repositories.list_comments.assert_awaited_once_with(
@@ -166,7 +184,11 @@ async def test_get_comment():
     story = f.build_story(id="story_id")
     comment_id = uuid1()
 
-    with (patch("comments.services.comments_repositories", autospec=True) as fake_comments_repositories,):
+    with (
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
+    ):
         await services.get_comment(id=comment_id, content_object=story)
         fake_comments_repositories.get_comment.assert_awaited_once_with(
             filters={"id": comment_id, "content_object": story},
@@ -185,10 +207,16 @@ async def test_update_comment():
     comment = f.build_comment()
     updated_text = "Updated text"
 
-    with (patch("comments.services.comments_repositories", autospec=True) as fake_comments_repositories,):
+    with (
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
+    ):
         fake_comments_repositories.update_comment.return_value = comment
 
-        await services.update_comment(story=story, comment=comment, values={"text": updated_text})
+        await services.update_comment(
+            story=story, comment=comment, values={"text": updated_text}
+        )
 
         fake_comments_repositories.update_comment.assert_awaited_once_with(
             comment=comment, values={"text": updated_text}
@@ -203,7 +231,9 @@ async def test_update_comment_and_emit_event_on_update():
     fake_event_on_update = AsyncMock()
 
     with (
-        patch("comments.services.comments_repositories", autospec=True) as fake_comments_repositories,
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
         patch(
             "comments.models.Comment.project",
             new_callable=PropertyMock,
@@ -234,16 +264,25 @@ async def test_update_comment_and_emit_event_on_update():
 async def test_delete_comment():
     now = aware_utcnow()
     comment = f.build_comment()
-    updated_comment = f.build_comment(id=comment.id, text="", deleted_by=comment.created_by, deleted_at=now)
+    updated_comment = f.build_comment(
+        id=comment.id, text="", deleted_by=comment.created_by, deleted_at=now
+    )
 
     with (
-        patch("comments.services.comments_repositories", autospec=True) as fake_comments_repositories,
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
         patch("comments.services.aware_utcnow", autospec=True) as fake_aware_utcnow,
     ):
         fake_aware_utcnow.return_value = now
         fake_comments_repositories.update_comment.return_value = updated_comment
 
-        assert await services.delete_comment(comment=comment, deleted_by=comment.created_by) == updated_comment
+        assert (
+            await services.delete_comment(
+                comment=comment, deleted_by=comment.created_by
+            )
+            == updated_comment
+        )
 
         fake_comments_repositories.update_comment.assert_awaited_once_with(
             comment=comment,
@@ -258,11 +297,15 @@ async def test_delete_comment():
 async def test_delete_comment_and_emit_event_on_delete():
     now = aware_utcnow()
     comment = f.build_comment()
-    updated_comment = f.build_comment(id=comment.id, text="", deleted_by=comment.created_by, deleted_at=now)
+    updated_comment = f.build_comment(
+        id=comment.id, text="", deleted_by=comment.created_by, deleted_at=now
+    )
     fake_event_on_delete = AsyncMock()
 
     with (
-        patch("comments.services.comments_repositories", autospec=True) as fake_comments_repositories,
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
         patch("comments.services.aware_utcnow", autospec=True) as fake_aware_utcnow,
     ):
         fake_aware_utcnow.return_value = now

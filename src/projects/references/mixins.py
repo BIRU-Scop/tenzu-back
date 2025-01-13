@@ -24,11 +24,17 @@ from projects.references import get_new_project_reference_id
 
 
 class ProjectReferenceMixin(models.Model):
-    ref = models.BigIntegerField(db_index=True, null=False, blank=False, default=0, verbose_name="ref")
+    ref = models.BigIntegerField(
+        db_index=True, null=False, blank=False, default=0, verbose_name="ref"
+    )
 
     class Meta:
         abstract = True
-        constraints = [models.UniqueConstraint(fields=["project", "ref"], name="projects_unique_refs")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "ref"], name="projects_unique_refs"
+            )
+        ]
         indexes = [
             models.Index(fields=["project", "ref"]),
         ]

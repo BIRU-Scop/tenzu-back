@@ -25,7 +25,9 @@ from ninja_jwt.schema import TokenObtainPairOutputSchema
 from projects.invitations.serializers.nested import ProjectInvitationNestedSerializer
 from projects.projects.serializers.mixins import ProjectLogoMixin
 from projects.projects.serializers.nested import ProjectNestedSerializer
-from workspaces.invitations.serializers.nested import WorkspaceInvitationNestedSerializer
+from workspaces.invitations.serializers.nested import (
+    WorkspaceInvitationNestedSerializer,
+)
 from workspaces.workspaces.serializers.nested import WorkspaceSmallNestedSerializer
 
 

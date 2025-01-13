@@ -36,7 +36,9 @@ async def test_create_workspace_membership():
     user = await f.create_user()
     workspace = await f.create_workspace()
 
-    membership = await repositories.create_workspace_membership(user=user, workspace=workspace)
+    membership = await repositories.create_workspace_membership(
+        user=user, workspace=workspace
+    )
 
     assert membership.user_id == user.id
     assert membership.workspace_id == workspace.id
@@ -107,7 +109,9 @@ async def test_delete_stories() -> None:
     member = await f.create_user()
     workspace = await f.create_workspace(created_by=user)
     membership = await f.create_workspace_membership(workspace=workspace, user=member)
-    deleted = await repositories.delete_workspace_memberships(filters={"id": membership.id})
+    deleted = await repositories.delete_workspace_memberships(
+        filters={"id": membership.id}
+    )
     assert deleted == 1
 
 
@@ -124,7 +128,9 @@ async def test_list_workspace_members_excluding_user():
     await repositories.create_workspace_membership(user=user1, workspace=workspace)
     await repositories.create_workspace_membership(user=user2, workspace=workspace)
 
-    list_ws_members = await repositories.list_workspace_members_excluding_user(workspace=workspace, exclude_user=admin)
+    list_ws_members = await repositories.list_workspace_members_excluding_user(
+        workspace=workspace, exclude_user=admin
+    )
     assert len(list_ws_members) == 2
 
 
@@ -141,5 +147,7 @@ async def test_get_total_workspaces_memberships():
     await repositories.create_workspace_membership(user=user1, workspace=workspace)
     await repositories.create_workspace_membership(user=user2, workspace=workspace)
 
-    total_memberships = await repositories.get_total_workspace_memberships(filters={"workspace_id": workspace.id})
+    total_memberships = await repositories.get_total_workspace_memberships(
+        filters={"workspace_id": workspace.id}
+    )
     assert total_memberships == 3

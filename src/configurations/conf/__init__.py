@@ -40,12 +40,6 @@ from configurations.utils import remove_ending_slash
 _BASE_DIR = Path(__file__).resolve().parent.parent.parent  # is 'src'
 _DEFAULT_BACKEND_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=8000)
 _DEFAULT_FRONTEND_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=4200)
-_DEFAULT_STATIC_URL = AnyHttpUrl.build(
-    scheme="http", host="localhost", port=8000, path="/static/"
-)
-_DEFAULT_MEDIA_URL = AnyHttpUrl.build(
-    scheme="http", host="localhost", port=8000, path="/media/"
-)
 
 
 class DbSettings(BaseModel):
@@ -65,10 +59,15 @@ class Settings(BaseSettings):
     # SECURITY WARNING: don't run with debug turned on in production!
     DEBUG: bool = False
 
+    # Kubernetes only
+    POD_IP: str | None = None
+
     # Tenzu URLS
     BACKEND_URL: AnyHttpUrl = _DEFAULT_BACKEND_URL
     FRONTEND_URL: AnyHttpUrl = _DEFAULT_FRONTEND_URL
     EXTRA_CORS: list[AnyHttpUrl] = Field(default_factory=list)
+
+    API_VERSION: str = "v1"
 
     # Database
     DB: DbSettings = DbSettings()
@@ -76,11 +75,11 @@ class Settings(BaseSettings):
     # Media and Static files
     # Static files (CSS, JavaScript, Images)
     # https://docs.djangoproject.com/en/4.0/howto/static-files/
-    STATIC_URL: AnyHttpUrl = _DEFAULT_STATIC_URL
+    STATIC_URL: str = "/static/"
     STATIC_ROOT: Path = _BASE_DIR.parent / "public" / "static"
     # Media files
     # https://docs.djangoproject.com/en/4.0/topics/files/#file-storage
-    MEDIA_URL: AnyHttpUrl = _DEFAULT_MEDIA_URL
+    MEDIA_URL: str = "/media/"
     MEDIA_ROOT: Path = _BASE_DIR.parent / "public" / "media"
     MAX_UPLOAD_FILE_SIZE: int = 100 * 1024 * 1024  # 100 MB
 
@@ -119,7 +118,6 @@ class Settings(BaseSettings):
     MAX_NUM_WORKFLOWS: int = 8
 
     # Tasks (linux crontab style)
-    CLEAN_EXPIRED_TOKENS_CRON: str = "0 0 * * *"  # default: once a day
     CLEAN_EXPIRED_USERS_CRON: str = "0 0 * * *"  # default: once a day
 
     # Templates
@@ -147,24 +145,6 @@ class Settings(BaseSettings):
         if v is not None and not 0 <= v < 1 << 48:
             raise ValueError("out of range (need a 48-bit value)")
         return v
-
-    @field_validator("STATIC_URL")
-    @classmethod
-    def set_static_url(cls, v: AnyHttpUrl, info: ValidationInfo) -> str:
-        return (
-            v
-            if v != _DEFAULT_STATIC_URL
-            else urljoin(str(info.data["BACKEND_URL"]), "/static/")
-        )
-
-    @field_validator("MEDIA_URL")
-    @classmethod
-    def set_media_url(cls, v: AnyHttpUrl, info: ValidationInfo) -> str:
-        return (
-            v
-            if v != _DEFAULT_MEDIA_URL
-            else urljoin(str(info.data["BACKEND_URL"]), "/media/")
-        )
 
     @field_validator("LANGUAGE_CODE")
     @classmethod

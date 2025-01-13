@@ -35,7 +35,9 @@ pytestmark = pytest.mark.django_db
 
 async def test_list_project_memberships():
     project = f.build_project()
-    with patch("projects.memberships.services.memberships_repositories", autospec=True) as fake_membership_repository:
+    with patch(
+        "projects.memberships.services.memberships_repositories", autospec=True
+    ) as fake_membership_repository:
         await services.list_project_memberships(project=project)
         fake_membership_repository.list_project_memberships.assert_awaited_once()
 
@@ -49,18 +51,30 @@ async def test_update_project_membership_role_non_existing_role():
     project = f.build_project()
     user = f.build_user()
     general_role = f.build_project_role(project=project, is_admin=False)
-    membership = f.build_project_membership(user=user, project=project, role=general_role)
+    membership = f.build_project_membership(
+        user=user, project=project, role=general_role
+    )
     non_existing_role_slug = "non_existing_role_slug"
     with (
-        patch("projects.memberships.services.pj_roles_repositories", autospec=True) as fake_pj_role_repository,
-        patch("projects.memberships.services.memberships_repositories", autospec=True) as fake_membership_repository,
-        patch("projects.memberships.services.memberships_events", autospec=True) as fake_membership_events,
+        patch(
+            "projects.memberships.services.pj_roles_repositories", autospec=True
+        ) as fake_pj_role_repository,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
         pytest.raises(ex.NonExistingRoleError),
     ):
         fake_pj_role_repository.get_project_role.return_value = None
 
-        await services.update_project_membership(membership=membership, role_slug=non_existing_role_slug)
-        fake_pj_role_repository.get_project_role.assert_awaited_once_with(project=project, slug=non_existing_role_slug)
+        await services.update_project_membership(
+            membership=membership, role_slug=non_existing_role_slug
+        )
+        fake_pj_role_repository.get_project_role.assert_awaited_once_with(
+            project=project, slug=non_existing_role_slug
+        )
         fake_membership_repository.update_project_membership.assert_not_awaited()
         fake_membership_events.emit_event_when_project_membership_is_updated.assert_not_awaited()
 
@@ -68,18 +82,28 @@ async def test_update_project_membership_role_non_existing_role():
 async def test_update_project_membership_role_only_one_admin():
     project = f.build_project()
     admin_role = f.build_project_role(project=project, is_admin=True)
-    membership = f.build_project_membership(user=project.created_by, project=project, role=admin_role)
+    membership = f.build_project_membership(
+        user=project.created_by, project=project, role=admin_role
+    )
     general_role = f.build_project_role(project=project, is_admin=False)
     with (
-        patch("projects.memberships.services.pj_roles_repositories", autospec=True) as fake_pj_role_repository,
-        patch("projects.memberships.services.memberships_repositories", autospec=True) as fake_membership_repository,
-        patch("projects.memberships.services.memberships_events", autospec=True) as fake_membership_events,
+        patch(
+            "projects.memberships.services.pj_roles_repositories", autospec=True
+        ) as fake_pj_role_repository,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
         pytest.raises(ex.MembershipIsTheOnlyAdminError),
     ):
         fake_pj_role_repository.get_project_role.return_value = general_role
         fake_membership_repository.get_total_project_memberships.return_value = 1
 
-        await services.update_project_membership(membership=membership, role_slug=general_role.slug)
+        await services.update_project_membership(
+            membership=membership, role_slug=general_role.slug
+        )
         fake_pj_role_repository.get_project_role.assert_awaited_once_with(
             filters={"project_id": project.id, "slug": general_role.slug}
         )
@@ -94,16 +118,26 @@ async def test_update_project_membership_role_ok():
     project = f.build_project()
     user = f.build_user()
     general_role = f.build_project_role(project=project, is_admin=False)
-    membership = f.build_project_membership(user=user, project=project, role=general_role)
+    membership = f.build_project_membership(
+        user=user, project=project, role=general_role
+    )
     admin_role = f.build_project_role(project=project, is_admin=True)
     with (
-        patch("projects.memberships.services.pj_roles_repositories", autospec=True) as fake_pj_role_repository,
-        patch("projects.memberships.services.memberships_repositories", autospec=True) as fake_membership_repository,
-        patch("projects.memberships.services.memberships_events", autospec=True) as fake_membership_events,
+        patch(
+            "projects.memberships.services.pj_roles_repositories", autospec=True
+        ) as fake_pj_role_repository,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
     ):
         fake_pj_role_repository.get_project_role.return_value = admin_role
 
-        updated_membership = await services.update_project_membership(membership=membership, role_slug=admin_role.slug)
+        updated_membership = await services.update_project_membership(
+            membership=membership, role_slug=admin_role.slug
+        )
         fake_pj_role_repository.get_project_role.assert_awaited_once_with(
             filters={"project_id": project.id, "slug": admin_role.slug}
         )
@@ -121,13 +155,23 @@ async def test_update_project_membership_role_view_story_deleted():
     user = f.build_user()
     permissions = []
     admin_role = f.build_project_role(project=project, is_admin=True)
-    role = f.build_project_role(project=project, is_admin=False, permissions=permissions)
+    role = f.build_project_role(
+        project=project, is_admin=False, permissions=permissions
+    )
     membership = f.build_project_membership(user=user, project=project, role=admin_role)
     with (
-        patch("projects.memberships.services.pj_roles_repositories", autospec=True) as fake_pj_role_repository,
-        patch("projects.memberships.services.memberships_repositories", autospec=True) as fake_membership_repository,
-        patch("projects.memberships.services.memberships_events", autospec=True) as fake_membership_events,
-        patch("projects.memberships.services.permissions_services", autospec=True) as fake_permissions_service,
+        patch(
+            "projects.memberships.services.pj_roles_repositories", autospec=True
+        ) as fake_pj_role_repository,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
+        patch(
+            "projects.memberships.services.permissions_services", autospec=True
+        ) as fake_permissions_service,
         patch(
             "projects.memberships.services.story_assignments_repositories",
             autospec=True,
@@ -136,7 +180,9 @@ async def test_update_project_membership_role_view_story_deleted():
         fake_pj_role_repository.get_project_role.return_value = role
         fake_permissions_service.is_view_story_permission_deleted.return_value = True
 
-        updated_membership = await services.update_project_membership(membership=membership, role_slug=role.slug)
+        updated_membership = await services.update_project_membership(
+            membership=membership, role_slug=role.slug
+        )
         fake_pj_role_repository.get_project_role.assert_awaited_once_with(
             filters={"project_id": project.id, "slug": role.slug}
         )
@@ -159,10 +205,16 @@ async def test_update_project_membership_role_view_story_deleted():
 async def test_delete_project_membership_only_one_admin():
     project = f.build_project()
     admin_role = f.build_project_role(project=project, is_admin=True)
-    membership = f.build_project_membership(user=project.created_by, project=project, role=admin_role)
+    membership = f.build_project_membership(
+        user=project.created_by, project=project, role=admin_role
+    )
     with (
-        patch("projects.memberships.services.memberships_repositories", autospec=True) as fake_membership_repository,
-        patch("projects.memberships.services.memberships_events", autospec=True) as fake_membership_events,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
         pytest.raises(ex.MembershipIsTheOnlyAdminError),
     ):
         fake_membership_repository.get_total_project_memberships.return_value = 1
@@ -179,9 +231,13 @@ async def test_delete_project_membership_ok():
     project = f.build_project()
     user = f.build_user()
     general_role = f.build_project_role(project=project, is_admin=False)
-    membership = f.build_project_membership(user=user, project=project, role=general_role)
+    membership = f.build_project_membership(
+        user=user, project=project, role=general_role
+    )
     with (
-        patch("projects.memberships.services.memberships_repositories", autospec=True) as fake_membership_repository,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
         patch(
             "projects.memberships.services.story_assignments_repositories",
             autospec=True,
@@ -190,7 +246,9 @@ async def test_delete_project_membership_ok():
             "projects.memberships.services.project_invitations_repositories",
             autospec=True,
         ) as fake_project_invitations_repository,
-        patch("projects.memberships.services.memberships_events", autospec=True) as fake_membership_events,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
     ):
         fake_membership_repository.delete_project_membership.return_value = 1
         await services.delete_project_membership(membership=membership)

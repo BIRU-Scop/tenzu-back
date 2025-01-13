@@ -52,7 +52,9 @@ async def test_check_permission_allow_any():
     permissions = AllowAny()
 
     # always granted permissions
-    assert await check_permissions(permissions=permissions, user=user1, obj=None) is None
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=None) is None
+    )
 
 
 async def test_check_permission_deny_all():
@@ -70,7 +72,9 @@ async def test_check_permission_is_authenticated():
     permissions = IsAuthenticated()
 
     # User.is_authenticated is always True
-    assert await check_permissions(permissions=permissions, user=user1, obj=None) is None
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=None) is None
+    )
     # AnonymousUser.is_authenticated is always False
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=None)
@@ -81,7 +85,9 @@ async def test_check_permission_is_superuser():
     user2 = await f.create_user(is_superuser=False)
     permissions = IsSuperUser()
 
-    assert await check_permissions(permissions=permissions, user=user1, obj=None) is None
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=None) is None
+    )
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=None)
 
@@ -94,7 +100,10 @@ async def test_check_permission_has_perm():
     permissions = HasPerm("view_story")
 
     # user1 has modify permissions
-    assert await check_permissions(permissions=permissions, user=user1, obj=project1) is None
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=project1)
+        is None
+    )
     # user2 hasn't modify permissions
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=project2)
@@ -107,7 +116,10 @@ async def test_check_permission_is_project_admin():
     permissions = IsProjectAdmin()
 
     # user1 is pj-admin
-    assert await check_permissions(permissions=permissions, user=user1, obj=project) is None
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=project)
+        is None
+    )
     # user2 isn't pj-admin
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=project)
@@ -120,7 +132,10 @@ async def test_check_permission_is_workspace_admin():
     permissions = IsWorkspaceMember()
 
     # user1 is ws-admin
-    assert await check_permissions(permissions=permissions, user=user1, obj=workspace) is None
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=workspace)
+        is None
+    )
     # user2 isn't ws-admin
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=workspace)
@@ -133,7 +148,10 @@ async def test_check_permission_can_view_project():
     permissions = CanViewProject()
 
     # user is pj-admin
-    assert await check_permissions(permissions=permissions, user=user1, obj=project) is None
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=project)
+        is None
+    )
     # user2 isn't pj-member
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=project)
@@ -146,7 +164,10 @@ async def test_check_permission_is_an_object_related_to_the_user():
 
     permissions = IsRelatedToTheUser("user")
     # user1 and obj.user are the same user
-    assert await check_permissions(permissions=permissions, user=user1, obj=membership) is None
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=membership)
+        is None
+    )
     # user1 and obj.user are not the same user
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=membership)
@@ -164,10 +185,17 @@ async def test_check_permission_global_perms():
     permissions = IsProjectAdmin()
 
     # user IsProjectAdmin (true) & globalPerm(AllowAny) (true)
-    assert await check_permissions(permissions=permissions, global_perms=AllowAny(), user=user, obj=project) is None
+    assert (
+        await check_permissions(
+            permissions=permissions, global_perms=AllowAny(), user=user, obj=project
+        )
+        is None
+    )
     # user IsProjectAdmin (true) & globalPerm(AllowAny) (false)
     with pytest.raises(ex.ForbiddenError):
-        await check_permissions(permissions=permissions, global_perms=DenyAll(), user=user, obj=project)
+        await check_permissions(
+            permissions=permissions, global_perms=DenyAll(), user=user, obj=project
+        )
 
 
 async def test_check_permission_enough_perms():
@@ -177,9 +205,19 @@ async def test_check_permission_enough_perms():
     true_permission = IsProjectAdmin()
 
     # user IsProjectAdmin (true) | globalPerm(AllowAny) (true)
-    assert await check_permissions(permissions=true_permission, enough_perms=AllowAny(), user=user, obj=project) is None
+    assert (
+        await check_permissions(
+            permissions=true_permission, enough_perms=AllowAny(), user=user, obj=project
+        )
+        is None
+    )
     # user IsProjectAdmin (true) | globalPerm(AllowAny) (false)
-    assert await check_permissions(permissions=true_permission, enough_perms=DenyAll(), user=user, obj=project) is None
+    assert (
+        await check_permissions(
+            permissions=true_permission, enough_perms=DenyAll(), user=user, obj=project
+        )
+        is None
+    )
 
 
 #############################################
@@ -203,27 +241,54 @@ async def test_check_permission_operators():
     permission_false_all_together = ~(permission_true_all_or | permission_false_and)
 
     # user IsProjectAdmin (true) & HasPerm("view_story") (true)
-    assert await check_permissions(permissions=permission_true_and, user=user, obj=project) is None
+    assert (
+        await check_permissions(permissions=permission_true_and, user=user, obj=project)
+        is None
+    )
     # user IsProjectAdmin (true) & HasPerm("view_story") (true) & IsSuperUser() (false)
     with pytest.raises(ex.ForbiddenError):
-        await check_permissions(permissions=permission_false_and, user=user, obj=project)
+        await check_permissions(
+            permissions=permission_false_and, user=user, obj=project
+        )
     # user IsProjectAdmin (true) | HasPerm("view_story") (true)
-    assert await check_permissions(permissions=permission_true_all_or, user=user, obj=project) is None
+    assert (
+        await check_permissions(
+            permissions=permission_true_all_or, user=user, obj=project
+        )
+        is None
+    )
     # user IsProjectAdmin (true) | HasPerm("view_story") (true) | IsSuperUser() (false)
-    assert await check_permissions(permissions=permission_true_some_or, user=user, obj=project) is None
+    assert (
+        await check_permissions(
+            permissions=permission_true_some_or, user=user, obj=project
+        )
+        is None
+    )
     # user IsSuperUser (false) | DenyAll() (false)
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permission_false_or, user=user, obj=project)
     # Not(DenyAll()) Not(false)
-    assert await check_permissions(permissions=permission_true_not, user=user, obj=project) is None
+    assert (
+        await check_permissions(permissions=permission_true_not, user=user, obj=project)
+        is None
+    )
     # Not(AllowAny()) Not(true)
     with pytest.raises(ex.ForbiddenError):
-        await check_permissions(permissions=permission_false_not, user=user, obj=project)
+        await check_permissions(
+            permissions=permission_false_not, user=user, obj=project
+        )
     # Not(permission_true_all_or (true) & permission_false_and (false))
-    assert await check_permissions(permissions=permission_true_all_together, user=user, obj=project) is None
+    assert (
+        await check_permissions(
+            permissions=permission_true_all_together, user=user, obj=project
+        )
+        is None
+    )
     # Not(permission_true_all_or (true) | permission_false_and (false))
     with pytest.raises(ex.ForbiddenError):
-        await check_permissions(permissions=permission_false_all_together, user=user, obj=project)
+        await check_permissions(
+            permissions=permission_false_all_together, user=user, obj=project
+        )
 
 
 async def test_check_permission_operators_classes():
@@ -238,28 +303,59 @@ async def test_check_permission_operators_classes():
     permission_false_or = Or(IsSuperUser(), DenyAll())
     permission_true_not = Not(DenyAll())
     permission_false_not = Not(AllowAny())
-    permission_true_all_together = Not(And(permission_true_all_or, permission_false_and))
-    permission_false_all_together = Not(Or(permission_true_all_or, permission_false_and))
+    permission_true_all_together = Not(
+        And(permission_true_all_or, permission_false_and)
+    )
+    permission_false_all_together = Not(
+        Or(permission_true_all_or, permission_false_and)
+    )
 
     # user IsProjectAdmin (true) & HasPerm("view_story") (true)
-    assert await check_permissions(permissions=permission_true_and, user=user, obj=project) is None
+    assert (
+        await check_permissions(permissions=permission_true_and, user=user, obj=project)
+        is None
+    )
     # user IsProjectAdmin (true) & HasPerm("view_story") (true) & IsSuperUser() (false)
     with pytest.raises(ex.ForbiddenError):
-        await check_permissions(permissions=permission_false_and, user=user, obj=project)
+        await check_permissions(
+            permissions=permission_false_and, user=user, obj=project
+        )
     # user IsProjectAdmin (true) | HasPerm("view_story") (true)
-    assert await check_permissions(permissions=permission_true_all_or, user=user, obj=project) is None
+    assert (
+        await check_permissions(
+            permissions=permission_true_all_or, user=user, obj=project
+        )
+        is None
+    )
     # user IsProjectAdmin (true) | HasPerm("view_story") (true) | IsSuperUser() (false)
-    assert await check_permissions(permissions=permission_true_some_or, user=user, obj=project) is None
+    assert (
+        await check_permissions(
+            permissions=permission_true_some_or, user=user, obj=project
+        )
+        is None
+    )
     # user IsSuperUser (false) | DenyAll() (false)
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permission_false_or, user=user, obj=project)
     # Not(DenyAll()) Not(false)
-    assert await check_permissions(permissions=permission_true_not, user=user, obj=project) is None
+    assert (
+        await check_permissions(permissions=permission_true_not, user=user, obj=project)
+        is None
+    )
     # Not(AllowAny()) Not(true)
     with pytest.raises(ex.ForbiddenError):
-        await check_permissions(permissions=permission_false_not, user=user, obj=project)
+        await check_permissions(
+            permissions=permission_false_not, user=user, obj=project
+        )
     # Not(permission_true_all_or (true) & permission_false_and (false))
-    assert await check_permissions(permissions=permission_true_all_together, user=user, obj=project) is None
+    assert (
+        await check_permissions(
+            permissions=permission_true_all_together, user=user, obj=project
+        )
+        is None
+    )
     # Not(permission_true_all_or (true) | permission_false_and (false))
     with pytest.raises(ex.ForbiddenError):
-        await check_permissions(permissions=permission_false_all_together, user=user, obj=project)
+        await check_permissions(
+            permissions=permission_false_all_together, user=user, obj=project
+        )

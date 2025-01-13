@@ -21,12 +21,12 @@ import re
 from typing import Any, Iterable
 
 from django.conf import settings
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, RegexValidator
 
 from base.db import models
 from base.db.users import AbstractBaseUser, AnonymousUser, UserManager
-from base.utils.colors import generate_random_color
 from base.utils.slug import generate_int_suffix, slugify_uniquely
+from commons.colors import NUM_COLORS, generate_random_color
 
 type AnyUser = AnonymousUser | "User" | AbstractBaseUser
 
@@ -57,7 +57,11 @@ class User(models.BaseModel, AbstractBaseUser):
         verbose_name="email address",
     )
     color = models.IntegerField(
-        null=False, blank=True, default=generate_random_color, verbose_name="color"
+        null=False,
+        blank=True,
+        default=generate_random_color,
+        verbose_name="color",
+        validators=[MaxValueValidator(NUM_COLORS)],
     )
     is_active = models.BooleanField(
         null=False,
@@ -94,6 +98,7 @@ class User(models.BaseModel, AbstractBaseUser):
         null=True, blank=True, default=None, verbose_name="date verification"
     )
 
+    EMAIL_FIELD = "email"
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
 

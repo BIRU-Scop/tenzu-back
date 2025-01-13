@@ -34,7 +34,9 @@ async def test_create_story_assignment_ok() -> None:
     user = await f.create_user()
     story = await f.create_story()
 
-    story_assignment, created = await repositories.create_story_assignment(story=story, user=user)
+    story_assignment, created = await repositories.create_story_assignment(
+        story=story, user=user
+    )
 
     assert story_assignment.user == user
     assert story_assignment.story == story

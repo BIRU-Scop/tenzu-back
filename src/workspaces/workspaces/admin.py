@@ -34,7 +34,9 @@ class WorkspaceMembershipInline(admin.TabularInline):
     model = WorkspaceMembership
     extra = 0
 
-    def get_formset(self, request: HttpRequest, obj: Workspace | None = None, **kwargs: Any) -> Any:
+    def get_formset(
+        self, request: HttpRequest, obj: Workspace | None = None, **kwargs: Any
+    ) -> Any:
         self.parent_obj = obj  # Use in formfield_for_foreignkey()
         return super().get_formset(request, obj, **kwargs)
 
@@ -42,7 +44,9 @@ class WorkspaceMembershipInline(admin.TabularInline):
         self, db_field: ForeignKey[Any, Any], request: HttpRequest, **kwargs: Any
     ) -> ModelChoiceField:
         if db_field.name in ["role"]:
-            kwargs["queryset"] = db_field.related_model.objects.filter(workspace=self.parent_obj)
+            kwargs["queryset"] = db_field.related_model.objects.filter(
+                workspace=self.parent_obj
+            )
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
@@ -59,7 +63,11 @@ class WorkspaceGuestsInline(admin.NonrelatedTabularInline):
     verbose_name = "Workspace guest"
 
     def list_projects(self, obj: User) -> list[str]:
-        return list(obj.projects.filter(workspace=self.parent_obj).values_list("name", flat=True))
+        return list(
+            obj.projects.filter(workspace=self.parent_obj).values_list(
+                "name", flat=True
+            )
+        )
 
     def get_form_queryset(self, obj: Workspace | None = None) -> QuerySet[User]:
         if not obj:
@@ -74,7 +82,9 @@ class WorkspaceGuestsInline(admin.NonrelatedTabularInline):
         return False
 
     # This will help you to disable delete functionaliyt
-    def has_delete_permission(self, request: HttpRequest, obj: User | None = None) -> bool:
+    def has_delete_permission(
+        self, request: HttpRequest, obj: User | None = None
+    ) -> bool:
         return False
 
 
@@ -82,7 +92,9 @@ class WorkspaceInvitationInline(admin.TabularInline):
     model = WorkspaceInvitation
     extra = 0
 
-    def get_formset(self, request: HttpRequest, obj: Workspace | None = None, **kwargs: Any) -> Any:
+    def get_formset(
+        self, request: HttpRequest, obj: Workspace | None = None, **kwargs: Any
+    ) -> Any:
         self.parent_obj = obj  # Use in formfield_for_foreignkey()
         return super().get_formset(request, obj, **kwargs)
 
@@ -90,7 +102,9 @@ class WorkspaceInvitationInline(admin.TabularInline):
         self, db_field: ForeignKey[Any, Any], request: HttpRequest, **kwargs: Any
     ) -> ModelChoiceField:
         if db_field.name in ["role"]:
-            kwargs["queryset"] = db_field.related_model.objects.filter(project=self.parent_obj)
+            kwargs["queryset"] = db_field.related_model.objects.filter(
+                project=self.parent_obj
+            )
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 

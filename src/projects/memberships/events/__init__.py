@@ -18,7 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 from events import events_manager
-from projects.memberships.events.content import DeleteProjectMembershipContent, ProjectMembershipContent
+from projects.memberships.events.content import (
+    DeleteProjectMembershipContent,
+    ProjectMembershipContent,
+)
 from projects.memberships.models import ProjectMembership
 
 CREATE_PROJECT_MEMBERSHIP = "projectmemberships.create"
@@ -65,19 +68,25 @@ async def emit_event_when_project_membership_is_deleted(
     await events_manager.publish_on_project_channel(
         project=membership.project,
         type=DELETE_PROJECT_MEMBERSHIP,
-        content=DeleteProjectMembershipContent(membership=membership, workspace=membership.project.workspace_id),
+        content=DeleteProjectMembershipContent(
+            membership=membership, workspace=membership.project.workspace_id
+        ),
     )
 
     # for deleted user in her home or in project detail
     await events_manager.publish_on_user_channel(
         user=membership.user,
         type=DELETE_PROJECT_MEMBERSHIP,
-        content=DeleteProjectMembershipContent(membership=membership, workspace=membership.project.workspace_id),
+        content=DeleteProjectMembershipContent(
+            membership=membership, workspace=membership.project.workspace_id
+        ),
     )
 
     # for ws-members in settings>people>non-members
     await events_manager.publish_on_workspace_channel(
         workspace=membership.project.workspace,
         type=DELETE_PROJECT_MEMBERSHIP,
-        content=DeleteProjectMembershipContent(membership=membership, workspace=membership.project.workspace_id),
+        content=DeleteProjectMembershipContent(
+            membership=membership, workspace=membership.project.workspace_id
+        ),
     )

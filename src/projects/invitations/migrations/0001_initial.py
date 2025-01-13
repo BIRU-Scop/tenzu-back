@@ -59,7 +59,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "email",
-                    base.db.models.fields.LowerEmailField(max_length=255, verbose_name="email"),
+                    base.db.models.fields.LowerEmailField(
+                        max_length=255, verbose_name="email"
+                    ),
                 ),
                 (
                     "status",
@@ -80,11 +82,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "resent_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="resent at"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="resent at"
+                    ),
                 ),
                 (
                     "revoked_at",
-                    models.DateTimeField(blank=True, null=True, verbose_name="revoked at"),
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="revoked at"
+                    ),
                 ),
                 (
                     "invited_by",
@@ -160,11 +166,15 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="projectinvitation",
-            index=models.Index(fields=["project", "email"], name="projects_in_project_d7d2d6_idx"),
+            index=models.Index(
+                fields=["project", "email"], name="projects_in_project_d7d2d6_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="projectinvitation",
-            index=models.Index(fields=["project", "user"], name="projects_in_project_ac92b3_idx"),
+            index=models.Index(
+                fields=["project", "user"], name="projects_in_project_ac92b3_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="projectinvitation",

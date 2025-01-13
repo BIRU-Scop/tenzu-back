@@ -40,7 +40,9 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="comment",
             name="deleted_at",
-            field=models.DateTimeField(blank=True, null=True, verbose_name="deleted at"),
+            field=models.DateTimeField(
+                blank=True, null=True, verbose_name="deleted at"
+            ),
         ),
         migrations.AddField(
             model_name="comment",
@@ -49,6 +51,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
+                related_name="%(app_label)s_%(class)s_deleted_by",
                 to=settings.AUTH_USER_MODEL,
                 verbose_name="deleted by",
             ),

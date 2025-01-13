@@ -112,14 +112,21 @@ class UserAdmin(DjangoUserAdmin):
     ]
 
     def get_form(
-        self, request: HttpRequest, obj: User | None = None, change: bool = False, **kwargs: Any
+        self,
+        request: HttpRequest,
+        obj: User | None = None,
+        change: bool = False,
+        **kwargs: Any,
     ) -> Type[forms.ModelForm]:
         form = super().get_form(request, obj, **kwargs)
 
         if "lang" in form.base_fields:
             # Use Select widget to get a dynamic choices for lang field
             form.base_fields["lang"].widget = forms.widgets.Select(
-                choices=((lang.code, lang.english_name) for lang in i18n.available_languages_info)
+                choices=(
+                    (lang.code, lang.english_name)
+                    for lang in i18n.available_languages_info
+                )
             )
 
         return form

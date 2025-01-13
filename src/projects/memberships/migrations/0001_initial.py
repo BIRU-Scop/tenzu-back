@@ -92,7 +92,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="projectmembership",
-            index=models.Index(fields=["project", "user"], name="projects_me_project_3bd46e_idx"),
+            index=models.Index(
+                fields=["project", "user"], name="projects_me_project_3bd46e_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="projectmembership",

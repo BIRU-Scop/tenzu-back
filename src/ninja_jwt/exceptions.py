@@ -72,7 +72,9 @@ class TokenBackendError(Exception):
     pass
 
 
-class AuthenticationFailed(DetailDictMixin, ninja_extra_exceptions.AuthenticationFailedBase):
+class AuthenticationFailed(
+    DetailDictMixin, ninja_extra_exceptions.AuthenticationFailedBase
+):
     pass
 
 

@@ -47,7 +47,9 @@ async def list_project_memberships(project: Project) -> list[ProjectMembership]:
 ##########################################################
 
 
-async def get_project_membership(project_id: UUID, username: str) -> ProjectMembership | None:
+async def get_project_membership(
+    project_id: UUID, username: str
+) -> ProjectMembership | None:
     return await memberships_repositories.get_project_membership(
         filters={"project_id": project_id, "username": username},
         select_related=["user", "role", "project", "workspace"],
@@ -59,7 +61,9 @@ async def get_project_membership(project_id: UUID, username: str) -> ProjectMemb
 ##########################################################
 
 
-async def update_project_membership(membership: ProjectMembership, role_slug: str) -> ProjectMembership:
+async def update_project_membership(
+    membership: ProjectMembership, role_slug: str
+) -> ProjectMembership:
     project_role = await pj_roles_repositories.get_project_role(
         filters={"project_id": membership.project_id, "slug": role_slug}
     )
@@ -74,9 +78,11 @@ async def update_project_membership(membership: ProjectMembership, role_slug: st
     # Check if new role has view_story permission
     view_story_is_deleted = False
     if membership.role.permissions:
-        view_story_is_deleted = await permissions_services.is_view_story_permission_deleted(
-            old_permissions=membership.role.permissions,
-            new_permissions=project_role.permissions,
+        view_story_is_deleted = (
+            await permissions_services.is_view_story_permission_deleted(
+                old_permissions=membership.role.permissions,
+                new_permissions=project_role.permissions,
+            )
         )
 
     updated_membership = await memberships_repositories.update_project_membership(
@@ -84,7 +90,9 @@ async def update_project_membership(membership: ProjectMembership, role_slug: st
         values={"role": project_role},
     )
 
-    await memberships_events.emit_event_when_project_membership_is_updated(membership=updated_membership)
+    await memberships_events.emit_event_when_project_membership_is_updated(
+        membership=updated_membership
+    )
 
     # Unassign stories for user if the new role doesn't have view_story permission
     if view_story_is_deleted:
@@ -127,7 +135,9 @@ async def delete_project_membership(
                 "username_or_email": membership.user.email,
             },
         )
-        await memberships_events.emit_event_when_project_membership_is_deleted(membership=membership)
+        await memberships_events.emit_event_when_project_membership_is_deleted(
+            membership=membership
+        )
         return True
 
     return False
@@ -142,5 +152,7 @@ async def _is_membership_the_only_admin(membership_role: ProjectRole) -> bool:
     if not membership_role.is_admin:
         return False
 
-    num_admins = await memberships_repositories.get_total_project_memberships(filters={"role_id": membership_role.id})
+    num_admins = await memberships_repositories.get_total_project_memberships(
+        filters={"role_id": membership_role.id}
+    )
     return num_admins == 1

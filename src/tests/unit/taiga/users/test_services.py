@@ -285,7 +285,7 @@ async def test_verify_user_ok_no_invitation_tokens_to_accept():
         assert info.auth == auth_credentials
         assert info.project_invitation is None
 
-        fake_token.denylist.assert_awaited_once()
+        fake_token.blacklist.assert_awaited_once()
         fake_users_repo.get_user.assert_awaited_once_with(filters=object_data)
 
         fake_pj_invitations_services.update_user_projects_invitations.assert_awaited_once_with(
@@ -352,7 +352,7 @@ async def test_verify_user_ok_accepting_or_not_a_project_invitation_token(
         assert info.auth == auth_credentials
         assert info.project_invitation.project.name == project_invitation.project.name
 
-        fake_token.denylist.assert_awaited_once()
+        fake_token.blacklist.assert_awaited_once()
         fake_users_repo.get_user.assert_awaited_once_with(filters=object_data)
         fake_pj_invitations_services.update_user_projects_invitations.assert_awaited_once_with(
             user=user
@@ -425,7 +425,7 @@ async def test_verify_user_ok_accepting_or_not_a_workspace_invitation_token(
             == workspace_invitation.workspace.name
         )
 
-        fake_token.denylist.assert_awaited_once()
+        fake_token.blacklist.assert_awaited_once()
         fake_users_repo.get_user.assert_awaited_once_with(filters=object_data)
         fake_pj_invitations_services.update_user_projects_invitations.assert_awaited_once_with(
             user=user
@@ -569,7 +569,7 @@ async def test_generate_verify_ok_accept_project_invitation(
     token = {}
 
     with patch("users.services.VerifyUserToken", autospec=True) as FakeVerifyUserToken:
-        FakeVerifyUserToken.create_for_object.return_value = token
+        FakeVerifyUserToken.for_user.return_value = token
 
         verify_user_token_str = await services._generate_verify_user_token(
             user=user,
@@ -1218,7 +1218,7 @@ async def test_password_reset_error_no_user_token():
         fake_users_repo.get_user.return_value = None
 
         await services._get_user_and_reset_password_token(fake_token)
-        fake_token.denylist.assert_awaited()
+        fake_token.blacklist.assert_awaited()
 
 
 async def test_request_reset_password_ok():
@@ -1289,11 +1289,11 @@ async def test_reset_password_generate_reset_password_token_ok():
         ) as FakeResetPasswordToken,
     ):
         fake_token = FakeResetPasswordToken()
-        FakeResetPasswordToken.create_for_object.return_value = fake_token
+        FakeResetPasswordToken.for_user.return_value = fake_token
 
         ret = await services._generate_reset_password_token(user=user)
-        FakeResetPasswordToken.create_for_object.assert_awaited_once_with(user)
-        FakeResetPasswordToken.create_for_object.assert_awaited_once_with(user)
+        FakeResetPasswordToken.for_user.assert_awaited_once_with(user)
+        FakeResetPasswordToken.for_user.assert_awaited_once_with(user)
         assert ret == str(fake_token)
 
 
@@ -1351,7 +1351,7 @@ async def test_reset_password_ok_with_user():
         ) as FakeResetPasswordToken,
     ):
         fake_token = FakeResetPasswordToken()
-        fake_token.denylist.return_value = None
+        fake_token.blacklist.return_value = None
         fake_get_user_and_reset_password_token.return_value = (fake_token, user)
         fake_users_repo.change_password.return_value = None
 
@@ -1375,7 +1375,7 @@ async def test_reset_password_ok_without_user():
         ) as FakeResetPasswordToken,
     ):
         fake_token = FakeResetPasswordToken()
-        fake_token.denylist.return_value = None
+        fake_token.blacklist.return_value = None
         fake_get_user_and_reset_password_token.return_value = (fake_token, None)
 
         ret = await services.reset_password(str(fake_token), password)

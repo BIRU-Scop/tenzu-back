@@ -30,7 +30,9 @@ SUBJECT = "Email sent from FastPI-Mailman"
 TO_EMAILS = ["username1@domain.name", "username2@domain.name"]
 FROM_EMAIL = "username@domain.name"
 BODY_TXT = "This is the Text message"
-BODY_HTML = "<h1>Hello Jinja2</h1><h2>One</h2><ul><li>Foo</li><li>Bar</li><li>Qux</li></ul>"
+BODY_HTML = (
+    "<h1>Hello Jinja2</h1><h2>One</h2><ul><li>Foo</li><li>Bar</li><li>Qux</li></ul>"
+)
 
 email_config = ConnectionConfig(
     MAIL_BACKEND=EmailBackends.DUMMY.value,
@@ -46,8 +48,12 @@ dummy_email_connection = Mail(email_config).get_connection()
 # TODO: include all called/awaited asserts in one unique test method (mocking the EmailMultiAlternatives constructor)
 async def test_email_message_creation():
     with (
-        patch("emails.sender.EmailMultiAlternatives", autospec=True) as fake_email_message,
-        patch("emails.sender._get_mail_connection", return_value=dummy_email_connection),
+        patch(
+            "emails.sender.EmailMultiAlternatives", autospec=True
+        ) as fake_email_message,
+        patch(
+            "emails.sender._get_mail_connection", return_value=dummy_email_connection
+        ),
     ):
         await send_email_message(
             subject=SUBJECT,
@@ -70,7 +76,9 @@ async def test_email_message_attach_alternative():
         patch(
             "emails.sender.EmailMultiAlternatives.attach_alternative", new_callable=Mock
         ) as fake_email_message_alternative,
-        patch("emails.sender._get_mail_connection", return_value=dummy_email_connection),
+        patch(
+            "emails.sender._get_mail_connection", return_value=dummy_email_connection
+        ),
     ):
         await send_email_message(
             subject=SUBJECT,
@@ -85,10 +93,14 @@ async def test_email_message_attach_alternative():
 
 async def test_email_message_attach_file():
     with (
-        patch("emails.sender.EmailMultiAlternatives.attach_file", new_callable=Mock) as fake_email_message_files,
+        patch(
+            "emails.sender.EmailMultiAlternatives.attach_file", new_callable=Mock
+        ) as fake_email_message_files,
         tempfile.NamedTemporaryFile(mode="wb") as jpg,
         tempfile.NamedTemporaryFile(mode="wb") as txt,
-        patch("emails.sender._get_mail_connection", return_value=dummy_email_connection),
+        patch(
+            "emails.sender._get_mail_connection", return_value=dummy_email_connection
+        ),
     ):
         await send_email_message(
             subject=SUBJECT,
@@ -103,8 +115,12 @@ async def test_email_message_attach_file():
 
 async def test_send_email_message():
     with (
-        patch("emails.sender.EmailMultiAlternatives.send", new_callable=AsyncMock) as fake_message_send,
-        patch("emails.sender._get_mail_connection", return_value=dummy_email_connection),
+        patch(
+            "emails.sender.EmailMultiAlternatives.send", new_callable=AsyncMock
+        ) as fake_message_send,
+        patch(
+            "emails.sender._get_mail_connection", return_value=dummy_email_connection
+        ),
     ):
         await send_email_message(
             subject=SUBJECT,

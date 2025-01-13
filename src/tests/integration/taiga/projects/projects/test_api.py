@@ -117,10 +117,14 @@ async def test_list_workspace_projects_422_unprocessable_workspace_b64id(client)
 
 async def test_list_workspace_invited_projects_200_ok(client):
     workspace = await f.create_workspace()
-    project = await f.create_project(workspace=workspace, created_by=workspace.created_by)
+    project = await f.create_project(
+        workspace=workspace, created_by=workspace.created_by
+    )
     user2 = await f.create_user()
     await f.create_workspace_membership(user=user2, workspace=workspace)
-    await f.create_project_invitation(email=user2.email, user=user2, project=project, invited_by=workspace.created_by)
+    await f.create_project_invitation(
+        email=user2.email, user=user2, project=project, invited_by=workspace.created_by
+    )
 
     client.login(user2)
     response = client.get(f"/workspaces/{workspace.b64id}/invited-projects")
@@ -166,7 +170,9 @@ async def test_get_project_200_ok_being_project_member(client):
     )
 
     user2 = await f.create_user()
-    await f.create_project_membership(user=user2, project=project, role=general_member_role)
+    await f.create_project_membership(
+        user=user2, project=project, role=general_member_role
+    )
 
     client.login(user2)
     response = client.get(f"/projects/{project.b64id}")
@@ -182,7 +188,9 @@ async def test_get_project_200_ok_being_invited_user(client):
     )
 
     user2 = await f.create_user()
-    await f.create_project_invitation(user=user2, project=project, role=general_member_role)
+    await f.create_project_invitation(
+        user=user2, project=project, role=general_member_role
+    )
 
     client.login(user2)
     response = client.get(f"/projects/{project.b64id}")
@@ -386,7 +394,9 @@ async def test_update_project_public_permissions_404_not_found_project_b64id(cli
     data = {"permissions": ["view_story"]}
 
     client.login(user)
-    response = client.put(f"/projects/{NOT_EXISTING_B64ID}/public-permissions", json=data)
+    response = client.put(
+        f"/projects/{NOT_EXISTING_B64ID}/public-permissions", json=data
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -397,7 +407,9 @@ async def test_update_project_public_permissions_404_not_found_project_b64id(cli
         (["delete_story"]),
     ],
 )
-async def test_update_project_public_permissions_422_unprocessable_incompatible(client, permissions):
+async def test_update_project_public_permissions_422_unprocessable_incompatible(
+    client, permissions
+):
     project = await f.create_project()
     data = {"permissions": permissions}
 

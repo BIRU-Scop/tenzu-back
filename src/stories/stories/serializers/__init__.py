@@ -33,18 +33,21 @@ from workflows.serializers.nested import (
 class StorySummarySerializer(BaseModel):
     ref: int
     title: str
-    status: WorkflowStatusNestedSerializer
+    status_id: UUIDB64
     workflow_id: UUIDB64
     project_id: UUIDB64
     version: int
     assignees: list[UserNestedSerializer] | None = None
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
 
 class StoryDetailSerializer(BaseModel):
     ref: int
     title: str
     description: str | None = None
+    status_id: UUIDB64
     status: WorkflowStatusNestedSerializer
     workflow_id: UUIDB64
     project_id: UUIDB64
@@ -68,6 +71,7 @@ class ReorderSerializer(BaseModel):
 
 
 class ReorderStoriesSerializer(BaseModel):
+    status_id: UUIDB64
     status: WorkflowStatusNestedSerializer
     stories: list[int]
     reorder: ReorderSerializer | None = None

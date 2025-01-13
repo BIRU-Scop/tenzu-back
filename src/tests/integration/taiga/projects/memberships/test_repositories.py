@@ -42,7 +42,9 @@ async def test_create_project_membership():
     user = await f.create_user()
     project = await f.create_project()
     role = await f.create_project_role(project=project)
-    membership = await repositories.create_project_membership(user=user, project=project, role=role)
+    membership = await repositories.create_project_membership(
+        user=user, project=project, role=role
+    )
     memberships = await _get_memberships(project=project)
     assert membership in memberships
 
@@ -61,7 +63,9 @@ async def test_list_project_memberships():
     await repositories.create_project_membership(user=user1, project=project, role=role)
     await repositories.create_project_membership(user=user2, project=project, role=role)
 
-    memberships = await repositories.list_project_memberships(filters={"project_id": project.id})
+    memberships = await repositories.list_project_memberships(
+        filters={"project_id": project.id}
+    )
     assert len(memberships) == 3
 
 
@@ -74,9 +78,13 @@ async def test_get_project_membership():
     user = await f.create_user()
     project = await f.create_project()
     role = await f.create_project_role(project=project)
-    membership = await repositories.create_project_membership(user=user, project=project, role=role)
+    membership = await repositories.create_project_membership(
+        user=user, project=project, role=role
+    )
 
-    ret_membership = repositories.get_project_membership(filters={"project_id": project.id, "username": user.username})
+    ret_membership = repositories.get_project_membership(
+        filters={"project_id": project.id, "username": user.username}
+    )
     assert await ret_membership == membership
 
 
@@ -89,10 +97,14 @@ async def test_update_project_membership():
     user = await f.create_user()
     project = await f.create_project()
     role = await f.create_project_role(project=project)
-    membership = await repositories.create_project_membership(user=user, project=project, role=role)
+    membership = await repositories.create_project_membership(
+        user=user, project=project, role=role
+    )
 
     new_role = await f.create_project_role(project=project)
-    updated_membership = await repositories.update_project_membership(membership=membership, values={"role": new_role})
+    updated_membership = await repositories.update_project_membership(
+        membership=membership, values={"role": new_role}
+    )
     assert updated_membership.role == new_role
 
 
@@ -105,7 +117,9 @@ async def test_delete_project_membership() -> None:
     project = await f.create_project()
     user = await f.create_user()
     role = await f.create_project_role(project=project)
-    membership = await repositories.create_project_membership(user=user, project=project, role=role)
+    membership = await repositories.create_project_membership(
+        user=user, project=project, role=role
+    )
     deleted = await repositories.delete_project_membership(
         filters={"id": membership.id},
     )
@@ -145,7 +159,9 @@ async def test_list_project_members_excluding_user():
     await repositories.create_project_membership(user=user1, project=project, role=role)
     await repositories.create_project_membership(user=user2, project=project, role=role)
 
-    list_pj_members = await repositories.list_project_members_excluding_user(project=project, exclude_user=admin)
+    list_pj_members = await repositories.list_project_members_excluding_user(
+        project=project, exclude_user=admin
+    )
     assert len(list_pj_members) == 2
 
 
@@ -163,7 +179,9 @@ async def test_get_total_project_memberships():
     await repositories.create_project_membership(user=user1, project=project, role=role)
     await repositories.create_project_membership(user=user2, project=project, role=role)
 
-    total_memberships = await repositories.get_total_project_memberships(filters={"project_id": project.id})
+    total_memberships = await repositories.get_total_project_memberships(
+        filters={"project_id": project.id}
+    )
     assert total_memberships == 3
 
 

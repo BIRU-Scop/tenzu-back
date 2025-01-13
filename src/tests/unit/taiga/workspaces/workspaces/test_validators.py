@@ -20,7 +20,10 @@
 import pytest
 from pydantic import ValidationError
 
-from workspaces.workspaces.api.validators import UpdateWorkspaceValidator, WorkspaceValidator
+from workspaces.workspaces.api.validators import (
+    UpdateWorkspaceValidator,
+    WorkspaceValidator,
+)
 
 ##########################################################
 # WorkspaceValidator
@@ -39,7 +42,9 @@ def test_validate_workspace_with_long_name(client):
     name = "WS ab c de f gh i jk l mn pw r st u vw x yz"
     color = 1
 
-    with pytest.raises(ValidationError, match=r"ensure this value has at most 40 characters"):
+    with pytest.raises(
+        ValidationError, match=r"ensure this value has at most 40 characters"
+    ):
         WorkspaceValidator(name=name, color=color)
 
 

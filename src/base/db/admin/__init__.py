@@ -22,7 +22,10 @@ from django.contrib.admin import ModelAdmin as DjangoModelAdmin
 from django.contrib.admin import StackedInline as DjangoStackedInline
 from django.contrib.admin import TabularInline as DjangoTabularInline
 from django.contrib.admin import display, register, site  # noqa
-from django.contrib.contenttypes.admin import GenericStackedInline, GenericTabularInline  # noqa
+from django.contrib.contenttypes.admin import (  # noqa
+    GenericStackedInline,
+    GenericTabularInline,
+)
 from nonrelated_inlines.admin import NonrelatedTabularInline  # type: ignore  # noqa
 
 from base.db.admin.forms import PrettyJSONWidget

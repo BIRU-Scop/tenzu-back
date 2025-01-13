@@ -16,16 +16,23 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from django.core.validators import MaxValueValidator
 from slugify import slugify
 
 from base.db import models
 from base.db.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
+from commons.colors import NUM_COLORS
 
 
 class Workspace(models.BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
     name = models.CharField(max_length=40, null=False, blank=False, verbose_name="name")
-    color = models.IntegerField(null=False, blank=False, default=1, verbose_name="color")
+    color = models.IntegerField(
+        null=False,
+        blank=False,
+        default=1,
+        verbose_name="color",
+        validators=[MaxValueValidator(NUM_COLORS)],
+    )
 
     members = models.ManyToManyField(
         "users.User",

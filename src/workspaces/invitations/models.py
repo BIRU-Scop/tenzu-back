@@ -40,7 +40,9 @@ class WorkspaceInvitation(models.BaseModel, CreatedAtMetaInfoMixin):
         on_delete=models.CASCADE,
         verbose_name="user",
     )
-    email = models.LowerEmailField(max_length=255, null=False, blank=False, verbose_name="email")
+    email = models.LowerEmailField(
+        max_length=255, null=False, blank=False, verbose_name="email"
+    )
     status = models.CharField(
         max_length=50,
         null=False,
@@ -57,7 +59,9 @@ class WorkspaceInvitation(models.BaseModel, CreatedAtMetaInfoMixin):
         on_delete=models.SET_NULL,
         verbose_name="invited by",
     )
-    num_emails_sent = models.IntegerField(default=1, null=False, blank=False, verbose_name="num emails sent")
+    num_emails_sent = models.IntegerField(
+        default=1, null=False, blank=False, verbose_name="num emails sent"
+    )
     resent_at = models.DateTimeField(null=True, blank=True, verbose_name="resent at")
     resent_by = models.ForeignKey(
         "users.User",

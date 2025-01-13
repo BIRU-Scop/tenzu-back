@@ -49,7 +49,9 @@ async def _apply_filters_to_queryset(
 
     if "content_object" in filters:
         content_object = cast(BaseModel, filter_data.pop("content_object"))
-        filter_data["object_content_type"] = await get_contenttype_for_model(content_object)
+        filter_data["object_content_type"] = await get_contenttype_for_model(
+            content_object
+        )
         filter_data["object_id"] = content_object.id
 
     return qs.filter(**filter_data)
@@ -115,7 +117,9 @@ async def list_attachments(
     limit: int | None = None,
 ) -> list[Attachment]:
     qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = await _apply_prefetch_related_to_queryset(qs=qs, prefetch_related=prefetch_related)
+    qs = await _apply_prefetch_related_to_queryset(
+        qs=qs, prefetch_related=prefetch_related
+    )
 
     if limit is not None and offset is not None:
         limit += offset
@@ -133,7 +137,9 @@ async def get_attachment(
     prefetch_related: AttachmentPrefetchRelated = [],
 ) -> Attachment | None:
     qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = await _apply_prefetch_related_to_queryset(qs=qs, prefetch_related=prefetch_related)
+    qs = await _apply_prefetch_related_to_queryset(
+        qs=qs, prefetch_related=prefetch_related
+    )
 
     try:
         return await qs.aget()

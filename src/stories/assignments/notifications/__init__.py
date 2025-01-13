@@ -18,7 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 from notifications import services as notifications_services
-from stories.assignments.notifications.content import StoryAssignNotificationContent, StoryUnassignNotificationContent
+from stories.assignments.notifications.content import (
+    StoryAssignNotificationContent,
+    StoryUnassignNotificationContent,
+)
 from stories.stories.models import Story
 from users.models import User
 
@@ -26,7 +29,9 @@ STORIES_ASSIGN = "stories.assign"
 STORIES_UNASSIGN = "stories.unassign"
 
 
-async def notify_when_story_is_assigned(story: Story, assigned_to: User, emitted_by: User) -> None:
+async def notify_when_story_is_assigned(
+    story: Story, assigned_to: User, emitted_by: User
+) -> None:
     """
     Emit notification when a story is assigned.
     """
@@ -48,7 +53,9 @@ async def notify_when_story_is_assigned(story: Story, assigned_to: User, emitted
     )
 
 
-async def notify_when_story_is_unassigned(story: Story, unassigned_to: User, emitted_by: User) -> None:
+async def notify_when_story_is_unassigned(
+    story: Story, unassigned_to: User, emitted_by: User
+) -> None:
     """
     Emit notification when story is unassigned.
     """

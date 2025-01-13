@@ -29,7 +29,11 @@ from workflows.events.content import (
     UpdateWorkflowStatusContent,
 )
 from workflows.models import WorkflowStatus
-from workflows.serializers import DeleteWorkflowSerializer, ReorderWorkflowStatusesSerializer, WorkflowSerializer
+from workflows.serializers import (
+    DeleteWorkflowSerializer,
+    ReorderWorkflowStatusesSerializer,
+    WorkflowSerializer,
+)
 
 CREATE_WORKFLOW = "workflows.create"
 UPDATE_WORKFLOW = "workflows.update"
@@ -40,7 +44,9 @@ REORDER_WORKFLOW_STATUS = "workflowstatuses.reorder"
 DELETE_WORKFLOW_STATUS = "workflowstatuses.delete"
 
 
-async def emit_event_when_workflow_is_created(project: Project, workflow: WorkflowSerializer) -> None:
+async def emit_event_when_workflow_is_created(
+    project: Project, workflow: WorkflowSerializer
+) -> None:
     await events_manager.publish_on_project_channel(
         project=project,
         type=CREATE_WORKFLOW,
@@ -48,7 +54,9 @@ async def emit_event_when_workflow_is_created(project: Project, workflow: Workfl
     )
 
 
-async def emit_event_when_workflow_is_updated(project: Project, workflow: WorkflowSerializer) -> None:
+async def emit_event_when_workflow_is_updated(
+    project: Project, workflow: WorkflowSerializer
+) -> None:
     await events_manager.publish_on_project_channel(
         project=project,
         type=UPDATE_WORKFLOW,
@@ -73,7 +81,9 @@ async def emit_event_when_workflow_is_deleted(
     )
 
 
-async def emit_event_when_workflow_status_is_created(project: Project, workflow_status: WorkflowStatus) -> None:
+async def emit_event_when_workflow_status_is_created(
+    project: Project, workflow_status: WorkflowStatus
+) -> None:
     await events_manager.publish_on_project_channel(
         project=project,
         type=CREATE_WORKFLOW_STATUS,
@@ -81,7 +91,9 @@ async def emit_event_when_workflow_status_is_created(project: Project, workflow_
     )
 
 
-async def emit_event_when_workflow_status_is_updated(project: Project, workflow_status: WorkflowStatus) -> None:
+async def emit_event_when_workflow_status_is_updated(
+    project: Project, workflow_status: WorkflowStatus
+) -> None:
     await events_manager.publish_on_project_channel(
         project=project,
         type=UPDATE_WORKFLOW_STATUS,

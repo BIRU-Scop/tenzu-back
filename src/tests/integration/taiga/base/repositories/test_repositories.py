@@ -40,12 +40,18 @@ class GetObjectNeighbors(IsolatedAsyncioTestCase):
         self.status_11 = await self.workflow_1.statuses.afirst()
         self.status_12 = await self.workflow_1.statuses.alast()
 
-        self.story_111 = await f.create_story(project=self.project, workflow=self.workflow_1, status=self.status_11)
-        self.story_112 = await f.create_story(project=self.project, workflow=self.workflow_1, status=self.status_12)
+        self.story_111 = await f.create_story(
+            project=self.project, workflow=self.workflow_1, status=self.status_11
+        )
+        self.story_112 = await f.create_story(
+            project=self.project, workflow=self.workflow_1, status=self.status_12
+        )
 
         self.workflow_2 = await f.create_workflow(project=self.project)
         self.status_21 = await self.workflow_2.statuses.afirst()
-        self.story_221 = await f.create_story(project=self.project, workflow=self.workflow_2, status=self.status_21)
+        self.story_221 = await f.create_story(
+            project=self.project, workflow=self.workflow_2, status=self.status_21
+        )
 
     async def test_get_neighbors_no_filter_no_prev_neighbor(self) -> None:
         neighbors = await neighbors_repositories.get_neighbors(obj=self.story_111)
@@ -65,9 +71,9 @@ class GetObjectNeighbors(IsolatedAsyncioTestCase):
     async def test_get_neighbors_with_model_queryset_broad_filters_all_match(
         self,
     ) -> None:
-        same_story112_project_qs = Story.objects.filter(project_id=self.story_112.project.id).order_by(
-            "status", "order"
-        )
+        same_story112_project_qs = Story.objects.filter(
+            project_id=self.story_112.project.id
+        ).order_by("status", "order")
 
         neighbors = await neighbors_repositories.get_neighbors(
             obj=self.story_112, model_queryset=same_story112_project_qs

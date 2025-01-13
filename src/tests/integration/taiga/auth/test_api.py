@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from asgiref.sync import sync_to_async
 from fastapi import status
 
 from auth.tokens import RefreshToken
@@ -42,7 +43,7 @@ async def test_login_successfuly(client):
 
     response = client.post("/auth/token", json=data)
     assert response.status_code == 200, response.text
-    assert response.json().keys() == {"token", "refresh"}
+    assert response.json().keys() == {"access", "refresh"}
 
 
 def test_login_error_invalid_credentials(client):
@@ -63,14 +64,14 @@ def test_login_error_invalid_credentials(client):
 
 async def test_refresh_successfuly(client):
     user = await f.create_user(is_active=True)
-    token = await RefreshToken.create_for_object(user)
+    token = await sync_to_async(RefreshToken.for_user)(user)
     data = {
         "refresh": str(token),
     }
 
     response = client.post("/auth/token/refresh", json=data)
     assert response.status_code == 200, response.text
-    assert response.json().keys() == {"token", "refresh"}
+    assert response.json().keys() == {"access", "refresh"}
 
 
 def test_refresh_error_invalid_token(client):
@@ -87,14 +88,14 @@ def test_refresh_error_invalid_token(client):
 
 async def test_deny_refresh_token_success(client):
     user = await f.create_user()
-    token = await RefreshToken.create_for_object(user)
+    token = await sync_to_async(RefreshToken.for_user)(user)
 
     data = {
         "refresh": str(token),
     }
 
     client.login(user)
-    response = client.post("/auth/token/deny", json=data)
+    response = client.post("/auth/blacklist", json=data)
     assert response.status_code == status.HTTP_204_NO_CONTENT, response.text
 
 
@@ -106,31 +107,31 @@ async def test_deny_refresh_token_error_bad_refresh_token(client):
     }
 
     client.login(user)
-    response = client.post("/auth/token/deny", json=data)
+    response = client.post("/auth/blacklist", json=data)
     assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
 
 
 async def test_deny_refresh_token_error_forbidden_user(client):
     user = await f.create_user()
     other_user = await f.create_user()
-    token = await RefreshToken.create_for_object(user)
+    token = await sync_to_async(RefreshToken.for_user)(user)
 
     data = {
         "refresh": str(token),
     }
 
     client.login(other_user)
-    response = client.post("/auth/token/deny", json=data)
+    response = client.post("/auth/blacklist", json=data)
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
 
 async def test_deny_refresh_token_error_annonymous_user(client):
     user = await f.create_user()
-    token = await RefreshToken.create_for_object(user)
+    token = await sync_to_async(RefreshToken.for_user)(user)
 
     data = {
         "refresh": str(token),
     }
 
-    response = client.post("/auth/token/deny", json=data)
+    response = client.post("/auth/blacklist", json=data)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED, response.text

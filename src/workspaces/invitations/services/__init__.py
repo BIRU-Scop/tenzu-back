@@ -29,7 +29,7 @@ from base.utils.emails import is_email
 from commons.invitations import is_spam
 from emails.emails import Emails
 from emails.tasks import send_email
-from tokens.exceptions import TokenError
+from ninja_jwt.exceptions import TokenError
 from users import services as users_services
 from users.models import User
 from workspaces.invitations import events as invitations_events
@@ -202,9 +202,9 @@ async def list_pending_workspace_invitations(
 
 async def get_workspace_invitation(token: str) -> WorkspaceInvitation | None:
     try:
-        invitation_token = await WorkspaceInvitationToken.create(token=token)
+        invitation_token = WorkspaceInvitationToken(token=token)
     except TokenError:
-        raise ex.BadInvitationTokenError("Invalid token")
+        raise ex.BadInvitationTokenError("Invalid or expired token")
 
     return await invitations_repositories.get_workspace_invitation(
         filters=cast(WorkspaceInvitationFilters, invitation_token.object_data),

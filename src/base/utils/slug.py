@@ -110,7 +110,9 @@ def slugify_uniquely_for_queryset(
 
     generator = generate_suffix or generate_int_suffix()
     suffix = next(generator) if use_always_suffix else ""
-    potential = base = slugify(value) or "null"  # "null" serves when slugify(value) returns empty string
+    potential = base = (
+        slugify(value) or "null"
+    )  # "null" serves when slugify(value) returns empty string
     while True:
         if suffix:
             potential = template.format(base=base, suffix=suffix)

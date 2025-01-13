@@ -33,7 +33,9 @@ T = TypeVar("T")
 
 class GenericListError(BaseModel):
     code: str
-    detail: list[dict[str, Any]] = [{"loc": ["string"], "msg": "string", "type": "string"}]
+    detail: list[dict[str, Any]] = [
+        {"loc": ["string"], "msg": "string", "type": "string"}
+    ]
     msg: str
 
 
@@ -84,4 +86,6 @@ ERROR_400: ErrorsDict = {status.HTTP_400_BAD_REQUEST: {"model": ERROR_RESPONSE_4
 ERROR_401: ErrorsDict = {status.HTTP_401_UNAUTHORIZED: {"model": ERROR_RESPONSE_401}}
 ERROR_403: ErrorsDict = {status.HTTP_403_FORBIDDEN: {"model": ERROR_RESPONSE_403}}
 ERROR_404: ErrorsDict = {status.HTTP_404_NOT_FOUND: {"model": ERROR_RESPONSE_404}}
-ERROR_422: ErrorsDict = {status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": ERROR_RESPONSE_422}}
+ERROR_422: ErrorsDict = {
+    status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": ERROR_RESPONSE_422}
+}

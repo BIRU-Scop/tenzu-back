@@ -31,7 +31,9 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="workflow",
             name="slug",
-            field=base.db.models.fields.LowerSlugField(max_length=250, verbose_name="slug"),
+            field=base.db.models.fields.LowerSlugField(
+                max_length=250, verbose_name="slug"
+            ),
         ),
         migrations.AlterField(
             model_name="workflowstatus",
@@ -41,12 +43,16 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="workflowstatus",
             name="order",
-            field=models.DecimalField(decimal_places=10, default=100, max_digits=16, verbose_name="order"),
+            field=models.DecimalField(
+                decimal_places=10, default=100, max_digits=16, verbose_name="order"
+            ),
         ),
         migrations.AlterField(
             model_name="workflowstatus",
             name="slug",
-            field=base.db.models.fields.LowerSlugField(max_length=250, verbose_name="slug"),
+            field=base.db.models.fields.LowerSlugField(
+                max_length=250, verbose_name="slug"
+            ),
         ),
         migrations.AddConstraint(
             model_name="workflowstatus",

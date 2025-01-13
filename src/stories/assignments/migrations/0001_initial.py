@@ -82,7 +82,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="storyassignment",
-            index=models.Index(fields=["story", "user"], name="stories_ass_story_i_bb03e4_idx"),
+            index=models.Index(
+                fields=["story", "user"], name="stories_ass_story_i_bb03e4_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="storyassignment",

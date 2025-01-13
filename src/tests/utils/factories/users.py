@@ -34,7 +34,6 @@ class UserFactory(Factory):
         model = "users.User"
 
 
-@sync_to_async
 def create_user(**kwargs):
     return UserFactory.create(**kwargs)
 

@@ -100,10 +100,18 @@ async def test_verify_user_ok_accepting_pj_invitation(client):
     user = await f.create_user(is_active=False)
     project = await f.create_project()
     role = await f.create_project_role(project=project)
-    project_invitation = await f.create_project_invitation(project=project, role=role, email=user.email)
+    project_invitation = await f.create_project_invitation(
+        project=project, role=role, email=user.email
+    )
 
-    project_invitation_token = await _generate_project_invitation_token(project_invitation)
-    data = {"token": await _generate_verify_user_token(user=user, project_invitation_token=project_invitation_token)}
+    project_invitation_token = await _generate_project_invitation_token(
+        project_invitation
+    )
+    data = {
+        "token": await _generate_verify_user_token(
+            user=user, project_invitation_token=project_invitation_token
+        )
+    }
 
     response = client.post("/users/verify", json=data)
     assert response.status_code == status.HTTP_200_OK, response.text
@@ -113,11 +121,17 @@ async def test_verify_user_ok_accepting_pj_invitation(client):
 async def test_verify_user_ok_accepting_ws_invitation(client):
     user = await f.create_user(is_active=False)
     workspace = await f.create_workspace()
-    workspace_invitation = await f.create_workspace_invitation(workspace=workspace, email=user.email)
+    workspace_invitation = await f.create_workspace_invitation(
+        workspace=workspace, email=user.email
+    )
 
-    workspace_invitation_token = await _generate_workspace_invitation_token(workspace_invitation)
+    workspace_invitation_token = await _generate_workspace_invitation_token(
+        workspace_invitation
+    )
     data = {
-        "token": await _generate_verify_user_token(user=user, workspace_invitation_token=workspace_invitation_token)
+        "token": await _generate_verify_user_token(
+            user=user, workspace_invitation_token=workspace_invitation_token
+        )
     }
 
     response = client.post("/users/verify", json=data)
@@ -140,7 +154,9 @@ async def test_verify_user_ok_with_invalid_ws_invitation(client):
     user = await f.create_user(is_active=False)
 
     workspace_invitation_token = "invalid-invitation-token"
-    data = {"token": await _generate_verify_user_token(user, workspace_invitation_token)}
+    data = {
+        "token": await _generate_verify_user_token(user, workspace_invitation_token)
+    }
 
     response = client.post("/users/verify", json=data)
     assert response.status_code == status.HTTP_200_OK, response.text
@@ -189,7 +205,9 @@ async def test_list_users_by_text_anonymous(client):
     offset = 0
     limit = 1
 
-    response = client.get(f"/users/search?text={text}&project={project_id}&offset={offset}&limit={limit}")
+    response = client.get(
+        f"/users/search?text={text}&project={project_id}&offset={offset}&limit={limit}"
+    )
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
 
@@ -204,7 +222,9 @@ async def test_list_project_users_by_text(client):
     offset = 0
     limit = 10
 
-    response = client.get(f"/users/search?text={text}&project={project_id}&offset={offset}&limit={limit}")
+    response = client.get(
+        f"/users/search?text={text}&project={project_id}&offset={offset}&limit={limit}"
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
     assert len(response.json()) == 1
     assert response.headers["Pagination-Offset"] == "0"
@@ -223,7 +243,9 @@ async def test_list_workspace_users_by_text(client):
     offset = 0
     limit = 10
 
-    response = client.get(f"/users/search?text={text}&workspace={workspace_id}&offset={offset}&limit={limit}")
+    response = client.get(
+        f"/users/search?text={text}&workspace={workspace_id}&offset={offset}&limit={limit}"
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
     assert len(response.json()) == 1
     assert response.headers["Pagination-Offset"] == "0"
@@ -242,7 +264,9 @@ async def test_list_users_by_text_no_results(client):
     offset = 0
     limit = 10
 
-    response = client.get(f"/users/search?text={text}&project={project_id}&offset={offset}&limit={limit}")
+    response = client.get(
+        f"/users/search?text={text}&project={project_id}&offset={offset}&limit={limit}"
+    )
     assert response.status_code == status.HTTP_200_OK, response.text
     assert len(response.json()) == 0
     assert response.headers["Pagination-Offset"] == "0"
@@ -473,7 +497,7 @@ async def test_reset_password_ok(client):
 
     response = client.post(f"/users/reset-password/{token}", json=data)
     assert response.status_code == status.HTTP_200_OK, response.text
-    assert "token" in response.json()
+    assert "access" in response.json()
     assert "refresh" in response.json()
 
 
@@ -494,7 +518,10 @@ async def test_reset_password_error_with_invalid_password(client):
 
     response = client.post(f"/users/reset-password/{token}", json=data)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
-    assert response.json()["error"]["detail"][0]["type"] == "value_error.any_str.min_length"
+    assert (
+        response.json()["error"]["detail"][0]["type"]
+        == "value_error.any_str.min_length"
+    )
 
 
 async def test_reset_password_error_inactive_user(client):
