@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     # SECURITY WARNING: don't run with debug turned on in production!
     DEBUG: bool = False
 
+    # Kubernetes only
+    POD_IP: str | None = None
+
     # Tenzu URLS
     BACKEND_URL: AnyHttpUrl = _DEFAULT_BACKEND_URL
     FRONTEND_URL: AnyHttpUrl = _DEFAULT_FRONTEND_URL

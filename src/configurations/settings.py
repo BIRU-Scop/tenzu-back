@@ -52,6 +52,10 @@ locals().update(
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 ALLOWED_HOSTS = [settings.BACKEND_URL.host, settings.FRONTEND_URL.host]
+POD_IP = settings.POD_IP
+if POD_IP:
+    ALLOWED_HOSTS.append(POD_IP)
+
 
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS = [
     remove_ending_slash(str(settings.BACKEND_URL)),
