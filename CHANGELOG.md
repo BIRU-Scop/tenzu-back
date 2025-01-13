@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.8](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.7...v0.0.1-staging.8) (2025-01-13)
+
+
+### Features
+
+* add username or email authentication ([2e9806a](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/2e9806a94b9e0157dbdcc4e2e3acd768c770ae99))
+* refactor color usage and update all migrations ([5f71c29](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/5f71c296586f46f8e65369f153341489af8922c6))
+* remove custom json encoder ([6ba5531](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/6ba5531ac091c7e58c745396aa2dafdafd17ab9a))
+* remove tokens app and standardise jwt ([d264c0b](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/d264c0bda44d6c8e7021187eb25f2b1b75ea1d19))
+* **serializers:** add status_id to story serializers ([c27e971](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/c27e971663974c940419b901496d0f105ca0ff84))
+
+
+### Bug Fixes
+
+* delete project ([1fd0705](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/1fd070520f052bc1fd1afbecf95a4d88583700ef))
+* fix status id into the update input ([b62ea1b](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/b62ea1b3329a2964cdab888b6eddb034b967591e))
+* invitation systems works with ninja_jwt tokens ([dab0463](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/dab046387421064e2b815c0a3732059626bdc73b))
+* prevent validation error when serialising url with new media file and version config ([5a10c56](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/5a10c56f8f6a507f9e51e0b46ab67703aa84c1d5))
+
 ## [0.0.1-staging.7](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.6...v0.0.1-staging.7) (2024-12-02)
 
 
