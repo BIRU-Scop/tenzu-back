@@ -4,7 +4,7 @@
 > These instructions were made for internal use, for example it assumes
 > that you own the `biru.ovh` domain name and have access to an OVH endpoint
 > for the configuration of the reverse proxy TLS.
-> We will soon make the instruction generic to be run wy anyone without
+> We will soon make the instruction generic to be run by anyone without
 > those kind of heavy requirements.
 
 ## Host config

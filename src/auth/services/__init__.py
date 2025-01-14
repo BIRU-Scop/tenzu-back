@@ -18,7 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 from asgiref.sync import sync_to_async
 
-from ninja_jwt.schema import TokenObtainPairOutputSchema
+from ninja_jwt import exceptions
+from ninja_jwt.schema import TokenObtainPairInputSchema, TokenObtainPairOutputSchema
+from ninja_jwt.settings import api_settings
 from ninja_jwt.tokens import RefreshToken
 from users import repositories as users_repositories
 from users.models import User
@@ -30,6 +32,10 @@ async def create_auth_credentials(user: User) -> TokenObtainPairOutputSchema:
     It will also update the date of the user's last login.
     """
     await users_repositories.update_last_login(user=user)
+    if not api_settings.USER_AUTHENTICATION_RULE(user):
+        raise exceptions.AuthenticationFailed(
+            TokenObtainPairInputSchema._default_error_messages["no_active_account"]
+        )
 
     refresh: RefreshToken = await sync_to_async(RefreshToken.for_user)(user)
     username_field = User.USERNAME_FIELD
