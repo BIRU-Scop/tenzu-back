@@ -161,7 +161,7 @@ async def update_story(
 
     # Old neighbors
     old_neighbors = None
-    if update_values.get("workflow", None):
+    if update_values.get("workflow_slug", None):
         old_neighbors = await stories_repositories.list_story_neighbors(
             story=story, filters={"workflow_id": story.workflow_id}
         )
@@ -210,7 +210,6 @@ async def _validate_and_process_values_to_update(
     story: Story, updated_by: User, values: dict[str, Any]
 ) -> dict[str, Any]:
     output = values.copy()
-
     if "title" in output:
         output.update(
             title_updated_by=updated_by,
@@ -223,11 +222,11 @@ async def _validate_and_process_values_to_update(
             description_updated_at=aware_utcnow(),
         )
 
-    if status_id := output.pop("status", None):
+    if status_id := output.pop("status_id", None):
         status = await workflows_repositories.get_workflow_status(
             filters={"workflow_id": story.workflow_id, "id": status_id}
         )
-        if not status or output.get("workflow", None):
+        if not status or output.get("workflow_slug", None):
             raise ex.InvalidStatusError("The provided status is not valid.")
 
         if status.id != story.status_id:
@@ -235,7 +234,7 @@ async def _validate_and_process_values_to_update(
                 status=status, order=await _calculate_next_order(status_id=status.id)
             )
 
-    elif workflow_slug := output.pop("workflow", None):
+    elif workflow_slug := output.pop("workflow_slug", None):
         workflow = await workflows_repositories.get_workflow(
             filters={"project_id": story.project_id, "slug": workflow_slug},
             prefetch_related=["statuses"],
