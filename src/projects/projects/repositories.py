@@ -126,6 +126,7 @@ def create_project(
     workspace: Workspace,
     name: str,
     created_by: User,
+    landing_page: str,
     description: str | None = None,
     color: int | None = None,
     logo: File | None = None,
@@ -135,6 +136,7 @@ def create_project(
         created_by=created_by,
         workspace=workspace,
         logo=logo,
+        landing_page=landing_page,
     )
     if description:
         project.description = description
@@ -238,6 +240,10 @@ def get_total_projects(
 ) -> int:
     qs = _apply_filters_to_project_queryset(filters=filters, qs=DEFAULT_QUERYSET)
     return qs.distinct().count()
+
+
+async def get_first_workflow_slug(project: Project) -> str | None:
+    return await project.workflows.values_list("slug", flat=True).afirst()
 
 
 ##########################################################

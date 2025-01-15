@@ -41,6 +41,7 @@ class ProjectDetailSerializer(BaseModel, ProjectLogoMixin):
     slug: str
     description: str
     color: int
+    landing_page: str
     workspace_id: UUIDB64
     workspace: WorkspaceNestedSerializer
     workflows: list[WorkflowNestedSerializer]

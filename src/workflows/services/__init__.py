@@ -25,6 +25,7 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 
 from projects.projects import repositories as projects_repositories
+from projects.projects import services as projects_services
 from projects.projects.models import Project
 from stories.stories import repositories as stories_repositories
 from stories.stories import services as stories_services
@@ -70,6 +71,15 @@ async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
     workflow = await workflows_repositories.create_workflow(
         project=project, name=name, order=order
     )
+    if not workflows:
+        await projects_repositories.update_project(
+            project,
+            values={
+                "landing_page": projects_services.get_landing_page_for_workflow(
+                    workflow.slug
+                )
+            },
+        )
 
     # apply default workflow statuses from project template
     if template := await projects_repositories.get_project_template(
@@ -293,6 +303,19 @@ async def delete_workflow(
     deleted = await workflows_repositories.delete_workflow(filters={"id": workflow.id})
 
     if deleted > 0:
+        if workflow.project.landing_page.endswith(f"/{workflow.slug}"):
+            first_workflow_slug = await projects_repositories.get_first_workflow_slug(
+                workflow.project
+            )
+            await projects_repositories.update_project(
+                workflow.project,
+                values={
+                    "landing_page": projects_services.get_landing_page_for_workflow(
+                        first_workflow_slug
+                    )
+                },
+            )
+
         target_workflow_detail = None
         # events will render the final statuses in the target_workflow AFTER any reorder process
         if target_workflow:
