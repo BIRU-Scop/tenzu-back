@@ -46,7 +46,7 @@ DEFAULT_ORDER_OFFSET = Decimal(
 )  # default offset when adding a workflow or workflow status
 DEFAULT_PRE_ORDER = Decimal(
     0
-)  # default pre_position when adding a story at the beginning
+)  # default pre_position when adding a workflow at the beginning
 
 
 ##########################################################
@@ -134,7 +134,7 @@ async def get_workflow(project_id: UUID, workflow_slug: str) -> Workflow | None:
             "project_id": project_id,
             "slug": workflow_slug,
         },
-        select_related=["project", "workspace"],
+        select_related=["project", "project__workspace"],
     )
 
 
@@ -143,7 +143,7 @@ async def get_workflow_by_id(workflow_id: UUID) -> Workflow | None:
         filters={
             "id": workflow_id,
         },
-        select_related=["project", "workspace"],
+        select_related=["project", "project__workspace"],
     )
 
 

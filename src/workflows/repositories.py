@@ -38,8 +38,6 @@ from workflows.models import Workflow, WorkflowStatus
 # Workflow - filters and querysets
 ##########################################################
 
-DEFAULT_QUERYSET_WORKFLOW = Workflow.objects.all()
-
 
 class WorkflowFilters(TypedDict, total=False):
     id: UUID
@@ -47,49 +45,13 @@ class WorkflowFilters(TypedDict, total=False):
     project_id: UUID
 
 
-def _apply_filters_to_workflow_queryset(
-    qs: QuerySet[Workflow],
-    filters: WorkflowFilters = {},
-) -> QuerySet[Workflow]:
-    return qs.filter(**filters)
-
-
 WorkflowSelectRelated = list[Literal["project", "workspace"]]
-
-
-def _apply_select_related_to_workflow_queryset(
-    qs: QuerySet[Workflow],
-    select_related: WorkflowSelectRelated,
-) -> QuerySet[Workflow]:
-    select_related_data = []
-
-    for key in select_related:
-        if key == "workspace":
-            select_related_data.append("project__workspace")
-        else:
-            select_related_data.append(key)
-
-    return qs.select_related(*select_related_data)
 
 
 WorkflowPrefetchRelated = list[Literal["statuses",]]
 
 
-def _apply_prefetch_related_to_workflow_queryset(
-    qs: QuerySet[Workflow],
-    prefetch_related: WorkflowPrefetchRelated,
-) -> QuerySet[Workflow]:
-    return qs.prefetch_related(*prefetch_related)
-
-
 WorkflowOrderBy = list[Literal["order", "-order"]]
-
-
-def _apply_order_by_to_workflow_queryset(
-    qs: QuerySet[Workflow],
-    order_by: WorkflowOrderBy,
-) -> QuerySet[Workflow]:
-    return qs.order_by(*order_by)
 
 
 ##########################################################
@@ -134,13 +96,12 @@ def list_workflows(
     prefetch_related: WorkflowPrefetchRelated = ["statuses"],
     order_by: WorkflowOrderBy = ["order"],
 ) -> list[Workflow]:
-    qs = _apply_filters_to_workflow_queryset(
-        qs=DEFAULT_QUERYSET_WORKFLOW, filters=filters
+    qs = (
+        Workflow.objects.all()
+        .filter(**filters)
+        .prefetch_related(*prefetch_related)
+        .order_by(*order_by)
     )
-    qs = _apply_prefetch_related_to_workflow_queryset(
-        qs=qs, prefetch_related=prefetch_related
-    )
-    qs = _apply_order_by_to_workflow_queryset(order_by=order_by, qs=qs)
 
     return list(qs)
 
@@ -150,24 +111,20 @@ def list_workflows(
 ##########################################################
 
 
-@sync_to_async
-def get_workflow(
+async def get_workflow(
     filters: WorkflowFilters = {},
     select_related: WorkflowSelectRelated = [],
     prefetch_related: WorkflowPrefetchRelated = ["statuses"],
 ) -> Workflow | None:
-    qs = _apply_filters_to_workflow_queryset(
-        qs=DEFAULT_QUERYSET_WORKFLOW, filters=filters
-    )
-    qs = _apply_select_related_to_workflow_queryset(
-        qs=qs, select_related=select_related
-    )
-    qs = _apply_prefetch_related_to_workflow_queryset(
-        qs=qs, prefetch_related=prefetch_related
+    qs = (
+        Workflow.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+        .prefetch_related(*prefetch_related)
     )
 
     try:
-        return qs.get()
+        return await qs.aget()
     except Workflow.DoesNotExist:
         return None
 
@@ -192,9 +149,7 @@ def update_workflow(workflow: Workflow, values: dict[str, Any] = {}) -> Workflow
 
 
 async def delete_workflow(filters: WorkflowFilters = {}) -> int:
-    qs = _apply_filters_to_workflow_queryset(
-        qs=DEFAULT_QUERYSET_WORKFLOW, filters=filters
-    )
+    qs = Workflow.objects.all().filter(**filters)
     count, _ = await qs.adelete()
     return count
 
