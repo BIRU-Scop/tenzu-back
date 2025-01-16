@@ -47,7 +47,7 @@ from ninja_jwt.settings import api_settings
 from ninja_jwt.tokens import AccessToken
 from users.models import User
 
-from ..utils.factories import create_user
+from ..utils.factories import sync_create_user as create_user
 from .utils import APIViewTestCase
 
 

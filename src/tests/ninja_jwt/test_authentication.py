@@ -47,7 +47,7 @@ from ninja_jwt.exceptions import AuthenticationFailed, InvalidToken
 from ninja_jwt.models import TokenUser
 from ninja_jwt.settings import api_settings
 from ninja_jwt.tokens import AccessToken, SlidingToken
-from tests.utils.factories import create_user
+from tests.utils.factories import sync_create_user as create_user
 
 AuthToken = api_settings.AUTH_TOKEN_CLASSES[0]
 

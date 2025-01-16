@@ -15,6 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from copy import deepcopy
 
 # Copyright 2021 Ezeudoh Tochukwu
 # https://github.com/eadwinCode/django-ninja-jwt
@@ -35,8 +36,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-
 from django.urls import path
 from ninja import NinjaAPI, Router
 
@@ -79,10 +78,18 @@ def api_exception_handler(request, exc):
 sync_api.exception_handler(exceptions.APIException)(api_exception_handler)
 
 sync_router = Router()
-sync_router.add_router("", obtain_pair_router)
-sync_router.add_router("", sliding_router)
-sync_router.add_router("", verify_router)
-sync_router.add_router("", blacklist_router)
+
+
+def reset_router(router: Router) -> Router:
+    router = deepcopy(router)
+    router.api = None
+    return router
+
+
+sync_router.add_router("", reset_router(obtain_pair_router))
+sync_router.add_router("", reset_router(sliding_router))
+sync_router.add_router("", reset_router(verify_router))
+sync_router.add_router("", reset_router(blacklist_router))
 
 sync_api.add_router("", tags=["token"], router=sync_router, auth=None)
 

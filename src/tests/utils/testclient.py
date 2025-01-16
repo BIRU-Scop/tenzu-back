@@ -17,17 +17,19 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-# TODO (spade): redo when getting rid of main.api
 
 from typing import TYPE_CHECKING
 
-from ninja.testing import TestClient as TestClientBase
+import pytest
+from ninja.testing import TestAsyncClient as TestAsyncClientBase
+
+from configurations.api import api
 
 if TYPE_CHECKING:
     from users.models import User
 
 
-class TestClient(TestClientBase):
+class TestAsyncClient(TestAsyncClientBase):
     def login(self, user: "User") -> None:
         from ninja_jwt.tokens import AccessToken
 
@@ -43,13 +45,7 @@ class TestClient(TestClientBase):
 # test_app.mount("/events/", app=events_app)
 
 
-def get_client(monkeypatch, router) -> TestClient:
+@pytest.fixture(scope="function")
+def client(monkeypatch):
     monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
-    return TestClient(router)
-
-
-# @pytest.fixture
-# def non_mocked_hosts() -> list[str]:
-#     # This is to prevent pytest_httpx from catching calls to the TestClient
-#     # https://github.com/Colin-b/pytest_httpx/tree/master#do-not-mock-some-requests
-#     return ["testserver"]
+    return TestAsyncClient(api)
