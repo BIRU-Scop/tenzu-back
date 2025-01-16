@@ -27,6 +27,7 @@ from base.validators import B64UUID
 from exceptions import api as ex
 from exceptions.api.errors import (
     ERROR_RESPONSE_400,
+    ERROR_RESPONSE_401,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
@@ -228,9 +229,8 @@ async def list_project_public_permissions(request, id: Path[B64UUID]) -> list[st
 ##########################################################
 
 
-# TODO : change route in the Frontend
 # WARNING: route has been passed from PATCH  to POST
-# Django ninja ignored Form data (by mulltiform or url-encode) if it's not a POST route
+# Django ninja ignored Form data (by multiform or url-encode) if it's not a POST route
 @projects_router.post(
     "/projects/{id}",
     url_name="project.update",
@@ -257,7 +257,8 @@ async def update_project(
     await check_permissions(permissions=UPDATE_PROJECT, user=request.user, obj=project)
 
     # if a file is present, we need to assign it
-    form.logo = logo
+    if logo is not None:
+        form.logo = logo
     values = form.model_dump(exclude_unset=True)
     return await projects_services.update_project(
         project=project, user=request.user, values=values
@@ -271,6 +272,7 @@ async def update_project(
     response={
         200: list[str],
         400: ERROR_RESPONSE_400,
+        401: ERROR_RESPONSE_401,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

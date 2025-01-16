@@ -47,8 +47,8 @@ async def test_reorder_validator_fail():
     with pytest.raises(ValidationError) as exc_info:
         ReorderValidator()
     assert exc_info.value.errors() == [
-        {"loc": ("place",), "msg": "field required", "type": "value_error.missing"},
-        {"loc": ("ref",), "msg": "field required", "type": "value_error.missing"},
+        {"loc": ("place",), "msg": "Field required", "type": "value_error.missing"},
+        {"loc": ("ref",), "msg": "Field required", "type": "value_error.missing"},
     ]
 
     with pytest.raises(ValidationError) as exc_info:

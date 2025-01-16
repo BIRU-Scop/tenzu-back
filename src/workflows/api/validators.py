@@ -50,7 +50,7 @@ class DeleteWorkflowQuery(BaseModel):
 
 class CreateWorkflowStatusValidator(BaseModel):
     name: WorkflowStatusName
-    color: Annotated[int, Field(gt=0, lte=NUM_COLORS)]  # type: ignore
+    color: Annotated[int, Field(gt=0, le=NUM_COLORS)]  # type: ignore
 
 
 class UpdateWorkflowValidator(BaseModel):

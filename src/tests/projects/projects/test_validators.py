@@ -35,8 +35,8 @@ def test_validate_create_user_wrong_not_all_required_fields():
     with pytest.raises(ValidationError) as validation_errors:
         ProjectValidator()
 
-    expected_error_fields = ["name", "workspaceId"]
-    expected_error_messages = ["field required"]
+    expected_error_fields = ["name", "workspace_id"]
+    expected_error_messages = ["Field required"]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
     )
@@ -46,7 +46,10 @@ def test_validate_project_with_empty_name():
     name = ""
     color = 1
 
-    with pytest.raises(ValidationError, match=r"Empty name is not allowed"):
+    with pytest.raises(
+        ValidationError, match=r"String should have at least 1 character"
+    ):
+        # noinspection PyArgumentList
         ProjectValidator(name=name, color=color)
 
 
@@ -55,7 +58,7 @@ def test_validate_project_with_long_name():
     color = 1
     workspace_id = "6JgsbGyoEe2VExhWgGrI2w"
     with pytest.raises(
-        ValidationError, match=r"ensure this value has at most 80 characters"
+        ValidationError, match=r"String should have at most 80 characters"
     ):
         ProjectValidator(name=name, color=color, workspace_id=workspace_id)
 
@@ -72,7 +75,7 @@ def test_validate_project_with_long_description():
     workspace_id = "6JgsbGyoEe2VExhWgGrI2w"
 
     with pytest.raises(
-        ValidationError, match=r"ensure this value has at most 220 characters"
+        ValidationError, match=r"String should have at most 220 characters"
     ):
         ProjectValidator(
             name=name, description=description, color=color, workspace_id=workspace_id
@@ -84,7 +87,9 @@ def test_validate_project_with_invalid_color():
     color = 9
     workspace_id = "6JgsbGyoEe2VExhWgGrI2w"
 
-    with pytest.raises(ValidationError, match=r"ensure this value is less than 9"):
+    with pytest.raises(
+        ValidationError, match=r"Input should be less than or equal to 8"
+    ):
         ProjectValidator(name=name, color=color, workspace_id=workspace_id)
 
 
@@ -107,13 +112,17 @@ def test_validate_logo_content_type():
     logo = f.build_string_uploadfile()
 
     with pytest.raises(ValidationError) as validations_errors:
+        # noinspection PyArgumentList
         ProjectValidator(name=name, color=color, logo=logo)
 
     expected_error_fields = [
         "logo",
-        "workspaceId",
+        "workspace_id",
     ]
-    expected_error_messages = ["Invalid image content type", "field required"]
+    expected_error_messages = [
+        "Value error, Invalid image content type",
+        "Field required",
+    ]
     check_validation_errors(
         validations_errors, expected_error_fields, expected_error_messages
     )
@@ -125,10 +134,27 @@ def test_validate_logo_content():
     logo = f.build_string_uploadfile(content_type="image/png")
 
     with pytest.raises(ValidationError) as validations_errors:
+        # noinspection PyArgumentList
         ProjectValidator(name=name, color=color, logo=logo)
 
-    expected_error_fields = ["logo", "workspaceId"]
-    expected_error_messages = ["Invalid image content", "field required"]
+    expected_error_fields = ["logo", "workspace_id"]
+    expected_error_messages = ["Value error, Invalid image content", "Field required"]
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
+    )
+
+
+def test_validate_logo_empty():
+    name = "Project test"
+    color = 1
+    logo = ""
+
+    with pytest.raises(ValidationError) as validations_errors:
+        # noinspection PyArgumentList
+        ProjectValidator(name=name, color=color, logo=logo)
+
+    expected_error_fields = ["workspace_id"]
+    expected_error_messages = ["Field required"]
     check_validation_errors(
         validations_errors, expected_error_fields, expected_error_messages
     )

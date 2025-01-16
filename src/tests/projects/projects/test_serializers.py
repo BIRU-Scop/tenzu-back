@@ -43,7 +43,7 @@ def test_project_logo_mixin_serializer_with_logo():
 
         data = serializers.ProjectLogoMixin(logo=project.logo)
 
-        assert data.logo == project.logo
+        assert str(data.logo).endswith(project.logo.url)
         assert data.logo_small == "small_logo.png"
         assert data.logo_large == "large_logo.png"
 

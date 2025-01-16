@@ -23,7 +23,7 @@ from base.serializers import UUIDB64, BaseModel
 from projects.projects.serializers.mixins import ProjectLogoMixin
 
 
-class ProjectNestedSerializer(BaseModel, ProjectLogoMixin):
+class ProjectNestedSerializer(ProjectLogoMixin):
     id: UUIDB64
     workspace_id: UUIDB64
     name: str

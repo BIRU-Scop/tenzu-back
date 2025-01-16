@@ -19,3 +19,5 @@
 
 from tests.utils.logging import correlation_id  # noqa
 from tests.utils.testclient import client  # noqa
+from tests.utils.taskqueue import in_memory_app, tqmanager  # noqa
+from tests.projects.projects.fixtures import project_template  # noqa

@@ -15,3 +15,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+
+import pytest
+
+from projects.projects.models import ProjectTemplate
+
+
+@pytest.fixture
+def project_template():
+    return ProjectTemplate.objects.first()

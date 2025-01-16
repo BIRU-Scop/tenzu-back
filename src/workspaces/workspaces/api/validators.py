@@ -34,7 +34,7 @@ Name = Annotated[
 
 class WorkspaceValidator(BaseModel):
     name: Name
-    color: Annotated[int, Field(gt=0, lte=NUM_COLORS)]  # type: ignore
+    color: Annotated[int, Field(gt=0, le=NUM_COLORS)]  # type: ignore
 
 
 class UpdateWorkspaceValidator(BaseModel):

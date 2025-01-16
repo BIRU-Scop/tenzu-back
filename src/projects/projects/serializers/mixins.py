@@ -20,9 +20,9 @@
 from pathlib import Path
 
 from django.conf import settings
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 
-from base.serializers import FileField
+from base.serializers import BaseModel, FileField
 from base.utils.concurrency import run_async_as_sync
 
 

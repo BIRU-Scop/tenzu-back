@@ -25,7 +25,7 @@ from workflows.serializers.nested import WorkflowNestedSerializer
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class ProjectSummarySerializer(BaseModel, ProjectLogoMixin):
+class ProjectSummarySerializer(ProjectLogoMixin):
     id: UUIDB64
     name: str
     slug: str
@@ -35,7 +35,7 @@ class ProjectSummarySerializer(BaseModel, ProjectLogoMixin):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjectDetailSerializer(BaseModel, ProjectLogoMixin):
+class ProjectDetailSerializer(ProjectLogoMixin):
     id: UUIDB64
     name: str
     slug: str
