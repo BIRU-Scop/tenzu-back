@@ -37,7 +37,6 @@
 # SOFTWARE.
 
 
-from asgiref.sync import sync_to_async
 from django.urls import path
 from ninja import NinjaAPI, Router
 
@@ -98,17 +97,55 @@ def test(request):
 async_api = NinjaAPI(
     urls_namespace="jwt-async",
 )
+async_api.exception_handler(exceptions.APIException)(api_exception_handler)
 async_router = Router()
+
+
+@async_router.post(
+    "/blacklist",
+    response={200: schema.blacklist_schema.get_response_schema()},
+    url_name="token_blacklist",
+    operation_id="async_token_blacklist",
+    auth=None,
+)
+async def ablacklist_token(request, refresh: schema.blacklist_schema):
+    return refresh.to_response_schema()
+
+
+@async_router.post(
+    "/token",
+    response=schema.obtain_pair_schema.get_response_schema(),
+    url_name="token_obtain_pair",
+    operation_id="async_token_obtain_pair",
+    auth=None,
+)
+async def aobtain_token(request, user_token: schema.obtain_pair_schema):
+    user_token.check_user_authentication_rule()
+    return user_token.to_response_schema()
+
+
+@async_router.post(
+    "/token/refresh",
+    response=schema.obtain_pair_refresh_schema.get_response_schema(),
+    url_name="token_refresh",
+    operation_id="async_token_refresh",
+    auth=None,
+)
+async def arefresh_token(request, refresh_token: schema.obtain_pair_refresh_schema):
+    return refresh_token.to_response_schema()
 
 
 @async_router.post(
     "/sliding",
     response=schema.obtain_sliding_schema.get_response_schema(),
     url_name="token_obtain_sliding",
-    operation_id="token_obtain_sliding_async",
+    operation_id="async_token_obtain_sliding",
+    auth=None,
 )
-async def aobtain_token(self, user_token: schema.obtain_sliding_schema):
-    await sync_to_async(user_token.check_user_authentication_rule)()
+async def aobtain_token_sliding_token(
+    request, user_token: schema.obtain_sliding_schema
+):
+    user_token.check_user_authentication_rule()
     return user_token.to_response_schema()
 
 
@@ -116,21 +153,24 @@ async def aobtain_token(self, user_token: schema.obtain_sliding_schema):
     "/sliding/refresh",
     response=schema.obtain_sliding_refresh_schema.get_response_schema(),
     url_name="token_refresh_sliding",
-    operation_id="token_refresh_sliding_async",
+    operation_id="async_token_refresh_sliding",
+    auth=None,
 )
-async def arefresh_token(self, refresh_token: schema.obtain_sliding_refresh_schema):
-    refresh = await sync_to_async(refresh_token.to_response_schema)()
-    return refresh
+async def arefresh_token_sliding(
+    request, refresh_token: schema.obtain_sliding_refresh_schema
+):
+    return refresh_token.to_response_schema()
 
 
 @async_router.post(
-    "/blacklist",
-    response={200: schema.blacklist_schema.get_response_schema()},
-    url_name="token_blacklist",
-    operation_id="token_blacklist_async",
+    "/verify",
+    response={200: schema.verify_schema.get_response_schema()},
+    url_name="token_verify",
+    operation_id="async_token_verify",
+    auth=None,
 )
-async def ablacklist_token(self, refresh: schema.blacklist_schema):
-    return refresh.to_response_schema()
+async def averify_token(request, token: schema.verify_schema):
+    return token.to_response_schema()
 
 
 @async_api.get(
