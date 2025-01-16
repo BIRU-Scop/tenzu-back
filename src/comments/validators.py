@@ -20,7 +20,7 @@
 from typing import List, Literal
 
 from humps import decamelize
-from pydantic import model_serializer
+from pydantic import Field, model_serializer
 
 from base.api.ordering import OrderQuery
 from base.validators import BaseModel, StrNotEmpty
@@ -37,7 +37,9 @@ CommentOrderQuery = OrderQuery(
 
 
 class CommentOrderSortQuery(BaseModel):
-    order: List[Literal["createdAt", "-createdAt"]] = ["-createdAt"]
+    order: List[Literal["createdAt", "-createdAt"]] = Field(
+        default_factory=lambda: ["-createdAt"]
+    )
 
     @model_serializer(return_type=List[str])
     def flat_list_as_result(self):

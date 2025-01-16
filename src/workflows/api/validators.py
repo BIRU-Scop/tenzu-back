@@ -33,28 +33,11 @@ WorkflowStatusName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)
 ]
 WorkflowName = Annotated[
-    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=250)
 ]
 WorkflowSlug = Annotated[
-    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=250)
 ]
-
-# class WorkflowStatusName(ConstrainedStr):
-#     strip_whitespace = True
-#     min_length = 1
-#     max_length = 30
-
-
-# class WorkflowName(ConstrainedStr):
-#     strip_whitespace = True
-#     min_length = 1
-#     max_length = 40
-#
-#
-# class WorkflowSlug(ConstrainedStr):
-#     strip_whitespace = True
-#     min_length = 1
-#     max_length = 40
 
 
 class CreateWorkflowValidator(BaseModel):
@@ -63,15 +46,6 @@ class CreateWorkflowValidator(BaseModel):
 
 class DeleteWorkflowQuery(BaseModel):
     move_to: WorkflowSlug | None = None
-
-    # @field_validator("move_to")
-    # @classmethod
-    # def check_move_to_slug(
-    #     cls, v: WorkflowSlug | None, info: ValidationInfo
-    # ) -> WorkflowSlug | None:
-    #     if v is None:
-    #         return None
-    #     return v
 
 
 class CreateWorkflowStatusValidator(BaseModel):
@@ -127,4 +101,4 @@ class DeleteWorkflowStatusQuery(BaseModel):
         try:
             return decode_b64str_to_uuid(v)
         except ValueError:
-            raise ex.ValidationError("Invalid 'moveTo' workflow status")
+            raise ex.ValidationError("Invalid 'move_to' workflow status")
