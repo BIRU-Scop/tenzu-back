@@ -164,6 +164,7 @@ async def test_get_detailed_workflow_ok():
         fake_workflows_repo.list_workflow_statuses.return_value = [workflow_status]
         fake_workflows_serializers.serialize_workflow.return_value = WorkflowSerializer(
             id=workflow.id,
+            project_id=workflow.project_id,
             name=workflow.name,
             slug=workflow.slug,
             order=workflow.order,
@@ -200,6 +201,7 @@ async def test_get_delete_workflow_detail_ok():
                 stories=[],
             )
         )
+        # TODO make it pass, for now list_all_stories does not exists
         fake_stories_services.list_all_stories.return_value = []
         workflow_statuses = [workflow_status]
         fake_workflows_repo.get_workflow.return_value = workflow
@@ -451,6 +453,7 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         target_workflow_statuses = [target_workflow_status2, target_workflow_status1]
         target_workflow_detail = WorkflowSerializer(
             id=target_workflow.id,
+            project_id=target_workflow.project_id,
             name=target_workflow.name,
             slug=target_workflow.slug,
             order=target_workflow.order,
@@ -463,6 +466,7 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         fake_reorder_workflow_statuses.return_value = ReorderWorkflowStatusesSerializer(
             workflow=WorkflowNestedSerializer(
                 id=target_workflow.id,
+                project_id=target_workflow.project_id,
                 name=deleted_workflow.name,
                 slug=deleted_workflow.slug,
             ),
@@ -553,6 +557,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         target_workflow_statuses = []
         target_workflow_detail = WorkflowSerializer(
             id=target_workflow.id,
+            project_id=target_workflow.project_id,
             name=target_workflow.name,
             slug=target_workflow.slug,
             order=target_workflow.order,
@@ -565,6 +570,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         fake_reorder_workflow_statuses.return_value = ReorderWorkflowStatusesSerializer(
             workflow=WorkflowNestedSerializer(
                 id=target_workflow.id,
+                project_id=target_workflow.project_id,
                 name=deleted_workflow.name,
                 slug=deleted_workflow.slug,
             ),
