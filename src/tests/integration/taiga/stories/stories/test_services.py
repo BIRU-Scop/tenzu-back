@@ -61,9 +61,13 @@ async def test_not_reorder_in_empty_status() -> None:
     # | -------- | -------- |
     # | story1   | story2   |
     # |          | story3   |
-    stories = await repositories.list_stories(filters={"status_id": status_1.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_1.id})
+    )
     assert stories[0].ref == story1.ref
-    stories = await repositories.list_stories(filters={"status_id": status_2.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_2.id})
+    )
     assert stories[0].ref == story2.ref
     assert stories[0].order == Decimal(100)
     assert stories[1].ref == story3.ref
@@ -97,9 +101,13 @@ async def test_not_reorder_in_populated_status() -> None:
     # | -------- | -------- |
     # | story1   | story3   |
     # |          | story2   |
-    stories = await repositories.list_stories(filters={"status_id": status_1.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_1.id})
+    )
     assert stories[0].ref == story1.ref
-    stories = await repositories.list_stories(filters={"status_id": status_2.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_2.id})
+    )
     assert stories[0].ref == story3.ref
     assert stories[1].ref == story2.ref
     assert stories[1].order == story3.order + 100
@@ -133,9 +141,13 @@ async def test_after_in_the_end() -> None:
     # | -------- | -------- |
     # | story1   | story3   |
     # |          | story2   |
-    stories = await repositories.list_stories(filters={"status_id": status_1.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_1.id})
+    )
     assert stories[0].ref == story1.ref
-    stories = await repositories.list_stories(filters={"status_id": status_2.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_2.id})
+    )
     assert stories[0].ref == story3.ref
     assert stories[1].ref == story2.ref
     assert stories[1].order == story3.order + 100
@@ -170,9 +182,13 @@ async def test_after_in_the_middle() -> None:
     # |          | story2   |
     # |          | story1   |
     # |          | story3   |
-    stories = await repositories.list_stories(filters={"status_id": status_1.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_1.id})
+    )
     assert len(stories) == 0
-    stories = await repositories.list_stories(filters={"status_id": status_2.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_2.id})
+    )
     assert stories[0].ref == story2.ref
     assert stories[1].ref == story1.ref
     assert stories[1].order == story2.order + ((story3.order - story2.order) / 2)
@@ -208,9 +224,13 @@ async def test_before_in_the_beginning() -> None:
     # |          | story1   |
     # |          | story2   |
     # |          | story3   |
-    stories = await repositories.list_stories(filters={"status_id": status_1.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_1.id})
+    )
     assert len(stories) == 0
-    stories = await repositories.list_stories(filters={"status_id": status_2.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_2.id})
+    )
     assert stories[0].ref == story1.ref
     assert stories[0].order == story2.order / 2
     assert stories[1].ref == story2.ref
@@ -246,9 +266,13 @@ async def test_before_in_the_middle() -> None:
     # |          | story2   |
     # |          | story1   |
     # |          | story3   |
-    stories = await repositories.list_stories(filters={"status_id": status_1.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_1.id})
+    )
     assert len(stories) == 0
-    stories = await repositories.list_stories(filters={"status_id": status_2.id})
+    stories = await sync_to_async(list)(
+        repositories.list_stories(filters={"status_id": status_2.id})
+    )
     assert stories[0].ref == story2.ref
     assert stories[1].ref == story1.ref
     assert stories[1].order == story2.order + ((story3.order - story2.order) / 2)

@@ -194,7 +194,7 @@ async def get_delete_workflow_detail(
     workflow_statuses = await workflows_repositories.list_workflow_statuses(
         filters={"workflow_id": workflow.id}
     )
-    workflow_stories = await sync_to_async(Story.objects.list_stories)(
+    workflow_stories = await stories_services.list_stories(
         project_id=project_id, workflow_slug=workflow_slug
     )
 
@@ -579,12 +579,17 @@ async def delete_workflow_status(
                 "The to-be-deleted status and the target-status cannot be the same"
             )
 
-        stories_to_move = await stories_repositories.list_stories(
-            filters={
-                "status_id": workflow_status.id,
-            },
-            order_by=["order"],
-        )
+        stories_to_move = [
+            story_ref
+            async for story_ref in (
+                stories_repositories.list_stories(
+                    filters={
+                        "status_id": workflow_status.id,
+                    },
+                    order_by=["order"],
+                ).values_list("ref", flat=True)
+            )
+        ]
 
         if stories_to_move:
             await stories_services.reorder_stories(
@@ -592,7 +597,7 @@ async def delete_workflow_status(
                 project=workflow_status.project,
                 workflow=workflow_status.workflow,
                 target_status_id=target_status_id,
-                stories_refs=[story.ref for story in stories_to_move],
+                stories_refs=stories_to_move,
             )
 
     deleted = await workflows_repositories.delete_workflow_status(

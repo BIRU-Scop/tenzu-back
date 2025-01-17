@@ -45,7 +45,7 @@ class WorkflowFilters(TypedDict, total=False):
     project_id: UUID
 
 
-WorkflowSelectRelated = list[Literal["project", "workspace"]]
+WorkflowSelectRelated = list[Literal["project", "project__workspace"]]
 
 
 WorkflowPrefetchRelated = list[Literal["statuses",]]

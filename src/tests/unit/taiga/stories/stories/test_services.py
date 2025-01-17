@@ -137,7 +137,7 @@ async def test_list_paginated_stories():
         fake_stories_repo.get_total_stories.assert_awaited_once_with(
             filters={
                 "project_id": story.project.id,
-                "workflow_slug": story.workflow.slug,
+                "workflow__slug": story.workflow.slug,
             }
         )
         fake_stories_repo.list_stories.assert_awaited_once_with(
@@ -146,7 +146,7 @@ async def test_list_paginated_stories():
             select_related=["created_by", "project", "workflow", "status"],
             filters={
                 "project_id": story.project.id,
-                "workflow_slug": story.workflow.slug,
+                "workflow__slug": story.workflow.slug,
             },
             prefetch_related=["assignees"],
         )

@@ -201,8 +201,7 @@ async def test_get_delete_workflow_detail_ok():
                 stories=[],
             )
         )
-        # TODO make it pass, for now list_all_stories does not exists
-        fake_stories_services.list_all_stories.return_value = []
+        fake_stories_services.list_stories.return_value = []
         workflow_statuses = [workflow_status]
         fake_workflows_repo.get_workflow.return_value = workflow
         fake_workflows_repo.list_workflow_statuses.return_value = workflow_statuses
@@ -213,7 +212,7 @@ async def test_get_delete_workflow_detail_ok():
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
             filters={"workflow_id": workflow.id}
         )
-        fake_stories_services.list_all_stories.assert_awaited_once_with(
+        fake_stories_services.list_stories.assert_awaited_once_with(
             project_id=workflow.project_id,
             workflow_slug=workflow.slug,
         )
@@ -980,8 +979,8 @@ async def test_delete_workflow_status_moving_stories_ok():
     workflow = f.build_workflow()
     workflow_status1 = f.build_workflow_status(workflow=workflow)
     workflow_status2 = f.build_workflow_status(workflow=workflow)
-    workflow_status1_stories = [
-        f.build_story(status=workflow_status1, workflow=workflow)
+    workflow_status1_stories_ref = [
+        f.build_story(status=workflow_status1, workflow=workflow).ref
     ]
 
     with (
@@ -1003,7 +1002,7 @@ async def test_delete_workflow_status_moving_stories_ok():
     ):
         fake_workflows_repo.delete_workflow_status.return_value = 1
         fake_get_workflow_status.return_value = workflow_status2
-        fake_stories_repo.list_stories.return_value = workflow_status1_stories
+        fake_stories_repo.list_stories.return_value.values_list.return_value.__aiter__.return_value = workflow_status1_stories_ref
         fake_stories_services.reorder_stories.return_value = None
 
         await services.delete_workflow_status(
@@ -1017,7 +1016,7 @@ async def test_delete_workflow_status_moving_stories_ok():
             workflow_slug=workflow.slug,
             id=workflow_status2.id,
         )
-        fake_stories_repo.list_stories.assert_awaited_once_with(
+        fake_stories_repo.list_stories.assert_called_once_with(
             filters={
                 "status_id": workflow_status1.id,
             },
@@ -1028,7 +1027,7 @@ async def test_delete_workflow_status_moving_stories_ok():
             project=workflow_status1.project,
             workflow=workflow,
             target_status_id=workflow_status2.id,
-            stories_refs=[story.ref for story in workflow_status1_stories],
+            stories_refs=workflow_status1_stories_ref,
         )
         fake_workflows_repo.delete_workflow_status.assert_awaited_once_with(
             filters={"id": workflow_status1.id}
@@ -1044,8 +1043,8 @@ async def test_delete_workflow_status_deleting_stories_ok():
     user = f.create_user()
     workflow = f.build_workflow()
     workflow_status1 = f.build_workflow_status(workflow=workflow)
-    workflow_status1_stories = [
-        f.build_story(status=workflow_status1, workflow=workflow)
+    workflow_status1_stories_ref = [
+        f.build_story(status=workflow_status1, workflow=workflow).ref
     ]
 
     with (
@@ -1067,7 +1066,7 @@ async def test_delete_workflow_status_deleting_stories_ok():
     ):
         fake_workflows_repo.delete_workflow_status.return_value = 2
         fake_workflows_repo.get_workflow_status.return_value = 1
-        fake_stories_repo.list_stories.return_value = workflow_status1_stories
+        fake_stories_repo.list_stories.return_value.values_list.return_value.__aiter__.return_value = workflow_status1_stories_ref
         fake_stories_services.reorder_stories.return_value = None
 
         await services.delete_workflow_status(
@@ -1075,7 +1074,7 @@ async def test_delete_workflow_status_deleting_stories_ok():
         )
 
         fake_get_workflow_status.assert_not_awaited()
-        fake_stories_repo.list_stories.assert_not_awaited()
+        fake_stories_repo.list_stories.assert_not_called()
         fake_stories_services.reorder_stories.assert_not_awaited()
         fake_workflows_repo.delete_workflow_status.assert_awaited_once_with(
             filters={"id": workflow_status1.id}
