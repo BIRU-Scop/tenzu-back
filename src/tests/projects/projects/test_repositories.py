@@ -450,6 +450,22 @@ async def test_get_total_projects_in_ws_for_guest(project_template) -> None:
 
 
 ##########################################################
+# get_first_workflow_slug
+##########################################################
+
+
+async def test_get_first_workflow_slug():
+    project = await f.create_simple_project()
+    assert await repositories.get_first_workflow_slug(project) is None
+    workflow1 = await f.create_workflow(project=project, order=3)
+    assert await repositories.get_first_workflow_slug(project) == workflow1.slug
+    _ = await f.create_workflow(project=project, order=5)
+    assert await repositories.get_first_workflow_slug(project) == workflow1.slug
+    workflow3 = await f.create_workflow(project=project, order=2)
+    assert await repositories.get_first_workflow_slug(project) == workflow3.slug
+
+
+##########################################################
 # Template: get_template
 ##########################################################
 

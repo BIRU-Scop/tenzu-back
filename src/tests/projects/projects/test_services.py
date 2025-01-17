@@ -31,6 +31,12 @@ from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 pytestmark = pytest.mark.django_db
 
+
+async def test_get_landing_page_for_workflow():
+    assert services.get_landing_page_for_workflow(None) == ""
+    assert services.get_landing_page_for_workflow("slug-w") == "kanban/slug-w"
+
+
 ##########################################################
 # create_project
 ##########################################################

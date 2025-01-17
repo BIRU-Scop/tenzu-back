@@ -72,6 +72,50 @@ async def test_create_workflow_ok():
         fake_workflows_repo.apply_default_workflow_statuses.assert_awaited_once()
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once()
 
+        fake_projects_repo.update_project.assert_awaited_once_with(
+            project,
+            values={"landing_page": f"kanban/{workflow.slug}"},
+        )
+
+        fake_workflows_events.emit_event_when_workflow_is_created.assert_awaited_once_with(
+            project=project, workflow=workflow
+        )
+
+
+async def test_create_workflow_no_landing_change():
+    project = f.build_project()
+    workflow1 = f.build_workflow(project=project)
+    workflow2 = f.build_workflow(project=project)
+
+    with (
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.projects_repositories", autospec=True
+        ) as fake_projects_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
+    ):
+        fake_workflows_repo.list_workflows.return_value = [workflow2]
+        fake_workflows_repo.create_workflow.return_value = workflow1
+        fake_workflows_repo.list_workflow_statuses.return_value = []
+
+        workflow = await services.create_workflow(
+            project=workflow1.project, name=workflow1.name
+        )
+
+        fake_workflows_repo.list_workflows.assert_awaited_once_with(
+            filters={"project_id": project.id}, order_by=["-order"]
+        )
+        fake_workflows_repo.create_workflow.assert_awaited_once()
+        fake_projects_repo.get_project_template.assert_awaited_once()
+        fake_workflows_repo.apply_default_workflow_statuses.assert_awaited_once()
+        fake_workflows_repo.list_workflow_statuses.assert_awaited_once()
+
+        fake_projects_repo.update_project.assert_not_awaited()
+
         fake_workflows_events.emit_event_when_workflow_is_created.assert_awaited_once_with(
             project=project, workflow=workflow
         )
@@ -399,6 +443,100 @@ async def test_delete_workflow_no_target_workflow_ok():
 
         ret = await services.delete_workflow(workflow=workflow)
 
+        fake_workflows_repo.delete_workflow.assert_awaited_once_with(
+            filters={"id": workflow.id}
+        )
+        fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once()
+        assert ret is True
+
+
+async def test_delete_workflow_update_landing_to_empty():
+    with (
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
+        patch(
+            "workflows.services.get_delete_workflow_detail", autospec=True
+        ) as fake_get_delete_workflow_detail,
+        patch(
+            "workflows.services.projects_repositories", autospec=True
+        ) as fake_projects_repo,
+    ):
+        workflow = f.build_workflow(
+            slug="landing-w", project__landing_page="k/landing-w"
+        )
+        status1 = f.build_workflow_status(workflow=workflow, order=1)
+        fake_get_delete_workflow_detail.return_value = DeleteWorkflowSerializer(
+            id=workflow.id,
+            name=workflow.name,
+            slug=workflow.slug,
+            order=workflow.order,
+            statuses=[status1],
+            stories=[],
+        )
+        fake_workflows_repo.get_workflow.return_value = workflow
+        fake_workflows_repo.list_workflow_statuses.return_value = [
+            status1,
+        ]
+        fake_workflows_repo.delete_workflow.return_value = True
+        fake_projects_repo.get_first_workflow_slug.return_value = None
+
+        ret = await services.delete_workflow(workflow=workflow)
+
+        fake_projects_repo.update_project.assert_awaited_once_with(
+            workflow.project,
+            values={"landing_page": ""},
+        )
+        fake_workflows_repo.delete_workflow.assert_awaited_once_with(
+            filters={"id": workflow.id}
+        )
+        fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once()
+        assert ret is True
+
+
+async def test_delete_workflow_update_landing_to_new_slug():
+    with (
+        patch(
+            "workflows.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "workflows.services.workflows_events", autospec=True
+        ) as fake_workflows_events,
+        patch(
+            "workflows.services.get_delete_workflow_detail", autospec=True
+        ) as fake_get_delete_workflow_detail,
+        patch(
+            "workflows.services.projects_repositories", autospec=True
+        ) as fake_projects_repo,
+    ):
+        workflow = f.build_workflow(
+            slug="landing-w", project__landing_page="k/landing-w"
+        )
+        status1 = f.build_workflow_status(workflow=workflow, order=1)
+        fake_get_delete_workflow_detail.return_value = DeleteWorkflowSerializer(
+            id=workflow.id,
+            name=workflow.name,
+            slug=workflow.slug,
+            order=workflow.order,
+            statuses=[status1],
+            stories=[],
+        )
+        fake_workflows_repo.get_workflow.return_value = workflow
+        fake_workflows_repo.list_workflow_statuses.return_value = [
+            status1,
+        ]
+        fake_workflows_repo.delete_workflow.return_value = True
+        fake_projects_repo.get_first_workflow_slug.return_value = "new-w"
+
+        ret = await services.delete_workflow(workflow=workflow)
+
+        fake_projects_repo.update_project.assert_awaited_once_with(
+            workflow.project,
+            values={"landing_page": "kanban/new-w"},
+        )
         fake_workflows_repo.delete_workflow.assert_awaited_once_with(
             filters={"id": workflow.id}
         )
