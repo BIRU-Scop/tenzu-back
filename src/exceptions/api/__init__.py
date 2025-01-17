@@ -21,7 +21,7 @@ from typing import Any, Optional
 
 from ninja.errors import HttpError as NinjaHttpError
 
-from base.utils.strings import camel_to_kebab
+from base.utils.strings import to_kebab
 
 from . import codes
 
@@ -39,7 +39,7 @@ class HTTPException(NinjaHttpError):
         headers: dict[str, Any] | None = None,
     ) -> None:
         if not detail:
-            detail = camel_to_kebab(self.__class__.__name__)
+            detail = to_kebab(self.__class__.__name__)
 
         super().__init__(status_code=status_code, message=msg)
         self.code: str = code

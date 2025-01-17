@@ -19,7 +19,7 @@ from django.conf import settings
 from ninja import NinjaAPI, Router
 
 from base.services.exceptions import TenzuServiceException
-from base.utils.strings import camel_to_kebab
+from base.utils.strings import to_kebab
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
 from exceptions.api import codes
@@ -60,7 +60,7 @@ def tenzu_exception(request, exc):
         {
             "error": {
                 "code": codes.EX_BAD_REQUEST.code,
-                "detail": camel_to_kebab(exc.__class__.__name__),
+                "detail": to_kebab(exc.__class__.__name__),
                 "msg": str(exc),
             }
         },
