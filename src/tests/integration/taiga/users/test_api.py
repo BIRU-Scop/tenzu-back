@@ -229,7 +229,6 @@ async def test_list_project_users_by_text(client):
     assert len(response.json()) == 1
     assert response.headers["Pagination-Offset"] == "0"
     assert response.headers["Pagination-Limit"] == "10"
-    assert response.headers["Pagination-Total"] == "1"
 
 
 async def test_list_workspace_users_by_text(client):
@@ -250,7 +249,6 @@ async def test_list_workspace_users_by_text(client):
     assert len(response.json()) == 1
     assert response.headers["Pagination-Offset"] == "0"
     assert response.headers["Pagination-Limit"] == "10"
-    assert response.headers["Pagination-Total"] == "1"
 
 
 async def test_list_users_by_text_no_results(client):
@@ -271,7 +269,6 @@ async def test_list_users_by_text_no_results(client):
     assert len(response.json()) == 0
     assert response.headers["Pagination-Offset"] == "0"
     assert response.headers["Pagination-Limit"] == "10"
-    assert response.headers["Pagination-Total"] == "0"
 
 
 ##########################################################

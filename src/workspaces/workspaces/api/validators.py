@@ -26,10 +26,6 @@ from commons.colors import NUM_COLORS
 Name = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)
 ]
-# class Name(ConstrainedStr):
-#     strip_whitespace = True
-#     min_length = 1
-#     max_length = 40
 
 
 class WorkspaceValidator(BaseModel):

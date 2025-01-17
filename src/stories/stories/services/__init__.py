@@ -188,7 +188,7 @@ async def update_story(
 
     # Old neighbors
     old_neighbors = None
-    if update_values.get("workflow_slug", None):
+    if update_values.get("workflow", None):
         old_neighbors = await stories_repositories.list_story_neighbors(
             story=story, filters={"workflow_id": story.workflow_id}
         )
@@ -253,7 +253,7 @@ async def _validate_and_process_values_to_update(
         status = await workflows_repositories.get_workflow_status(
             filters={"workflow_id": story.workflow_id, "id": status_id}
         )
-        if not status or output.get("workflow_slug", None):
+        if not status or output.pop("workflow_slug", None):
             raise ex.InvalidStatusError("The provided status is not valid.")
 
         if status.id != story.status_id:
@@ -274,6 +274,8 @@ async def _validate_and_process_values_to_update(
             first_status_list = await workflows_repositories.list_workflow_statuses(
                 filters={"workflow_id": workflow.id},
                 order_by=["order"],
+                offset=0,
+                limit=1,
             )
 
             if not first_status_list:

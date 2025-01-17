@@ -280,8 +280,7 @@ def list_workflow_statuses(
     return list(qs[offset:limit])
 
 
-@sync_to_async
-def list_workflow_statuses_to_reorder(
+async def list_workflow_statuses_to_reorder(
     filters: WorkflowStatusFilters = {},
 ) -> list[WorkflowStatus]:
     """
@@ -292,7 +291,7 @@ def list_workflow_statuses_to_reorder(
         qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
     )
 
-    statuses = {s.id: s for s in qs}
+    statuses = {s.id: s async for s in qs}
     return [statuses[id] for id in filters["ids"] if statuses.get(id) is not None]
 
 

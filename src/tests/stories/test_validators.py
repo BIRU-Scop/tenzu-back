@@ -22,6 +22,7 @@ from pydantic import ValidationError
 
 from stories.stories.api.validators import ReorderStoriesValidator, ReorderValidator
 from tests.utils.bad_params import NOT_EXISTING_B64ID
+from tests.utils.utils import check_validation_errors
 
 #######################################################
 # ReorderValidator
@@ -36,30 +37,25 @@ async def test_reorder_validator_ok():
 async def test_reorder_validator_fail():
     with pytest.raises(ValidationError) as exc_info:
         ReorderValidator(place="other", ref=2)
-    assert exc_info.value.errors() == [
-        {
-            "loc": ("place",),
-            "msg": "Place should be 'after' or 'before'",
-            "type": "assertion_error",
-        }
-    ]
+
+    expected_error_fields = ["place"]
+    expected_error_messages = ["Input should be 'before' or 'after'"]
+    check_validation_errors(exc_info, expected_error_fields, expected_error_messages)
 
     with pytest.raises(ValidationError) as exc_info:
+        # noinspection PyArgumentList
         ReorderValidator()
-    assert exc_info.value.errors() == [
-        {"loc": ("place",), "msg": "Field required", "type": "value_error.missing"},
-        {"loc": ("ref",), "msg": "Field required", "type": "value_error.missing"},
-    ]
+    expected_error_fields = ["place", "ref"]
+    expected_error_messages = ["Field required"] * 2
+    check_validation_errors(exc_info, expected_error_fields, expected_error_messages)
 
     with pytest.raises(ValidationError) as exc_info:
         ReorderValidator(place="after", ref="str")
-    assert exc_info.value.errors() == [
-        {
-            "loc": ("ref",),
-            "msg": "value is not a valid integer",
-            "type": "type_error.integer",
-        }
+    expected_error_fields = ["ref"]
+    expected_error_messages = [
+        "Input should be a valid integer, unable to parse string as an integer"
     ]
+    check_validation_errors(exc_info, expected_error_fields, expected_error_messages)
 
 
 #######################################################
@@ -70,41 +66,32 @@ async def test_reorder_validator_fail():
 async def test_reorder_stories_validator_ok():
     reorder = ReorderValidator(place="after", ref=2)
     assert ReorderStoriesValidator(
-        status=NOT_EXISTING_B64ID, stories=[1, 2, 3], reorder=reorder
+        status_id=NOT_EXISTING_B64ID, stories=[1, 2, 3], reorder=reorder
     )
-    assert ReorderStoriesValidator(status=NOT_EXISTING_B64ID, stories=[1, 2, 3])
+    assert ReorderStoriesValidator(status_id=NOT_EXISTING_B64ID, stories=[1, 2, 3])
 
 
 async def test_reorder_stories_validator_fail():
     with pytest.raises(ValidationError) as exc_info:
-        ReorderStoriesValidator(status=NOT_EXISTING_B64ID, stories=[])
-    assert exc_info.value.errors() == [
-        {
-            "ctx": {"limit_value": 1},
-            "loc": ("stories",),
-            "msg": "ensure this value has at least 1 items",
-            "type": "value_error.list.min_items",
-        }
+        ReorderStoriesValidator(status_id=NOT_EXISTING_B64ID, stories=[])
+    expected_error_fields = ["stories"]
+    expected_error_messages = [
+        "List should have at least 1 item after validation, not 0"
     ]
+    check_validation_errors(exc_info, expected_error_fields, expected_error_messages)
 
     with pytest.raises(ValidationError) as exc_info:
-        ReorderStoriesValidator(status=None, stories=[1])
-    assert exc_info.value.errors() == [
-        {
-            "loc": ("status",),
-            "msg": "none is not an allowed value",
-            "type": "type_error.none.not_allowed",
-        }
-    ]
+        ReorderStoriesValidator(status_id=None, stories=[1])
+    expected_error_fields = ["status_id"]
+    expected_error_messages = ["Input should be a valid string"]
+    check_validation_errors(exc_info, expected_error_fields, expected_error_messages)
 
     with pytest.raises(ValidationError) as exc_info:
         ReorderStoriesValidator(
-            status=NOT_EXISTING_B64ID, stories=[1], reorder={"place": "nope", "ref": 3}
+            status_id=NOT_EXISTING_B64ID,
+            stories=[1],
+            reorder={"place": "nope", "ref": 3},
         )
-    assert exc_info.value.errors() == [
-        {
-            "loc": ("reorder", "place"),
-            "msg": "Place should be 'after' or 'before'",
-            "type": "assertion_error",
-        }
-    ]
+    expected_error_fields = ["place"]
+    expected_error_messages = ["Input should be 'before' or 'after'"]
+    check_validation_errors(exc_info, expected_error_fields, expected_error_messages)

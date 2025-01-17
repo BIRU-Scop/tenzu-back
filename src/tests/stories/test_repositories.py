@@ -56,8 +56,8 @@ async def test_create_story_ok() -> None:
 ##########################################################
 
 
-async def test_list_stories() -> None:
-    project = await f.create_project()
+async def test_list_stories(project_template) -> None:
+    project = await f.create_project(project_template)
     workflow_1 = await sync_to_async(project.workflows.first)()
     status_1 = await sync_to_async(workflow_1.statuses.first)()
     workflow_2 = await f.create_workflow(project=project)
@@ -67,26 +67,34 @@ async def test_list_stories() -> None:
     await f.create_story(project=project, workflow=workflow_1, status=status_1)
     await f.create_story(project=project, workflow=workflow_2, status=status_2)
 
-    stories = await sync_to_async(list)(
-        repositories.list_stories(
+    stories = [
+        story
+        async for story in repositories.list_stories(
             filters={"project_id": project.id}, select_related=["status"]
         )
-    )
+    ]
     assert len(stories) == 3
     assert stories[0].title and stories[0].ref and stories[0].status
-    stories = await sync_to_async(list)(
-        repositories.list_stories(filters={"workflow_id": workflow_1.id})
-    )
+    stories = [
+        story
+        async for story in repositories.list_stories(
+            filters={"workflow_id": workflow_1.id}
+        )
+    ]
     assert len(stories) == 2
-    stories = await sync_to_async(list)(
-        repositories.list_stories(filters={"workflow_id": workflow_2.id})
-    )
+    stories = [
+        story
+        async for story in repositories.list_stories(
+            filters={"workflow_id": workflow_2.id}
+        )
+    ]
     assert len(stories) == 1
-    stories = await sync_to_async(list)(
-        repositories.list_stories(
+    stories = [
+        story
+        async for story in repositories.list_stories(
             filters={"workflow_id": workflow_1.id, "ref__in": [story1.ref]}
         )
-    )
+    ]
     assert len(stories) == 1
 
 
@@ -114,8 +122,8 @@ async def test_get_story() -> None:
 ##########################################################
 
 
-async def test_update_story_success() -> None:
-    project = await f.create_project()
+async def test_update_story_success(project_template) -> None:
+    project = await f.create_project(project_template)
     workflow = await project.workflows.afirst()
     status = await workflow.statuses.afirst()
     story = await f.create_story(project=project, workflow=workflow, status=status)
@@ -127,8 +135,8 @@ async def test_update_story_success() -> None:
     )
 
 
-async def test_update_story_error() -> None:
-    project = await f.create_project()
+async def test_update_story_error(project_template) -> None:
+    project = await f.create_project(project_template)
     workflow = await project.workflows.afirst()
     status = await workflow.statuses.afirst()
     story = await f.create_story(project=project, workflow=workflow, status=status)
@@ -170,8 +178,8 @@ async def test_delete_stories() -> None:
 ##########################################################
 
 
-async def test_list_story_neighbors() -> None:
-    project = await f.create_project()
+async def test_list_story_neighbors(project_template) -> None:
+    project = await f.create_project(project_template)
 
     # same status for all stories
     workflow1 = await sync_to_async(project.workflows.first)()
@@ -245,8 +253,8 @@ async def test_list_story_neighbors() -> None:
 ##########################################################
 
 
-async def test_list_stories_to_reorder() -> None:
-    project = await f.create_project()
+async def test_list_stories_to_reorder(project_template) -> None:
+    project = await f.create_project(project_template)
     workflow = await sync_to_async(project.workflows.first)()
     status = await sync_to_async(workflow.statuses.first)()
 
@@ -290,8 +298,8 @@ async def test_list_stories_to_reorder() -> None:
 ##########################################################
 
 
-async def test_bulk_update_workflow_to_stories() -> None:
-    project = await f.create_project()
+async def test_bulk_update_workflow_to_stories(project_template) -> None:
+    project = await f.create_project(project_template)
     old_workflow = await sync_to_async(project.workflows.first)()
     new_workflow = await sync_to_async(project.workflows.first)()
     status = await sync_to_async(old_workflow.statuses.first)()
@@ -303,11 +311,12 @@ async def test_bulk_update_workflow_to_stories() -> None:
         old_workflow_id=old_workflow.id,
         new_workflow_id=new_workflow.id,
     )
-    stories = await sync_to_async(list)(
-        repositories.list_stories(
+    stories = [
+        story
+        async for story in repositories.list_stories(
             filters={"workflow_id": old_workflow}, select_related=["workflow"]
         )
-    )
+    ]
     assert story1 in stories and story2 in stories
     assert stories[0].workflow == new_workflow
     assert stories[1].workflow == new_workflow
