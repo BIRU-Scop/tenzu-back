@@ -34,7 +34,7 @@ pytestmark = pytest.mark.django_db(transaction=True)
 
 async def test_create_project_200_ok_being_workspace_member(client):
     workspace = await f.create_workspace()
-    data = {"name": "Project test", "color": 1, "workspace_id": workspace.b64id}
+    data = {"name": "Project test", "color": 1, "workspaceId": workspace.b64id}
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
     client.login(workspace.created_by)
@@ -45,7 +45,7 @@ async def test_create_project_200_ok_being_workspace_member(client):
 async def test_create_project_400_bad_request_invalid_workspace_error(client):
     workspace = await f.create_workspace()
     non_existing_uuid = "6JgsbGyoEe2VExhWgGrI2w"
-    data = {"name": "My pro#%&乕شject", "color": 1, "workspace_id": non_existing_uuid}
+    data = {"name": "My pro#%&乕شject", "color": 1, "workspaceId": non_existing_uuid}
 
     client.login(workspace.created_by)
     response = await client.post("/projects", data=data)
@@ -55,7 +55,7 @@ async def test_create_project_400_bad_request_invalid_workspace_error(client):
 async def test_create_project_403_being_no_workspace_member(client):
     workspace = await f.create_workspace()
     user2 = await f.create_user()
-    data = {"name": "Project test", "color": 1, "workspace_id": workspace.b64id}
+    data = {"name": "Project test", "color": 1, "workspaceId": workspace.b64id}
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
     client.login(user2)
@@ -65,7 +65,7 @@ async def test_create_project_403_being_no_workspace_member(client):
 
 async def test_create_project_401_being_anonymous(client):
     workspace = await f.create_workspace()
-    data = {"name": "Project test", "color": 1, "workspace_id": workspace.b64id}
+    data = {"name": "Project test", "color": 1, "workspaceId": workspace.b64id}
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
     response = await client.post("/projects", data=data, files=files)
@@ -74,7 +74,7 @@ async def test_create_project_401_being_anonymous(client):
 
 async def test_create_project_422_unprocessable_color(client):
     workspace = await f.create_workspace()
-    data = {"name": "My project", "color": 12, "workspace_id": workspace.b64id}
+    data = {"name": "My project", "color": 12, "workspaceId": workspace.b64id}
 
     client.login(workspace.created_by)
     response = await client.post("/projects", data=data)

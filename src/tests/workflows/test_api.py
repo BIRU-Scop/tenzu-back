@@ -355,7 +355,7 @@ async def test_delete_workflow_204_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.delete(
-        f"/projects/{project.b64id}/workflows/{deleted_workflow.slug}?move_to={target_workflow.slug}"
+        f"/projects/{project.b64id}/workflows/{deleted_workflow.slug}?moveTo={target_workflow.slug}"
     )
     assert response.status_code == 204, response.text
 
@@ -387,7 +387,7 @@ async def test_delete_workflow_422_empty_move_to_slug(client, project_template):
     client.login(project.created_by)
     empty_string = ""
     response = await client.delete(
-        f"/projects/{project.b64id}/workflows/slug?move_to={empty_string}"
+        f"/projects/{project.b64id}/workflows/slug?moveTo={empty_string}"
     )
     assert response.status_code == 422, response.text
 
@@ -397,7 +397,7 @@ async def test_delete_workflow_422_long_move_to_slug(client, project_template):
     client.login(project.created_by)
     long_string = "slug_" * 100
     response = await client.delete(
-        f"/projects/{project.b64id}/workflows/slug?move_to={long_string}"
+        f"/projects/{project.b64id}/workflows/slug?moveTo={long_string}"
     )
     assert response.status_code == 422, response.text
 
@@ -498,7 +498,7 @@ async def test_delete_workflow_status_204_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.delete(
-        f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status1.b64id}?move_to={wf_status2.b64id}"
+        f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status1.b64id}?moveTo={wf_status2.b64id}"
     )
     assert response.status_code == 204, response.text
 
@@ -512,7 +512,7 @@ async def test_delete_workflow_status_400_bad_request_move_to_b64id(
     await f.create_story(status=wf_status1, workflow=wf)
     client.login(project.created_by)
     response = await client.delete(
-        f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status1.b64id}?move_to={NOT_EXISTING_B64ID}"
+        f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status1.b64id}?moveTo={NOT_EXISTING_B64ID}"
     )
     assert response.status_code == 400, response.text
 
@@ -600,6 +600,6 @@ async def test_delete_wf_status_422_unprocessable_move_to_b64id(
     await f.create_story(status=wf_status1, workflow=wf)
     client.login(project.created_by)
     response = await client.delete(
-        f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status1.b64id}?move_to={INVALID_B64ID}"
+        f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status1.b64id}?moveTo={INVALID_B64ID}"
     )
     assert response.status_code == 422, response.text

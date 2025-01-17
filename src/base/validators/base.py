@@ -18,11 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 from ninja import Schema
-from pydantic import AliasGenerator
 from pydantic.alias_generators import to_camel
 
 
 class BaseModel(Schema):
     class Config(Schema.Config):
-        alias_generator = AliasGenerator(serialization_alias=to_camel)
+        alias_generator = to_camel
         populate_by_name = True
