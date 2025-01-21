@@ -300,27 +300,6 @@ async def test_get_project_public_permissions_422_unprocessable_project_b64id(
 ##########################################################
 
 
-async def test_update_project_200_ok(client, project_template):
-    project = await f.create_project(project_template)
-    image = f.build_image_file("new-logo")
-
-    logo = InMemoryUploadedFile(
-        image, None, "new-logo.png", "image/png", image.size, None, None
-    )
-    data = {"name": "New name", "description": "new description", "logo": logo}
-
-    client.login(project.created_by)
-    response = await client.post(
-        f"/projects/{project.b64id}",
-        data=data,
-    )
-    assert response.status_code == 200, response.text
-    updated_project = response.json()
-    assert updated_project["name"] == "New name"
-    assert updated_project["description"] == "new description"
-    assert "new-logo.png" in updated_project["logo"]
-
-
 async def test_update_project_files_200_ok(client, project_template):
     project = await f.create_project(project_template)
     image = f.build_image_file("new-logo")
@@ -341,6 +320,44 @@ async def test_update_project_files_200_ok(client, project_template):
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
     assert "new-logo.png" in updated_project["logo"]
+
+
+async def test_update_project_files_200_ok_no_logo_change(client, project_template):
+    image = f.build_image_file("new-logo")
+    project = await f.create_project(project_template, logo=image)
+
+    data = {"name": "New name", "description": "new description"}
+
+    client.login(project.created_by)
+    response = await client.post(
+        f"/projects/{project.b64id}",
+        data=data,
+        FILES={},
+    )
+    assert response.status_code == 200, response.text
+    updated_project = response.json()
+    assert updated_project["name"] == "New name"
+    assert updated_project["description"] == "new description"
+    assert "new-logo.png" in updated_project["logo"]
+
+
+async def test_update_project_files_200_ok_delete_logo(client, project_template):
+    image = f.build_image_file("new-logo")
+    project = await f.create_project(project_template, logo=image)
+
+    data = {"name": "New name", "description": "new description"}
+
+    client.login(project.created_by)
+    response = await client.post(
+        f"/projects/{project.b64id}",
+        data=data,
+        FILES={"logo": None},
+    )
+    assert response.status_code == 200, response.text
+    updated_project = response.json()
+    assert updated_project["name"] == "New name"
+    assert updated_project["description"] == "new description"
+    assert not updated_project["logo"]
 
 
 async def test_update_project_200_ok_delete_description(client, project_template):

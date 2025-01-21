@@ -172,4 +172,3 @@ def test_validate_update_project_ok():
 
     assert patch.name == name
     assert patch.description == description
-    assert patch.logo is None

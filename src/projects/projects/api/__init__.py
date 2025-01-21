@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from ninja import File, Form, Path, Router
@@ -256,10 +256,10 @@ async def update_project(
     project = await get_project_or_404(id)
     await check_permissions(permissions=UPDATE_PROJECT, user=request.user, obj=project)
 
-    # if a file is present, we need to assign it
-    if logo is not None:
-        form.logo = logo
     values = form.model_dump(exclude_unset=True)
+    # if a file is present, we need to assign it
+    if "logo" in request.POST or request.FILES:
+        values["logo"] = logo
     return await projects_services.update_project(
         project=project, user=request.user, values=values
     )

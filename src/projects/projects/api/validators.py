@@ -83,7 +83,6 @@ class ProjectValidator(BaseModel):
 class UpdateProjectValidator(BaseModel):
     name: str | None = None
     description: str | None = None
-    logo: LogoField | None = None
 
 
 class PermissionsValidator(BaseModel):
