@@ -54,7 +54,7 @@ from ninja_jwt.tokens import (
     UntypedToken,
 )
 from ninja_jwt.utils import aware_utcnow, datetime_to_epoch, make_utc
-from tests.utils.factories import create_user
+from tests.utils.factories import sync_create_user as create_user
 
 
 class MyToken(Token):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -16,9 +15,3 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-__title__ = "Tenzu"
-__description__ = (
-    "The opensource project management tool for multi-functional agile teams"
-)
-__version__ = "0.0.0"

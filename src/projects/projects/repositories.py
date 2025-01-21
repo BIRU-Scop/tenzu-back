@@ -126,6 +126,7 @@ def create_project(
     workspace: Workspace,
     name: str,
     created_by: User,
+    landing_page: str,
     description: str | None = None,
     color: int | None = None,
     logo: File | None = None,
@@ -135,6 +136,7 @@ def create_project(
         created_by=created_by,
         workspace=workspace,
         logo=logo,
+        landing_page=landing_page,
     )
     if description:
         project.description = description
@@ -208,7 +210,7 @@ def update_project(project: Project, values: dict[str, Any] = {}) -> Project:
         setattr(project, attr, value)
 
     project.modified_at = aware_utcnow()
-    project.save()
+    project.save(update_fields=values.keys())
     return project
 
 
@@ -240,23 +242,17 @@ def get_total_projects(
     return qs.distinct().count()
 
 
+async def get_first_workflow_slug(project: Project) -> str | None:
+    return await project.workflows.values_list("slug", flat=True).afirst()
+
+
 ##########################################################
 # Project Template - filters and querysets
 ##########################################################
 
 
-DEFAULT_PROJECT_TEMPLATE_QUERYSET = ProjectTemplate.objects.all()
-
-
 class ProjectTemplateFilters(TypedDict, total=False):
     slug: str
-
-
-def _apply_filters_to_project_template_queryset(
-    qs: QuerySet[ProjectTemplate],
-    filters: ProjectTemplateFilters = {},
-) -> QuerySet[ProjectTemplate]:
-    return qs.filter(**filters)
 
 
 ##########################################################
@@ -264,16 +260,13 @@ def _apply_filters_to_project_template_queryset(
 ##########################################################
 
 
-@sync_to_async
-def get_project_template(
+async def get_project_template(
     filters: ProjectTemplateFilters = {},
 ) -> ProjectTemplate | None:
-    qs = _apply_filters_to_project_template_queryset(
-        qs=DEFAULT_PROJECT_TEMPLATE_QUERYSET, filters=filters
-    )
+    qs = ProjectTemplate.objects.all().filter(**filters)
 
     try:
-        return qs.get()
+        return await qs.aget()
     except ProjectTemplate.DoesNotExist:
         return None
 

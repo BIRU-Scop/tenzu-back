@@ -67,7 +67,6 @@ def serialize_story_list(
         workflow_id=story.workflow_id,
         project_id=story.project_id,
         status_id=story.status_id,
-        status=story.status,
         version=story.version,
         assignees=assignees,
     )

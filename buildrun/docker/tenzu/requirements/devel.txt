@@ -231,8 +231,6 @@ pydantic-settings==2.6.1
     # via -r requirements/commons.in
 pygments==2.18.0
     # via rich
-pyhumps==3.8.0
-    # via -r requirements/commons.in
 pyjwt==2.10.0
     # via -r requirements/commons.in
 pyopenssl==24.2.1

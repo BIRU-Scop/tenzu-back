@@ -61,7 +61,7 @@ def test_validate_create_user_wrong_not_all_required_fields():
         CreateUserValidator()
 
     expected_error_fields = ["email", "password", "fullName", "acceptTerms"]
-    expected_error_messages = ["field required"]
+    expected_error_messages = ["Field required"]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
     )
@@ -183,7 +183,7 @@ def test_validate_update_user_wrong_not_all_required_fields():
         UpdateUserValidator()
 
     expected_error_fields = ["fullName", "lang"]
-    expected_error_messages = ["field required"]
+    expected_error_messages = ["Field required"]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
     )

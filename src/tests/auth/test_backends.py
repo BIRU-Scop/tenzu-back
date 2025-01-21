@@ -18,13 +18,15 @@
 
 from django.contrib.auth import authenticate
 
-from tests.utils.factories import create_user
+from tests.utils.factories import sync_create_user
 
 
 class TestEmailOrUsernameModelBackend:
     def test_it_should_return_the_correct_values(self, db):
         password = "secret-pwd"
-        user = create_user(email="test@email.com", username="test", password=password)
+        user = sync_create_user(
+            email="test@email.com", username="test", password=password
+        )
         assert user == authenticate(None, username=user.username, password=password)
         assert user == authenticate(None, username=user.email, password=password)
         assert authenticate(None, random_field="", password=password) is None

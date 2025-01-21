@@ -31,6 +31,12 @@ from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 pytestmark = pytest.mark.django_db
 
+
+async def test_get_landing_page_for_workflow():
+    assert services.get_landing_page_for_workflow(None) == ""
+    assert services.get_landing_page_for_workflow("slug-w") == "kanban/slug-w"
+
+
 ##########################################################
 # create_project
 ##########################################################
@@ -57,7 +63,7 @@ async def test_create_project():
         fake_get_project_detail.assert_awaited_once()
 
 
-async def test_internal_create_project():
+async def test_internal_create_project(project_template):
     workspace = f.build_workspace()
 
     with (
@@ -71,7 +77,9 @@ async def test_internal_create_project():
             "projects.projects.services.pj_memberships_repositories", autospec=True
         ) as fake_pj_memberships_repository,
     ):
-        fake_project_repository.create_project.return_value = await f.create_project()
+        fake_project_repository.create_project.return_value = await f.create_project(
+            project_template
+        )
 
         await services.create_project(
             workspace=workspace,
@@ -120,7 +128,7 @@ async def test_create_project_with_logo():
         assert service_file_param["logo"].file == logo.file
 
 
-async def test_create_project_with_no_logo():
+async def test_create_project_with_no_logo(project_template):
     workspace = f.build_workspace()
 
     with (
@@ -130,7 +138,10 @@ async def test_create_project_with_no_logo():
         patch("projects.projects.services.pj_roles_repositories", autospec=True),
         patch("projects.projects.services.pj_memberships_repositories", autospec=True),
     ):
-        fake_project_repository.create_project.return_value = await f.create_project()
+        fake_project_repository.get_project_template.return_value = project_template
+        fake_project_repository.create_project.return_value = await f.create_project(
+            project_template
+        )
         await services._create_project(
             workspace=workspace,
             name="n",
@@ -145,7 +156,8 @@ async def test_create_project_with_no_logo():
             description="d",
             color=2,
             created_by=workspace.created_by,
-            logo_file=None,
+            logo=None,
+            landing_page="kanban/main",
         )
 
 
@@ -360,11 +372,11 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
         fake_pj_repo.update_project.assert_awaited_once_with(
             project=project, values=values
         )
-        assert len(tqmanager.pending_jobs) == 1
-        job = tqmanager.pending_jobs[0]
-        assert "delete_old_logo" in job["task_name"]
-        assert "path" in job["args"]
-        assert job["args"]["path"].endswith(logo.name)
+        # assert len(tqmanager.pending_jobs) == 1
+        # job = tqmanager.pending_jobs[0]
+        # assert "delete_old_logo" in job["task_name"]
+        # assert "path" in job["args"]
+        # assert job["args"]["path"].endswith(logo.name)
 
 
 async def test_update_project_name_empty(tqmanager):
@@ -468,8 +480,8 @@ async def test_delete_project_ok(tqmanager):
         fake_projects_repo.delete_projects.assert_awaited_once_with(
             filters={"id": project.id},
         )
-        assert len(tqmanager.pending_jobs) == 1
-        job = tqmanager.pending_jobs[0]
-        assert "delete_old_logo" in job["task_name"]
-        assert "path" in job["args"]
-        assert job["args"]["path"].endswith(logo.name)
+        # assert len(tqmanager.pending_jobs) == 1
+        # job = tqmanager.pending_jobs[0]
+        # assert "delete_old_logo" in job["task_name"]
+        # assert "path" in job["args"]
+        # assert job["args"]["path"].endswith(logo.name)

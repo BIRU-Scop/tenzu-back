@@ -40,13 +40,14 @@
 from datetime import timedelta
 
 import pytest
+from asgiref.sync import sync_to_async
 from django.urls import reverse
 
 from ninja_jwt.settings import api_settings
 from ninja_jwt.tokens import AccessToken
 from users.models import User
 
-from ..utils.factories import create_user
+from ..utils.factories import sync_create_user as create_user
 from .utils import APIViewTestCase
 
 
@@ -186,48 +187,39 @@ class TestTestView(APIViewTestCase):
         assert res.data["foo"] == "bar"
 
 
-# async loop errors for now, TODO make the async tests pass
+@pytest.mark.usefixtures("allow_async_unsafe")
+class TestAsyncTestView(TestTestView):
+    namespace = "jwt-async"
 
-# from asgiref.sync import sync_to_async
-#
-#
-# class TestAsyncTestView(TestTestView):
-#     namespace = "jwt-async"
-#
-#     @pytest.mark.asyncio
-#     @pytest.mark.django_db(transaction=True)
-#     async def test_no_authorization(self):
-#         _test_no_authorization = sync_to_async(super().test_no_authorization)
-#         await _test_no_authorization()
-#
-#     @pytest.mark.asyncio
-#     @pytest.mark.django_db(transaction=True)
-#     async def test_wrong_auth_type(self):
-#         _test_wrong_auth_type = sync_to_async(super().test_wrong_auth_type)
-#         await _test_wrong_auth_type()
-#
-#     @pytest.mark.asyncio
-#     @pytest.mark.django_db(transaction=True)
-#     async def test_expired_token(self, monkeypatch):
-#         _test_expired_token = sync_to_async(super().test_expired_token)
-#         await _test_expired_token(monkeypatch=monkeypatch)
-#
-#     @pytest.mark.asyncio
-#     @pytest.mark.django_db(transaction=True)
-#     async def test_user_can_get_sliding_token_and_use_it(self, monkeypatch):
-#         _test_user_can_get_sliding_token_and_use_it = sync_to_async(
-#             super().test_user_can_get_sliding_token_and_use_it
-#         )
-#         await _test_user_can_get_sliding_token_and_use_it(monkeypatch=monkeypatch)
-#
-#     @pytest.mark.asyncio
-#     @pytest.mark.django_db(transaction=True)
-#     async def test_user_can_get_access_and_refresh_tokens_and_use_them(
-#         self, monkeypatch
-#     ):
-#         _test_user_can_get_access_and_refresh_tokens_and_use_them = sync_to_async(
-#             super().test_user_can_get_access_and_refresh_tokens_and_use_them
-#         )
-#         await _test_user_can_get_access_and_refresh_tokens_and_use_them(
-#             monkeypatch=monkeypatch
-#         )
+    @pytest.mark.django_db(transaction=True)
+    async def test_no_authorization(self):
+        _test_no_authorization = sync_to_async(super().test_no_authorization)
+        await _test_no_authorization()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_wrong_auth_type(self):
+        _test_wrong_auth_type = sync_to_async(super().test_wrong_auth_type)
+        await _test_wrong_auth_type()
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_expired_token(self, monkeypatch):
+        _test_expired_token = sync_to_async(super().test_expired_token)
+        await _test_expired_token(monkeypatch=monkeypatch)
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_user_can_get_sliding_token_and_use_it(self, monkeypatch):
+        _test_user_can_get_sliding_token_and_use_it = sync_to_async(
+            super().test_user_can_get_sliding_token_and_use_it
+        )
+        await _test_user_can_get_sliding_token_and_use_it(monkeypatch=monkeypatch)
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_user_can_get_access_and_refresh_tokens_and_use_them(
+        self, monkeypatch
+    ):
+        _test_user_can_get_access_and_refresh_tokens_and_use_them = sync_to_async(
+            super().test_user_can_get_access_and_refresh_tokens_and_use_them
+        )
+        await _test_user_can_get_access_and_refresh_tokens_and_use_them(
+            monkeypatch=monkeypatch
+        )

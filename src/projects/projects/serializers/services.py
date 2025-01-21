@@ -39,6 +39,7 @@ def serialize_project_detail(
         description=project.description,
         color=project.color,
         logo=project.logo,
+        landing_page=project.landing_page,
         workspace=workspace,
         workspace_id=workspace.id,
         workflows=workflows,

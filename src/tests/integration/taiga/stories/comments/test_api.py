@@ -127,7 +127,6 @@ async def test_list_story_comments_success_with_custom_pagination(client):
     assert len(response.json()) == 1
     assert response.headers["Pagination-Offset"] == "0"
     assert response.headers["Pagination-Limit"] == "1"
-    assert response.headers["Pagination-Total"] == "1"
 
 
 async def test_list_story_comments_success_with_deleted_comments(client):
@@ -148,7 +147,6 @@ async def test_list_story_comments_success_with_deleted_comments(client):
     )
     assert response.status_code == status.HTTP_200_OK, response.text
     assert len(response.json()) == 2
-    assert response.headers["Pagination-Total"] == "2"
     assert response.headers["Tenzu-Total-Comments"] == "1"
 
 

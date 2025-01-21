@@ -47,7 +47,7 @@ from ninja_jwt.exceptions import AuthenticationFailed, InvalidToken
 from ninja_jwt.models import TokenUser
 from ninja_jwt.settings import api_settings
 from ninja_jwt.tokens import AccessToken, SlidingToken
-from tests.utils.factories import create_user
+from tests.utils.factories import sync_create_user as create_user
 
 AuthToken = api_settings.AUTH_TOKEN_CLASSES[0]
 
@@ -184,7 +184,6 @@ class TestAsyncJWTAuth(TestJWTAuth):
     def init_backend(self):
         self.backend = authentication.AsyncJWTAuth()
 
-    @pytest.mark.asyncio
     @pytest.mark.django_db
     async def test_get_validated_token(self, monkeypatch):
         _test_get_validated_token = sync_to_async(
@@ -192,7 +191,6 @@ class TestAsyncJWTAuth(TestJWTAuth):
         )
         await _test_get_validated_token(monkeypatch=monkeypatch)
 
-    @pytest.mark.asyncio
     @pytest.mark.django_db
     async def test_get_user(self):
         _test_get_user = sync_to_async(super(TestAsyncJWTAuth, self).test_get_user)
@@ -203,13 +201,11 @@ class TestAsyncJWTTokenUserAuth(TestJWTTokenUserAuth):
     def init_backend(self):
         self.backend = authentication.AsyncJWTTokenUserAuth()
 
-    @pytest.mark.asyncio
     @pytest.mark.django_db
     async def test_get_user(self):
         _test_get_user = sync_to_async(super().test_get_user)
         await _test_get_user()
 
-    @pytest.mark.asyncio
     @pytest.mark.django_db
     async def test_custom_tokenuser(self, monkeypatch):
         _test_custom_tokenuser = sync_to_async(super().test_custom_tokenuser)

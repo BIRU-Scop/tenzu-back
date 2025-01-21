@@ -67,6 +67,7 @@ from .users import (
     build_user,
     create_auth_data,
     create_user,
+    sync_create_user,
 )  # noqa
 from .workflows import (  # noqa
     WorkflowFactory,

@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any, List
+from typing import Any, List, Literal, Self
 
 from pydantic import Field, StringConstraints, field_validator, model_validator
 from pydantic.types import PositiveInt
@@ -28,12 +28,6 @@ from base.validators import B64UUID, BaseModel
 Title = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)
 ]
-
-
-# class Title(ConstrainedStr):
-#     strip_whitespace = True
-#     min_length = 1
-#     max_length = 500
 
 
 class StoryValidator(BaseModel):
@@ -49,26 +43,16 @@ class UpdateStoryValidator(BaseModel):
     status_id: B64UUID | None = None
     workflow_slug: str | None = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def status_or_workflow(cls, values: dict[Any, Any]) -> dict[Any, Any]:
-        status = values.get("status_id")
-        workflow = values.get("workflow_slug")
-        assert not (
-            status and workflow
-        ), "It's not allowed to update both the status and workspace"
-        return values
+    @model_validator(mode="after")
+    def status_or_workflow(self) -> Self:
+        if self.status_id and self.workflow_slug:
+            raise ValueError("It's not allowed to update both the status and workflow")
+        return self
 
 
 class ReorderValidator(BaseModel):
-    place: str
+    place: Literal["before", "after"]
     ref: int
-
-    @field_validator("place")
-    @classmethod
-    def check_valid_place(cls, v: str) -> str:
-        assert v in ["before", "after"], "Place should be 'after' or 'before'"
-        return v
 
 
 class ReorderStoriesValidator(BaseModel):

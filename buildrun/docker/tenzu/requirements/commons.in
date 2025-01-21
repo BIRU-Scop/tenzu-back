@@ -45,7 +45,6 @@ cryptography # For auth
 
 # Utils & tools
 faker # For sampledata
-pyhumps # For transform texts: camelCase/snake_case
 python-json-logger # JSON logger
 python-slugify # To generate slugs
 requests # As http client

@@ -20,10 +20,10 @@
 from typing import Annotated, Any, Callable, Generator
 from uuid import UUID
 
-from humps.main import camelize
 from pydantic import AnyHttpUrl, BeforeValidator, PlainSerializer
 from pydantic.json_schema import WithJsonSchema
 
+from base.utils.strings import dict_to_camel
 from base.utils.uuid import encode_uuid_to_b64str
 from commons.utils import get_absolute_url
 
@@ -42,7 +42,8 @@ FileField = Annotated[
     PlainSerializer(str, return_type=str, when_used="unless-none"),
 ]
 
+
 CamelizeDict = Annotated[
     dict,
-    PlainSerializer(camelize, return_type=str),
+    PlainSerializer(dict_to_camel, return_type=dict),
 ]

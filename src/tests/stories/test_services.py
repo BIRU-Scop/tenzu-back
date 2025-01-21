@@ -21,9 +21,10 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
+from asgiref.sync import sync_to_async
 
 from base.repositories.neighbors import Neighbor
-from stories.stories import services
+from stories.stories import repositories, services
 from stories.stories.services import exceptions as ex
 from tests.utils import factories as f
 from workflows.serializers import WorkflowSerializer
@@ -50,9 +51,12 @@ async def test_create_story_ok():
         patch(
             "stories.stories.services.stories_events", autospec=True
         ) as fake_stories_events,
+        patch(
+            "stories.stories.services.get_latest_story_order", autospec=True
+        ) as fake_get_latest_story_order,
     ):
+        fake_get_latest_story_order.return_value = None
         fake_workflows_repo.get_workflow_status.return_value = status
-        fake_stories_repo.list_stories.return_value = None
         fake_stories_repo.create_story.return_value = story
         fake_stories_repo.get_story.return_value = story
         fake_stories_repo.list_story_neighbors.return_value = neighbors
@@ -79,9 +83,7 @@ async def test_create_story_ok():
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
             filters={"id": status.id, "workflow_id": status.workflow.id}
         )
-        fake_stories_repo.list_stories.assert_awaited_once_with(
-            filters={"status_id": status.id}, order_by=["-order"], offset=0, limit=1
-        )
+        fake_get_latest_story_order.assert_awaited_once_with(status.id)
         fake_stories_events.emit_event_when_story_is_created.assert_awaited_once_with(
             project=story.project, story=complete_story
         )
@@ -122,33 +124,26 @@ async def test_list_paginated_stories():
             "stories.stories.services.stories_repositories", autospec=True
         ) as fake_stories_repo,
     ):
-        fake_stories_repo.get_total_stories.return_value = 1
-        fake_stories_repo.list_stories.return_value = [story]
+        fake_stories_repo.list_stories.return_value.__aiter__.return_value = [story]
         fake_stories_repo.get_story.return_value = story
         fake_stories_repo.list_story_assignees.return_value = []
         fake_stories_repo.list_story_neighbors.return_value = neighbors
 
-        await services.list_paginated_stories(
+        await services.list_stories(
             project_id=story.project.id,
             workflow_slug=story.workflow.slug,
             offset=0,
             limit=10,
         )
-        fake_stories_repo.get_total_stories.assert_awaited_once_with(
+        fake_stories_repo.list_stories.assert_called_once_with(
             filters={
                 "project_id": story.project.id,
-                "workflow_slug": story.workflow.slug,
-            }
-        )
-        fake_stories_repo.list_stories.assert_awaited_once_with(
+                "workflow__slug": story.workflow.slug,
+            },
             offset=0,
             limit=10,
-            select_related=["created_by", "project", "workflow", "status"],
-            filters={
-                "project_id": story.project.id,
-                "workflow_slug": story.workflow.slug,
-            },
-            prefetch_related=["assignees"],
+            order_by=["order"],
+            prefetch_related=[repositories.ASSIGNEES_PREFETCH],
         )
 
 
@@ -185,11 +180,11 @@ async def test_get_story_detail_ok():
                 "project",
                 "workflow",
                 "status",
-                "workspace",
+                "project__workspace",
                 "title_updated_by",
                 "description_updated_by",
             ],
-            prefetch_related=["assignees"],
+            prefetch_related=[repositories.ASSIGNEES_PREFETCH],
         )
 
         fake_stories_repo.list_story_neighbors.assert_awaited_once_with(
@@ -223,11 +218,11 @@ async def test_get_story_detail_no_neighbors():
                 "project",
                 "workflow",
                 "status",
-                "workspace",
+                "project__workspace",
                 "title_updated_by",
                 "description_updated_by",
             ],
-            prefetch_related=["assignees"],
+            prefetch_related=[repositories.ASSIGNEES_PREFETCH],
         )
 
         fake_stories_repo.list_story_neighbors.assert_awaited_once_with(
@@ -476,7 +471,7 @@ async def test_validate_and_process_values_to_update_ok_without_status():
         )
 
         fake_workflows_repo.get_workflow_status.assert_not_awaited()
-        fake_stories_repo.list_stories.assert_not_awaited()
+        fake_stories_repo.list_stories.assert_not_called()
 
         assert valid_values["title"] == values["title"]
         assert "title_updated_at" in valid_values
@@ -493,7 +488,7 @@ async def test_validate_and_process_values_to_update_ok_with_status_empty():
     values = {
         "title": "new title",
         "description": "new description",
-        "status": status.id,
+        "status_id": "",
     }
 
     with (
@@ -503,23 +498,19 @@ async def test_validate_and_process_values_to_update_ok_with_status_empty():
         patch(
             "stories.stories.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.get_latest_story_order", autospec=True
+        ) as fake_get_latest_story_order,
     ):
+        fake_get_latest_story_order.return_value = None
         fake_workflows_repo.get_workflow_status.return_value = status
-        fake_stories_repo.list_stories.return_value = []
 
         valid_values = await services._validate_and_process_values_to_update(
             story=story, values=values, updated_by=user
         )
 
-        fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
-            filters={"workflow_id": story.workflow_id, "id": values["status"]},
-        )
-        fake_stories_repo.list_stories.assert_awaited_once_with(
-            filters={"status_id": status.id},
-            order_by=["-order"],
-            offset=0,
-            limit=1,
-        )
+        fake_workflows_repo.get_workflow_status.assert_not_awaited()
+        fake_get_latest_story_order.assert_not_awaited()
 
         assert valid_values["title"] == values["title"]
         assert "title_updated_at" in valid_values
@@ -527,8 +518,7 @@ async def test_validate_and_process_values_to_update_ok_with_status_empty():
         assert valid_values["description"] == values["description"]
         assert "description_updated_at" in valid_values
         assert "description_updated_by" in valid_values
-        assert valid_values["status"] == status
-        assert valid_values["order"] == services.DEFAULT_ORDER_OFFSET
+        assert "status" not in valid_values
 
 
 async def test_validate_and_process_values_to_update_ok_with_status_not_empty():
@@ -539,7 +529,7 @@ async def test_validate_and_process_values_to_update_ok_with_status_not_empty():
     values = {
         "title": "new title",
         "description": "new description",
-        "status": status.id,
+        "status_id": status.id,
     }
 
     with (
@@ -549,23 +539,21 @@ async def test_validate_and_process_values_to_update_ok_with_status_not_empty():
         patch(
             "stories.stories.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.get_latest_story_order", autospec=True
+        ) as fake_get_latest_story_order,
     ):
+        fake_get_latest_story_order.return_value = story2.order
         fake_workflows_repo.get_workflow_status.return_value = status
-        fake_stories_repo.list_stories.return_value = [story2]
 
         valid_values = await services._validate_and_process_values_to_update(
             story=story, values=values, updated_by=user
         )
 
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
-            filters={"workflow_id": story.workflow_id, "id": values["status"]},
+            filters={"workflow_id": story.workflow_id, "id": values["status_id"]},
         )
-        fake_stories_repo.list_stories.assert_awaited_once_with(
-            filters={"status_id": status.id},
-            order_by=["-order"],
-            offset=0,
-            limit=1,
-        )
+        fake_get_latest_story_order.assert_awaited_once_with(status.id)
 
         assert valid_values["title"] == values["title"]
         assert "title_updated_at" in valid_values
@@ -584,7 +572,7 @@ async def test_validate_and_process_values_to_update_ok_with_same_status():
     values = {
         "title": "new title",
         "description": "new description",
-        "status": status.id,
+        "status_id": status.id,
     }
 
     with (
@@ -602,9 +590,9 @@ async def test_validate_and_process_values_to_update_ok_with_same_status():
         )
 
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
-            filters={"workflow_id": story.workflow_id, "id": values["status"]},
+            filters={"workflow_id": story.workflow_id, "id": values["status_id"]},
         )
-        fake_stories_repo.list_stories.assert_not_awaited()
+        fake_stories_repo.list_stories.assert_not_called()
 
         assert valid_values["title"] == values["title"]
         assert "title_updated_at" in valid_values
@@ -622,7 +610,7 @@ async def test_validate_and_process_values_to_update_error_wrong_status():
     values = {
         "title": "new title",
         "description": "new description",
-        "status": "wrong_status",
+        "status_id": "wrong_status",
     }
 
     with (
@@ -643,7 +631,7 @@ async def test_validate_and_process_values_to_update_error_wrong_status():
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
             filters={"workflow_id": story.workflow_id, "id": "wrong_status"},
         )
-        fake_stories_repo.list_stories.assert_not_awaited()
+        fake_stories_repo.list_stories.assert_not_called()
 
 
 async def test_validate_and_process_values_to_update_ok_with_workflow():
@@ -654,9 +642,9 @@ async def test_validate_and_process_values_to_update_ok_with_workflow():
     story1 = f.build_story(project=project, workflow=workflow1, status=status1)
     workflow2 = f.build_workflow(project=project)
     status2 = f.build_workflow_status(workflow=workflow2)
-    status3 = f.build_workflow_status(workflow=workflow2)
+    _ = f.build_workflow_status(workflow=workflow2)
     story2 = f.build_story(project=project, workflow=workflow2, status=status2)
-    values = {"version": story1.version, "workflow": workflow2.slug}
+    values = {"version": story1.version, "workflow_slug": workflow2.slug}
 
     with (
         patch(
@@ -665,10 +653,13 @@ async def test_validate_and_process_values_to_update_ok_with_workflow():
         patch(
             "stories.stories.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.get_latest_story_order", autospec=True
+        ) as fake_get_latest_story_order,
     ):
+        fake_get_latest_story_order.return_value = story2.order
         fake_workflows_repo.get_workflow.return_value = workflow2
         fake_workflows_repo.list_workflow_statuses.return_value = [status2]
-        fake_stories_repo.list_stories.return_value = [story2, status3]
 
         valid_values = await services._validate_and_process_values_to_update(
             story=story1, values=values, updated_by=user
@@ -681,21 +672,62 @@ async def test_validate_and_process_values_to_update_ok_with_workflow():
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
             filters={"workflow_id": workflow2.id}, order_by=["order"], offset=0, limit=1
         )
-        fake_stories_repo.list_stories.assert_awaited_once_with(
-            filters={"status_id": status2.id},
-            order_by=["-order"],
-            offset=0,
-            limit=1,
-        )
+        fake_get_latest_story_order.assert_awaited_once_with(status2.id)
 
         assert valid_values["workflow"] == workflow2
+        assert valid_values["order"] == services.DEFAULT_ORDER_OFFSET + story2.order
+
+
+async def test_validate_and_process_values_to_update_ok_with_workflow_empty():
+    user = f.build_user()
+    story = f.build_story()
+    status = f.build_workflow_status()
+    story2 = f.build_story(status=status, order=42)
+    values = {
+        "title": "new title",
+        "description": "new description",
+        "status_id": status.id,
+        "workflow_slug": "",
+    }
+
+    with (
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repo,
+        patch(
+            "stories.stories.services.get_latest_story_order", autospec=True
+        ) as fake_get_latest_story_order,
+    ):
+        fake_get_latest_story_order.return_value = story2.order
+        fake_workflows_repo.get_workflow_status.return_value = status
+
+        valid_values = await services._validate_and_process_values_to_update(
+            story=story, values=values, updated_by=user
+        )
+
+        fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
+            filters={"workflow_id": story.workflow_id, "id": values["status_id"]},
+        )
+        fake_get_latest_story_order.assert_awaited_once_with(status.id)
+        fake_workflows_repo.get_workflow.assert_not_awaited()
+
+        assert valid_values["title"] == values["title"]
+        assert "title_updated_at" in valid_values
+        assert "title_updated_by" in valid_values
+        assert valid_values["description"] == values["description"]
+        assert "description_updated_at" in valid_values
+        assert "description_updated_by" in valid_values
+        assert valid_values["status"] == status
         assert valid_values["order"] == services.DEFAULT_ORDER_OFFSET + story2.order
 
 
 async def test_validate_and_process_values_to_update_error_wrong_workflow():
     user = f.build_user()
     story = f.build_story()
-    values = {"version": story.version, "workflow": "wrong_workflow"}
+    values = {"version": story.version, "workflow_slug": "wrong_workflow"}
 
     with (
         patch(
@@ -716,7 +748,7 @@ async def test_validate_and_process_values_to_update_error_wrong_workflow():
             filters={"project_id": story.project_id, "slug": "wrong_workflow"},
             prefetch_related=["statuses"],
         )
-        fake_stories_repo.list_stories.assert_not_awaited()
+        fake_stories_repo.list_stories.assert_not_called()
 
 
 async def test_validate_and_process_values_to_update_error_workflow_without_statuses():
@@ -726,7 +758,7 @@ async def test_validate_and_process_values_to_update_error_workflow_without_stat
     status1 = f.build_workflow_status(workflow=workflow1)
     story = f.build_story(project=project, workflow=workflow1, status=status1)
     workflow2 = f.build_workflow(project=project, statuses=None)
-    values = {"version": story.version, "workflow": workflow2.slug}
+    values = {"version": story.version, "workflow_slug": workflow2.slug}
 
     with (
         patch(
@@ -751,7 +783,7 @@ async def test_validate_and_process_values_to_update_error_workflow_without_stat
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
             filters={"workflow_id": workflow2.id}, order_by=["order"], offset=0, limit=1
         )
-        fake_stories_repo.list_stories.assert_not_awaited()
+        fake_stories_repo.list_stories.assert_not_called()
 
 
 async def test_validate_and_process_values_to_update_error_workflow_and_status():
@@ -761,7 +793,11 @@ async def test_validate_and_process_values_to_update_error_workflow_and_status()
     status1 = f.build_workflow_status(workflow=workflow1)
     story = f.build_story(project=project, workflow=workflow1, status=status1)
     workflow2 = f.build_workflow(project=project, statuses=None)
-    values = {"version": story.version, "status": status1, "workflow": workflow2.slug}
+    values = {
+        "version": story.version,
+        "status_id": status1,
+        "workflow_slug": workflow2.slug,
+    }
 
     with (
         patch(
@@ -787,17 +823,20 @@ async def test_calculate_offset() -> None:
         patch(
             "stories.stories.services.stories_repositories", autospec=True
         ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.get_latest_story_order", autospec=True
+        ) as fake_get_latest_story_order,
     ):
         # No reorder
         latest_story = f.build_story(status=target_status, order=36)
-        fake_stories_repo.list_stories.return_value = [latest_story]
+        fake_get_latest_story_order.return_value = latest_story.order
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1, target_status=target_status
         )
         assert pre_order == latest_story.order
         assert offset == Decimal(100)
 
-        fake_stories_repo.list_stories.return_value = None
+        fake_get_latest_story_order.return_value = None
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1, target_status=target_status
         )
@@ -975,12 +1014,15 @@ async def test_reorder_story_not_all_stories_exist():
         patch(
             "stories.stories.services.stories_repositories", autospec=True
         ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.get_latest_story_order", autospec=True
+        ) as fake_get_latest_story_order,
         pytest.raises(ex.InvalidStoryRefError),
     ):
         fake_workflows_repo.get_workflow_status.return_value = target_status
 
         fake_stories_repo.get_story.return_value = reorder_story
-        fake_stories_repo.list_stories.return_value = [f.build_story]
+        fake_get_latest_story_order.return_value = 0
 
         await services.reorder_stories(
             reordered_by=user,
@@ -1052,6 +1094,299 @@ async def test_delete_story_ok():
         )
 
 
+##########################################################
+# reorder_stories
+##########################################################
+
+
+@pytest.mark.django_db
+async def test_not_reorder_in_empty_status(project_template) -> None:
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+    status_2 = await sync_to_async(workflow.statuses.last)()
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story3 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    # Current state
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   |          |
+    # | story2   |          |
+    # | story3   |          |
+
+    await services.reorder_stories(
+        reordered_by=project.created_by,
+        project=project,
+        workflow=workflow,
+        target_status_id=status_2.id,
+        stories_refs=[story2.ref, story3.ref],
+    )
+    # Now should be
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story2   |
+    # |          | story3   |
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+    ]
+    assert stories[0].ref == story1.ref
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+    ]
+    assert stories[0].ref == story2.ref
+    assert stories[0].order == Decimal(100)
+    assert stories[1].ref == story3.ref
+    assert stories[1].order == Decimal(200)
+
+
+@pytest.mark.django_db
+async def test_not_reorder_in_populated_status(project_template) -> None:
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+    status_2 = await sync_to_async(workflow.statuses.last)()
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story3 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    # Current state
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story3   |
+    # | story2   |          |
+
+    await services.reorder_stories(
+        reordered_by=project.created_by,
+        project=project,
+        workflow=workflow,
+        target_status_id=status_2.id,
+        stories_refs=[story2.ref],
+    )
+    # Now should be
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story3   |
+    # |          | story2   |
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+    ]
+    assert stories[0].ref == story1.ref
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+    ]
+    assert stories[0].ref == story3.ref
+    assert stories[1].ref == story2.ref
+    assert stories[1].order == story3.order + 100
+
+
+@pytest.mark.django_db
+async def test_after_in_the_end(project_template) -> None:
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+    status_2 = await sync_to_async(workflow.statuses.last)()
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story3 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    # Current state
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story3   |
+    # | story2   |          |
+
+    await services.reorder_stories(
+        reordered_by=project.created_by,
+        project=project,
+        workflow=workflow,
+        target_status_id=status_2.id,
+        stories_refs=[story2.ref],
+        reorder={"place": "after", "ref": story3.ref},
+    )
+    # Now should be
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story3   |
+    # |          | story2   |
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+    ]
+    assert stories[0].ref == story1.ref
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+    ]
+    assert stories[0].ref == story3.ref
+    assert stories[1].ref == story2.ref
+    assert stories[1].order == story3.order + 100
+
+
+@pytest.mark.django_db
+async def test_after_in_the_middle(project_template) -> None:
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+    status_2 = await sync_to_async(workflow.statuses.last)()
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    story3 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    # Current state
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story2   |
+    # |          | story3   |
+
+    await services.reorder_stories(
+        reordered_by=project.created_by,
+        project=project,
+        workflow=workflow,
+        target_status_id=status_2.id,
+        stories_refs=[story1.ref],
+        reorder={"place": "after", "ref": story2.ref},
+    )
+    # Now should be
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # |          | story2   |
+    # |          | story1   |
+    # |          | story3   |
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+    ]
+    assert len(stories) == 0
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+    ]
+    assert stories[0].ref == story2.ref
+    assert stories[1].ref == story1.ref
+    assert stories[1].order == story2.order + ((story3.order - story2.order) / 2)
+    assert stories[2].ref == story3.ref
+
+
+@pytest.mark.django_db
+async def test_before_in_the_beginning(project_template) -> None:
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+    status_2 = await sync_to_async(workflow.statuses.last)()
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    story3 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    # Current state
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story2   |
+    # |          | story3   |
+
+    await services.reorder_stories(
+        reordered_by=project.created_by,
+        project=project,
+        workflow=workflow,
+        target_status_id=status_2.id,
+        stories_refs=[story1.ref],
+        reorder={"place": "before", "ref": story2.ref},
+    )
+    # Now should be
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # |          | story1   |
+    # |          | story2   |
+    # |          | story3   |
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+    ]
+    assert len(stories) == 0
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+    ]
+    assert stories[0].ref == story1.ref
+    assert stories[0].order == story2.order / 2
+    assert stories[1].ref == story2.ref
+    assert stories[2].ref == story3.ref
+
+
+@pytest.mark.django_db
+async def test_before_in_the_middle(project_template) -> None:
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+    status_2 = await sync_to_async(workflow.statuses.last)()
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    story3 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    # Current state
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story2   |
+    # |          | story3   |
+
+    await services.reorder_stories(
+        reordered_by=project.created_by,
+        project=project,
+        workflow=workflow,
+        target_status_id=status_2.id,
+        stories_refs=[story1.ref],
+        reorder={"place": "before", "ref": story3.ref},
+    )
+    # Now should be
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # |          | story2   |
+    # |          | story1   |
+    # |          | story3   |
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+    ]
+    assert len(stories) == 0
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+    ]
+    assert stories[0].ref == story2.ref
+    assert stories[1].ref == story1.ref
+    assert stories[1].order == story2.order + ((story3.order - story2.order) / 2)
+    assert stories[2].ref == story3.ref
+
+
+##########################################################
+# misc - get_latest_story_order
+##########################################################
+
+
+@pytest.mark.django_db
+async def test_get_latest_story_order(project_template):
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+    status_2 = await sync_to_async(workflow.statuses.last)()
+
+    assert await services.get_latest_story_order(status_1.id) is None
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    assert await services.get_latest_story_order(status_1.id) == story1.order
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    assert await services.get_latest_story_order(status_2.id) == story2.order
+    story3 = await f.create_story(project=project, workflow=workflow, status=status_2)
+
+    assert await services.get_latest_story_order(status_1.id) == story1.order
+    assert await services.get_latest_story_order(status_2.id) == story3.order
+
+
 #######################################################
 # utils
 #######################################################
@@ -1060,6 +1395,7 @@ async def test_delete_story_ok():
 def build_workflow_serializer(story):
     return WorkflowSerializer(
         id=story.workflow.id,
+        project_id=story.workflow.project_id,
         name=story.workflow.name,
         slug=story.workflow.slug,
         order=story.workflow.order,

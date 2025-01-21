@@ -35,7 +35,6 @@ from base.sampledata.commands import cli as sampledata_cli
 from commons.storage.commands import cli as storage_cli
 from emails.commands import cli as emails_cli
 from notifications.commands import cli as notifications_cli
-from tmp import __version__
 from users.commands import cli as users_cli
 
 cli = typer.Typer(
@@ -46,22 +45,8 @@ cli = typer.Typer(
 )
 
 
-def _version_callback(value: bool) -> None:
-    if value:
-        typer.echo(f"Tenzu {__version__}")
-        raise typer.Exit()
-
-
 @cli.callback()
-def main(
-    version: bool = typer.Option(
-        None,
-        "--version",
-        callback=_version_callback,
-        is_eager=True,
-        help="Show version information.",
-    ),
-) -> None:
+def main() -> None:
     pass
 
 

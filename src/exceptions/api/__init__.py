@@ -19,10 +19,9 @@
 
 from typing import Any, Optional
 
-from fastapi import status
 from ninja.errors import HttpError as NinjaHttpError
 
-from base.utils.strings import camel_to_kebab
+from base.utils.strings import to_kebab
 
 from . import codes
 
@@ -40,7 +39,7 @@ class HTTPException(NinjaHttpError):
         headers: dict[str, Any] | None = None,
     ) -> None:
         if not detail:
-            detail = camel_to_kebab(self.__class__.__name__)
+            detail = to_kebab(self.__class__.__name__)
 
         super().__init__(status_code=status_code, message=msg)
         self.code: str = code
@@ -56,7 +55,7 @@ class HTTPException(NinjaHttpError):
 class BadRequest(HTTPException):
     def __init__(self, msg: str = codes.EX_BAD_REQUEST.msg, detail: Any = None) -> None:
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=400,
             code=codes.EX_BAD_REQUEST.code,
             msg=msg,
             detail=detail,
@@ -71,7 +70,7 @@ class BadRequest(HTTPException):
 class AuthorizationError(HTTPException):
     def __init__(self, msg: str = codes.EX_AUTHORIZATION.msg):
         super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=401,
             code=codes.EX_AUTHORIZATION.code,
             msg=msg,
             headers={"WWW-Authenticate": 'Bearer realm="api"'},
@@ -86,7 +85,7 @@ class AuthorizationError(HTTPException):
 class ForbiddenError(HTTPException):
     def __init__(self, msg: str = codes.EX_FORBIDDEN.msg, detail: Any = None) -> None:
         super().__init__(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             code=codes.EX_FORBIDDEN.code,
             msg=msg,
             detail=detail,
@@ -100,9 +99,7 @@ class ForbiddenError(HTTPException):
 
 class NotFoundError(HTTPException):
     def __init__(self, msg: str = codes.EX_NOT_FOUND.msg):
-        super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND, code=codes.EX_NOT_FOUND.code, msg=msg
-        )
+        super().__init__(status_code=404, code=codes.EX_NOT_FOUND.code, msg=msg)
 
 
 ##############################
@@ -113,7 +110,7 @@ class NotFoundError(HTTPException):
 class ValidationError(HTTPException):
     def __init__(self, msg: str = codes.EX_VALIDATION_ERROR.msg):
         super().__init__(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=422,
             code=codes.EX_VALIDATION_ERROR.code,
             msg=msg,
         )

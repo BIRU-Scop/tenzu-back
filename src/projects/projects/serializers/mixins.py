@@ -20,14 +20,14 @@
 from pathlib import Path
 
 from django.conf import settings
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 
-from base.serializers import FileField
+from base.serializers import BaseModel, FileField
 from base.utils.concurrency import run_async_as_sync
 
 
-# TODO : extract build of logo_small and logo_large from Mixin
-class ProjectLogoMixin(BaseModel):
+# TODO : extract build of logo_small and logo_large from class
+class ProjectLogoBaseSerializer(BaseModel):
     logo: FileField | None = None
     logo_small: str | None = None
     logo_large: str | None = None

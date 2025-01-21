@@ -61,7 +61,7 @@ from ninja_jwt.schema_control import SchemaControl
 from ninja_jwt.settings import api_settings
 from ninja_jwt.tokens import AccessToken, RefreshToken, SlidingToken
 from ninja_jwt.utils import aware_utcnow, datetime_from_epoch, datetime_to_epoch
-from tests.utils.factories import create_user
+from tests.utils.factories import sync_create_user as create_user
 from users.models import User
 
 

@@ -21,9 +21,6 @@ from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
-
-from base.api import Pagination
 from base.repositories.neighbors import Neighbor
 from base.utils.datetime import aware_utcnow
 from projects.projects.models import Project
@@ -31,6 +28,7 @@ from stories.stories import events as stories_events
 from stories.stories import notifications as stories_notifications
 from stories.stories import repositories as stories_repositories
 from stories.stories.models import Story
+from stories.stories.repositories import ASSIGNEES_PREFETCH
 from stories.stories.serializers import (
     ReorderStoriesSerializer,
     StoryDetailSerializer,
@@ -46,7 +44,6 @@ DEFAULT_ORDER_OFFSET = Decimal(100)  # default offset when adding a story
 DEFAULT_PRE_ORDER = Decimal(
     0
 )  # default pre_position when adding a story at the beginning
-
 
 ##########################################################
 # create story
@@ -68,13 +65,8 @@ async def create_story(
     if not workflow_status:
         raise ex.InvalidStatusError("The provided status is not valid.")
 
-    latest_story = await stories_repositories.list_stories(
-        filters={"status_id": workflow_status.id},
-        order_by=["-order"],
-        offset=0,
-        limit=1,
-    )
-    order = DEFAULT_ORDER_OFFSET + (latest_story[0].order if latest_story else 0)
+    latest_story_order = await get_latest_story_order(workflow_status.id)
+    order = DEFAULT_ORDER_OFFSET + (latest_story_order if latest_story_order else 0)
 
     # Create story
     story = await stories_repositories.create_story(
@@ -99,6 +91,31 @@ async def create_story(
 
 
 ##########################################################
+# list stories
+##########################################################
+
+
+async def list_stories(
+    project_id: UUID,
+    workflow_slug: str,
+    offset: int | None = None,
+    limit: int | None = None,
+    order_by: list | None = None,
+) -> list[StorySummarySerializer]:
+    if order_by is None:
+        order_by = ["order"]
+    qs = stories_repositories.list_stories(
+        filters={"project_id": project_id, "workflow__slug": workflow_slug},
+        offset=offset,
+        limit=limit,
+        order_by=order_by,
+        prefetch_related=[ASSIGNEES_PREFETCH],
+    )
+
+    return [serializers_services.serialize_story_list(story) async for story in qs]
+
+
+##########################################################
 # get story
 ##########################################################
 
@@ -106,8 +123,8 @@ async def create_story(
 async def get_story(project_id: UUID, ref: int) -> Story | None:
     return await stories_repositories.get_story(
         filters={"ref": ref, "project_id": project_id},
-        select_related=["project", "workspace", "workflow", "created_by"],
-        prefetch_related=["assignees"],
+        select_related=["project", "project__workspace", "workflow", "created_by"],
+        prefetch_related=[ASSIGNEES_PREFETCH],
     )
 
 
@@ -123,11 +140,11 @@ async def get_story_detail(
                 "project",
                 "workflow",
                 "status",
-                "workspace",
+                "project__workspace",
                 "title_updated_by",
                 "description_updated_by",
             ],
-            prefetch_related=["assignees"],
+            prefetch_related=[ASSIGNEES_PREFETCH],
         ),
     )
 
@@ -140,6 +157,16 @@ async def get_story_detail(
 
     return serializers_services.serialize_story_detail(
         story=story, neighbors=neighbors, assignees=assignees
+    )
+
+
+async def get_latest_story_order(status_id: UUID) -> int:
+    return (
+        await stories_repositories.list_stories(
+            filters={"status_id": status_id}, order_by=["-order"]
+        )
+        .values_list("order", flat=True)
+        .afirst()
     )
 
 
@@ -161,7 +188,7 @@ async def update_story(
 
     # Old neighbors
     old_neighbors = None
-    if update_values.get("workflow_slug", None):
+    if update_values.get("workflow", None):
         old_neighbors = await stories_repositories.list_story_neighbors(
             story=story, filters={"workflow_id": story.workflow_id}
         )
@@ -226,7 +253,7 @@ async def _validate_and_process_values_to_update(
         status = await workflows_repositories.get_workflow_status(
             filters={"workflow_id": story.workflow_id, "id": status_id}
         )
-        if not status or output.get("workflow_slug", None):
+        if not status or output.pop("workflow_slug", None):
             raise ex.InvalidStatusError("The provided status is not valid.")
 
         if status.id != story.status_id:
@@ -281,14 +308,10 @@ async def _calculate_offset(
     total_slots = total_stories_to_reorder + 1
 
     if not reorder_story:
-        latest_story = await stories_repositories.list_stories(
-            filters={"status_id": target_status.id},
-            order_by=["-order"],
-            offset=0,
-            limit=1,
-        )
-        if latest_story:
-            pre_order = latest_story[0].order
+        latest_story_order = await get_latest_story_order(target_status.id)
+
+        if latest_story_order:
+            pre_order = latest_story_order
         else:
             pre_order = DEFAULT_PRE_ORDER
         post_order = pre_order + (DEFAULT_ORDER_OFFSET * total_slots)
@@ -363,7 +386,7 @@ async def reorder_stories(
 
     # check all stories "to reorder" exist
     stories_to_reorder = await stories_repositories.list_stories_to_reorder(
-        filters={"workflow_id": workflow.id, "refs": stories_refs}
+        filters={"workflow_id": workflow.id, "ref__in": stories_refs}
     )
     if len(stories_to_reorder) < len(stories_refs):
         raise ex.InvalidStoryRefError("One or more refs don't exist in this project")
@@ -416,11 +439,9 @@ async def reorder_stories(
 
 
 async def _calculate_next_order(status_id: UUID) -> Decimal:
-    latest_story = await stories_repositories.list_stories(
-        filters={"status_id": status_id}, order_by=["-order"], offset=0, limit=1
-    )
+    latest_story_order = await get_latest_story_order(status_id)
 
-    return DEFAULT_ORDER_OFFSET + (latest_story[0].order if latest_story else 0)
+    return DEFAULT_ORDER_OFFSET + (latest_story_order if latest_story_order else 0)
 
 
 ##########################################################

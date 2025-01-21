@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -16,3 +15,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+
+import pytest
+
+from projects.projects.models import ProjectTemplate
+
+
+@pytest.fixture
+def project_template():
+    return ProjectTemplate.objects.first()

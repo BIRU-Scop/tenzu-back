@@ -139,7 +139,7 @@ async def list_stories(
     pagination = Pagination(
         offset=pagination_params.offset, limit=pagination_params.limit
     )
-    stories = await sync_to_async(Story.objects.list_stories)(
+    stories = await stories_services.list_stories(
         project_id=project_id,
         workflow_slug=workflow_slug,
         offset=pagination_params.offset,

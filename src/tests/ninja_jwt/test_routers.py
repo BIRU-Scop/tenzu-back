@@ -40,7 +40,7 @@
 import pytest
 
 from ninja_jwt.tokens import RefreshToken, SlidingToken
-from tests.utils.factories import create_user
+from tests.utils.factories import sync_create_user as create_user
 from users.models import User
 
 

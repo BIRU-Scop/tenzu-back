@@ -21,7 +21,6 @@ from asgiref.sync import sync_to_async
 
 from permissions import choices
 from projects.projects import repositories as projects_repositories
-from projects.projects.models import ProjectTemplate
 
 from .base import Factory, factory
 
@@ -110,13 +109,12 @@ def create_simple_project(**kwargs):
 
 
 @sync_to_async
-def create_project(**kwargs):
+def create_project(template, **kwargs):
     """Create project and its dependencies"""
     defaults = {}
     defaults.update(kwargs)
 
     project = ProjectFactory.create(**defaults)
-    template = ProjectTemplate.objects.first()
     projects_repositories.apply_template_to_project_sync(
         project=project, template=template
     )

@@ -28,7 +28,6 @@ from base.occ.models import VersionedMixin
 from comments.mixins import RelatedCommentsMixin
 from mediafiles.mixins import RelatedMediafilesMixin
 from projects.references.mixins import ProjectReferenceMixin
-from stories.stories.managers import StoryManager
 
 
 class Story(
@@ -85,7 +84,6 @@ class Story(
         through_fields=("story", "user"),
         verbose_name="assignees",
     )
-    objects = StoryManager()
 
     class Meta:
         verbose_name = "story"

@@ -47,6 +47,11 @@ from workspaces.memberships import repositories as workspace_memberships_reposit
 from workspaces.workspaces import services as workspaces_services
 from workspaces.workspaces.models import Workspace
 
+
+def get_landing_page_for_workflow(slug: str | None):
+    return f"kanban/{slug}" if slug else ""
+
+
 ##########################################################
 # create project
 ##########################################################
@@ -79,6 +84,16 @@ async def _create_project(
     color: int | None,
     logo_file: UploadedFile | None = None,
 ) -> Project:
+    template = await projects_repositories.get_project_template(
+        filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
+    )
+
+    landing_page = (
+        get_landing_page_for_workflow(template.workflows[0]["slug"])
+        if template and template.workflows
+        else ""
+    )
+
     project = await projects_repositories.create_project(
         workspace=workspace,
         name=name,
@@ -86,12 +101,11 @@ async def _create_project(
         description=description,
         color=color,
         logo=logo_file,
+        landing_page=landing_page,
     )
 
     # apply template
-    if template := await projects_repositories.get_project_template(
-        filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
-    ):
+    if template:
         await projects_repositories.apply_template_to_project(
             template=template, project=project
         )

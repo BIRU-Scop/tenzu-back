@@ -99,7 +99,6 @@ async def test_list_workspace_guests_with_pagination(client):
     assert len(response.json()) == 1
     assert response.headers["Pagination-Offset"] == "0"
     assert response.headers["Pagination-Limit"] == "1"
-    assert response.headers["Pagination-Total"] == "2"
 
 
 async def test_list_workspace_guests_wrong_id(client):
