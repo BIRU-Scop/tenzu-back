@@ -20,12 +20,12 @@
 from pydantic import ConfigDict
 
 from base.serializers import UUIDB64, BaseModel
-from projects.projects.serializers.mixins import ProjectLogoMixin
+from projects.projects.serializers.mixins import ProjectLogoBaseSerializer
 from workflows.serializers.nested import WorkflowNestedSerializer
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class ProjectSummarySerializer(ProjectLogoMixin):
+class ProjectSummarySerializer(ProjectLogoBaseSerializer):
     id: UUIDB64
     name: str
     slug: str
@@ -35,7 +35,7 @@ class ProjectSummarySerializer(ProjectLogoMixin):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjectDetailSerializer(ProjectLogoMixin):
+class ProjectDetailSerializer(ProjectLogoBaseSerializer):
     id: UUIDB64
     name: str
     slug: str

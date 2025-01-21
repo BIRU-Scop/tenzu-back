@@ -54,7 +54,8 @@ class CreateUserValidator(PasswordMixin, BaseModel):
             return v
 
         domain = v.split("@")[1]
-        assert domain in settings.USER_EMAIL_ALLOWED_DOMAINS, "Email domain not allowed"
+        if domain not in settings.USER_EMAIL_ALLOWED_DOMAINS:
+            raise ValueError("Email domain not allowed")
         return v
 
     @field_validator("accept_terms")

@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import List, Optional, Self
+from typing import List, Self
 
 from django.conf import settings
 from pydantic import (
@@ -35,8 +35,8 @@ from base.validators import BaseModel
 
 
 class ProjectInvitationValidator(BaseModel):
-    email: Optional[EmailStr] = None
-    username: Optional[str] = None
+    email: EmailStr | None = None
+    username: str | None = None
     role_slug: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=250)
     ]
@@ -51,12 +51,13 @@ class ProjectInvitationValidator(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def check_email_in_domain(cls, v: str, info: ValidationInfo) -> str:
-        if not settings.USER_EMAIL_ALLOWED_DOMAINS:
+    def check_email_in_domain(cls, v: str | None, info: ValidationInfo) -> str | None:
+        if v is None or not settings.USER_EMAIL_ALLOWED_DOMAINS:
             return v
 
         domain = v.split("@")[1]
-        assert domain in settings.USER_EMAIL_ALLOWED_DOMAINS, "Email domain not allowed"
+        if domain not in settings.USER_EMAIL_ALLOWED_DOMAINS:
+            raise ValueError("Email domain not allowed")
         return v
 
 

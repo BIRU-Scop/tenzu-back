@@ -41,7 +41,7 @@ def test_project_logo_mixin_serializer_with_logo():
         fake_get_logo_small.return_value = "small_logo.png"
         fake_get_logo_large.return_value = "large_logo.png"
 
-        data = serializers.ProjectLogoMixin(logo=project.logo)
+        data = serializers.ProjectLogoBaseSerializer(logo=project.logo)
 
         assert str(data.logo).endswith(project.logo.url)
         assert data.logo_small == "small_logo.png"
@@ -60,7 +60,7 @@ def test_project_logo_mixin_serializer_without_logo():
             "projects.projects.services.get_logo_large_thumbnail_url", autospec=True
         ) as fake_get_logo_large,
     ):
-        data = serializers.ProjectLogoMixin(logo=None)
+        data = serializers.ProjectLogoBaseSerializer(logo=None)
 
         assert data.logo is None
         assert data.logo_small is None

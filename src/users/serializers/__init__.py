@@ -22,7 +22,7 @@ from pydantic import ConfigDict, EmailStr
 from base.serializers import UUIDB64, BaseModel
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from projects.invitations.serializers.nested import ProjectInvitationNestedSerializer
-from projects.projects.serializers.mixins import ProjectLogoMixin
+from projects.projects.serializers.mixins import ProjectLogoBaseSerializer
 from projects.projects.serializers.nested import ProjectNestedSerializer
 from workspaces.invitations.serializers.nested import (
     WorkspaceInvitationNestedSerializer,
@@ -64,7 +64,7 @@ class _WorkspaceWithProjectsNestedSerializer(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class _ProjectWithWorkspaceNestedSerializer(ProjectLogoMixin):
+class _ProjectWithWorkspaceNestedSerializer(ProjectLogoBaseSerializer):
     id: UUIDB64
     name: str
     slug: str

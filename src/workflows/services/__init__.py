@@ -21,7 +21,6 @@ from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
 from django.conf import settings
 
 from projects.projects import repositories as projects_repositories
@@ -29,7 +28,6 @@ from projects.projects import services as projects_services
 from projects.projects.models import Project
 from stories.stories import repositories as stories_repositories
 from stories.stories import services as stories_services
-from stories.stories.models import Story
 from users.models import User
 from workflows import events as workflows_events
 from workflows import repositories as workflows_repositories

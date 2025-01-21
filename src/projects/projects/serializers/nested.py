@@ -20,10 +20,10 @@
 from pydantic import ConfigDict
 
 from base.serializers import UUIDB64, BaseModel
-from projects.projects.serializers.mixins import ProjectLogoMixin
+from projects.projects.serializers.mixins import ProjectLogoBaseSerializer
 
 
-class ProjectNestedSerializer(ProjectLogoMixin):
+class ProjectNestedSerializer(ProjectLogoBaseSerializer):
     id: UUIDB64
     workspace_id: UUIDB64
     name: str
