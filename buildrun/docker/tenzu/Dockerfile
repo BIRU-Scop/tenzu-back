@@ -28,14 +28,6 @@ WORKDIR /tenzu
 RUN TENZU_SECRET_KEY=secret TENZU_TOKENS__SIGNING_KEY=secret2 python ./__main__.py i18n compile-catalog
 
 ####
-# Testing TODO to do
-####
-
-FROM base-image AS base-test-image
-RUN echo "must be implemented"
-WORKDIR /tenzu
-
-####
 # DEVELOPMENT
 ####
 
