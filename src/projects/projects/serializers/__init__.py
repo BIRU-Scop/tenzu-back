@@ -32,6 +32,7 @@ class ProjectSummarySerializer(ProjectLogoBaseSerializer):
     description: str
     color: int
     workspace_id: UUIDB64
+    landing_page: str
     model_config = ConfigDict(from_attributes=True)
 
 

@@ -30,6 +30,7 @@ class ProjectNestedSerializer(ProjectLogoBaseSerializer):
     slug: str
     description: str
     color: int
+    landing_page: str
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -38,6 +39,7 @@ class ProjectLinkNestedSerializer(BaseModel):
     workspace_id: UUIDB64
     name: str
     slug: str
+    landing_page: str
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -47,4 +49,5 @@ class ProjectSmallNestedSerializer(BaseModel):
     name: str
     slug: str
     anon_user_can_view: bool
+    landing_page: str
     model_config = ConfigDict(from_attributes=True)
