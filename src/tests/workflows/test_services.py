@@ -281,6 +281,9 @@ async def test_update_workflow_ok():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
+        patch(
+            "workflows.services.projects_services", autospec=True
+        ) as fake_projects_services,
     ):
         updated_workflow = await services.update_workflow(
             project_id=project.id, workflow=workflow, values=values
@@ -292,6 +295,25 @@ async def test_update_workflow_ok():
             project=project,
             workflow=updated_workflow,
         )
+        fake_projects_services.update_project_landing_page.assert_not_called()
+
+
+async def test_update_workflow_update_landing_to_new_slug():
+    workflow = f.build_workflow(slug="landing-w", project__landing_page="k/landing-w")
+    values = {"name": "updated name"}
+
+    with (
+        patch("workflows.services.workflows_repositories", autospec=True),
+        patch("workflows.services.get_workflow_detail", autospec=True),
+        patch("workflows.services.workflows_events", autospec=True),
+        patch(
+            "workflows.services.projects_services", autospec=True
+        ) as fake_projects_services,
+    ):
+        await services.update_workflow(
+            project_id=workflow.project.id, workflow=workflow, values=values
+        )
+        fake_projects_services.update_project_landing_page.assert_awaited_once()
 
 
 #######################################################
@@ -420,6 +442,9 @@ async def test_delete_workflow_no_target_workflow_ok():
         patch(
             "workflows.services.get_delete_workflow_detail", autospec=True
         ) as fake_get_delete_workflow_detail,
+        patch(
+            "workflows.services.projects_services", autospec=True
+        ) as fake_projects_services,
     ):
         workflow = f.build_workflow()
         status1 = f.build_workflow_status(workflow=workflow, order=1)
@@ -448,9 +473,10 @@ async def test_delete_workflow_no_target_workflow_ok():
         )
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once()
         assert ret is True
+        fake_projects_services.update_project_landing_page.assert_not_called()
 
 
-async def test_delete_workflow_update_landing_to_empty():
+async def test_delete_workflow_update_landing_to_new_slug():
     with (
         patch(
             "workflows.services.workflows_repositories", autospec=True
@@ -464,6 +490,9 @@ async def test_delete_workflow_update_landing_to_empty():
         patch(
             "workflows.services.projects_repositories", autospec=True
         ) as fake_projects_repo,
+        patch(
+            "workflows.services.projects_services", autospec=True
+        ) as fake_projects_services,
     ):
         workflow = f.build_workflow(
             slug="landing-w", project__landing_page="k/landing-w"
@@ -486,60 +515,10 @@ async def test_delete_workflow_update_landing_to_empty():
 
         ret = await services.delete_workflow(workflow=workflow)
 
-        fake_projects_repo.update_project.assert_awaited_once_with(
-            workflow.project,
-            values={"landing_page": ""},
+        fake_projects_services.update_project_landing_page.assert_awaited_once_with(
+            project=workflow.project
         )
-        fake_workflows_repo.delete_workflow.assert_awaited_once_with(
-            filters={"id": workflow.id}
-        )
-        fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once()
-        assert ret is True
 
-
-async def test_delete_workflow_update_landing_to_new_slug():
-    with (
-        patch(
-            "workflows.services.workflows_repositories", autospec=True
-        ) as fake_workflows_repo,
-        patch(
-            "workflows.services.workflows_events", autospec=True
-        ) as fake_workflows_events,
-        patch(
-            "workflows.services.get_delete_workflow_detail", autospec=True
-        ) as fake_get_delete_workflow_detail,
-        patch(
-            "workflows.services.projects_repositories", autospec=True
-        ) as fake_projects_repo,
-    ):
-        workflow = f.build_workflow(
-            slug="landing-w", project__landing_page="k/landing-w"
-        )
-        status1 = f.build_workflow_status(workflow=workflow, order=1)
-        fake_get_delete_workflow_detail.return_value = DeleteWorkflowSerializer(
-            id=workflow.id,
-            name=workflow.name,
-            slug=workflow.slug,
-            order=workflow.order,
-            statuses=[status1],
-            stories=[],
-        )
-        fake_workflows_repo.get_workflow.return_value = workflow
-        fake_workflows_repo.list_workflow_statuses.return_value = [
-            status1,
-        ]
-        fake_workflows_repo.delete_workflow.return_value = True
-        fake_projects_repo.get_first_workflow_slug.return_value = "new-w"
-
-        ret = await services.delete_workflow(workflow=workflow)
-
-        fake_projects_repo.update_project.assert_awaited_once_with(
-            workflow.project,
-            values={"landing_page": "kanban/new-w"},
-        )
-        fake_workflows_repo.delete_workflow.assert_awaited_once_with(
-            filters={"id": workflow.id}
-        )
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once()
         assert ret is True
 

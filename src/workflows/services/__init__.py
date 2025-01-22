@@ -211,12 +211,21 @@ async def get_delete_workflow_detail(
 async def update_workflow(
     project_id: UUID, workflow: Workflow, values: dict[str, Any] = {}
 ) -> WorkflowSerializer:
+    previous_slug = workflow.slug
     updated_workflow = await workflows_repositories.update_workflow(
         workflow=workflow, values=values
     )
     updated_workflow_detail = await get_workflow_detail(
         project_id=project_id, workflow_slug=updated_workflow.slug
     )
+
+    if (
+        previous_slug != updated_workflow.slug
+        and workflow.project.landing_page.endswith(f"/{previous_slug}")
+    ):
+        await projects_services.update_project_landing_page(
+            workflow.project, updated_workflow.slug
+        )
 
     # Emit event
     await workflows_events.emit_event_when_workflow_is_updated(
@@ -302,17 +311,7 @@ async def delete_workflow(
 
     if deleted > 0:
         if workflow.project.landing_page.endswith(f"/{workflow.slug}"):
-            first_workflow_slug = await projects_repositories.get_first_workflow_slug(
-                workflow.project
-            )
-            await projects_repositories.update_project(
-                workflow.project,
-                values={
-                    "landing_page": projects_services.get_landing_page_for_workflow(
-                        first_workflow_slug
-                    )
-                },
-            )
+            await projects_services.update_project_landing_page(workflow.project)
 
         target_workflow_detail = None
         # events will render the final statuses in the target_workflow AFTER any reorder process

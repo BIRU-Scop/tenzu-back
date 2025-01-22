@@ -245,7 +245,26 @@ async def update_project(
     project: Project, user: User, values: dict[str, Any] = {}
 ) -> ProjectDetailSerializer:
     updated_project = await _update_project(project=project, values=values)
-    return await get_project_detail(project=updated_project, user=user)
+    project_details = await get_project_detail(project=updated_project, user=user)
+    await projects_events.emit_event_when_project_is_updated(
+        project=updated_project,
+    )
+    return project_details
+
+
+async def update_project_landing_page(
+    project: Project, new_slug: str | None = None
+) -> Project:
+    if new_slug is None:
+        new_slug = await projects_repositories.get_first_workflow_slug(project)
+    updated_project = await projects_repositories.update_project(
+        project,
+        values={"landing_page": get_landing_page_for_workflow(new_slug)},
+    )
+    await projects_events.emit_event_when_project_is_updated(
+        project=updated_project,
+    )
+    return updated_project
 
 
 async def _update_project(project: Project, values: dict[str, Any] = {}) -> Project:
