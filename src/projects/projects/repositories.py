@@ -20,7 +20,8 @@
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async, async_to_sync
+from django.db import transaction
 
 from base.db.models import Case, Count, QuerySet, When
 from base.utils.datetime import aware_utcnow
@@ -220,13 +221,20 @@ def update_project(project: Project, values: dict[str, Any] = {}) -> Project:
 
 
 @sync_to_async
-def delete_projects(filters: ProjectFilters = {}) -> int:
+def _delete_projects_async(filters: ProjectFilters = {}) -> int:
     qs = _apply_filters_to_project_queryset(qs=DEFAULT_QUERYSET, filters=filters)
     references.delete_project_references_sequences(
         project_ids=list(qs.values_list("id", flat=True))
     )
     count, _ = qs.delete()
     return count
+
+
+@sync_to_async
+def delete_projects(filters: ProjectFilters = {}) -> int:
+    with transaction.atomic():
+        return async_to_sync(_delete_projects_async)(filters)
+
 
 
 ##########################################################
@@ -276,6 +284,7 @@ async def get_project_template(
 ##########################################################
 
 
+@transaction.atomic
 def apply_template_to_project_sync(template: ProjectTemplate, project: Project) -> None:
     for role in template.roles:
         pj_roles_repositories.create_project_role_sync(

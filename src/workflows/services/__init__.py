@@ -21,7 +21,9 @@ from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
+from django.db import transaction
 
 from projects.projects import repositories as projects_repositories
 from projects.projects import services as projects_services
@@ -53,7 +55,7 @@ DEFAULT_PRE_ORDER = Decimal(
 ##########################################################
 
 
-async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
+async def _create_workflow_async(project: Project, name: str) -> WorkflowSerializer:
     workflows = await workflows_repositories.list_workflows(
         filters={"project_id": project.id}, order_by=["-order"]
     )
@@ -105,6 +107,12 @@ async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
     )
 
     return serialized_workflow
+
+
+@sync_to_async
+def create_workflow(project: Project, name: str) -> WorkflowSerializer:
+    with transaction.atomic():
+        return async_to_sync(_create_workflow_async)(project, name)
 
 
 ##########################################################
@@ -208,7 +216,7 @@ async def get_delete_workflow_detail(
 ##########################################################
 
 
-async def update_workflow(
+async def _update_workflow_async(
     project_id: UUID, workflow: Workflow, values: dict[str, Any] = {}
 ) -> WorkflowSerializer:
     previous_slug = workflow.slug
@@ -236,12 +244,20 @@ async def update_workflow(
     return updated_workflow_detail
 
 
+@sync_to_async
+def update_workflow(
+    project_id: UUID, workflow: Workflow, values: dict[str, Any] = {}
+) -> WorkflowSerializer:
+    with transaction.atomic():
+        return async_to_sync(_update_workflow_async)(project_id, workflow, values)
+
+
 ##########################################################
 # delete workflow
 ##########################################################
 
 
-async def delete_workflow(
+async def _delete_workflow_async(
     workflow: Workflow, target_workflow_slug: str | None = None
 ) -> bool:
     """
@@ -329,6 +345,14 @@ async def delete_workflow(
         return True
 
     return False
+
+
+@sync_to_async
+def delete_workflow(
+    workflow: Workflow, target_workflow_slug: str | None = None
+) -> bool:
+    with transaction.atomic():
+        return async_to_sync(_delete_workflow_async)(workflow, target_workflow_slug)
 
 
 ##########################################################

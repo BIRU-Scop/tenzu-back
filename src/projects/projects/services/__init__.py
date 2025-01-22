@@ -21,8 +21,9 @@ from functools import partial
 from typing import Any
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
+from django.db import transaction
 from ninja import UploadedFile
 
 from base.utils.files import uploadfile_to_file
@@ -76,7 +77,7 @@ async def create_project(
     return await get_project_detail(project=project, user=created_by)
 
 
-async def _create_project(
+async def _create_project_async(
     workspace: Workspace,
     name: str,
     created_by: User,
@@ -129,6 +130,21 @@ async def _create_project(
         )
 
     return project
+
+
+@sync_to_async
+def _create_project(
+    workspace: Workspace,
+    name: str,
+    created_by: User,
+    description: str | None,
+    color: int | None,
+    logo_file: UploadedFile | None = None,
+) -> Project:
+    with transaction.atomic():
+        return async_to_sync(_create_project_async)(
+            workspace, name, created_by, description, color, logo_file
+        )
 
 
 ##########################################################

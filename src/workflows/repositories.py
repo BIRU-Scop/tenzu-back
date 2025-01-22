@@ -371,16 +371,16 @@ async def delete_workflow_status(filters: WorkflowStatusFilters = {}) -> int:
 ##########################################################
 
 
-def apply_default_workflow_statuses_sync(
+async def apply_default_workflow_statuses(
     template: ProjectTemplate, workflow: Workflow
 ) -> None:
-    for status in template.workflow_statuses:
-        create_workflow_status_sync(
+    statuses = [
+        WorkflowStatus(
             name=status["name"],
             color=status["color"],
             order=status["order"],
             workflow=workflow,
         )
-
-
-apply_default_workflow_statuses = sync_to_async(apply_default_workflow_statuses_sync)
+        for status in template.workflow_statuses
+    ]
+    await WorkflowStatus.objects.abulk_create(statuses)
