@@ -334,14 +334,29 @@ async def test_update_project_ok(tqmanager):
     project = f.build_project()
     values = {"name": "new name", "description": ""}
 
-    with patch(
-        "projects.projects.services.projects_repositories", autospec=True
-    ) as fake_pj_repo:
-        await services._update_project(project=project, values=values)
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_pj_repo,
+        patch(
+            "projects.projects.services.get_project_detail", autospec=True
+        ) as fake_get_project_detail,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+    ):
+        await services.update_project(project=project, values=values, user=None)
         fake_pj_repo.update_project.assert_awaited_once_with(
             project=project, values=values
         )
+        fake_updated_project = fake_pj_repo.update_project.return_value
         assert len(tqmanager.pending_jobs) == 0
+        fake_get_project_detail.assert_awaited_once_with(
+            project=fake_updated_project, user=None
+        )
+        fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
+            project=fake_updated_project
+        )
 
 
 async def test_update_project_ok_with_new_logo(tqmanager):
@@ -349,14 +364,29 @@ async def test_update_project_ok_with_new_logo(tqmanager):
     project = f.build_project()
     values = {"name": "new name", "description": "", "logo": new_logo}
 
-    with patch(
-        "projects.projects.services.projects_repositories", autospec=True
-    ) as fake_pj_repo:
-        await services._update_project(project=project, values=values)
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_pj_repo,
+        patch(
+            "projects.projects.services.get_project_detail", autospec=True
+        ) as fake_get_project_detail,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+    ):
+        await services.update_project(project=project, values=values, user=None)
         fake_pj_repo.update_project.assert_awaited_once_with(
             project=project, values=values
         )
+        fake_updated_project = fake_pj_repo.update_project.return_value
         assert len(tqmanager.pending_jobs) == 0
+        fake_get_project_detail.assert_awaited_once_with(
+            project=fake_updated_project, user=None
+        )
+        fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
+            project=fake_updated_project
+        )
 
 
 async def test_update_project_ok_with_logo_replacement(tqmanager):
@@ -365,18 +395,33 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
     project = f.build_project(logo=logo)
     values = {"name": "new name", "description": "", "logo": new_logo}
 
-    with patch(
-        "projects.projects.services.projects_repositories", autospec=True
-    ) as fake_pj_repo:
-        await services._update_project(project=project, values=values)
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_pj_repo,
+        patch(
+            "projects.projects.services.get_project_detail", autospec=True
+        ) as fake_get_project_detail,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+    ):
+        await services.update_project(project=project, values=values, user=None)
         fake_pj_repo.update_project.assert_awaited_once_with(
             project=project, values=values
         )
+        fake_updated_project = fake_pj_repo.update_project.return_value
         # assert len(tqmanager.pending_jobs) == 1
         # job = tqmanager.pending_jobs[0]
         # assert "delete_old_logo" in job["task_name"]
         # assert "path" in job["args"]
         # assert job["args"]["path"].endswith(logo.name)
+        fake_get_project_detail.assert_awaited_once_with(
+            project=fake_updated_project, user=None
+        )
+        fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
+            project=fake_updated_project
+        )
 
 
 async def test_update_project_name_empty(tqmanager):
@@ -388,11 +433,103 @@ async def test_update_project_name_empty(tqmanager):
         patch(
             "projects.projects.services.projects_repositories", autospec=True
         ) as fake_pj_repo,
+        patch(
+            "projects.projects.services.get_project_detail", autospec=True
+        ) as fake_get_project_detail,
         pytest.raises(ex.TenzuValidationError),
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
     ):
-        await services._update_project(project=project, values=values)
+        await services.update_project(project=project, values=values, user=None)
         fake_pj_repo.update_project.assert_not_awaited()
         assert len(tqmanager.pending_jobs) == 0
+        fake_get_project_detail.assert_not_awaited()
+        fake_projects_events.emit_event_when_project_is_updated.assert_not_awaited()
+
+
+##########################################################
+# update_project_landing_page
+##########################################################
+
+
+async def test_update_project_landing_page_ok():
+    project = f.build_project()
+    values = {"landing_page": "kanban/new_slug"}
+
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_pj_repo,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+    ):
+        fake_pj_repo.get_first_workflow_slug.return_value = None
+        await services.update_project_landing_page(project=project, new_slug="new_slug")
+
+        fake_pj_repo.get_first_workflow_slug.assert_not_awaited()
+        fake_pj_repo.update_project.assert_awaited_once_with(
+            project,
+            values=values,
+        )
+
+        fake_updated_project = fake_pj_repo.update_project.return_value
+        fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
+            project=fake_updated_project
+        )
+
+
+async def test_update_project_landing_page_ok_empty_value():
+    project = f.build_project()
+    values = {"landing_page": ""}
+
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_pj_repo,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+    ):
+        fake_pj_repo.get_first_workflow_slug.return_value = None
+        await services.update_project_landing_page(project=project)
+
+        fake_pj_repo.get_first_workflow_slug.assert_awaited_once_with(project=project)
+        fake_pj_repo.update_project.assert_awaited_once_with(
+            project,
+            values=values,
+        )
+        fake_updated_project = fake_pj_repo.update_project.return_value
+        fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
+            project=fake_updated_project
+        )
+
+
+async def test_update_project_landing_page_ok_new_slug():
+    project = f.build_project()
+    values = {"landing_page": "kanban/new-w"}
+
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_pj_repo,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+    ):
+        fake_pj_repo.get_first_workflow_slug.return_value = "new-w"
+        await services.update_project_landing_page(project=project)
+
+        fake_pj_repo.get_first_workflow_slug.assert_awaited_once_with(project=project)
+        fake_pj_repo.update_project.assert_awaited_once_with(
+            project,
+            values=values,
+        )
+        fake_updated_project = fake_pj_repo.update_project.return_value
+        fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
+            project=fake_updated_project
+        )
 
 
 ##########################################################

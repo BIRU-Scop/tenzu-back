@@ -23,8 +23,9 @@ from projects.projects.models import Project
 from users.models import AnyUser, User
 from workspaces.workspaces.models import Workspace
 
-PROJECT_PERMISSIONS_UPDATE = "projects.permissions.update"
 PROJECT_DELETE = "projects.delete"
+PROJECT_UPDATE = "projects.update"
+PROJECT_PERMISSIONS_UPDATE = "projects.permissions.update"
 
 
 async def emit_event_when_project_permissions_are_updated(project: Project) -> None:
@@ -34,6 +35,16 @@ async def emit_event_when_project_permissions_are_updated(project: Project) -> N
     """
     await events_manager.publish_on_project_channel(
         project=project, type=PROJECT_PERMISSIONS_UPDATE
+    )
+
+
+async def emit_event_when_project_is_updated(project: Project) -> None:
+    """
+    This event is emitted whenever there's a change in the project's direct permissions (public / workspace permissions)
+    :param project: The project affected by the permission change
+    """
+    await events_manager.publish_on_project_channel(
+        project=project, type=PROJECT_UPDATE
     )
 
 
