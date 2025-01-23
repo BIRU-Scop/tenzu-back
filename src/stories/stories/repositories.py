@@ -21,7 +21,6 @@ from decimal import Decimal
 from typing import Any, Final, Literal, TypedDict
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
 from django.db.models import Prefetch, QuerySet
 
 from base.occ import repositories as occ_repositories
@@ -41,9 +40,6 @@ ASSIGNEES_PREFETCH = Prefetch(
 
 
 class StoryFilters(TypedDict, total=False):
-    id: UUID
-    ref: int
-    ref__in: list[int]
     project_id: UUID
     workflow_id: UUID
     workflow__slug: str
@@ -142,6 +138,7 @@ def list_stories(
 
 
 async def get_story(
+    ref: int,
     filters: StoryFilters = {},
     select_related: StorySelectRelated = None,
     prefetch_related: StoryPrefetchRelated = None,
@@ -152,7 +149,7 @@ async def get_story(
         prefetch_related = [ASSIGNEES_PREFETCH]
     qs = (
         Story.objects.all()
-        .filter(**filters)
+        .filter(ref=ref, **filters)
         .select_related(*select_related)
         .prefetch_related(*prefetch_related)
     )
@@ -196,8 +193,8 @@ async def bulk_update_stories(
 ##########################################################
 
 
-async def delete_stories(filters: StoryFilters) -> int:
-    qs = Story.objects.all().filter(**filters)
+async def delete_story(story_id: UUID) -> int:
+    qs = Story.objects.all().filter(id=story_id)
     count, _ = await qs.adelete()
     return count
 
@@ -215,25 +212,32 @@ async def list_story_neighbors(
     return await neighbors_repositories.get_neighbors(obj=story, model_queryset=qs)
 
 
-async def list_stories_to_reorder(filters: StoryFilters = {}) -> list[Story]:
+async def list_stories_to_reorder(
+    ref__in: list[int], filters: StoryFilters = {}
+) -> list[Story]:
     """
     This method is very similar to "list_stories" except this has to keep
     the order of the input references.
     """
     qs = (
         Story.objects.all()
-        .filter(**filters)
+        .filter(ref__in=ref__in, **filters)
         .select_related("status", "project", "created_by")
         .prefetch_related(ASSIGNEES_PREFETCH)
     )
 
-    stories = {s.ref: s async for s in qs}
-    return [stories[ref] for ref in filters["ref__in"] if stories.get(ref) is not None]
+    # keep ref order
+    order = {ref: index for index, ref in enumerate(ref__in)}
+    return sorted([s async for s in qs], key=lambda s: order[s.ref])
 
 
-@sync_to_async
-def list_story_assignees(story: Story) -> list[User]:
-    return list(story.assignees.all().order_by("-story_assignments__created_at"))
+async def list_story_assignees(story: Story) -> list[User]:
+    return [
+        user
+        async for user in story.assignees.all().order_by(
+            "-story_assignments__created_at"
+        )
+    ]
 
 
 async def bulk_update_workflow_to_stories(

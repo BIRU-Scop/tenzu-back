@@ -60,7 +60,7 @@ async def create_story(
 ) -> StoryDetailSerializer:
     # Validate data
     workflow_status = await workflows_repositories.get_workflow_status(
-        filters={"id": status_id, "workflow_id": workflow.id}
+        status_id=status_id, filters={"workflow_id": workflow.id}
     )
     if not workflow_status:
         raise ex.InvalidStatusError("The provided status is not valid.")
@@ -122,7 +122,8 @@ async def list_stories(
 
 async def get_story(project_id: UUID, ref: int) -> Story | None:
     return await stories_repositories.get_story(
-        filters={"ref": ref, "project_id": project_id},
+        ref=ref,
+        filters={"project_id": project_id},
         select_related=["project", "project__workspace", "workflow", "created_by"],
         prefetch_related=[ASSIGNEES_PREFETCH],
     )
@@ -134,7 +135,8 @@ async def get_story_detail(
     story = cast(
         Story,
         await stories_repositories.get_story(
-            filters={"ref": ref, "project_id": project_id},
+            ref=ref,
+            filters={"project_id": project_id},
             select_related=[
                 "created_by",
                 "project",
@@ -249,11 +251,17 @@ async def _validate_and_process_values_to_update(
             description_updated_at=aware_utcnow(),
         )
 
+    workflow_slug = output.pop("workflow_slug", None)
     if status_id := output.pop("status_id", None):
-        status = await workflows_repositories.get_workflow_status(
-            filters={"workflow_id": story.workflow_id, "id": status_id}
-        )
-        if not status or output.pop("workflow_slug", None):
+        if (
+            not status_id
+            or workflow_slug
+            or not (
+                status := await workflows_repositories.get_workflow_status(
+                    status_id=status_id, filters={"workflow_id": story.workflow_id}
+                )
+            )
+        ):
             raise ex.InvalidStatusError("The provided status is not valid.")
 
         if status.id != story.status_id:
@@ -261,7 +269,7 @@ async def _validate_and_process_values_to_update(
                 status=status, order=await _calculate_next_order(status_id=status.id)
             )
 
-    elif workflow_slug := output.pop("workflow_slug", None):
+    elif workflow_slug:
         workflow = await workflows_repositories.get_workflow(
             filters={"project_id": story.project_id, "slug": workflow_slug},
             prefetch_related=["statuses"],
@@ -272,7 +280,7 @@ async def _validate_and_process_values_to_update(
         if workflow.slug != story.workflow.slug:
             # Set first status
             first_status_list = await workflows_repositories.list_workflow_statuses(
-                filters={"workflow_id": workflow.id},
+                workflow_id=workflow.id,
                 order_by=["order"],
                 offset=0,
                 limit=1,
@@ -350,11 +358,11 @@ async def reorder_stories(
 ) -> ReorderStoriesSerializer:
     # check target_status exists
     target_status = await workflows_repositories.get_workflow_status(
+        status_id=target_status_id,
         filters={
-            "project_id": project.id,
-            "workflow_slug": workflow.slug,
-            "id": target_status_id,
-        }
+            "workflow__project_id": project.id,
+            "workflow__slug": workflow.slug,
+        },
     )
     if not target_status:
         raise ex.InvalidStatusError(
@@ -369,11 +377,11 @@ async def reorder_stories(
             )
 
         reorder_story = await stories_repositories.get_story(
+            ref=reorder["ref"],
             filters={
                 "workflow_id": workflow.id,
                 "status_id": target_status.id,
-                "ref": reorder["ref"],
-            }
+            },
         )
         if not reorder_story:
             raise ex.InvalidStoryRefError(
@@ -386,7 +394,7 @@ async def reorder_stories(
 
     # check all stories "to reorder" exist
     stories_to_reorder = await stories_repositories.list_stories_to_reorder(
-        filters={"workflow_id": workflow.id, "ref__in": stories_refs}
+        ref__in=stories_refs, filters={"workflow_id": workflow.id}
     )
     if len(stories_to_reorder) < len(stories_refs):
         raise ex.InvalidStoryRefError("One or more refs don't exist in this project")
@@ -450,7 +458,7 @@ async def _calculate_next_order(status_id: UUID) -> Decimal:
 
 
 async def delete_story(story: Story, deleted_by: User) -> bool:
-    deleted = await stories_repositories.delete_stories(filters={"id": story.id})
+    deleted = await stories_repositories.delete_story(story_id=story.id)
     if deleted > 0:
         await stories_events.emit_event_when_story_is_deleted(
             project=story.project, ref=story.ref, deleted_by=deleted_by

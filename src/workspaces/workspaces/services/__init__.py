@@ -96,7 +96,7 @@ async def get_workspace_detail(id: UUID, user_id: UUID | None) -> WorkspaceSeria
         ),
         total_projects=(
             await projects_repositories.get_total_projects(
-                filters={"workspace_id": id, "project_member_id": user_id}
+                workspace_id=id, filters={"memberships__user_id": user_id}
             )
             if user_id
             else 0
@@ -164,7 +164,7 @@ async def _update_workspace(
 
 async def delete_workspace(workspace: Workspace, deleted_by: User) -> bool:
     ws_total_projects = await projects_repositories.get_total_projects(
-        filters={"workspace_id": workspace.id}
+        workspace_id=workspace.id
     )
     if ws_total_projects:
         raise ex.WorkspaceHasProjects(

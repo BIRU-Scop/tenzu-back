@@ -81,7 +81,7 @@ async def test_create_story_ok():
             order=Decimal(100),
         )
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
-            filters={"id": status.id, "workflow_id": status.workflow.id}
+            status_id=status.id, filters={"workflow_id": status.workflow.id}
         )
         fake_get_latest_story_order.assert_awaited_once_with(status.id)
         fake_stories_events.emit_event_when_story_is_created.assert_awaited_once_with(
@@ -174,7 +174,8 @@ async def test_get_story_detail_ok():
         )
 
         fake_stories_repo.get_story.assert_awaited_once_with(
-            filters={"ref": story2.ref, "project_id": story2.project_id},
+            ref=story2.ref,
+            filters={"project_id": story2.project_id},
             select_related=[
                 "created_by",
                 "project",
@@ -212,7 +213,8 @@ async def test_get_story_detail_no_neighbors():
         )
 
         fake_stories_repo.get_story.assert_awaited_once_with(
-            filters={"ref": story1.ref, "project_id": story1.project_id},
+            ref=story1.ref,
+            filters={"project_id": story1.project_id},
             select_related=[
                 "created_by",
                 "project",
@@ -551,7 +553,10 @@ async def test_validate_and_process_values_to_update_ok_with_status_not_empty():
         )
 
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
-            filters={"workflow_id": story.workflow_id, "id": values["status_id"]},
+            status_id=values["status_id"],
+            filters={
+                "workflow_id": story.workflow_id,
+            },
         )
         fake_get_latest_story_order.assert_awaited_once_with(status.id)
 
@@ -590,7 +595,8 @@ async def test_validate_and_process_values_to_update_ok_with_same_status():
         )
 
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
-            filters={"workflow_id": story.workflow_id, "id": values["status_id"]},
+            status_id=values["status_id"],
+            filters={"workflow_id": story.workflow_id},
         )
         fake_stories_repo.list_stories.assert_not_called()
 
@@ -629,7 +635,8 @@ async def test_validate_and_process_values_to_update_error_wrong_status():
             )
 
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
-            filters={"workflow_id": story.workflow_id, "id": "wrong_status"},
+            status_id="wrong_status",
+            filters={"workflow_id": story.workflow_id},
         )
         fake_stories_repo.list_stories.assert_not_called()
 
@@ -670,7 +677,7 @@ async def test_validate_and_process_values_to_update_ok_with_workflow():
             prefetch_related=["statuses"],
         )
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
-            filters={"workflow_id": workflow2.id}, order_by=["order"], offset=0, limit=1
+            workflow_id=workflow2.id, order_by=["order"], offset=0, limit=1
         )
         fake_get_latest_story_order.assert_awaited_once_with(status2.id)
 
@@ -709,7 +716,8 @@ async def test_validate_and_process_values_to_update_ok_with_workflow_empty():
         )
 
         fake_workflows_repo.get_workflow_status.assert_awaited_once_with(
-            filters={"workflow_id": story.workflow_id, "id": values["status_id"]},
+            status_id=values["status_id"],
+            filters={"workflow_id": story.workflow_id},
         )
         fake_get_latest_story_order.assert_awaited_once_with(status.id)
         fake_workflows_repo.get_workflow.assert_not_awaited()
@@ -781,7 +789,7 @@ async def test_validate_and_process_values_to_update_error_workflow_without_stat
             prefetch_related=["statuses"],
         )
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
-            filters={"workflow_id": workflow2.id}, order_by=["order"], offset=0, limit=1
+            workflow_id=workflow2.id, order_by=["order"], offset=0, limit=1
         )
         fake_stories_repo.list_stories.assert_not_called()
 
@@ -1054,12 +1062,12 @@ async def test_delete_story_fail():
             "stories.stories.services.stories_notifications", autospec=True
         ) as fake_notifications,
     ):
-        fake_story_repo.delete_stories.return_value = 0
+        fake_story_repo.delete_story.return_value = 0
 
         assert not (await services.delete_story(story=story, deleted_by=user))
 
-        fake_story_repo.delete_stories.assert_awaited_once_with(
-            filters={"id": story.id},
+        fake_story_repo.delete_story.assert_awaited_once_with(
+            story_id=story.id,
         )
         fake_stories_events.emit_event_when_story_is_deleted.assert_not_awaited()
         fake_notifications.notify_when_story_is_deleted.assert_not_awaited()
@@ -1080,12 +1088,10 @@ async def test_delete_story_ok():
             "stories.stories.services.stories_notifications", autospec=True
         ) as fake_notifications,
     ):
-        fake_story_repo.delete_stories.return_value = 1
+        fake_story_repo.delete_story.return_value = 1
 
         assert await services.delete_story(story=story, deleted_by=user)
-        fake_story_repo.delete_stories.assert_awaited_once_with(
-            filters={"id": story.id},
-        )
+        fake_story_repo.delete_story.assert_awaited_once_with(story_id=story.id)
         fake_stories_events.emit_event_when_story_is_deleted.assert_awaited_once_with(
             project=story.project, ref=story.ref, deleted_by=user
         )

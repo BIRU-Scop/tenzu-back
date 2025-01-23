@@ -304,7 +304,8 @@ async def delete_user(user: User) -> bool:
     # (all members, invitations, pj-roles, stories, comments, etc
     # will be deleted in cascade)
     projects = await projects_repositories.list_projects(
-        filters={"project_member_id": user.id, "is_onewoman_project": True},
+        filters={"memberships__user_id": user.id},
+        is_individual_project=True,
     )
     for pj in projects:
         await projects_services.delete_project(project=pj, deleted_by=user)
@@ -313,11 +314,11 @@ async def delete_user(user: User) -> bool:
     # better if the workspace member is project member too
     projects = await projects_repositories.list_projects(
         filters={
-            "project_member_id": user.id,
-            "is_admin": True,
-            "num_admins": 1,
-            "is_onewoman_project": False,
+            "memberships__user_id": user.id,
+            "memberships__role__is_admin": True,
         },
+        is_individual_project=False,
+        num_admins=1,
         select_related=["workspace"],
     )
     for pj in projects:
@@ -645,11 +646,11 @@ async def _list_projects_delete_info(
 
     pj_list_user_only_admin = await projects_repositories.list_projects(
         filters={
-            "project_member_id": user.id,
-            "is_admin": True,
-            "num_admins": 1,
-            "is_onewoman_project": False,
+            "memberships__user_id": user.id,
+            "memberships__role__is_admin": True,
         },
+        is_individual_project=False,
+        num_admins=1,
         select_related=["workspace"],
     )
 

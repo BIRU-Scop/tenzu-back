@@ -20,10 +20,10 @@
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
-from asgiref.sync import sync_to_async, async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from django.db import transaction
 
-from base.db.models import Case, Count, QuerySet, When
+from base.db.models import Case, Count, When
 from base.utils.datetime import aware_utcnow
 from base.utils.files import File
 from projects import references
@@ -38,83 +38,20 @@ from workspaces.workspaces.models import Workspace
 # Project - filters and querysets
 ##########################################################
 
-DEFAULT_QUERYSET = Project.objects.all()
-
 
 class ProjectFilters(TypedDict, total=False):
-    id: UUID
     workspace_id: UUID
-    invitee_id: UUID
-    invitation_status: ProjectInvitationStatus
-    project_member_id: UUID
-    is_admin: bool
-    num_admins: int
-    is_onewoman_project: bool
-
-
-def _apply_filters_to_project_queryset(
-    qs: QuerySet[Project],
-    filters: ProjectFilters = {},
-) -> QuerySet[Project]:
-    filter_data = dict(filters.copy())
-
-    if "invitation_status" in filter_data:
-        filter_data["invitations__status"] = filter_data.pop("invitation_status")
-
-    if "invitee_id" in filter_data:
-        filter_data["invitations__user_id"] = filter_data.pop("invitee_id")
-
-    # filters for those projects where the user is already a project member
-    if "project_member_id" in filter_data:
-        filter_data["memberships__user_id"] = filter_data.pop("project_member_id")
-
-    if "is_admin" in filter_data:
-        filter_data["memberships__role__is_admin"] = filter_data.pop("is_admin")
-
-    if "num_admins" in filter_data:
-        qs = qs.annotate(
-            num_admins=Count(Case(When(memberships__role__is_admin=True, then=1)))
-        )
-
-    # filters for those projects where the user is the only project member
-    if "is_onewoman_project" in filter_data:
-        qs = qs.annotate(num_members=Count("members"))
-        if filter_data.pop("is_onewoman_project"):
-            filter_data["num_members"] = 1
-        else:
-            filter_data["num_members__gt"] = 1
-
-    return qs.filter(**filter_data)
+    invitations__user_id: UUID
+    invitations__status: ProjectInvitationStatus
+    memberships__user_id: UUID
+    memberships__role__is_admin: bool
 
 
 ProjectSelectRelated = list[Literal["workspace",]]
 
-
-def _apply_select_related_to_project_queryset(
-    qs: QuerySet[Project],
-    select_related: ProjectSelectRelated,
-) -> QuerySet[Project]:
-    return qs.select_related(*select_related)
-
-
 ProjectPrefetchRelated = list[Literal["workflows"]]
 
-
-def _apply_prefetch_related_to_project_queryset(
-    qs: QuerySet[Project],
-    prefetch_related: ProjectPrefetchRelated,
-) -> QuerySet[Project]:
-    return qs.prefetch_related(*prefetch_related)
-
-
 ProjectOrderBy = list[Literal["-created_at",]]
-
-
-def _apply_order_by_to_project_queryset(
-    qs: QuerySet[Project],
-    order_by: ProjectOrderBy,
-) -> QuerySet[Project]:
-    return qs.order_by(*order_by)
 
 
 ##########################################################
@@ -122,8 +59,7 @@ def _apply_order_by_to_project_queryset(
 ##########################################################
 
 
-@sync_to_async
-def create_project(
+async def create_project(
     workspace: Workspace,
     name: str,
     created_by: User,
@@ -144,7 +80,7 @@ def create_project(
     if color:
         project.color = color
 
-    project.save()
+    await project.asave()
 
     return project
 
@@ -154,27 +90,42 @@ def create_project(
 ##########################################################
 
 
-@sync_to_async
-def list_projects(
+async def list_projects(
     filters: ProjectFilters = {},
     select_related: ProjectSelectRelated = [],
     prefetch_related: ProjectPrefetchRelated = [],
     order_by: ProjectOrderBy = ["-created_at"],
     offset: int | None = None,
     limit: int | None = None,
+    num_admins: int | None = None,
+    is_individual_project: bool | None = None,
 ) -> list[Project]:
-    qs = _apply_filters_to_project_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_project_queryset(qs=qs, select_related=select_related)
-    qs = _apply_prefetch_related_to_project_queryset(
-        qs=qs, prefetch_related=prefetch_related
+    qs = Project.objects.all()
+    if num_admins is not None:
+        qs = qs.annotate(
+            num_admins=Count(Case(When(memberships__role__is_admin=True, then=1)))
+        ).filter(num_admins=num_admins)
+
+    # filters for those projects where the user is the only project member
+    if is_individual_project is not None:
+        qs = qs.annotate(num_members=Count("members"))
+        qs = (
+            qs.filter(num_members=1)
+            if is_individual_project
+            else qs.filter(num_members__gt=1)
+        )
+    qs = (
+        qs.filter(**filters)
+        .select_related(*select_related)
+        .prefetch_related(*prefetch_related)
+        .order_by(*order_by)
+        .distinct()
     )
-    qs = _apply_order_by_to_project_queryset(order_by=order_by, qs=qs)
-    qs = qs.distinct()
 
     if limit is not None and offset is not None:
         limit += offset
 
-    return list(qs[offset:limit])
+    return [p async for p in qs[offset:limit]]
 
 
 ##########################################################
@@ -182,20 +133,19 @@ def list_projects(
 ##########################################################
 
 
-@sync_to_async
-def get_project(
-    filters: ProjectFilters = {},
+async def get_project(
+    project_id: UUID,
     select_related: ProjectSelectRelated = ["workspace"],
     prefetch_related: ProjectPrefetchRelated = [],
 ) -> Project | None:
-    qs = _apply_filters_to_project_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_project_queryset(qs=qs, select_related=select_related)
-    qs = _apply_prefetch_related_to_project_queryset(
-        qs=qs, prefetch_related=prefetch_related
+    qs = (
+        Project.objects.all()
+        .select_related(*select_related)
+        .prefetch_related(*prefetch_related)
     )
 
     try:
-        return qs.get()
+        return await qs.aget(id=project_id)
     except Project.DoesNotExist:
         return None
 
@@ -205,13 +155,12 @@ def get_project(
 ##########################################################
 
 
-@sync_to_async
-def update_project(project: Project, values: dict[str, Any] = {}) -> Project:
+async def update_project(project: Project, values: dict[str, Any] = {}) -> Project:
     for attr, value in values.items():
         setattr(project, attr, value)
 
     project.modified_at = aware_utcnow()
-    project.save(update_fields=values.keys())
+    await project.asave(update_fields=values.keys())
     return project
 
 
@@ -220,21 +169,19 @@ def update_project(project: Project, values: dict[str, Any] = {}) -> Project:
 ##########################################################
 
 
-@sync_to_async
-def _delete_projects_async(filters: ProjectFilters = {}) -> int:
-    qs = _apply_filters_to_project_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    references.delete_project_references_sequences(
-        project_ids=list(qs.values_list("id", flat=True))
+async def _delete_projects_async(project_id: UUID) -> int:
+    qs = Project.objects.all().filter(id=project_id)
+    await sync_to_async(references.delete_project_references_sequences)(
+        project_ids=[p_id async for p_id in qs.values_list("id", flat=True)]
     )
-    count, _ = qs.delete()
+    count, _ = await qs.adelete()
     return count
 
 
 @sync_to_async
-def delete_projects(filters: ProjectFilters = {}) -> int:
+def delete_projects(project_id: UUID) -> int:
     with transaction.atomic():
-        return async_to_sync(_delete_projects_async)(filters)
-
+        return async_to_sync(_delete_projects_async)(project_id)
 
 
 ##########################################################
@@ -242,12 +189,16 @@ def delete_projects(filters: ProjectFilters = {}) -> int:
 ##########################################################
 
 
-@sync_to_async
-def get_total_projects(
+async def get_total_projects(
+    workspace_id: UUID,
     filters: ProjectFilters = {},
 ) -> int:
-    qs = _apply_filters_to_project_queryset(filters=filters, qs=DEFAULT_QUERYSET)
-    return qs.distinct().count()
+    return await (
+        Project.objects.all()
+        .filter(workspace_id=workspace_id, **filters)
+        .distinct()
+        .acount()
+    )
 
 
 async def get_first_workflow_slug(project: Project) -> str | None:
