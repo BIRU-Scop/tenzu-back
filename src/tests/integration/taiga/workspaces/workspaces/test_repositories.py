@@ -69,12 +69,7 @@ async def test_list_workspaces_user_only_member_with_projects():
     await f.create_workspace_membership(user=other_user, workspace=ws5)
 
     ws_list = await repositories.list_workspaces(
-        filters={
-            "workspace_member_id": user.id,
-            "num_members": 1,
-            "has_projects": True,
-        },
-        prefetch_related=["projects"],
+        user=user, prefetch_related=["projects"], has_projects=True, is_only_user=True
     )
 
     assert len(ws_list) == 2
@@ -103,12 +98,7 @@ async def test_list_workspaces_user_only_member_without_projects():
     await f.create_workspace_membership(user=other_user, workspace=ws5)
 
     ws_list = await repositories.list_workspaces(
-        filters={
-            "workspace_member_id": user.id,
-            "num_members": 1,
-            "has_projects": False,
-        },
-        prefetch_related=["projects"],
+        user=user, prefetch_related=["projects"], has_projects=False, is_only_user=True
     )
 
     assert len(ws_list) == 1

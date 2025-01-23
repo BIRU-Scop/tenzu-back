@@ -95,7 +95,7 @@ async def create_project(
     """
     Create project in a given workspace.
     """
-    workspace = await workspaces_services.get_workspace(id=form.workspace_id)
+    workspace = await workspaces_services.get_workspace(workspace_id=form.workspace_id)
     if workspace is None:
         raise ex.BadRequest(f"Workspace {form.workspace_id} does not exist")
 

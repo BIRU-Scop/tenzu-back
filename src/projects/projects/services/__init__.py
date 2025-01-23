@@ -201,7 +201,7 @@ async def get_project_detail(
 
     user_id = None if user.is_anonymous else user.id
     workspace = await workspaces_services.get_workspace_nested(
-        id=project.workspace_id, user_id=user_id
+        workspace_id=project.workspace_id, user_id=user_id
     )
 
     user_permissions = await permissions_services.get_user_permissions_for_project(

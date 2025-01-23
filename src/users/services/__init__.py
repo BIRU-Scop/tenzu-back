@@ -286,15 +286,13 @@ async def delete_user(user: User) -> bool:
     # delete workspaces where the user is the only ws member
     # (Whe need to delete all projects first to emit all events)
     workspaces = await workspaces_repositories.list_workspaces(
-        filters={"workspace_member_id": user.id, "num_members": 1},
+        user=user, is_only_user=True
     )
     for ws in workspaces:
         for pj in await workspaces_repositories.list_workspace_projects(workspace=ws):
             await projects_services.delete_project(project=pj, deleted_by=user)
 
-        ws_deleted = await workspaces_repositories.delete_workspaces(
-            filters={"id": ws.id}
-        )
+        ws_deleted = await workspaces_repositories.delete_workspace(workspace_id=ws.id)
         if ws_deleted > 0:
             await workspaces_events.emit_event_when_workspace_is_deleted(
                 workspace=ws, deleted_by=user
@@ -623,12 +621,7 @@ async def _accept_workspace_invitation_from_token(
 async def _list_workspaces_delete_info(user: User) -> list[Workspace]:
     # list workspaces where the user is the only ws member and ws has projects
     return await workspaces_repositories.list_workspaces(
-        filters={
-            "workspace_member_id": user.id,
-            "num_members": 1,
-            "has_projects": True,
-        },
-        prefetch_related=["projects"],
+        user=user, prefetch_related=["projects"], has_projects=True, is_only_user=True
     )
 
 
