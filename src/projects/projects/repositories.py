@@ -20,12 +20,13 @@
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import sync_to_async
 from django.db import transaction
 
 from base.db.models import Case, Count, When
 from base.utils.datetime import aware_utcnow
 from base.utils.files import File
+from commons.utils import transaction_atomic_async
 from projects import references
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.projects.models import Project, ProjectTemplate
@@ -169,19 +170,14 @@ async def update_project(project: Project, values: dict[str, Any] = {}) -> Proje
 ##########################################################
 
 
-async def _delete_projects_async(project_id: UUID) -> int:
+@transaction_atomic_async
+async def delete_projects(project_id: UUID) -> int:
     qs = Project.objects.all().filter(id=project_id)
     await sync_to_async(references.delete_project_references_sequences)(
         project_ids=[p_id async for p_id in qs.values_list("id", flat=True)]
     )
     count, _ = await qs.adelete()
     return count
-
-
-@sync_to_async
-def delete_projects(project_id: UUID) -> int:
-    with transaction.atomic():
-        return async_to_sync(_delete_projects_async)(project_id)
 
 
 ##########################################################
