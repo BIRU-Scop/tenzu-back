@@ -99,8 +99,8 @@ async def test_get_workspace():
     with patch(
         "workspaces.workspaces.services.workspaces_repositories", autospec=True
     ) as fake_workspaces_repo:
-        await services.get_workspace(id=ws_id)
-        fake_workspaces_repo.get_workspace.assert_awaited_with(filters={"id": ws_id})
+        await services.get_workspace(workspace_id=ws_id)
+        fake_workspaces_repo.get_workspace.assert_awaited_with(workspace_id=ws_id)
 
 
 ##########################################################
@@ -127,7 +127,7 @@ async def test_get_workspace_detail():
         )
         fake_workspaces_repo.get_workspace_detail.assert_awaited_with(
             user_id=workspace.created_by.id,
-            filters={"id": workspace.id},
+            workspace_id=workspace.id,
         )
 
 
@@ -150,15 +150,15 @@ async def get_workspace_nested():
         fake_ws_roles_services.get_workspace_role_name.return_value = "admin"
         fake_workspaces_repo.get_workspace_summary.return_value = workspace
 
-        await services.get_workspace_summary(
-            id=workspace.id, user_id=workspace.created_by.id
+        await services.get_workspace_nested(
+            workspace_id=workspace.id, user_id=workspace.created_by.id
         )
 
         fake_ws_roles_services.get_workspace_role_name.assert_awaited_with(
             workspace_id=workspace.id, user_id=workspace.created_by.id
         )
         fake_workspaces_repo.get_workspace_summary.assert_awaited_with(
-            filters={"id": workspace.id},
+            workspace_id=workspace.id,
         )
 
 
@@ -201,17 +201,17 @@ async def test_delete_workspace_without_projects():
         ) as fake_workspaces_events,
     ):
         fake_projects_repo.get_total_projects.return_value = 0
-        fake_workspaces_repo.delete_workspaces.return_value = 4
+        fake_workspaces_repo.delete_workspace.return_value = 4
 
         ret = await services.delete_workspace(
             workspace=workspace, deleted_by=workspace.created_by
         )
 
         fake_projects_repo.get_total_projects.assert_awaited_with(
-            filters={"workspace_id": workspace.id}
+            workspace_id=workspace.id
         )
-        fake_workspaces_repo.delete_workspaces.assert_awaited_with(
-            filters={"id": workspace.id}
+        fake_workspaces_repo.delete_workspace.assert_awaited_with(
+            workspace_id=workspace.id
         )
         fake_workspaces_events.emit_event_when_workspace_is_deleted.assert_awaited()
         assert ret is True
@@ -237,7 +237,7 @@ async def test_delete_workspace_with_projects():
             workspace=workspace, deleted_by=workspace.created_by
         )
 
-        fake_workspaces_repo.delete_workspaces.assert_not_awaited()
+        fake_workspaces_repo.delete_workspace.assert_not_awaited()
         fake_workspaces_events.emit_event_when_workspace_is_deleted.assert_not_awaited()
 
 
@@ -256,16 +256,16 @@ async def test_delete_workspace_not_deleted_in_db():
         ) as fake_workspaces_events,
     ):
         fake_projects_repo.get_total_projects.return_value = 0
-        fake_workspaces_repo.delete_workspaces.return_value = 0
+        fake_workspaces_repo.delete_workspace.return_value = 0
         ret = await services.delete_workspace(
             workspace=workspace, deleted_by=workspace.created_by
         )
 
         fake_projects_repo.get_total_projects.assert_awaited_with(
-            filters={"workspace_id": workspace.id}
+            workspace_id=workspace.id
         )
-        fake_workspaces_repo.delete_workspaces.assert_awaited_with(
-            filters={"id": workspace.id}
+        fake_workspaces_repo.delete_workspace.assert_awaited_with(
+            workspace_id=workspace.id
         )
         fake_workspaces_events.emit_event_when_workspace_is_deleted.assert_not_awaited()
 
