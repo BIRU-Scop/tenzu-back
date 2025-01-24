@@ -74,7 +74,7 @@ async def test_list_workspace_memberships():
             projects=[project],
         )
         fake_pj_repositories.list_projects.assert_awaited_once_with(
-            filters={"workspace_id": workspace.id, "project_member_id": user.id}
+            filters={"workspace_id": workspace.id, "memberships__user_id": user.id}
         )
 
 
@@ -119,7 +119,7 @@ async def test_list_paginated_workspace_guests():
             projects=[project],
         )
         fake_pj_repositories.list_projects.assert_awaited_once_with(
-            filters={"workspace_id": workspace.id, "project_member_id": user.id}
+            filters={"workspace_id": workspace.id, "memberships__user_id": user.id}
         )
 
 

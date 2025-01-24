@@ -286,15 +286,13 @@ async def delete_user(user: User) -> bool:
     # delete workspaces where the user is the only ws member
     # (Whe need to delete all projects first to emit all events)
     workspaces = await workspaces_repositories.list_workspaces(
-        filters={"workspace_member_id": user.id, "num_members": 1},
+        user=user, is_only_user=True
     )
     for ws in workspaces:
         for pj in await workspaces_repositories.list_workspace_projects(workspace=ws):
             await projects_services.delete_project(project=pj, deleted_by=user)
 
-        ws_deleted = await workspaces_repositories.delete_workspaces(
-            filters={"id": ws.id}
-        )
+        ws_deleted = await workspaces_repositories.delete_workspace(workspace_id=ws.id)
         if ws_deleted > 0:
             await workspaces_events.emit_event_when_workspace_is_deleted(
                 workspace=ws, deleted_by=user
@@ -304,7 +302,8 @@ async def delete_user(user: User) -> bool:
     # (all members, invitations, pj-roles, stories, comments, etc
     # will be deleted in cascade)
     projects = await projects_repositories.list_projects(
-        filters={"project_member_id": user.id, "is_onewoman_project": True},
+        filters={"memberships__user_id": user.id},
+        is_individual_project=True,
     )
     for pj in projects:
         await projects_services.delete_project(project=pj, deleted_by=user)
@@ -313,11 +312,11 @@ async def delete_user(user: User) -> bool:
     # better if the workspace member is project member too
     projects = await projects_repositories.list_projects(
         filters={
-            "project_member_id": user.id,
-            "is_admin": True,
-            "num_admins": 1,
-            "is_onewoman_project": False,
+            "memberships__user_id": user.id,
+            "memberships__role__is_admin": True,
         },
+        is_individual_project=False,
+        num_admins=1,
         select_related=["workspace"],
     )
     for pj in projects:
@@ -622,12 +621,7 @@ async def _accept_workspace_invitation_from_token(
 async def _list_workspaces_delete_info(user: User) -> list[Workspace]:
     # list workspaces where the user is the only ws member and ws has projects
     return await workspaces_repositories.list_workspaces(
-        filters={
-            "workspace_member_id": user.id,
-            "num_members": 1,
-            "has_projects": True,
-        },
-        prefetch_related=["projects"],
+        user=user, prefetch_related=["projects"], has_projects=True, is_only_user=True
     )
 
 
@@ -645,11 +639,11 @@ async def _list_projects_delete_info(
 
     pj_list_user_only_admin = await projects_repositories.list_projects(
         filters={
-            "project_member_id": user.id,
-            "is_admin": True,
-            "num_admins": 1,
-            "is_onewoman_project": False,
+            "memberships__user_id": user.id,
+            "memberships__role__is_admin": True,
         },
+        is_individual_project=False,
+        num_admins=1,
         select_related=["workspace"],
     )
 

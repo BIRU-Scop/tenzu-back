@@ -194,7 +194,7 @@ async def test_list_workspace_projects_not_for_a_ws_member():
     ):
         await services.list_workspace_projects_for_user(workspace=workspace, user=user)
         fake_projects_repo.list_projects.assert_awaited_once_with(
-            filters={"workspace_id": workspace.id, "project_member_id": user.id},
+            filters={"workspace_id": workspace.id, "memberships__user_id": user.id},
             select_related=["workspace"],
         )
 
@@ -216,8 +216,8 @@ async def test_list_workspace_invited_projects_for_user():
         fake_projects_repo.list_projects.assert_awaited_once_with(
             filters={
                 "workspace_id": workspace.id,
-                "invitee_id": workspace.created_by.id,
-                "invitation_status": ProjectInvitationStatus.PENDING,
+                "invitations__user_id": workspace.created_by.id,
+                "invitations__status": ProjectInvitationStatus.PENDING,
             }
         )
 
@@ -272,7 +272,7 @@ async def test_get_project_detail():
             user=workspace.created_by, project=project
         )
         fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(
-            id=workspace.id, user_id=workspace.created_by.id
+            workspace_id=workspace.id, user_id=workspace.created_by.id
         )
 
 
@@ -321,7 +321,7 @@ async def test_get_project_detail_anonymous():
         )
         fake_pj_invitations_services.has_pending_project_invitation.assert_not_awaited()
         fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(
-            id=workspace.id, user_id=user.id
+            workspace_id=workspace.id, user_id=user.id
         )
 
 
@@ -587,7 +587,7 @@ async def test_delete_project_fail():
 
         fake_projects_events.emit_event_when_project_is_deleted.assert_not_awaited()
         fake_projects_repo.delete_projects.assert_awaited_once_with(
-            filters={"id": project.id},
+            project_id=project.id,
         )
 
 
@@ -615,7 +615,7 @@ async def test_delete_project_ok(tqmanager):
             workspace=project.workspace, project=project, deleted_by=user, guests=[]
         )
         fake_projects_repo.delete_projects.assert_awaited_once_with(
-            filters={"id": project.id},
+            project_id=project.id,
         )
         # assert len(tqmanager.pending_jobs) == 1
         # job = tqmanager.pending_jobs[0]

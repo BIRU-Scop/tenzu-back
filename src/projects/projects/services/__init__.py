@@ -27,6 +27,7 @@ from ninja import UploadedFile
 
 from base.utils.files import uploadfile_to_file
 from base.utils.images import get_thumbnail_url
+from commons.utils import transaction_atomic_async
 from events import event_handlers as actions_events
 from permissions import services as permissions_services
 from projects.invitations import services as pj_invitations_services
@@ -76,6 +77,7 @@ async def create_project(
     return await get_project_detail(project=project, user=created_by)
 
 
+@transaction_atomic_async
 async def _create_project(
     workspace: Workspace,
     name: str,
@@ -154,7 +156,7 @@ async def list_workspace_projects_for_user(
         return await list_projects(workspace_id=workspace.id)
 
     return await projects_repositories.list_projects(
-        filters={"workspace_id": workspace.id, "project_member_id": user.id},
+        filters={"workspace_id": workspace.id, "memberships__user_id": user.id},
         select_related=["workspace"],
     )
 
@@ -165,8 +167,8 @@ async def list_workspace_invited_projects_for_user(
     return await projects_repositories.list_projects(
         filters={
             "workspace_id": workspace.id,
-            "invitee_id": user.id,
-            "invitation_status": ProjectInvitationStatus.PENDING,
+            "invitations__user_id": user.id,
+            "invitations__status": ProjectInvitationStatus.PENDING,
         }
     )
 
@@ -178,7 +180,7 @@ async def list_workspace_invited_projects_for_user(
 
 async def get_project(id: UUID) -> Project | None:
     return await projects_repositories.get_project(
-        filters={"id": id}, select_related=["workspace"], prefetch_related=["workflows"]
+        project_id=id, select_related=["workspace"], prefetch_related=["workflows"]
     )
 
 
@@ -199,7 +201,7 @@ async def get_project_detail(
 
     user_id = None if user.is_anonymous else user.id
     workspace = await workspaces_services.get_workspace_nested(
-        id=project.workspace_id, user_id=user_id
+        workspace_id=project.workspace_id, user_id=user_id
     )
 
     user_permissions = await permissions_services.get_user_permissions_for_project(
@@ -333,7 +335,7 @@ async def delete_project(project: Project, deleted_by: AnyUser) -> bool:
         file_to_delete = project.logo.path
 
     guests = await users_services.list_guests_in_workspace_for_project(project=project)
-    deleted = await projects_repositories.delete_projects(filters={"id": project.id})
+    deleted = await projects_repositories.delete_projects(project_id=project.id)
 
     if deleted > 0:
         # Delete old file if existed

@@ -27,8 +27,8 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.db.models import Count
 
-from base.db.models import Count, QuerySet
 from base.repositories import neighbors as neighbors_repositories
 from base.repositories.neighbors import Neighbor
 from projects.projects.models import Project, ProjectTemplate
@@ -158,67 +158,20 @@ async def delete_workflow(filters: WorkflowFilters = {}) -> int:
 # WorkflowStatus - filters and querysets
 ##########################################################
 
-DEFAULT_QUERYSET_WORKFLOW_STATUS = WorkflowStatus.objects.all()
-
 
 class WorkflowStatusFilters(TypedDict, total=False):
-    id: UUID
-    ids: list[UUID]
     workflow_id: UUID
-    workflow_slug: str
-    project_id: UUID
-    is_empty: bool
-
-
-def _apply_filters_to_workflow_status_queryset(
-    qs: QuerySet[WorkflowStatus],
-    filters: WorkflowStatusFilters = {},
-) -> QuerySet[WorkflowStatus]:
-    filter_data = dict(filters.copy())
-
-    if "ids" in filters:
-        filter_data["id__in"] = filter_data.pop("ids")
-
-    if "workflow_slug" in filter_data:
-        filter_data["workflow__slug"] = filter_data.pop("workflow_slug")
-
-    if "project_id" in filter_data:
-        filter_data["workflow__project_id"] = filter_data.pop("project_id")
-
-    if "is_empty" in filter_data:
-        qs = qs.annotate(num_stories=Count("stories"))
-        if filter_data.pop("is_empty"):
-            filter_data["num_stories"] = 0
-        else:
-            filter_data["num_stories__gt"] = 0
-
-    return qs.filter(**filter_data)
+    workflow__slug: str
+    workflow__project_id: UUID
 
 
 WorkflowStatusSelectRelated = list[
     Literal[
         "workflow",
-        "project",
-        "workspace",
+        "workflow__project",
+        "workflow__project__workspace",
     ]
 ]
-
-
-def _apply_select_related_to_workflow_status_queryset(
-    qs: QuerySet[WorkflowStatus],
-    select_related: WorkflowStatusSelectRelated,
-) -> QuerySet[WorkflowStatus]:
-    select_related_data = []
-
-    for key in select_related:
-        if key == "project":
-            select_related_data.append("workflow__project")
-        elif key == "workspace":
-            select_related_data.append("workflow__project__workspace")
-        else:
-            select_related_data.append(key)
-
-    return qs.select_related(*select_related_data)
 
 
 WorkflowStatusOrderBy = list[
@@ -227,12 +180,6 @@ WorkflowStatusOrderBy = list[
         "-order",
     ]
 ]
-
-
-def _apply_order_by_to_workflow_status_queryset(
-    qs: QuerySet[WorkflowStatus], order_by: WorkflowStatusOrderBy
-) -> QuerySet[WorkflowStatus]:
-    return qs.order_by(*order_by)
 
 
 ##########################################################
@@ -262,48 +209,48 @@ create_workflow_status = sync_to_async(create_workflow_status_sync)
 ##########################################################
 
 
-@sync_to_async
-def list_workflow_statuses(
-    filters: WorkflowStatusFilters = {},
+async def list_workflow_statuses(
+    workflow_id: UUID,
+    is_empty: bool | None = None,
     order_by: WorkflowStatusOrderBy = ["order"],
     offset: int | None = None,
     limit: int | None = None,
 ) -> list[WorkflowStatus]:
-    qs = _apply_filters_to_workflow_status_queryset(
-        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
+    qs = (
+        WorkflowStatus.objects.all().filter(workflow_id=workflow_id).order_by(*order_by)
     )
-    qs = _apply_order_by_to_workflow_status_queryset(qs=qs, order_by=order_by)
+
+    if is_empty is not None:
+        qs = qs.annotate(num_stories=Count("stories"))
+        qs = qs.filter(num_stories=0) if is_empty else qs.filter(num_stories__gt=0)
 
     if limit is not None and offset is not None:
         limit += offset
 
-    return list(qs[offset:limit])
+    return [s async for s in qs[offset:limit]]
 
 
 async def list_workflow_statuses_to_reorder(
-    filters: WorkflowStatusFilters = {},
+    workflow_id: UUID,
+    ids: list[UUID],
 ) -> list[WorkflowStatus]:
     """
     This method is very similar to "list_workflow_statuses" except this has to keep
     the order of the input ids.
     """
-    qs = _apply_filters_to_workflow_status_queryset(
-        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
-    )
+    qs = WorkflowStatus.objects.all().filter(workflow_id=workflow_id, id__in=ids)
 
-    statuses = {s.id: s async for s in qs}
-    return [statuses[id] for id in filters["ids"] if statuses.get(id) is not None]
+    # keep ids order
+    order = {ref: index for index, ref in enumerate(ids)}
+    return sorted([s async for s in qs], key=lambda s: order[s.id])
 
 
 @sync_to_async
 def list_workflow_status_neighbors(
+    workflow_id: UUID,
     status: WorkflowStatus,
-    filters: WorkflowStatusFilters = {},
 ) -> Neighbor[WorkflowStatus]:
-    qs = _apply_filters_to_workflow_status_queryset(
-        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
-    )
-    qs = _apply_order_by_to_workflow_status_queryset(qs=qs, order_by=["order"])
+    qs = WorkflowStatus.objects.all().filter(workflow_id=workflow_id).order_by("order")
 
     return neighbors_repositories.get_neighbors_sync(obj=status, model_queryset=qs)
 
@@ -313,20 +260,15 @@ def list_workflow_status_neighbors(
 ##########################################################
 
 
-@sync_to_async
-def get_workflow_status(
+async def get_workflow_status(
+    status_id: UUID,
     filters: WorkflowStatusFilters = {},
     select_related: WorkflowStatusSelectRelated = [],
 ) -> WorkflowStatus | None:
-    qs = _apply_filters_to_workflow_status_queryset(
-        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
-    )
-    qs = _apply_select_related_to_workflow_status_queryset(
-        qs=qs, select_related=select_related
-    )
+    qs = WorkflowStatus.objects.all().filter(**filters).select_related(*select_related)
 
     try:
-        return qs.get()
+        return await qs.aget(id=status_id)
     except WorkflowStatus.DoesNotExist:
         return None
 
@@ -336,14 +278,13 @@ def get_workflow_status(
 ##########################################################
 
 
-@sync_to_async
-def update_workflow_status(
+async def update_workflow_status(
     workflow_status: WorkflowStatus, values: dict[str, Any] = {}
 ) -> WorkflowStatus:
     for attr, value in values.items():
         setattr(workflow_status, attr, value)
 
-    workflow_status.save()
+    await workflow_status.asave()
     return workflow_status
 
 
@@ -358,10 +299,10 @@ async def bulk_update_workflow_statuses(
 ##########################################################
 
 
-async def delete_workflow_status(filters: WorkflowStatusFilters = {}) -> int:
-    qs = _apply_filters_to_workflow_status_queryset(
-        qs=DEFAULT_QUERYSET_WORKFLOW_STATUS, filters=filters
-    )
+async def delete_workflow_status(
+    status_id: UUID,
+) -> int:
+    qs = WorkflowStatus.objects.all().filter(id=status_id)
     count, _ = await qs.adelete()
     return count
 
@@ -371,16 +312,16 @@ async def delete_workflow_status(filters: WorkflowStatusFilters = {}) -> int:
 ##########################################################
 
 
-def apply_default_workflow_statuses_sync(
+async def apply_default_workflow_statuses(
     template: ProjectTemplate, workflow: Workflow
 ) -> None:
-    for status in template.workflow_statuses:
-        create_workflow_status_sync(
+    statuses = [
+        WorkflowStatus(
             name=status["name"],
             color=status["color"],
             order=status["order"],
             workflow=workflow,
         )
-
-
-apply_default_workflow_statuses = sync_to_async(apply_default_workflow_statuses_sync)
+        for status in template.workflow_statuses
+    ]
+    await WorkflowStatus.objects.abulk_create(statuses)

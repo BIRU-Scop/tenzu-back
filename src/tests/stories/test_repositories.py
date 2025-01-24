@@ -89,13 +89,6 @@ async def test_list_stories(project_template) -> None:
         )
     ]
     assert len(stories) == 1
-    stories = [
-        story
-        async for story in repositories.list_stories(
-            filters={"workflow_id": workflow_1.id, "ref__in": [story1.ref]}
-        )
-    ]
-    assert len(stories) == 1
 
 
 ##########################################################
@@ -106,11 +99,11 @@ async def test_list_stories(project_template) -> None:
 async def test_get_story() -> None:
     story1 = await f.create_story()
     story = await repositories.get_story(
+        ref=story1.ref,
         filters={
             "project_id": story1.project.id,
             "workflow_id": story1.workflow.id,
-            "ref": story1.ref,
-        }
+        },
     )
     assert story1.ref == story.ref
     assert story1.title == story.title
@@ -163,7 +156,7 @@ async def test_delete_stories() -> None:
         )()
         == 1
     )
-    deleted = await repositories.delete_stories(filters={"id": story.id})
+    deleted = await repositories.delete_story(story_id=story.id)
     assert deleted == 2  # deleted story and assignment
     assert (
         await sync_to_async(
@@ -263,30 +256,30 @@ async def test_list_stories_to_reorder(project_template) -> None:
     story3 = await f.create_story(project=project, workflow=workflow, status=status)
 
     stories = await repositories.list_stories_to_reorder(
+        ref__in=[story1.ref, story2.ref, story3.ref],
         filters={
             "status_id": status.id,
-            "ref__in": [story1.ref, story2.ref, story3.ref],
-        }
+        },
     )
     assert stories[0].ref == story1.ref
     assert stories[1].ref == story2.ref
     assert stories[2].ref == story3.ref
 
     stories = await repositories.list_stories_to_reorder(
+        ref__in=[story1.ref, story3.ref, story2.ref],
         filters={
             "status_id": status.id,
-            "ref__in": [story1.ref, story3.ref, story2.ref],
-        }
+        },
     )
     assert stories[0].ref == story1.ref
     assert stories[1].ref == story3.ref
     assert stories[2].ref == story2.ref
 
     stories = await repositories.list_stories_to_reorder(
+        ref__in=[story3.ref, story1.ref, story2.ref],
         filters={
             "status_id": status.id,
-            "ref__in": [story3.ref, story1.ref, story2.ref],
-        }
+        },
     )
     assert stories[0].ref == story3.ref
     assert stories[1].ref == story1.ref
