@@ -18,18 +18,17 @@
 # You can contact BIRU at ask@biru.sh
 
 from typing import Any
-from uuid import UUID
 
 from pydantic import ConfigDict, EmailStr, validator
 
-from base.serializers import BaseModel
+from base.serializers import UUIDB64, BaseModel
 from users.serializers.nested import UserNestedSerializer
 from workspaces.invitations.choices import WorkspaceInvitationStatus
 from workspaces.workspaces.serializers.nested import WorkspaceSmallNestedSerializer
 
 
 class PrivateEmailWorkspaceInvitationSerializer(BaseModel):
-    id: UUID
+    id: UUIDB64
     user: UserNestedSerializer | None = None
     email: EmailStr | None = None
     model_config = ConfigDict(from_attributes=True)
@@ -64,7 +63,7 @@ class PublicWorkspaceInvitationSerializer(BaseModel):
 
 
 class WorkspaceInvitationSerializer(BaseModel):
-    id: UUID
+    id: UUIDB64
     workspace: WorkspaceSmallNestedSerializer
     user: UserNestedSerializer | None = None
     email: EmailStr
