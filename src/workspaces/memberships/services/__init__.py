@@ -56,7 +56,7 @@ async def list_workspace_memberships(
             projects=await projects_repositories.list_projects(
                 filters={
                     "workspace_id": ws_membership.workspace_id,
-                    "project_member_id": ws_membership.user_id,
+                    "memberships__user_id": ws_membership.user_id,
                 },
             ),
         )
@@ -84,7 +84,7 @@ async def list_paginated_workspace_guests(
             projects=await projects_repositories.list_projects(
                 filters={
                     "workspace_id": workspace.id,
-                    "project_member_id": ws_guest.id,
+                    "memberships__user_id": ws_guest.id,
                 },
             ),
         )

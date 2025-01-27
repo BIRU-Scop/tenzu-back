@@ -142,7 +142,7 @@ async def get_my_workspace(request, id: Path[B64UUID]) -> WorkspaceDetailSeriali
     """
     await check_permissions(permissions=GET_MY_WORKSPACE, user=request.user, obj=None)
     workspace_overview = await workspaces_services.get_user_workspace(
-        user=request.user, id=id
+        user=request.user, workspace_id=id
     )
     if workspace_overview is None:
         raise ex.NotFoundError(f"Workspace {id} does not exist")
@@ -225,7 +225,7 @@ async def delete_workspace(request, id: Path[B64UUID]) -> tuple[int, None]:
 
 
 async def get_workspace_or_404(id: UUID) -> Workspace:
-    workspace = await workspaces_services.get_workspace(id=id)
+    workspace = await workspaces_services.get_workspace(workspace_id=id)
     if workspace is None:
         raise ex.NotFoundError(f"Workspace {id} does not exist")
 

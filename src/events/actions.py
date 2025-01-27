@@ -228,7 +228,7 @@ class SubscribeToWorkspaceEventsAction(PydanticBaseModel):
         from workspaces.workspaces import services as workspaces_services
 
         workspace_id = decode_b64str_to_uuid(self.workspace)
-        workspace = await workspaces_services.get_workspace(id=workspace_id)
+        workspace = await workspaces_services.get_workspace(workspace_id=workspace_id)
 
         if workspace:
             if await can_user_subscribe_to_workspace_channel(
@@ -301,7 +301,7 @@ class CheckWorkspaceEventsSubscriptionAction(PydanticBaseModel):
         from workspaces.workspaces import services as workspaces_services
 
         workspace_id = decode_b64str_to_uuid(self.workspace)
-        workspace = await workspaces_services.get_workspace(id=workspace_id)
+        workspace = await workspaces_services.get_workspace(workspace_id=workspace_id)
 
         if workspace and not await can_user_subscribe_to_workspace_channel(
             user=consumer.scope["user"], workspace=workspace

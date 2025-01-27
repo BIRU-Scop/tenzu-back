@@ -56,6 +56,8 @@ class Project(models.BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
         verbose_name="logo",
     )
 
+    landing_page = models.CharField(max_length=200, null=False, blank=True)
+
     workspace = models.ForeignKey(
         "workspaces.Workspace",
         null=False,

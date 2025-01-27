@@ -6,7 +6,6 @@
 - UX research to prioritise next developments
 - Complete the implementation of the permission system
 - Add organisation notion to better organise project spaces
-- Realtime notifications
 
 ## Goals
 - Before the end of the year: Writing complete deployment documentation

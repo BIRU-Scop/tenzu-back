@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
-from humps import camelize, decamelize
+from pydantic.alias_generators import to_camel, to_snake
 
 from base.api.ordering import OrderQuery
 from exceptions.api import ValidationError
@@ -34,7 +34,7 @@ def test_validate_ordering_valid_params(client):
     valid_field_list = ["-createdAt", "text"]
     result = ordering_query.__call__(order=valid_field_list)
 
-    assert result == list(map(decamelize, valid_field_list))
+    assert result == list(map(to_snake, valid_field_list))
 
 
 def test_validate_ordering_invalid_params(client):
@@ -48,6 +48,6 @@ def test_validate_ordering_invalid_params(client):
     ordering_params = allowed_field_list + [invalid_field]
 
     with pytest.raises(
-        ValidationError, match=f"Invalid ordering fields: {camelize(invalid_field)}"
+        ValidationError, match=f"Invalid ordering fields: {to_camel(invalid_field)}"
     ):
         ordering_query.__call__(order=ordering_params)

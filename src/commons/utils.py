@@ -18,7 +18,9 @@
 
 from urllib.parse import urljoin
 
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
+from django.db import transaction
 from pydantic_core import Url
 
 
@@ -27,3 +29,12 @@ def get_absolute_url(url: str | Url):
         # relative url
         return urljoin(str(settings.BACKEND_URL), url)
     return url
+
+
+def transaction_atomic_async(func):
+    @sync_to_async
+    def wrapper(*args, **kwargs):
+        with transaction.atomic():
+            return async_to_sync(func)(*args, **kwargs)
+
+    return wrapper

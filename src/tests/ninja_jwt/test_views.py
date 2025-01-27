@@ -48,7 +48,7 @@ from ninja_jwt.tokens import AccessToken, RefreshToken, SlidingToken
 from ninja_jwt.utils import aware_utcnow, datetime_from_epoch, datetime_to_epoch
 from users.models import User
 
-from ..utils.factories import create_user
+from ..utils.factories import sync_create_user as create_user
 from .utils import APIViewTestCase
 
 

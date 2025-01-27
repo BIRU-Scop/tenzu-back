@@ -30,8 +30,8 @@ pytestmark = pytest.mark.django_db(transaction=True)
 #############################################################
 
 
-async def test_create_attachment():
-    project = await f.create_project()
+async def test_create_attachment(project_template):
+    project = await f.create_project(project_template)
     story = await f.create_story(project=project)
     user = await f.create_user()
     file = f.build_image_uploadfile(name="test")

@@ -18,13 +18,12 @@
 # You can contact BIRU at ask@biru.sh
 
 from itertools import chain
-from typing import Any, Iterable, Literal, TypedDict
+from typing import Any, Iterable, Literal
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
 
 from base.db.models import (
-    BooleanField,
     CharField,
     Coalesce,
     Count,
@@ -33,7 +32,6 @@ from base.db.models import (
     OuterRef,
     Prefetch,
     Q,
-    QuerySet,
     Subquery,
     Value,
 )
@@ -48,56 +46,10 @@ from workspaces.workspaces.models import Workspace
 ##########################################################
 
 
-DEFAULT_QUERYSET = Workspace.objects.all()
-
-
-class WorkspaceFilters(TypedDict, total=False):
-    id: UUID
-    workspace_member_id: UUID
-    num_members: int
-    has_projects: bool
-
-
-def _apply_filters_to_queryset(
-    qs: QuerySet[Workspace],
-    filters: WorkspaceFilters = {},
-) -> QuerySet[Workspace]:
-    filter_data = dict(filters.copy())
-
-    # filters for those workspace where the user is already a workspace member
-    if "workspace_member_id" in filter_data:
-        filter_data["memberships__user_id"] = filter_data.pop("workspace_member_id")
-
-    if "num_members" in filter_data:
-        qs = qs.annotate(num_members=Count("members"))
-
-    if "has_projects" in filter_data:
-        if filter_data.pop("has_projects"):
-            qs = qs.filter(~Q(projects=None))
-        else:
-            qs = qs.filter(Q(projects=None))
-
-    return qs.filter(**filter_data)
-
-
 WorkspacePrefetchRelated = list[Literal["projects",]]
 
 
-def _apply_prefetch_related_to_queryset(
-    qs: QuerySet[Workspace],
-    prefetch_related: WorkspacePrefetchRelated,
-) -> QuerySet[Workspace]:
-    return qs.prefetch_related(*prefetch_related)
-
-
 WorkspaceOrderBy = list[Literal["-created_at",]]
-
-
-def _apply_order_by_to_queryset(
-    qs: QuerySet[Workspace],
-    order_by: WorkspaceOrderBy,
-) -> QuerySet[Workspace]:
-    return qs.order_by(*order_by)
 
 
 ##########################################################
@@ -115,18 +67,26 @@ def create_workspace(name: str, color: int, created_by: User) -> Workspace:
 ##########################################################
 
 
-@sync_to_async
-def list_workspaces(
-    filters: WorkspaceFilters = {},
+async def list_workspaces(
+    user: User,
     prefetch_related: WorkspacePrefetchRelated = [],
     order_by: WorkspaceOrderBy = ["-created_at"],
+    has_projects: bool | None = None,
+    is_only_user: bool = False,
 ) -> list[Workspace]:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_prefetch_related_to_queryset(qs=qs, prefetch_related=prefetch_related)
-    qs = _apply_order_by_to_queryset(order_by=order_by, qs=qs)
-    qs = qs.distinct()
+    qs = Workspace.objects.all()
+    if is_only_user:
+        qs = qs.annotate(num_members=Count("members")).filter(num_members=1)
+    if has_projects is not None:
+        qs = qs.filter(~Q(projects=None) if has_projects else Q(projects=None))
+    qs = (
+        qs.filter(memberships__user_id=user.id)
+        .prefetch_related(*prefetch_related)
+        .order_by(*order_by)
+        .distinct()
+    )
 
-    return list(qs)
+    return [workspace async for workspace in qs]
 
 
 @sync_to_async
@@ -139,6 +99,7 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
         .order_by("-created_at")
         .values_list("id", flat=True)
     )
+    has_projects = Exists(Project.objects.filter(workspace=OuterRef("pk")))
     member_ws: Iterable[Workspace] = Workspace.objects.none()
     for ws_id in ws_member_ids:
         projects_ids = list(
@@ -150,7 +111,6 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
         projects_qs = Project.objects.filter(id__in=projects_ids[:12]).order_by(
             "-created_at"
         )
-        has_projects = Workspace.objects.get(id=ws_id).projects.count() > 0
         invited_projects_qs = Project.objects.filter(
             Q(invitations__user_id=user.id)
             | (
@@ -169,7 +129,7 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
                 ),
             )
             .annotate(total_projects=Value(total_projects, output_field=IntegerField()))
-            .annotate(has_projects=Value(has_projects, output_field=BooleanField()))
+            .annotate(has_projects=has_projects)
             .annotate(user_role=Value("member", output_field=CharField()))
         )
         member_ws = chain(member_ws, qs)
@@ -203,7 +163,6 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
         projects_qs = Project.objects.filter(id__in=projects_ids[:12]).order_by(
             "-created_at"
         )
-        has_projects = Workspace.objects.get(id=ws_id).projects.count() > 0
         invited_projects_qs = Project.objects.filter(
             Q(invitations__user_id=user.id)
             | (
@@ -222,7 +181,7 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
                 ),
             )
             .annotate(total_projects=Value(total_projects, output_field=IntegerField()))
-            .annotate(has_projects=Value(has_projects, output_field=BooleanField()))
+            .annotate(has_projects=has_projects)
             .annotate(user_role=Value("guest", output_field=CharField()))
         )
         guest_ws = chain(guest_ws, qs)
@@ -238,44 +197,40 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
 
 @sync_to_async
 def get_workspace(
-    filters: WorkspaceFilters = {},
+    workspace_id: UUID,
 ) -> Workspace | None:
-    qs = _apply_filters_to_queryset(filters=filters, qs=DEFAULT_QUERYSET)
+    qs = Workspace.objects.all().filter(id=workspace_id)
     try:
         return qs.get()
     except Workspace.DoesNotExist:
         return None
 
 
-@sync_to_async
-def get_workspace_detail(
-    user_id: UUID | None,
-    filters: WorkspaceFilters = {},
+async def get_workspace_detail(
+    user_id: UUID | None, workspace_id: UUID
 ) -> Workspace | None:
-    qs = _apply_filters_to_queryset(filters=filters, qs=DEFAULT_QUERYSET)
-    qs = qs.annotate(
-        has_projects=Exists(Project.objects.filter(workspace=OuterRef("pk")))
+    # TODO user_id should probably be used to filter projects using membership
+    qs = (
+        Workspace.objects.all()
+        .filter(id=workspace_id)
+        .annotate(has_projects=Exists(Project.objects.filter(workspace=OuterRef("pk"))))
     )
 
     try:
-        return qs.get()
+        return await qs.aget()
     except Workspace.DoesNotExist:
         return None
 
 
-@sync_to_async
-def get_workspace_summary(
-    filters: WorkspaceFilters = {},
-) -> Workspace | None:
-    qs = _apply_filters_to_queryset(filters=filters, qs=DEFAULT_QUERYSET)
+async def get_workspace_summary(workspace_id: UUID) -> Workspace | None:
+    qs = Workspace.objects.all().filter(id=workspace_id)
     try:
-        return qs.get()
+        return await qs.aget()
     except Workspace.DoesNotExist:
         return None
 
 
-@sync_to_async
-def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
+async def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
     # Generic annotations:
     has_projects = Exists(Project.objects.filter(workspace=OuterRef("pk")))
 
@@ -296,7 +251,7 @@ def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
         latest_projects_qs = Project.objects.filter(
             id__in=Subquery(visible_project_ids_qs[:12])
         ).order_by("-created_at")
-        return (
+        return await (
             Workspace.objects.filter(
                 id=id,
                 memberships__user_id=user.id,  # user_is_ws_member
@@ -312,7 +267,7 @@ def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
             .annotate(total_projects=Coalesce(total_projects, 0))
             .annotate(has_projects=has_projects)
             .annotate(user_role=Value("member", output_field=CharField()))
-            .get()
+            .aget()
         )
     except Workspace.DoesNotExist:
         pass  # The workspace selected is not of this kind
@@ -347,7 +302,7 @@ def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
         latest_projects_qs = Project.objects.filter(
             id__in=Subquery(visible_project_ids_qs[:12])
         ).order_by("-created_at")
-        return (
+        return await (
             Workspace.objects.filter(
                 user_not_ws_member & (user_pj_member | user_invited_pj), id=id
             )
@@ -363,7 +318,7 @@ def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
             .annotate(total_projects=Coalesce(total_projects, 0))
             .annotate(has_projects=has_projects)
             .annotate(user_role=Value("guest", output_field=CharField()))
-            .get()
+            .aget()
         )
     except Workspace.DoesNotExist:
         return None  # There is no workspace with this id for this user
@@ -374,13 +329,14 @@ def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
 ##########################################################
 
 
-@sync_to_async
-def update_workspace(workspace: Workspace, values: dict[str, Any] = {}) -> Workspace:
+async def update_workspace(
+    workspace: Workspace, values: dict[str, Any] = {}
+) -> Workspace:
     for attr, value in values.items():
         setattr(workspace, attr, value)
 
     workspace.modified_at = aware_utcnow()
-    workspace.save()
+    await workspace.asave()
     return workspace
 
 
@@ -389,10 +345,9 @@ def update_workspace(workspace: Workspace, values: dict[str, Any] = {}) -> Works
 ##########################################################
 
 
-@sync_to_async
-def delete_workspaces(filters: WorkspaceFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    count, _ = qs.delete()
+async def delete_workspace(workspace_id: UUID) -> int:
+    qs = Workspace.objects.all().filter(id=workspace_id)
+    count, _ = await qs.adelete()
     return count
 
 
@@ -401,6 +356,7 @@ def delete_workspaces(filters: WorkspaceFilters = {}) -> int:
 ##########################################################
 
 
-@sync_to_async
-def list_workspace_projects(workspace: Workspace) -> list[Project]:
-    return list(workspace.projects.all().order_by("-created_at"))
+async def list_workspace_projects(workspace: Workspace) -> list[Project]:
+    return [
+        project async for project in workspace.projects.all().order_by("-created_at")
+    ]

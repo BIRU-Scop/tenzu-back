@@ -68,7 +68,7 @@ async def test_mark_attachment_file_to_delete_when_delete_n_level_related_object
     assert storaged_object12.deleted_at is None
     assert storaged_object21.deleted_at is None
 
-    assert await workspaces_repositories.delete_workspaces(filters={"id": workspace.id})
+    assert await workspaces_repositories.delete_workspace(workspace_id=workspace.id)
 
     await storaged_object11.refresh_from_db()
     await storaged_object12.refresh_from_db()

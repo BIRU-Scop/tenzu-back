@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import asyncio
 
 import pytest
 
@@ -25,31 +24,6 @@ import pytest
 from django.core.management import call_command
 
 from .fixtures import *  # noqa
-
-
-#
-# Supporting async pytest fixtures for non-function scope
-#
-#     According to https://github.com/pytest-dev/pytest-asyncio#async-fixtures
-#
-#         > All scopes are supported, but if you use a non-function scope you will need to redefine the
-#         > event_loop fixture to have the same or broader scope. Async fixtures need the event loop,
-#         > and so must have the same or narrower scope than the event_loop fixture.
-#
-@pytest.fixture(scope="session")
-def event_loop():
-    """
-    Force the pytest-asyncio loop to be the main one.
-    If there is no running event loop, create one and
-    set as the current one.
-    """
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    yield loop
-    loop.close()
 
 
 #
@@ -101,7 +75,7 @@ def pytest_collection_modifyitems(config, items):
                         item.add_marker(skip)
                         break
     elif config.getoption("--fast_only"):
-        skip = pytest.mark.skip(reason="exlcude slow test")
+        skip = pytest.mark.skip(reason="exclude slow test")
         for item in items:
             # Exclude those with django_db(transaction=true)
             for marker in item.iter_markers(name="django_db"):

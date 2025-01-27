@@ -27,15 +27,11 @@ class CreateStoryContent(BaseModel):
 
 
 class UpdateStoryContent(BaseModel):
-    # from stories.stories.serializers import StoryDetailSerializer
-
     story: StoryDetailSerializer
     updates_attrs: list[str]
 
 
 class ReorderStoriesContent(BaseModel):
-    # from stories.stories.serializers import ReorderStoriesSerializer
-
     reorder: ReorderStoriesSerializer
 
 

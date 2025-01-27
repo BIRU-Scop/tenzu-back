@@ -17,23 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any
-
-from humps.main import camelize
-from pydantic import BaseModel as _BaseModel
-from pydantic import ConfigDict
+from ninja import Schema
+from pydantic.alias_generators import to_camel
 
 
-class BaseModel(_BaseModel):
-    async def cleaned_dict(self, request) -> dict[str, Any]:
-        """
-        This method chooses the valid fields from the form. Used in PATCH endpoints for instance.
-        Pydantic forms always fill all the fields, even with None. In a PATCH we need to distinguish between:
-        a) no data: means the original value stays
-        b) data with None: means delete de value
-        This method reads the fields in the request.form and filter them from the Pytantic form
-        """
-        keys = (await request.form()).keys()
-        return {k: v for k, v in self.model_dump().items() if k in keys}
-
-    model_config = ConfigDict(alias_generator=camelize, populate_by_name=True)
+class BaseModel(Schema):
+    class Config(Schema.Config):
+        alias_generator = to_camel
+        populate_by_name = True

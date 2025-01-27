@@ -21,9 +21,8 @@ from decimal import Decimal
 from typing import Any, Final, Literal, TypedDict
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
+from django.db.models import Prefetch, QuerySet
 
-from base.db.models import QuerySet
 from base.occ import repositories as occ_repositories
 from base.repositories import neighbors as neighbors_repositories
 from base.repositories.neighbors import Neighbor
@@ -34,32 +33,17 @@ from users.models import User
 # filters and querysets
 ##########################################################
 
-DEFAULT_QUERYSET = Story.objects.all()
+ASSIGNEES_PREFETCH = Prefetch(
+    "assignees",
+    queryset=User.objects.order_by("-story_assignments__created_at"),
+)
 
 
 class StoryFilters(TypedDict, total=False):
-    id: UUID
-    ref: int
-    refs: list[int]
     project_id: UUID
     workflow_id: UUID
-    workflow_slug: str
+    workflow__slug: str
     status_id: UUID
-
-
-def _apply_filters_to_queryset(
-    qs: QuerySet[Story],
-    filters: StoryFilters = {},
-) -> QuerySet[Story]:
-    filter_data = dict(filters.copy())
-
-    if "refs" in filters:
-        filter_data["ref__in"] = filter_data.pop("refs")
-
-    if "workflow_slug" in filters:
-        filter_data["workflow__slug"] = filter_data.pop("workflow_slug")
-
-    return qs.filter(**filter_data)
 
 
 StorySelectRelated = list[
@@ -68,35 +52,14 @@ StorySelectRelated = list[
         "project",
         "workflow",
         "status",
-        "workspace",
+        "project__workspace",
         "title_updated_by",
         "description_updated_by",
     ]
 ]
 
 
-def _apply_select_related_to_queryset(
-    qs: QuerySet[Story],
-    select_related: StorySelectRelated,
-) -> QuerySet[Story]:
-    select_related_data = []
-
-    for key in select_related:
-        if key == "workspace":
-            select_related_data.append("project__workspace")
-        else:
-            select_related_data.append(key)
-
-    return qs.select_related(*select_related_data)
-
-
-StoryPrefetchRelated = list[Literal["assignees",]]
-
-
-def _apply_prefetch_related_to_queryset(
-    qs: QuerySet[Story], prefetch_related: StoryPrefetchRelated
-) -> QuerySet[Story]:
-    return qs.prefetch_related(*prefetch_related)
+StoryPrefetchRelated = list[Literal["assignees",] | Prefetch]
 
 
 StoryOrderBy = list[
@@ -108,19 +71,12 @@ StoryOrderBy = list[
 ]
 
 
-def _apply_order_by_to_queryset(
-    qs: QuerySet[Story], order_by: StoryOrderBy
-) -> QuerySet[Story]:
-    return qs.order_by(*order_by)
-
-
 ##########################################################
 # create story
 ##########################################################
 
 
-@sync_to_async
-def create_story(
+async def create_story(
     title: str,
     project_id: UUID,
     workflow_id: UUID,
@@ -129,7 +85,7 @@ def create_story(
     order: Decimal,
     description: str | None = None,
 ) -> Story:
-    return Story.objects.create(
+    return await Story.objects.acreate(
         title=title,
         description=description,
         project_id=project_id,
@@ -145,24 +101,35 @@ def create_story(
 ##########################################################
 
 
-@sync_to_async
 def list_stories(
-    filters: StoryFilters = {},
-    order_by: StoryOrderBy = ["order"],
+    filters: StoryFilters = None,
+    order_by: StoryOrderBy = None,
     offset: int | None = None,
     limit: int | None = None,
-    select_related: StorySelectRelated = ["status"],
-    prefetch_related: StoryPrefetchRelated = [],
-) -> list[Story]:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    qs = _apply_prefetch_related_to_queryset(qs=qs, prefetch_related=prefetch_related)
-    qs = _apply_order_by_to_queryset(qs=qs, order_by=order_by)
+    select_related: StorySelectRelated = None,
+    prefetch_related: StoryPrefetchRelated = None,
+) -> QuerySet[Story]:
+    if filters is None:
+        filters = {}
+    if select_related is None:
+        select_related = []
+    if prefetch_related is None:
+        prefetch_related = []
+
+    qs = (
+        Story.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+        .prefetch_related(*prefetch_related)
+    )
+    if order_by is not None:
+        # only replace default order_by if defined
+        qs = qs.order_by(*order_by)
 
     if limit is not None and offset is not None:
         limit += offset
 
-    return list(qs[offset:limit])
+    return qs[offset:limit]
 
 
 ##########################################################
@@ -170,22 +137,27 @@ def list_stories(
 ##########################################################
 
 
-def get_story_sync(
+async def get_story(
+    ref: int,
     filters: StoryFilters = {},
-    select_related: StorySelectRelated = ["status"],
-    prefetch_related: StoryPrefetchRelated = ["assignees"],
+    select_related: StorySelectRelated = None,
+    prefetch_related: StoryPrefetchRelated = None,
 ) -> Story | None:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    qs = _apply_prefetch_related_to_queryset(qs=qs, prefetch_related=prefetch_related)
+    if select_related is None:
+        select_related = ["status"]
+    if prefetch_related is None:
+        prefetch_related = [ASSIGNEES_PREFETCH]
+    qs = (
+        Story.objects.all()
+        .filter(ref=ref, **filters)
+        .select_related(*select_related)
+        .prefetch_related(*prefetch_related)
+    )
 
     try:
-        return qs.get()
+        return await qs.aget()
     except Story.DoesNotExist:
         return None
-
-
-get_story = sync_to_async(get_story_sync)
 
 
 ##########################################################
@@ -210,11 +182,10 @@ async def update_story(
     )
 
 
-@sync_to_async
-def bulk_update_stories(
+async def bulk_update_stories(
     objs_to_update: list[Story], fields_to_update: list[str]
 ) -> None:
-    Story.objects.bulk_update(objs_to_update, fields_to_update)
+    await Story.objects.abulk_update(objs_to_update, fields_to_update)
 
 
 ##########################################################
@@ -222,10 +193,9 @@ def bulk_update_stories(
 ##########################################################
 
 
-@sync_to_async
-def delete_stories(filters: StoryFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    count, _ = qs.delete()
+async def delete_story(story_id: UUID) -> int:
+    qs = Story.objects.all().filter(id=story_id)
+    count, _ = await qs.adelete()
     return count
 
 
@@ -234,40 +204,40 @@ def delete_stories(filters: StoryFilters = {}) -> int:
 ##########################################################
 
 
-@sync_to_async
-def get_total_stories(filters: StoryFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
+async def list_story_neighbors(
+    story: Story, filters: StoryFilters = {}
+) -> Neighbor[Story]:
+    qs = Story.objects.all().filter(**filters).order_by("status", "order")
 
-    return qs.count()
-
-
-@sync_to_async
-def list_story_neighbors(story: Story, filters: StoryFilters = {}) -> Neighbor[Story]:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_order_by_to_queryset(qs=qs, order_by=["status", "order"])
-
-    return neighbors_repositories.get_neighbors_sync(obj=story, model_queryset=qs)
+    return await neighbors_repositories.get_neighbors(obj=story, model_queryset=qs)
 
 
-@sync_to_async
-def list_stories_to_reorder(filters: StoryFilters = {}) -> list[Story]:
+async def list_stories_to_reorder(
+    ref__in: list[int], filters: StoryFilters = {}
+) -> list[Story]:
     """
     This method is very similar to "list_stories" except this has to keep
     the order of the input references.
     """
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_queryset(
-        qs=qs, select_related=["status", "project", "created_by"]
+    qs = (
+        Story.objects.all()
+        .filter(ref__in=ref__in, **filters)
+        .select_related("status", "project", "created_by")
+        .prefetch_related(ASSIGNEES_PREFETCH)
     )
-    qs = _apply_prefetch_related_to_queryset(qs=qs, prefetch_related=["assignees"])
 
-    stories = {s.ref: s for s in qs}
-    return [stories[ref] for ref in filters["refs"] if stories.get(ref) is not None]
+    # keep ref order
+    order = {ref: index for index, ref in enumerate(ref__in)}
+    return sorted([s async for s in qs], key=lambda s: order[s.ref])
 
 
-@sync_to_async
-def list_story_assignees(story: Story) -> list[User]:
-    return list(story.assignees.all().order_by("-story_assignments__created_at"))
+async def list_story_assignees(story: Story) -> list[User]:
+    return [
+        user
+        async for user in story.assignees.all().order_by(
+            "-story_assignments__created_at"
+        )
+    ]
 
 
 async def bulk_update_workflow_to_stories(

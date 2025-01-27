@@ -15,7 +15,25 @@ include:
   - component: $CI_SERVER_FQDN/biru/component/push@v1.7.1
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
+  # add test build image
+  - component: $CI_SERVER_FQDN/biru/component/build-and-push@v1.7.1
+    inputs:
+      stage: build
+      context: ${CI_PROJECT_DIR}
+      dockerfile: ${CI_PROJECT_DIR}/buildrun/docker/tenzu/Dockerfile
+      target: dev-image
+      prefix: test-
+      destination: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
+      rules:
+        - if: '$CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
+          changes:
+            - "buildrun/docker/tenzu/Dockerfile"
+            - "buildrun/docker/tenzu/requirements/devel.txt"
+        - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+
 stages:
+  - build
+  - test
   - release
   - build-deploy
   - mirror
@@ -53,4 +71,34 @@ launch-demo-deploy:
       when: manual
   environment:
     name: demo
+
+test:
+  stage: test
+  image: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
+  services:
+    - name: postgres:16
+      alias: db
+  variables:
+    # Postgres service config
+    POSTGRES_DB: tenzu
+    POSTGRES_USER: tenzu
+    POSTGRES_PASSWORD: tenzu
+    POSTGRES_HOST_AUTH_METHOD: trust
+    # Tenzu configuration
+    TENZU_DEBUG: True
+    TENZU_DB__NAME: "tenzu"
+    TENZU_DB__USER: "tenzu"
+    TENZU_DB__PASSWORD: "tenzu"
+    TENZU_DB__HOST: "db"
+    TENZU_SECRET_KEY: secret
+    TENZU_TOKENS__SIGNING_KEY: secret2
+  script:
+    - cd src/
+    - pytest . --junitxml=result.xml
+  artifacts:
+    reports:
+      junit: src/result.xml
+  rules:
+    - if: '$CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
 

@@ -17,13 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from humps.main import camelize
 from ninja import Schema
+from pydantic.alias_generators import to_camel
 
 from base.serializers.fields import UUIDB64, CamelizeDict, FileField  # noqa
 
 
 class BaseModel(Schema):
     class Config(Schema.Config):
-        alias_generator = camelize
+        alias_generator = to_camel
         populate_by_name = True

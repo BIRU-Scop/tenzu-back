@@ -16,9 +16,18 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Mapping
 
-from humps.main import decamelize
+from pydantic.alias_generators import to_camel, to_snake
 
 
-def camel_to_kebab(msg: str) -> str:
-    return decamelize(msg).replace("_", "-")
+def to_kebab(msg: str) -> str:
+    return to_snake(msg).replace("_", "-")
+
+
+def dict_to_camel(value: Mapping | list | str):
+    if isinstance(value, Mapping):
+        return {to_camel(k): dict_to_camel(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [dict_to_camel(k) for k in value]
+    return value

@@ -34,7 +34,7 @@ class CreateUserValidator(PasswordMixin, BaseModel):
     email: EmailStr
     full_name: Annotated[str, StringConstraints(max_length=50)]  # type: ignore
     accept_terms: StrictBool
-    color: Annotated[int, Field(gt=0, lte=NUM_COLORS)] | None = None  # type: ignore
+    color: Annotated[int, Field(gt=0, le=NUM_COLORS)] | None = None  # type: ignore
     lang: LanguageCode | None = None
     project_invitation_token: str | None = None
     workspace_invitation_token: str | None = None
@@ -54,7 +54,8 @@ class CreateUserValidator(PasswordMixin, BaseModel):
             return v
 
         domain = v.split("@")[1]
-        assert domain in settings.USER_EMAIL_ALLOWED_DOMAINS, "Email domain not allowed"
+        if domain not in settings.USER_EMAIL_ALLOWED_DOMAINS:
+            raise ValueError("Email domain not allowed")
         return v
 
     @field_validator("accept_terms")

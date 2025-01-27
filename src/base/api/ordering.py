@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from fastapi.params import Query
-from humps.main import camelize, decamelize
+from pydantic.alias_generators import to_camel, to_snake
 
 from exceptions import api as ex
 
@@ -41,10 +41,10 @@ class OrderQuery:
     def __call__(
         self, order: list[str] = Query([], description=ORDER_DESC)
     ) -> list[str]:  # type: ignore
-        values: list[str] = list(map(decamelize, order)) if order else self._default  # type: ignore
+        values: list[str] = list(map(to_snake, order)) if order else self._default  # type: ignore
         if invalids := set(values).difference(set(self._allowed)):
             raise ex.ValidationError(
-                f"Invalid ordering fields: {', '.join(map(camelize, invalids))}"
+                f"Invalid ordering fields: {', '.join(map(to_camel, invalids))}"
             )
 
         return values

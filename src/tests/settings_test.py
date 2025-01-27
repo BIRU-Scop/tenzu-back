@@ -31,7 +31,7 @@ INSTALLED_APPS += [
 ]
 
 DEBUG_PROPAGATE_EXCEPTIONS = (True,)
-SITE_ID = (1,)
+SITE_ID = 1
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 NINJA_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,

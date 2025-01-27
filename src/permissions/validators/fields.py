@@ -20,13 +20,9 @@
 from typing import Annotated, Any, Callable, Generator
 
 from pydantic import (
-    GetCoreSchemaHandler,
-    GetJsonSchemaHandler,
-    PlainSerializer,
-    TypeAdapter,
+    AfterValidator,
 )
-from pydantic.json_schema import JsonSchemaValue, WithJsonSchema
-from pydantic_core import core_schema as cs
+from pydantic.json_schema import WithJsonSchema
 
 from permissions import choices
 
@@ -34,49 +30,20 @@ CallableGenerator = Generator[Callable[..., Any], None, None]
 
 
 def validate_permissions(value: list[str]):
-    assert _permissions_are_valid(
-        permissions=value
-    ), "One or more permissions are not valid. Maybe, there is a typo."
-    assert _permissions_are_compatible(
-        permissions=value
-    ), "Given permissions are incompatible"
+    if not _permissions_are_valid(permissions=value):
+        raise ValueError(
+            "One or more permissions are not valid. Maybe, there is a typo."
+        )
+    if not _permissions_are_compatible(permissions=value):
+        raise ValueError("Given permissions are incompatible")
     return value
 
 
 Permissions = Annotated[
     list[str],
-    PlainSerializer(validate_permissions, return_type=list[str]),
+    AfterValidator(validate_permissions),
     WithJsonSchema({"example": ["view_story"]}),
 ]
-
-
-#
-# class Permissions(list[str]):
-#     @classmethod
-#     # TODO[pydantic]: We couldn't refactor `__modify_schema__`, please create the `__get_pydantic_json_schema__` manually.
-#     # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
-#     def __get_pydantic_json_schema__(
-#         cls, core_schema: cs.CoreSchema, handler: GetJsonSchemaHandler
-#     ) -> JsonSchemaValue:
-#         json_schema = handler(core_schema)
-#         json_schema = handler.resolve_ref_schema(json_schema)
-#
-#         json_schema["example"] = ["view_story"]
-#         json_schema["format"] = None
-#         return json_schema
-#     @classmethod
-#     # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
-#     # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
-#     def __get_validators__(cls) -> CallableGenerator:
-#         yield cls.validate
-#
-#     @classmethod
-#     def validate(cls, value: list[str]) -> list[str]:
-#         assert _permissions_are_valid(
-#             permissions=value
-#         ), "One or more permissions are not valid. Maybe, there is a typo."
-#         assert _permissions_are_compatible(permissions=value), "Given permissions are incompatible"
-#         return value
 
 
 def _permissions_are_valid(permissions: list[str]) -> bool:

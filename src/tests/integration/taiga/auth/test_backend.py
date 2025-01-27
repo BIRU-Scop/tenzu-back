@@ -26,7 +26,7 @@ from auth.tokens import AccessToken
 from base.api import Request
 from tests.utils import factories as f
 
-pytestmark = [pytest.mark.django_db, pytest.mark.asyncio]
+pytestmark = [pytest.mark.django_db]
 
 default_scope = {"type": "http", "headers": []}
 

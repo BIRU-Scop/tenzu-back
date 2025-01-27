@@ -78,15 +78,15 @@ async def list_user_workspaces(user: User) -> list[WorkspaceDetailSerializer]:
 ##########################################################
 
 
-async def get_workspace(id: UUID) -> Workspace | None:
-    return await workspaces_repositories.get_workspace(filters={"id": id})
+async def get_workspace(workspace_id: UUID) -> Workspace | None:
+    return await workspaces_repositories.get_workspace(workspace_id=workspace_id)
 
 
 async def get_workspace_detail(id: UUID, user_id: UUID | None) -> WorkspaceSerializer:
     workspace = cast(
         Workspace,
         await workspaces_repositories.get_workspace_detail(
-            filters={"id": id}, user_id=user_id
+            workspace_id=id, user_id=user_id
         ),
     )
     return serializers_services.serialize_workspace(
@@ -96,7 +96,7 @@ async def get_workspace_detail(id: UUID, user_id: UUID | None) -> WorkspaceSeria
         ),
         total_projects=(
             await projects_repositories.get_total_projects(
-                filters={"workspace_id": id, "project_member_id": user_id}
+                workspace_id=id, filters={"memberships__user_id": user_id}
             )
             if user_id
             else 0
@@ -105,24 +105,28 @@ async def get_workspace_detail(id: UUID, user_id: UUID | None) -> WorkspaceSeria
 
 
 async def get_workspace_nested(
-    id: UUID, user_id: UUID | None
+    workspace_id: UUID, user_id: UUID | None
 ) -> WorkspaceNestedSerializer:
     # TODO: this service should be improved
     workspace = cast(
         Workspace,
         await workspaces_repositories.get_workspace_summary(
-            filters={"id": id},
+            workspace_id=workspace_id,
         ),
     )
     return serializers_services.serialize_nested(
         workspace=workspace,
-        user_role=await get_workspace_role_name(workspace_id=id, user_id=user_id),
+        user_role=await get_workspace_role_name(
+            workspace_id=workspace_id, user_id=user_id
+        ),
     )
 
 
-async def get_user_workspace(user: User, id: UUID) -> WorkspaceDetailSerializer | None:
+async def get_user_workspace(
+    user: User, workspace_id: UUID
+) -> WorkspaceDetailSerializer | None:
     workspace = await workspaces_repositories.get_user_workspace_overview(
-        user=user, id=id
+        user=user, id=workspace_id
     )
     if workspace:
         return serializers_services.serialize_workspace_detail(workspace=workspace)
@@ -164,16 +168,14 @@ async def _update_workspace(
 
 async def delete_workspace(workspace: Workspace, deleted_by: User) -> bool:
     ws_total_projects = await projects_repositories.get_total_projects(
-        filters={"workspace_id": workspace.id}
+        workspace_id=workspace.id
     )
     if ws_total_projects:
         raise ex.WorkspaceHasProjects(
             f"This workspace has {ws_total_projects} projects. Delete the projects and try again."
         )
 
-    deleted = await workspaces_repositories.delete_workspaces(
-        filters={"id": workspace.id}
-    )
+    deleted = await workspaces_repositories.delete_workspace(workspace_id=workspace.id)
     if deleted > 0:
         await workspaces_events.emit_event_when_workspace_is_deleted(
             workspace=workspace, deleted_by=deleted_by

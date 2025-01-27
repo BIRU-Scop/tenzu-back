@@ -46,9 +46,15 @@ from tests.ninja_jwt.urls import sync_api
 @pytest.fixture(scope="function", autouse=True)
 def set_settings(settings):
     settings.ROOT_URLCONF = "tests.ninja_jwt.urls"
+    settings.AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
 
 
 @pytest.fixture(scope="function")
 def client(set_settings, monkeypatch):
     monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
     return TestClient(sync_api)
+
+
+@pytest.fixture
+def allow_async_unsafe(monkeypatch):
+    monkeypatch.setenv("DJANGO_ALLOW_ASYNC_UNSAFE", "true")

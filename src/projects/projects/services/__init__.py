@@ -27,6 +27,7 @@ from ninja import UploadedFile
 
 from base.utils.files import uploadfile_to_file
 from base.utils.images import get_thumbnail_url
+from commons.utils import transaction_atomic_async
 from events import event_handlers as actions_events
 from permissions import services as permissions_services
 from projects.invitations import services as pj_invitations_services
@@ -46,6 +47,11 @@ from workflows import repositories as workflows_repositories
 from workspaces.memberships import repositories as workspace_memberships_repositories
 from workspaces.workspaces import services as workspaces_services
 from workspaces.workspaces.models import Workspace
+
+
+def get_landing_page_for_workflow(slug: str | None):
+    return f"kanban/{slug}" if slug else ""
+
 
 ##########################################################
 # create project
@@ -71,6 +77,7 @@ async def create_project(
     return await get_project_detail(project=project, user=created_by)
 
 
+@transaction_atomic_async
 async def _create_project(
     workspace: Workspace,
     name: str,
@@ -79,6 +86,16 @@ async def _create_project(
     color: int | None,
     logo_file: UploadedFile | None = None,
 ) -> Project:
+    template = await projects_repositories.get_project_template(
+        filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
+    )
+
+    landing_page = (
+        get_landing_page_for_workflow(template.workflows[0]["slug"])
+        if template and template.workflows
+        else ""
+    )
+
     project = await projects_repositories.create_project(
         workspace=workspace,
         name=name,
@@ -86,12 +103,11 @@ async def _create_project(
         description=description,
         color=color,
         logo=logo_file,
+        landing_page=landing_page,
     )
 
     # apply template
-    if template := await projects_repositories.get_project_template(
-        filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
-    ):
+    if template:
         await projects_repositories.apply_template_to_project(
             template=template, project=project
         )
@@ -140,7 +156,7 @@ async def list_workspace_projects_for_user(
         return await list_projects(workspace_id=workspace.id)
 
     return await projects_repositories.list_projects(
-        filters={"workspace_id": workspace.id, "project_member_id": user.id},
+        filters={"workspace_id": workspace.id, "memberships__user_id": user.id},
         select_related=["workspace"],
     )
 
@@ -151,8 +167,8 @@ async def list_workspace_invited_projects_for_user(
     return await projects_repositories.list_projects(
         filters={
             "workspace_id": workspace.id,
-            "invitee_id": user.id,
-            "invitation_status": ProjectInvitationStatus.PENDING,
+            "invitations__user_id": user.id,
+            "invitations__status": ProjectInvitationStatus.PENDING,
         }
     )
 
@@ -164,7 +180,7 @@ async def list_workspace_invited_projects_for_user(
 
 async def get_project(id: UUID) -> Project | None:
     return await projects_repositories.get_project(
-        filters={"id": id}, select_related=["workspace"], prefetch_related=["workflows"]
+        project_id=id, select_related=["workspace"], prefetch_related=["workflows"]
     )
 
 
@@ -185,7 +201,7 @@ async def get_project_detail(
 
     user_id = None if user.is_anonymous else user.id
     workspace = await workspaces_services.get_workspace_nested(
-        id=project.workspace_id, user_id=user_id
+        workspace_id=project.workspace_id, user_id=user_id
     )
 
     user_permissions = await permissions_services.get_user_permissions_for_project(
@@ -231,7 +247,26 @@ async def update_project(
     project: Project, user: User, values: dict[str, Any] = {}
 ) -> ProjectDetailSerializer:
     updated_project = await _update_project(project=project, values=values)
-    return await get_project_detail(project=updated_project, user=user)
+    project_details = await get_project_detail(project=updated_project, user=user)
+    await projects_events.emit_event_when_project_is_updated(
+        project=updated_project,
+    )
+    return project_details
+
+
+async def update_project_landing_page(
+    project: Project, new_slug: str | None = None
+) -> Project:
+    if new_slug is None:
+        new_slug = await projects_repositories.get_first_workflow_slug(project)
+    updated_project = await projects_repositories.update_project(
+        project,
+        values={"landing_page": get_landing_page_for_workflow(new_slug)},
+    )
+    await projects_events.emit_event_when_project_is_updated(
+        project=updated_project,
+    )
+    return updated_project
 
 
 async def _update_project(project: Project, values: dict[str, Any] = {}) -> Project:
@@ -300,7 +335,7 @@ async def delete_project(project: Project, deleted_by: AnyUser) -> bool:
         file_to_delete = project.logo.path
 
     guests = await users_services.list_guests_in_workspace_for_project(project=project)
-    deleted = await projects_repositories.delete_projects(filters={"id": project.id})
+    deleted = await projects_repositories.delete_projects(project_id=project.id)
 
     if deleted > 0:
         # Delete old file if existed

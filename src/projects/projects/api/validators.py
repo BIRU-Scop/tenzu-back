@@ -16,20 +16,18 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from typing import Optional
+from typing import Any, Literal
 
 from ninja import UploadedFile
 from pydantic import (
     AfterValidator,
+    BeforeValidator,
     Field,
     PlainValidator,
     StringConstraints,
     WithJsonSchema,
-    field_validator,
 )
-from pydantic_core.core_schema import ValidationInfo
-from typing_extensions import Annotated, Literal
+from typing_extensions import Annotated
 
 from base.utils.images import valid_content_type, valid_image_content
 from base.utils.uuid import decode_b64str_to_uuid
@@ -53,41 +51,38 @@ def validate_logo(logo: UploadedFile):
     return logo
 
 
+def logo_can_be_empty_str(v: Any) -> Any | None:
+    if v == "":
+        return None
+    return v
+
+
 # Need to add the JsonSchema because of the PlainValidator
 # (https://docs.pydantic.dev/latest/concepts/json_schema/#withjsonschema-annotation)
 LogoField = Annotated[
     UploadedFile,
-    PlainValidator(lambda x: validate_logo(x)),
-    WithJsonSchema(dict(type="string", format="binary")),
+    BeforeValidator(
+        logo_can_be_empty_str, json_schema_input_type=UploadedFile | Literal[""]
+    ),
+    PlainValidator(validate_logo, json_schema_input_type=UploadedFile),
 ]
 
 
 class ProjectValidator(BaseModel):
-    name: Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)]  # type: ignore
+    name: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
+    ]  # type: ignore
     workspace_id: B64UUID
     # description max_length validation to 220 characteres to resolve
     # this problem https://stackoverflow.com/a/69851342/2883148
     description: Annotated[str, StringConstraints(max_length=220)] | None = None  # type: ignore
-    color: Annotated[int, Field(gt=0, lte=NUM_COLORS)] | None = None  # type: ignore
-
-    @field_validator("name")
-    @classmethod
-    def check_name_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        assert v != "", "Empty name is not allowed"
-        return v
+    color: Annotated[int, Field(gt=0, le=NUM_COLORS)] | None = None  # type: ignore
+    logo: LogoField | None = None
 
 
 class UpdateProjectValidator(BaseModel):
-    name: str | None
-    description: str | None
-    logo: LogoField | Literal[""] | None = None
-
-    @field_validator("logo")
-    @classmethod
-    def logo_can_be_empty_str(cls, v: str) -> Optional[str]:
-        if v:
-            return v
-        return None
+    name: str | None = None
+    description: str | None = None
 
 
 class PermissionsValidator(BaseModel):
