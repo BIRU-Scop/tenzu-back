@@ -343,4 +343,6 @@ static/
 media/
 public/
 
+file_emails/
+
 /src/mjml/node_modules/*
