@@ -344,5 +344,6 @@ media/
 public/
 
 file_emails/
+exports/
 
 /src/mjml/node_modules/*
