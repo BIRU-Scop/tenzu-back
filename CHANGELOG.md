@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.10](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.9...v0.0.1-staging.10) (2025-01-27)
+
+
+### Bug Fixes
+
+* prevent non-encoded serialisation of id in invitation ([0cb912c](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/0cb912cb5dcdda1ab7d009b010926282c33fb022))
+
 ## [0.0.1-staging.9](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.8...v0.0.1-staging.9) (2025-01-27)
 
 
