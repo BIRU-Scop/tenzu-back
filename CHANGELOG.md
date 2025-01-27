@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.9](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.8...v0.0.1-staging.9) (2025-01-27)
+
+
+### Features
+
+* add landing_page field to more serializers ([a330b43](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/a330b4361addbcb856a4a1ccf419956f9f88f8b4))
+* put some sequential db operation inside transaction ([421e1c2](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/421e1c24b9b2cd3d8972ff18027022e22ab55ef8))
+* remove pyhumps dependency ([8a77a2f](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/8a77a2f2aee24b211fdca279d150c8ab386ac7f5))
+* update landing_page on rename workflow and add project event update ([dac0381](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/dac0381a777ecc48ab59fbefc53cc188c789b7f2))
+
+
+### Bug Fixes
+
+* add can authenticate check to create_auth_credentials ([4faa6a9](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/4faa6a9c214eb8609e9af6dd55525ae9b59ac488))
+* fix workflow slug ([6e4b1b2](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/6e4b1b28e2a1415b59500f282a01f7ed01c6f757))
+* make async jwt tests pass ([82e70c1](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/82e70c1b95e7df33d82fcee0ab1b9d0fa49e4fb7))
+* prevent having two logo field in API definition ([97df03e](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/97df03e29d54baaf6c67bdc709f1696b2c3b567a))
+* remove assert from validation, add guard for optional field and rename misleading mixin class ([66f9c35](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/66f9c3580abf40d1b9da0321c33c27c9daccb9c1))
+* repair some constraint that were not validated ([bf37cf1](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/bf37cf13757aff14a4291b91830efc991ba4c2a3))
+* rollback camelize restriction ([9f8010a](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/9f8010a891559cf5d1cbbe39f0a5e268a7512a61))
+* working projects tests and fix some validation check that were not run ([92f87ea](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/92f87ea6cede4948c14dcda419b94a35a331bbde))
+* working stories tests and fix uncovered bugs ([07ccddc](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/07ccddcfcde8a55ff4cd0b2f190e0ce9bfd963b6))
+
 ## [0.0.1-staging.8](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.7...v0.0.1-staging.8) (2025-01-13)
 
 
