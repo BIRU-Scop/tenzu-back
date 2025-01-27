@@ -18,11 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 from typing import Any
-from uuid import UUID
 
 from pydantic import ConfigDict, EmailStr, validator
 
-from base.serializers import BaseModel
+from base.serializers import UUIDB64, BaseModel
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.projects.serializers.nested import ProjectSmallNestedSerializer
 from projects.roles.serializers.nested import ProjectRoleNestedSerializer
@@ -39,12 +38,12 @@ class PublicProjectInvitationSerializer(BaseModel):
 
 
 class ProjectInvitationSerializer(BaseModel):
-    id: UUID
+    id: UUIDB64
     project: ProjectSmallNestedSerializer
     user: UserNestedSerializer | None = None
     role: ProjectRoleNestedSerializer
     email: EmailStr
-    workspace_id: UUID
+    workspace_id: UUIDB64
 
     @staticmethod
     def resolve_workspace_id(obj):
@@ -54,7 +53,7 @@ class ProjectInvitationSerializer(BaseModel):
 
 
 class PrivateEmailProjectInvitationSerializer(BaseModel):
-    id: UUID
+    id: UUIDB64
     user: UserNestedSerializer | None = None
     role: ProjectRoleNestedSerializer
     email: EmailStr | None = None
