@@ -477,9 +477,8 @@ def update_user(user: User, values: dict[str, Any] = {}) -> User:
 ##########################################################
 
 
-async def delete_user(filters: UserFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    count, _ = await qs.adelete()
+async def delete_user(user: User) -> int:
+    count, _ = await user.adelete()
     return count
 
 

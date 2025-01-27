@@ -427,7 +427,7 @@ async def delete_user(user: User) -> bool:
             )
 
     # delete user
-    deleted_user = await users_repositories.delete_user(filters={"id": user.id})
+    deleted_user = await users_repositories.delete_user(user)
 
     if deleted_user > 0:
         await users_events.emit_event_when_user_is_deleted(user=user)
