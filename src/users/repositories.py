@@ -45,7 +45,6 @@ from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
 from projects.projects.models import Project
 from users.models import AuthData, User
-from users.tokens import VerifyUserToken
 from workspaces.invitations.choices import WorkspaceInvitationStatus
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships.models import WorkspaceMembership
@@ -511,19 +510,14 @@ def update_last_login(user: User) -> None:
     django_update_last_login(User, user)
 
 
-@sync_to_async
-def clean_expired_users() -> None:
+async def clean_expired_users() -> None:
     # delete all users that are not currently active (is_active=False)
     # and have never verified the account (date_verification=None)
     # and don't have an outstanding token associated (exclude)
-    (
+    await (
         User.objects.filter(is_active=False, date_verification=None)
-        .exclude(
-            id__in=OutstandingToken.objects.filter(
-                token_type=VerifyUserToken.token_type
-            ).values_list("object_id")
-        )
-        .delete()
+        .exclude(id__in=OutstandingToken.objects.values_list("user_id"))
+        .adelete()
     )
 
 
