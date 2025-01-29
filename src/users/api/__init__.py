@@ -349,6 +349,10 @@ async def reset_password(
             "The user is inactive or does not exist.", detail="inactive-user"
         )
     refresh: RefreshToken = await sync_to_async(RefreshToken.for_user)(user)
+    username_field = User.USERNAME_FIELD
+
     return TokenObtainPairOutputSchema(
-        refresh=str(refresh), token=str(refresh.access_token), username=user.username
+        access=str(refresh.access_token),
+        refresh=str(refresh),
+        **{username_field: getattr(user, username_field)},
     )
