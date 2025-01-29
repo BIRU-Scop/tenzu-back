@@ -81,6 +81,24 @@ launch-demo-deploy:
   environment:
     name: demo
 
+publish-demo-tag:
+  stage: merge
+  needs:
+    - job: get-released-tag
+    - job: build-image-and-push
+    - job: launch-demo-deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging" && $CI_COMMIT_MESSAGE =~ /^chore\(release\).*-.*/ '
+  before_script:
+    - git config --global user.email "bot@biru.sh"
+    - git config --global user.name "${CI_PROJECT_TITLE}-bot"
+    - git remote set-url origin https://oauth2:$DEV_TOKEN@${CI_SERVER_HOST}/${CI_PROJECT_PATH}
+    - git fetch
+  script:
+    - DEMO_TAG="${NEXT_VERSION//staging/demo}"
+    - echo $DEMO_TAG
+    - git push origin HEAD:refs/tags/$DEMO_TAG
+
 test:
   stage: test
   image: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
