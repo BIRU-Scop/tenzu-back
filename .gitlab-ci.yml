@@ -12,11 +12,11 @@ include:
   - component: $CI_SERVER_FQDN/biru/project-components/release@0.0.16
     inputs:
       token: $DEV_TOKEN
-  - component: $CI_SERVER_FQDN/biru/component/push@v1.9.0
+  - component: $CI_SERVER_FQDN/biru/component/push@v1.9.1
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
       fetch-args: "origin --no-tags"
-  - component: $CI_SERVER_FQDN/biru/component/push@v1.9.0
+  - component: $CI_SERVER_FQDN/biru/component/push@v1.9.1
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
       job-name: mirror-demo-tags
