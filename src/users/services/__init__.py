@@ -27,6 +27,7 @@ from auth import services as auth_services
 from base.api.pagination import Pagination
 from base.utils.datetime import aware_utcnow
 from commons.colors import generate_random_color
+from commons.utils import transaction_atomic_async
 from emails.emails import Emails
 from emails.tasks import send_email
 from ninja_jwt.exceptions import TokenError
@@ -282,6 +283,7 @@ async def update_user(user: User, full_name: str, lang: str, password: str) -> U
 #####################################################################
 
 
+@transaction_atomic_async
 async def delete_user(user: User) -> bool:
     # delete workspaces where the user is the only ws member
     # (Whe need to delete all projects first to emit all events)
@@ -427,7 +429,7 @@ async def delete_user(user: User) -> bool:
             )
 
     # delete user
-    deleted_user = await users_repositories.delete_user(filters={"id": user.id})
+    deleted_user = await users_repositories.delete_user(user)
 
     if deleted_user > 0:
         await users_events.emit_event_when_user_is_deleted(user=user)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -16,28 +15,3 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from typing import Any
-
-from django.db.models.signals import post_delete
-from django.dispatch import receiver
-
-from attachments.models import Attachment
-from base.db.models import Model
-from commons.storage import repositories as storage_repositories
-
-
-@receiver(
-    post_delete,
-    sender=Attachment,
-    dispatch_uid="mark_attachment_file_to_delete",
-)
-def mark_attachment_file_to_delete(
-    sender: Model, instance: Attachment, **kwargs: Any
-) -> None:
-    """
-    Mark the store object (with the file) of the attachment as deleted.
-    """
-    storage_repositories.mark_storaged_object_as_deleted(
-        storaged_object=instance.storaged_object
-    )

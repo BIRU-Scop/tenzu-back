@@ -1,0 +1,34 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="export_users_stats" type="Python.DjangoServer" factoryName="Django server">
+    <module name="tenzu-back" />
+    <option name="ENV_FILES" value="" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="PYTHONUNBUFFERED" value="1" />
+      <env name="DJANGO_SETTINGS_MODULE" value="configurations.dev" />
+    </envs>
+    <option name="SDK_HOME" value="" />
+    <option name="SDK_NAME" value="tenzu-DEV" />
+    <option name="WORKING_DIRECTORY" value="$Projectpath$" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <PathMappingSettings>
+      <option name="pathMappings">
+        <list>
+          <mapping local-root="src" remote-root="/tenzu" />
+        </list>
+      </option>
+    </PathMappingSettings>
+    <option name="launchJavascriptDebuger" value="false" />
+    <option name="host" value="" />
+    <option name="additionalOptions" value="../exports/test.csv" />
+    <option name="browserUrl" value="" />
+    <option name="runTestServer" value="false" />
+    <option name="runNoReload" value="false" />
+    <option name="useCustomRunCommand" value="true" />
+    <option name="customRunCommand" value="export_users_stats" />
+    <method v="2" />
+  </configuration>
+</component>

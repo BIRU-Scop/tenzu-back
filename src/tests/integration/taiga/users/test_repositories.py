@@ -450,7 +450,7 @@ async def test_update_user():
 async def test_delete_user():
     user = await f.create_user(username="user", is_active=True)
 
-    deleted = await users_repositories.delete_user(filters={"id": user.id})
+    deleted = await users_repositories.delete_user(user)
     assert deleted == 1
 
 

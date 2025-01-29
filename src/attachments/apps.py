@@ -26,11 +26,4 @@ class AttachmentConfig(AppConfig):
     verbose_name = "Attachments"
 
     def ready(self) -> None:
-        from attachments.signals import mark_attachment_file_to_delete
-        from base.db.models import signals
-
-        signals.post_delete.connect(
-            mark_attachment_file_to_delete,
-            sender="attachments.Attachment",
-            dispatch_uid="mark_attachment_file_to_delete",
-        )
+        from . import signals  # noqa
