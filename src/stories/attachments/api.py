@@ -20,7 +20,7 @@
 from functools import partial
 from uuid import UUID
 
-from django.http import FileResponse, HttpRequest, HttpResponse
+from django.http import FileResponse, HttpRequest
 from ninja import File, Path, Router, UploadedFile
 
 from attachments import services as attachments_services
@@ -205,17 +205,12 @@ async def get_story_attachment_file(
     )
     file = attachment.storaged_object.file
 
-    if is_view:
-        response = FileResponse(
-            iterfile(file, mode="rb"),
-            content_type=attachment.content_type,
-        )
-    else:
-        response = FileResponse(
-            iterfile(file, mode="rb"),
-            content_type="application/octet-stream; charset=utf-8",
-        )
-    response.headers["Content-Disposition"] = f"attachment; filename={attachment.name}"
+    response = FileResponse(
+        iterfile(file, mode="rb"),
+        content_type=attachment.content_type,
+        as_attachment=not is_view,
+        filename=attachment.name,
+    )
     return response
 
 
