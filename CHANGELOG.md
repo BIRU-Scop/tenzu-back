@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.11](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.10...v0.0.1-staging.11) (2025-02-04)
+
+
+### Features
+
+* add flush_expired_tokens task ([4134dda](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/4134dda1b817a759ae48b19f7dbb02b0b66be078))
+* command to export statistics about registration ([4bb9227](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/4bb92273cde71f20d52add0e11faf31d47160051))
+
+
+### Bug Fixes
+
+* ci mirroring ([84d8404](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/84d8404d367cba53fc1dd4ee9dfca80a0df59d6c))
+* let django handle attachment file headers,now it works the same on all browsers for view and download ([760dea8](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/760dea8aff5cd37fb38f5a474eceabed4de4da26))
+* put delete user inside transaction ([8fbbd3e](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/8fbbd3e31b354e27717571c06109f293c0f74929))
+* remove filter on token_type ([ab53bf1](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/ab53bf1400f8a3b428cd7d9b62a1a367d491e2d0))
+* reset password works with ninja_jwt tokens ([9e28fc6](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/9e28fc6d1a504a90d678a8d3fdb4f74b159404d3))
+
 ## [0.0.1-staging.10](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.9...v0.0.1-staging.10) (2025-01-27)
 
 
