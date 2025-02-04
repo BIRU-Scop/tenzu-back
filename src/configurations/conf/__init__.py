@@ -119,6 +119,7 @@ class Settings(BaseSettings):
 
     # Tasks (linux crontab style)
     CLEAN_EXPIRED_USERS_CRON: str = "0 0 * * *"  # default: once a day
+    CLEAN_EXPIRED_TOKENS_CRON: str = "0 0 * * *"  # default: once a day
 
     # Templates
     SUPPORT_EMAIL: EmailStr = Field(default="support@example.com")

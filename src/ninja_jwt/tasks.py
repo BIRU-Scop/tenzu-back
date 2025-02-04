@@ -17,27 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any
-
-from django.db.models.signals import post_delete
-from django.dispatch import receiver
-
-from attachments.models import Attachment
-from base.db.models import Model
-from commons.storage import repositories as storage_repositories
+from django.conf import settings
+from django.core.management import call_command
+from procrastinate.contrib.django import app
 
 
-@receiver(
-    post_delete,
-    sender=Attachment,
-    dispatch_uid="mark_attachment_file_to_delete",
-)
-def mark_attachment_file_to_delete(
-    sender: Model, instance: Attachment, **kwargs: Any
-) -> None:
-    """
-    Mark the store object (with the file) of the attachment as deleted.
-    """
-    storage_repositories.mark_storaged_object_as_deleted(
-        storaged_object=instance.storaged_object
-    )
+@app.periodic(cron=settings.CLEAN_EXPIRED_TOKENS_CRON)  # type: ignore
+@app.task
+def flush_expired_tokens(timestamp: int) -> None:
+    call_command("flushexpiredtokens")

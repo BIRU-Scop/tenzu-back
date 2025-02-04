@@ -27,6 +27,7 @@ from auth import services as auth_services
 from base.api.pagination import Pagination
 from base.utils.datetime import aware_utcnow
 from commons.colors import generate_random_color
+from commons.utils import transaction_atomic_async
 from emails.emails import Emails
 from emails.tasks import send_email
 from ninja_jwt.exceptions import TokenError
@@ -178,14 +179,11 @@ async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
 
     # Get user and verify it
     user = await users_repositories.get_user(
-        filters=cast(
-            UserFilters,
-            {
-                settings.NINJA_JWT["USER_ID_FIELD"]: verify_token.get(
-                    settings.NINJA_JWT["USER_ID_CLAIM"]
-                )
-            },
-        )
+        filters={
+            settings.NINJA_JWT["USER_ID_FIELD"]: verify_token.get(
+                settings.NINJA_JWT["USER_ID_CLAIM"]
+            )
+        }
     )
     if not user:
         raise ex.BadVerifyUserTokenError("The user doesn't exist.")
@@ -282,6 +280,7 @@ async def update_user(user: User, full_name: str, lang: str, password: str) -> U
 #####################################################################
 
 
+@transaction_atomic_async
 async def delete_user(user: User) -> bool:
     # delete workspaces where the user is the only ws member
     # (Whe need to delete all projects first to emit all events)
@@ -427,7 +426,7 @@ async def delete_user(user: User) -> bool:
             )
 
     # delete user
-    deleted_user = await users_repositories.delete_user(filters={"id": user.id})
+    deleted_user = await users_repositories.delete_user(user)
 
     if deleted_user > 0:
         await users_events.emit_event_when_user_is_deleted(user=user)
@@ -469,23 +468,27 @@ async def _get_user_and_reset_password_token(
     token: str,
 ) -> tuple[ResetPasswordToken, User]:
     try:
-        reset_token = await ResetPasswordToken(token)
+        reset_token = await sync_to_async(ResetPasswordToken)(token)
     except TokenError:
         raise ex.BadResetPasswordTokenError("Invalid or expired token.")
 
     # Get user
     user = await users_repositories.get_user(
-        filters={"id": reset_token.object_data["id"], "is_active": True}
+        filters={
+            settings.NINJA_JWT["USER_ID_FIELD"]: reset_token.get(
+                settings.NINJA_JWT["USER_ID_CLAIM"]
+            )
+        }
     )
     if not user:
-        await reset_token.blacklist()
+        await sync_to_async(reset_token.blacklist)()
         raise ex.BadResetPasswordTokenError("Invalid or malformed token.")
 
     return reset_token, user
 
 
 async def _generate_reset_password_token(user: User) -> str:
-    return str(ResetPasswordToken.for_user(user))
+    return str(await sync_to_async(ResetPasswordToken.for_user)(user))
 
 
 async def _send_reset_password_email(user: User) -> None:
@@ -515,7 +518,7 @@ async def reset_password(token: str, password: str) -> User | None:
 
     if user:
         await users_repositories.change_password(user=user, password=password)
-        await reset_token.blacklist()
+        await sync_to_async(reset_token.blacklist)()
         return user
 
     return None
