@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.12](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.11...v0.0.1-staging.12) (2025-02-08)
+
+
+### Bug Fixes
+
+* exclude fictive account from stats ([030cfdd](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/030cfddeca66eca56d9a83e487b58982ee4a4c1a))
+
 ## [0.0.1-staging.11](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.10...v0.0.1-staging.11) (2025-02-04)
 
 
