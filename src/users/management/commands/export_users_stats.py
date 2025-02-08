@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import TextIO
 
 from django.core.management.base import BaseCommand
+from django.db.models import Q, QuerySet
 
 from users.models import User
 
@@ -33,21 +34,33 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("file_path", type=Path)
 
-    def get_last_user_exported(self, csv_file: TextIO) -> datetime:
+    def get_last_user_exported_date(self, csv_file: TextIO) -> datetime | None:
         last_position = csv_file.tell()
         csv_file.seek(
-            last_position - 50
+            max(0, last_position - 50)
         )  # be sure to read full iso-formated date that should be last thing written
         content = csv_file.read()
         last_sep_index = content.rfind(",")
         if last_sep_index == -1:
             raise ValueError("Existing file is not in expected format")
         iso_datetime = content[last_sep_index + 1 :].strip()
-        return datetime.fromisoformat(iso_datetime)
+        return (
+            datetime.fromisoformat(iso_datetime)
+            if iso_datetime
+            != "date_joined"  # happens when file is empty except for headers
+            else None
+        )
+
+    def exclude_demo_test_data(self, qs: QuerySet[User]):
+        return qs.exclude(
+            Q(username__startswith="pruebastenzu")
+            | Q(username="admin")
+            | Q(email__endswith="@tenzu.demo"),
+        )
 
     def handle(self, *args, **options):
         file_path: Path = options["file_path"]
-        qs = User.objects.all().order_by("date_joined")
+        qs = self.exclude_demo_test_data(User.objects.all().order_by("date_joined"))
 
         fieldnames = [
             "email_hash",
@@ -58,7 +71,10 @@ class Command(BaseCommand):
         with file_path.open("a+", newline="") as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             if is_existing_file:
-                qs = qs.filter(date_joined__gt=self.get_last_user_exported(csv_file))
+                if (
+                    start_date := self.get_last_user_exported_date(csv_file)
+                ) is not None:
+                    qs = qs.filter(date_joined__gt=start_date)
             else:
                 writer.writeheader()
             for user in qs.iterator():
