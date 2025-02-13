@@ -1,10 +1,11 @@
 <div align="center">
 
-<img src="https://tenzu.net/media/images/tenzu_logo_full_animated.original.svg" alt="Tenzu logo" width="200" />
+<img src="https://tenzu.net/media/images/tenzu_logo_full_animated_HRtDXL8.original.svg" alt="Tenzu logo" width="200" />
 
 <a href="https://tenzu.net"><b>Website</b></a> •
 <a href="https://community.tenzu.net/"><b>Community</b></a> •
-<a href="https://twitter.com/tenzu_app"><b>Twitter</b></a> •
+<a href="https://fosstodon.org/@tenzu"><b>Mastodon</b></a> •
+<a href="https://bsky.app/profile/tenzu.app"><b>Bluesky</b></a> •
 <a href="https://www.linkedin.com/company/biru-scop-arl/"><b>Linkedin</b></a>
 
 </div>
@@ -12,9 +13,12 @@
 
 # About
 
-[Tenzu](https://tenzu.app/) is an open source software for IT project management. 
+[Tenzu](https://tenzu.app/) is your open-source companion tool to launch digital projects
 
-![tenzu screenshot](https://tenzu.net/media/images/tenzu-screenshoot-RS.original.png)
+Our mission is to help all actors in a project team, from Techs through Product and Designers up to Leaders, 
+share knowledge and learnings to make informed decisions.
+
+![tenzu screenshot](https://tenzu.net/media/images/tenzu-screenshoot-RS_kMgBpJ0.original.png)
 
 ## Features
 - *Project spaces*: Multiple project space organised by workspaces
