@@ -7,9 +7,8 @@
 .env
 **__pycache__
 **media
-!apps/tenzu/src/tenzu/base/sampledata/media
+!/src/base/sampledata/media/
 **pytest.ini
-!apps/tenzu/requirements/prod.txt
 **scripts
 **static
 !**emails/static
