@@ -21,7 +21,7 @@ We try to keep our [ROADMAP](ROADMAP.md) up-to-date so that you know what to exp
 the coming months.
 
 # Community
-We are very active at our [community webstite](https://community.tenzu.net) and always happy to get in 
+We are very active at our [community website](https://community.tenzu.net) and always happy to get in 
 touch with our users there.
 
 # Guide
