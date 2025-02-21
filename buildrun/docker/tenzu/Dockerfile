@@ -16,6 +16,8 @@ RUN groupadd -r default-group && useradd -r -s /bin/false -g default-group defau
 
 COPY --chown=default-user:default-group ./src/ /tenzu/
 COPY --chown=default-user:default-group ./buildrun/docker/tenzu/requirements/prod.txt /tenzu/prod.txt
+# prepare permission for future mounts
+RUN mkdir -p /public/media /public/static && chown -R default-user:default-group /public
 
 RUN  apt-get update && apt-get install -y --no-install-recommends gettext build-essential libpq-dev && \
      uv pip sync --system /tenzu/prod.txt && rm /tenzu/prod.txt && \
