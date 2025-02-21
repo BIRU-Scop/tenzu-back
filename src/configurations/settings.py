@@ -32,6 +32,7 @@ from corsheaders.defaults import default_headers
 from django.core.serializers.json import DjangoJSONEncoder
 
 from .conf import settings
+from .conf.events import PubSubBackendChoices
 from .utils import remove_ending_slash
 
 locals().update(
@@ -219,16 +220,19 @@ THUMBNAIL_ALIASES = settings.IMAGES.THUMBNAIL_ALIASES
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": f"{settings.EVENTS.PUBSUB_BACKEND.value}",
-        "CONFIG": {
-            "hosts": [
-                {
-                    "address": f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
-                    **settings.EVENTS.REDIS_OPTIONS,
-                }
-            ],
-        },
     },
 }
+if settings.EVENTS.PUBSUB_BACKEND == PubSubBackendChoices.REDIS:
+    CHANNEL_LAYERS["default"]["CONFIG"] = {
+        "hosts": [
+            {
+                "address": f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
+                **settings.EVENTS.REDIS_OPTIONS,
+            }
+        ],
+        **settings.EVENTS.REDIS_CHANNEL_OPTIONS,
+    }
+
 
 LOG_FORMAT = "[{levelname}] <{asctime}> {pathname}:{lineno} {message}"
 LOGLEVEL = "WARNING"
