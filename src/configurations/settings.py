@@ -27,17 +27,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from pathlib import Path
-
 import sentry_sdk
 from corsheaders.defaults import default_headers
 from django.core.serializers.json import DjangoJSONEncoder
 
 from .conf import settings
 from .utils import remove_ending_slash
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 locals().update(
     # don't use model_dumps to prevent conversion to dict of nested models
@@ -210,10 +205,7 @@ AUTHENTICATION_BACKENDS = ["auth.backends.EmailOrUsernameModelBackend"]
 
 # EMAIL
 
-locals().update(settings.EMAIL.model_dump(exclude={"EMAIL_FILE_PATH"}))
-
-# file backend settings
-EMAIL_FILE_PATH = BASE_DIR / settings.EMAIL.EMAIL_FILE_PATH
+locals().update(settings.EMAIL.model_dump())
 
 ###############################################################################
 # 3-PARTY LIBS
