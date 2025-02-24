@@ -21,7 +21,6 @@ import logging.config
 from datetime import timedelta
 from functools import lru_cache
 from pathlib import Path
-from urllib.parse import urljoin
 
 from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -35,9 +34,8 @@ from configurations.conf.notifications import NotificationsSettings
 from configurations.conf.storage import StorageSettings
 from configurations.conf.tasksqueue import TaskQueueSettings
 from configurations.conf.tokens import TokensSettings
-from configurations.utils import remove_ending_slash
+from configurations.utils import BASE_DIR, remove_ending_slash
 
-_BASE_DIR = Path(__file__).resolve().parent.parent.parent  # is 'src'
 _DEFAULT_BACKEND_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=8000)
 _DEFAULT_FRONTEND_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=4200)
 
@@ -76,11 +74,11 @@ class Settings(BaseSettings):
     # Static files (CSS, JavaScript, Images)
     # https://docs.djangoproject.com/en/4.0/howto/static-files/
     STATIC_URL: str = "/static/"
-    STATIC_ROOT: Path = _BASE_DIR.parent / "public" / "static"
+    STATIC_ROOT: Path = BASE_DIR.parent / "public" / "static"
     # Media files
     # https://docs.djangoproject.com/en/4.0/topics/files/#file-storage
     MEDIA_URL: str = "/media/"
-    MEDIA_ROOT: Path = _BASE_DIR.parent / "public" / "media"
+    MEDIA_ROOT: Path = BASE_DIR.parent / "public" / "media"
     MAX_UPLOAD_FILE_SIZE: int = 100 * 1024 * 1024  # 100 MB
 
     # I18N
