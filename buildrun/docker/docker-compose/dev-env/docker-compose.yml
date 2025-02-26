@@ -48,7 +48,7 @@ services:
 
 
   tenzu-db:
-    image: postgres:15
+    image: postgres:17
     environment:
       POSTGRES_DB: "tenzu"
       POSTGRES_USER: "tenzu"
@@ -67,7 +67,7 @@ services:
       - tenzu
 
   tenzu-redis:
-    image: redis:7
+    image: redis:7.2
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
