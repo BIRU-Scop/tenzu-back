@@ -3,6 +3,7 @@
 <img src="https://tenzu.net/media/images/tenzu_logo_full_animated_HRtDXL8.original.svg" alt="Tenzu logo" width="200" />
 
 <a href="https://tenzu.net"><b>Website</b></a> •
+<a href="https://tenzu.net/docs"><b>Documentation</b></a> •
 <a href="https://community.tenzu.net/"><b>Community</b></a> •
 <a href="https://fosstodon.org/@tenzu"><b>Mastodon</b></a> •
 <a href="https://bsky.app/profile/tenzu.app"><b>Bluesky</b></a> •
