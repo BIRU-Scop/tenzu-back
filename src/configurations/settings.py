@@ -27,17 +27,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from pathlib import Path
-
 import sentry_sdk
 from corsheaders.defaults import default_headers
 from django.core.serializers.json import DjangoJSONEncoder
 
 from .conf import settings
+from .conf.events import PubSubBackendChoices
 from .utils import remove_ending_slash
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 locals().update(
     # don't use model_dumps to prevent conversion to dict of nested models
@@ -210,10 +206,7 @@ AUTHENTICATION_BACKENDS = ["auth.backends.EmailOrUsernameModelBackend"]
 
 # EMAIL
 
-locals().update(settings.EMAIL.model_dump(exclude={"EMAIL_FILE_PATH"}))
-
-# file backend settings
-EMAIL_FILE_PATH = BASE_DIR / settings.EMAIL.EMAIL_FILE_PATH
+locals().update(settings.EMAIL.model_dump())
 
 ###############################################################################
 # 3-PARTY LIBS
@@ -227,16 +220,19 @@ THUMBNAIL_ALIASES = settings.IMAGES.THUMBNAIL_ALIASES
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": f"{settings.EVENTS.PUBSUB_BACKEND.value}",
-        "CONFIG": {
-            "hosts": [
-                {
-                    "address": f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
-                    **settings.EVENTS.REDIS_OPTIONS,
-                }
-            ],
-        },
     },
 }
+if settings.EVENTS.PUBSUB_BACKEND == PubSubBackendChoices.REDIS:
+    CHANNEL_LAYERS["default"]["CONFIG"] = {
+        "hosts": [
+            {
+                "address": f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
+                **settings.EVENTS.REDIS_OPTIONS,
+            }
+        ],
+        **settings.EVENTS.REDIS_CHANNEL_OPTIONS,
+    }
+
 
 LOG_FORMAT = "[{levelname}] <{asctime}> {pathname}:{lineno} {message}"
 LOGLEVEL = "WARNING"

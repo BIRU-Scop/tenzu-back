@@ -21,6 +21,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from configurations.utils import BASE_DIR
+
 
 class EmailBackends(StrEnum):
     SMTP = "django.core.mail.backends.smtp.EmailBackend"
@@ -51,7 +53,7 @@ class EmailSettings(BaseModel):
     # path to a PEM-formatted private key file to use for the SSL connection
     EMAIL_SSL_KEYFILE: str | None = None
     # send the SMTP Date header of email messages in the local time zone or in UTC
-    USE_LOCALTIME: bool = False
+    EMAIL_USE_LOCALTIME: bool = False
 
     # file backend settings
-    EMAIL_FILE_PATH: str = "file_emails"
+    EMAIL_FILE_PATH: str = BASE_DIR / "file_emails"

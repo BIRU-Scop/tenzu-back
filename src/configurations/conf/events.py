@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from enum import Enum
-from typing import Dict
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -40,4 +40,5 @@ class EventsSettings(BaseModel):
     REDIS_USERNAME: str = ""
     REDIS_PASSWORD: str = ""
     REDIS_DATABASE: int = 0
-    REDIS_OPTIONS: Dict[str, str | int] = Field(default_factory=dict)
+    REDIS_OPTIONS: dict[str, str | int] = Field(default_factory=dict)
+    REDIS_CHANNEL_OPTIONS: dict[str, Any] = Field(default_factory=dict)
