@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.13](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.12...v0.0.1-staging.13) (2025-02-27)
+
+
+### Bug Fixes
+
+* make in-memory channel possible and add config to pass additional variable to redis-channel ([bab2788](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/bab278838e1048c00a6551af4bc8ba59df0ba6a8))
+* use correct EMAIL_USE_LOCALTIME variable name and make overriding EMAIL_FILE_PATH easier ([fd7c513](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/fd7c5134528af67fc835f48b1a369ec6c170708a))
+
 ## [0.0.1-staging.12](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.11...v0.0.1-staging.12) (2025-02-08)
 
 
