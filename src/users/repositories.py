@@ -23,6 +23,7 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.contrib.auth.models import update_last_login as django_update_last_login
 
 from base.db.models import (
     BooleanField,
@@ -38,7 +39,6 @@ from base.db.models import (
     Unaccent,
     Value,
 )
-from base.db.users import django_update_last_login
 from ninja_jwt.token_blacklist.models import OutstandingToken
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation

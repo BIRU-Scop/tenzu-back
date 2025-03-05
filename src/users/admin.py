@@ -20,11 +20,11 @@
 from typing import Any, Type
 
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib.auth.models import Group
 from django.http.request import HttpRequest
 
 from base.db import admin
 from base.db.admin import forms
-from base.db.users import Group
 from base.i18n import i18n
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership

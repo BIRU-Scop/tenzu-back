@@ -21,10 +21,10 @@ import re
 from typing import Any, Iterable
 
 from django.conf import settings
+from django.contrib.auth.models import AbstractBaseUser, AnonymousUser, UserManager
 from django.core.validators import MaxValueValidator, RegexValidator
 
 from base.db import models
-from base.db.users import AbstractBaseUser, AnonymousUser, UserManager
 from base.utils.slug import generate_int_suffix, slugify_uniquely
 from commons.colors import NUM_COLORS, generate_random_color
 

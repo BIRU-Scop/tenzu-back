@@ -18,9 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 
 from base.api.permissions import And, Not, Or, check_permissions
-from base.db.users import AnonymousUser
 from exceptions import api as ex
 from permissions import (
     AllowAny,

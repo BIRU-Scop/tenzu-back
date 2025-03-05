@@ -21,8 +21,8 @@ from dataclasses import dataclass
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 
-from base.db.users import AnonymousUser
 from permissions import choices, services
 from tests.utils import factories as f
 
