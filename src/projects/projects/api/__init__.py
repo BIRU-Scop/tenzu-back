@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Literal, Optional
 from uuid import UUID
 
 from ninja import File, Form, Path, Router
@@ -32,7 +31,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import (
     CanViewProject,
     HasPerm,
@@ -66,7 +64,7 @@ GET_PROJECT_PUBLIC_PERMISSIONS = IsProjectAdmin()
 UPDATE_PROJECT_PUBLIC_PERMISSIONS = IsProjectAdmin()
 DELETE_PROJECT = IsProjectAdmin() | IsWorkspaceMember()
 
-projects_router = Router(auth=AsyncJWTAuth())
+projects_router = Router()
 
 
 ##########################################################
@@ -90,7 +88,7 @@ projects_router = Router(auth=AsyncJWTAuth())
 async def create_project(
     request,
     form: Form[ProjectValidator],
-    logo: Optional[LogoField] = File(None),
+    logo: LogoField | None = File(None),
 ) -> ProjectDetailSerializer:
     """
     Create project in a given workspace.

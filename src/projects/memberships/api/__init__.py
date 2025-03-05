@@ -30,7 +30,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import CanViewProject, IsProjectAdmin, IsRelatedToTheUser
 from projects.memberships import services as memberships_services
 from projects.memberships.api.validators import ProjectMembershipValidator
@@ -38,7 +37,7 @@ from projects.memberships.models import ProjectMembership
 from projects.memberships.serializers import ProjectMembershipSerializer
 from projects.projects.api import get_project_or_404
 
-membership_router = Router(auth=AsyncJWTAuth())
+membership_router = Router()
 
 # PERMISSIONS
 LIST_PROJECT_MEMBERSHIPS = CanViewProject()

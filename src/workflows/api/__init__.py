@@ -30,7 +30,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm, IsProjectAdmin
 from projects.projects.api import get_project_or_404
 from workflows import services as workflows_services
@@ -62,7 +61,7 @@ DELETE_WORKFLOW_STATUS = IsProjectAdmin()
 REORDER_WORKFLOW_STATUSES = IsProjectAdmin()
 
 
-workflows_router = Router(auth=AsyncJWTAuth())
+workflows_router = Router()
 
 ################################################
 # create workflow

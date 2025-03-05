@@ -42,7 +42,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm, IsNotDeleted, IsProjectAdmin, IsRelatedToTheUser
 from stories.comments import events, notifications
 from stories.stories.api import get_story_or_404
@@ -58,7 +57,7 @@ DELETE_STORY_COMMENT = IsNotDeleted() & (
     IsProjectAdmin() | (IsRelatedToTheUser("created_by") & HasPerm("comment_story"))
 )
 
-comments_router = Router(auth=AsyncJWTAuth())
+comments_router = Router()
 
 
 ##########################################################

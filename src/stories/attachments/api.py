@@ -34,14 +34,13 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm
 from stories.attachments import events
 from stories.attachments.serializers import StoryAttachmentSerializer
 from stories.stories.api import get_story_or_404
 from stories.stories.models import Story
 
-attachments_router = Router(auth=AsyncJWTAuth())
+attachments_router = Router()
 
 # PERMISSIONS
 CREATE_STORY_ATTACHMENT = HasPerm("modify_story")

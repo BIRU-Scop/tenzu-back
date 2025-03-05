@@ -29,11 +29,10 @@ from exceptions.api.errors import (
 from mediafiles import services as mediafiles_services
 from mediafiles.models import Mediafile
 from mediafiles.serializers import MediafileSerializer
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm
 from stories.stories.api import get_story_or_404
 
-mediafiles_router = Router(auth=AsyncJWTAuth())
+mediafiles_router = Router()
 
 # PERMISSIONS
 CREATE_STORY_MEDIAFILES = HasPerm("modify_story") | HasPerm("comment_story")

@@ -29,7 +29,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm
 from stories.assignments import services as story_assignments_services
 from stories.assignments.api.validators import StoryAssignmentValidator
@@ -41,7 +40,7 @@ from stories.stories.api import get_story_or_404
 CREATE_STORY_ASSIGNMENT = HasPerm("modify_story")
 DELETE_STORY_ASSIGNMENT = HasPerm("modify_story")
 
-assignments_router = Router(auth=AsyncJWTAuth())
+assignments_router = Router()
 
 
 ################################################

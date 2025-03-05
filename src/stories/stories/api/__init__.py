@@ -19,7 +19,6 @@
 
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
 from django.http import HttpResponse
 from ninja import Path, Query, Router
 
@@ -28,12 +27,10 @@ from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from exceptions import api as ex
 from exceptions.api.errors import (
-    ERROR_RESPONSE_401,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm
 from stories.stories import services as stories_services
 from stories.stories.api.validators import (
@@ -50,7 +47,7 @@ from stories.stories.serializers import (
 from stories.stories.services.exceptions import InvalidStatusError, InvalidStoryRefError
 from workflows.api import get_workflow_or_404
 
-stories_router = Router(auth=AsyncJWTAuth())
+stories_router = Router()
 
 # PERMISSIONS
 LIST_STORIES = HasPerm("view_story")

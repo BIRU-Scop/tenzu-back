@@ -27,6 +27,7 @@ from integrations.github.auth.api import github_integration_router
 from integrations.gitlab.auth.api import gitlab_integration_router
 from integrations.google.auth.api import google_integration_router
 from ninja_jwt.api import auth_router
+from ninja_jwt.authentication import AsyncJWTAuth
 from ninja_jwt.ninja_extra.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from notifications.api import notifications_router
 from projects.invitations.api import invitations_router as projects_invitations_router
@@ -50,6 +51,7 @@ api = NinjaAPI(
     renderer=ORJSONRenderer(),
     title="Tenzu API",
     version=settings.API_VERSION,
+    auth=AsyncJWTAuth(),
 )
 
 
@@ -77,6 +79,7 @@ health_router = Router()
     response={
         200: None,
     },
+    auth=None,
 )
 def healthcheck(request):
     return HTTP_200_OK

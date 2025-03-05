@@ -37,6 +37,7 @@ github_integration_router = Router()
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
+    auth=None,
 )
 async def github_login(
     request, form: GithubLoginValidator

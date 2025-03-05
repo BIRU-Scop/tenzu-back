@@ -32,7 +32,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from ninja_jwt.tokens import RefreshToken
 from permissions import IsAuthenticated
@@ -52,7 +51,7 @@ from users.serializers import (
     VerificationInfoSerializer,
 )
 
-users_router = Router(auth=AsyncJWTAuth())
+users_router = Router()
 
 # PERMISSIONS
 LIST_USERS_BY_TEXT = IsAuthenticated()

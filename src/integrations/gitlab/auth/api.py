@@ -37,6 +37,7 @@ gitlab_integration_router = Router()
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
+    auth=None,
 )
 async def gitlab_login(
     request, form: GitlabLoginValidator

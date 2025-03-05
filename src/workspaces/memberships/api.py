@@ -31,7 +31,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import IsWorkspaceMember
 from workspaces.memberships import services as memberships_services
 from workspaces.memberships.models import WorkspaceMembership
@@ -47,7 +46,7 @@ LIST_WORKSPACE_GUESTS = IsWorkspaceMember()
 DELETE_WORKSPACE_MEMBERSHIP = IsWorkspaceMember()
 
 
-workspace_membership_router = Router(auth=AsyncJWTAuth())
+workspace_membership_router = Router()
 
 
 ##########################################################

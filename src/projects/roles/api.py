@@ -30,7 +30,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import IsProjectAdmin
 from projects.projects.api import PermissionsValidator, get_project_or_404
 from projects.roles import services as roles_services
@@ -47,7 +46,7 @@ UPDATE_PROJECT_ROLE_PERMISSIONS = IsProjectAdmin()
 # list roles
 ##########################################################
 
-roles_router = Router(auth=AsyncJWTAuth())
+roles_router = Router()
 
 
 @roles_router.get(

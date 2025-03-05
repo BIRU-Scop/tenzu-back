@@ -30,7 +30,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import IsAuthenticated, IsProjectAdmin
 from projects.invitations import services as invitations_services
 from projects.invitations.api.validators import (
@@ -52,7 +51,7 @@ from projects.invitations.services.exceptions import (
 )
 from projects.projects.api import get_project_or_404
 
-invitations_router = Router(auth=AsyncJWTAuth())
+invitations_router = Router()
 
 # PERMISSIONS
 ACCEPT_PROJECT_INVITATION = IsAuthenticated()

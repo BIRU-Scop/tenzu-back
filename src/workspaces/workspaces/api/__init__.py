@@ -30,7 +30,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import HasPerm, IsAuthenticated, IsWorkspaceMember
 from workspaces.workspaces import services as workspaces_services
 from workspaces.workspaces.api.validators import (
@@ -50,7 +49,7 @@ GET_WORKSPACE = HasPerm("view_workspace")
 DELETE_WORKSPACE = IsWorkspaceMember()
 UPDATE_WORKSPACE = IsWorkspaceMember()
 
-workspace_router = Router(auth=AsyncJWTAuth())
+workspace_router = Router()
 
 
 ##########################################################

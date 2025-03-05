@@ -38,6 +38,7 @@ Adapter = TypeAdapter(list[LanguageSchema])
     url_name="system.languages.list",
     summary="List system available languages",
     response=list[LanguageSerializer],
+    auth=None,
 )
 async def list_languages(request) -> list[LanguageSchema]:
     return Adapter.validate_python(i18n.available_languages_info)

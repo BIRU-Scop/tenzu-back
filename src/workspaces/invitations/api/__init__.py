@@ -28,7 +28,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from permissions import IsWorkspaceMember
 from workspaces.invitations import services as workspaces_invitations_services
 from workspaces.invitations.api.validators import WorkspaceInvitationsValidator
@@ -42,7 +41,7 @@ from workspaces.invitations.serializers import (
 from workspaces.invitations.services.exceptions import BadInvitationTokenError
 from workspaces.workspaces.api import get_workspace_or_404
 
-workspace_invit_router = Router(auth=AsyncJWTAuth())
+workspace_invit_router = Router()
 
 # PERMISSIONS
 ACCEPT_WORKSPACE_INVITATION_BY_TOKEN = IsWorkspaceInvitationRecipient()

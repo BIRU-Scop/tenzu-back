@@ -29,7 +29,6 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from notifications import services as notifications_services
 from notifications.models import Notification
 from notifications.serializers import (
@@ -43,7 +42,7 @@ LIST_MY_NOTIFICATIONS = IsAuthenticated()
 COUNT_MY_NOTIFICATIONS = IsAuthenticated()
 MARK_MY_NOTIFICATIONS_AS_READ = IsAuthenticated()
 
-notifications_router = Router(auth=AsyncJWTAuth())
+notifications_router = Router()
 
 ##########################################################
 # list notifications
