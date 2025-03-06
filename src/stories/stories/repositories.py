@@ -231,15 +231,6 @@ async def list_stories_to_reorder(
     return sorted([s async for s in qs], key=lambda s: order[s.ref])
 
 
-async def list_story_assignees(story: Story) -> list[User]:
-    return [
-        user
-        async for user in story.assignees.all().order_by(
-            "-story_assignments__created_at"
-        )
-    ]
-
-
 async def bulk_update_workflow_to_stories(
     statuses_ids: list[UUID], old_workflow_id: UUID, new_workflow_id: UUID
 ) -> None:

@@ -161,10 +161,8 @@ async def get_story_detail(
             story=story, filters={"workflow_id": story.workflow_id}
         )
 
-    assignees = await stories_repositories.list_story_assignees(story=story)
-
     return serializers_services.serialize_story_detail(
-        story=story, neighbors=neighbors, assignees=assignees
+        story=story, neighbors=neighbors, assignees=list(story.assignees.all())
     )
 
 
