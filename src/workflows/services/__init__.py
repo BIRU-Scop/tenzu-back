@@ -195,7 +195,7 @@ async def get_delete_workflow_detail(
         workflow_id=workflow.id
     )
     workflow_stories = await stories_services.list_stories(
-        project_id=project_id, workflow_slug=workflow_slug
+        project_id=project_id, workflow_slug=workflow_slug, get_assignees=False
     )
 
     return serializers_services.serialize_delete_workflow_detail(

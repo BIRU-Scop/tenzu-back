@@ -101,6 +101,7 @@ async def list_stories(
     offset: int | None = None,
     limit: int | None = None,
     order_by: list | None = None,
+    get_assignees=True,
 ) -> list[StorySummarySerializer]:
     if order_by is None:
         order_by = ["order"]
@@ -109,10 +110,15 @@ async def list_stories(
         offset=offset,
         limit=limit,
         order_by=order_by,
-        prefetch_related=[ASSIGNEES_PREFETCH],
+        prefetch_related=[ASSIGNEES_PREFETCH] if get_assignees else [],
     )
 
-    return [serializers_services.serialize_story_list(story) async for story in qs]
+    return [
+        serializers_services.serialize_story_list(
+            story, list(story.assignees.all()) if get_assignees else []
+        )
+        async for story in qs
+    ]
 
 
 ##########################################################

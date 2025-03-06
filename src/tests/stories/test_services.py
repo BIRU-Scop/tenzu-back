@@ -116,18 +116,13 @@ async def test_create_story_invalid_status():
 
 
 async def test_list_paginated_stories():
-    story = f.build_story()
-    neighbors = Neighbor(next=f.build_story(), prev=f.build_story())
-
     with (
         patch(
             "stories.stories.services.stories_repositories", autospec=True
         ) as fake_stories_repo,
     ):
+        story = f.build_story(assignees=1)
         fake_stories_repo.list_stories.return_value.__aiter__.return_value = [story]
-        fake_stories_repo.get_story.return_value = story
-        fake_stories_repo.list_story_assignees.return_value = []
-        fake_stories_repo.list_story_neighbors.return_value = neighbors
 
         await services.list_stories(
             project_id=story.project.id,
@@ -144,6 +139,26 @@ async def test_list_paginated_stories():
             limit=10,
             order_by=["order"],
             prefetch_related=[repositories.ASSIGNEES_PREFETCH],
+        )
+        fake_stories_repo.list_stories.reset_mock()
+        story = f.build_story()
+        fake_stories_repo.list_stories.return_value.__aiter__.return_value = [story]
+        await services.list_stories(
+            project_id=story.project.id,
+            workflow_slug=story.workflow.slug,
+            offset=0,
+            limit=10,
+            get_assignees=False,
+        )
+        fake_stories_repo.list_stories.assert_called_once_with(
+            filters={
+                "project_id": story.project.id,
+                "workflow__slug": story.workflow.slug,
+            },
+            offset=0,
+            limit=10,
+            order_by=["order"],
+            prefetch_related=[],
         )
 
 

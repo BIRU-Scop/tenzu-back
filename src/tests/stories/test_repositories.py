@@ -63,7 +63,7 @@ async def test_list_stories(project_template) -> None:
     workflow_2 = await f.create_workflow(project=project)
     status_2 = await sync_to_async(workflow_2.statuses.first)()
 
-    story1 = await f.create_story(project=project, workflow=workflow_1, status=status_1)
+    await f.create_story(project=project, workflow=workflow_1, status=status_1)
     await f.create_story(project=project, workflow=workflow_1, status=status_1)
     await f.create_story(project=project, workflow=workflow_2, status=status_2)
 
@@ -82,10 +82,13 @@ async def test_list_stories(project_template) -> None:
         )
     ]
     assert len(stories) == 2
+
     stories = [
-        story
+        # will fail in async context with "SynchronousOnlyOperation" if prefetch did not work
+        (story, list(story.assignees.all()))
         async for story in repositories.list_stories(
-            filters={"workflow_id": workflow_2.id}
+            filters={"workflow_id": workflow_2.id},
+            prefetch_related=[repositories.ASSIGNEES_PREFETCH],
         )
     ]
     assert len(stories) == 1

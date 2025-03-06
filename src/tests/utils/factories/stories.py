@@ -22,33 +22,6 @@ from asgiref.sync import sync_to_async
 from .base import Factory, factory
 
 ####################################################
-# Story
-####################################################
-
-
-class StoryFactory(Factory):
-    title = factory.Sequence(lambda n: f"Story {n}")
-    description = factory.Sequence(lambda n: f"Description {n}")
-    project = factory.SubFactory("tests.utils.factories.ProjectFactory")
-    workflow = factory.SubFactory("tests.utils.factories.WorkflowFactory")
-    status = factory.SubFactory("tests.utils.factories.WorkflowStatusFactory")
-    created_by = factory.SubFactory("tests.utils.factories.UserFactory")
-    order = factory.Sequence(lambda n: n + 1)
-
-    class Meta:
-        model = "stories.Story"
-
-
-@sync_to_async
-def create_story(**kwargs):
-    return StoryFactory.create(**kwargs)
-
-
-def build_story(**kwargs):
-    return StoryFactory.build(**kwargs)
-
-
-####################################################
 # StoryAssignment
 ####################################################
 
@@ -68,3 +41,43 @@ def create_story_assignment(**kwargs):
 
 def build_story_assignment(**kwargs):
     return StoryAssignmentFactory.build(**kwargs)
+
+
+####################################################
+# Story
+####################################################
+
+
+class StoryFactory(Factory):
+    title = factory.Sequence(lambda n: f"Story {n}")
+    description = factory.Sequence(lambda n: f"Description {n}")
+    project = factory.SubFactory("tests.utils.factories.ProjectFactory")
+    workflow = factory.SubFactory("tests.utils.factories.WorkflowFactory")
+    status = factory.SubFactory("tests.utils.factories.WorkflowStatusFactory")
+    created_by = factory.SubFactory("tests.utils.factories.UserFactory")
+    order = factory.Sequence(lambda n: n + 1)
+
+    @factory.post_generation
+    def assignees(self, create, extracted, **kwargs):
+        if extracted is None:
+            return
+        if not create:
+            # hack to fill prefetch cache so that no db query will be needed to fetch assignees
+            self._prefetched_objects_cache = {
+                "assignees": [
+                    StoryAssignmentFactory.build(story=self).user
+                    for _ in range(extracted)
+                ]
+            }
+
+    class Meta:
+        model = "stories.Story"
+
+
+@sync_to_async
+def create_story(**kwargs):
+    return StoryFactory.create(**kwargs)
+
+
+def build_story(**kwargs):
+    return StoryFactory.build(**kwargs)

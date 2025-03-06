@@ -262,6 +262,7 @@ async def test_get_delete_workflow_detail_ok():
         fake_stories_services.list_stories.assert_awaited_once_with(
             project_id=workflow.project_id,
             workflow_slug=workflow.slug,
+            get_assignees=False,
         )
         fake_workflows_serializers.serialize_delete_workflow_detail.assert_called_once()
 
