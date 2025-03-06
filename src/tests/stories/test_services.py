@@ -38,7 +38,7 @@ from workflows.serializers.nested import WorkflowStatusNestedSerializer
 async def test_create_story_ok():
     user = f.build_user()
     status = f.build_workflow_status()
-    story = f.build_story(status=status, workflow=status.workflow)
+    story = f.build_story(status=status, workflow=status.workflow, assignees=0)
     neighbors = Neighbor(next=f.build_story(), prev=f.build_story())
 
     with (
@@ -60,7 +60,6 @@ async def test_create_story_ok():
         fake_stories_repo.create_story.return_value = story
         fake_stories_repo.get_story.return_value = story
         fake_stories_repo.list_story_neighbors.return_value = neighbors
-        fake_stories_repo.list_story_assignees.return_value = []
 
         complete_story = await services.create_story(
             project=story.project,
@@ -116,18 +115,13 @@ async def test_create_story_invalid_status():
 
 
 async def test_list_paginated_stories():
-    story = f.build_story()
-    neighbors = Neighbor(next=f.build_story(), prev=f.build_story())
-
     with (
         patch(
             "stories.stories.services.stories_repositories", autospec=True
         ) as fake_stories_repo,
     ):
+        story = f.build_story(assignees=1)
         fake_stories_repo.list_stories.return_value.__aiter__.return_value = [story]
-        fake_stories_repo.get_story.return_value = story
-        fake_stories_repo.list_story_assignees.return_value = []
-        fake_stories_repo.list_story_neighbors.return_value = neighbors
 
         await services.list_stories(
             project_id=story.project.id,
@@ -145,6 +139,26 @@ async def test_list_paginated_stories():
             order_by=["order"],
             prefetch_related=[repositories.ASSIGNEES_PREFETCH],
         )
+        fake_stories_repo.list_stories.reset_mock()
+        story = f.build_story()
+        fake_stories_repo.list_stories.return_value.__aiter__.return_value = [story]
+        await services.list_stories(
+            project_id=story.project.id,
+            workflow_slug=story.workflow.slug,
+            offset=0,
+            limit=10,
+            get_assignees=False,
+        )
+        fake_stories_repo.list_stories.assert_called_once_with(
+            filters={
+                "project_id": story.project.id,
+                "workflow__slug": story.workflow.slug,
+            },
+            offset=0,
+            limit=10,
+            order_by=["order"],
+            prefetch_related=[],
+        )
 
 
 #######################################################
@@ -155,7 +169,11 @@ async def test_list_paginated_stories():
 async def test_get_story_detail_ok():
     story1 = f.build_story(ref=1)
     story2 = f.build_story(
-        ref=2, project=story1.project, workflow=story1.workflow, status=story1.status
+        ref=2,
+        project=story1.project,
+        workflow=story1.workflow,
+        status=story1.status,
+        assignees=1,
     )
     story3 = f.build_story(
         ref=3, project=story1.project, workflow=story1.workflow, status=story1.status
@@ -167,7 +185,6 @@ async def test_get_story_detail_ok():
     ) as fake_stories_repo:
         fake_stories_repo.get_story.return_value = story2
         fake_stories_repo.list_story_neighbors.return_value = neighbors
-        fake_stories_repo.list_story_assignees.return_value = [f.build_user()]
 
         story = await services.get_story_detail(
             project_id=story2.project_id, ref=story2.ref
@@ -198,7 +215,7 @@ async def test_get_story_detail_ok():
 
 
 async def test_get_story_detail_no_neighbors():
-    story1 = f.build_story(ref=1)
+    story1 = f.build_story(ref=1, assignees=1)
     neighbors = Neighbor(prev=None, next=None)
 
     with patch(
@@ -206,7 +223,6 @@ async def test_get_story_detail_no_neighbors():
     ) as fake_stories_repo:
         fake_stories_repo.get_story.return_value = story1
         fake_stories_repo.list_story_neighbors.return_value = neighbors
-        fake_stories_repo.list_story_assignees.return_value = [f.build_user()]
 
         story = await services.get_story_detail(
             project_id=story1.project_id, ref=story1.ref
