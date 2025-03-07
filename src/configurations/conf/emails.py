@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from enum import StrEnum
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -56,4 +57,4 @@ class EmailSettings(BaseModel):
     EMAIL_USE_LOCALTIME: bool = False
 
     # file backend settings
-    EMAIL_FILE_PATH: str = BASE_DIR / "file_emails"
+    EMAIL_FILE_PATH: Path = BASE_DIR / "file_emails"
