@@ -25,7 +25,7 @@ from django.test import override_settings
 
 from base.repositories.neighbors import Neighbor
 from tests.utils import factories as f
-from workflows import services
+from workflows import repositories, services
 from workflows.serializers import (
     DeleteWorkflowSerializer,
     ReorderWorkflowStatusesSerializer,
@@ -860,11 +860,11 @@ async def test_calculate_offset() -> None:
         offset, pre_order = await services._calculate_offset(
             total_statuses_to_reorder=1,
             workflow=workflow,
-            reorder_status=reord_st,
+            reorder_reference_status=reord_st,
             reorder_place="after",
         )
         assert pre_order == reord_st.order
-        assert offset == Decimal(25)
+        assert offset == 25
 
         fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(
             next=None, prev=None
@@ -872,11 +872,11 @@ async def test_calculate_offset() -> None:
         offset, pre_order = await services._calculate_offset(
             total_statuses_to_reorder=1,
             workflow=workflow,
-            reorder_status=reord_st,
+            reorder_reference_status=reord_st,
             reorder_place="after",
         )
         assert pre_order == reord_st.order
-        assert offset == Decimal(100)
+        assert offset == 100
 
         # before
         fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(
@@ -885,11 +885,11 @@ async def test_calculate_offset() -> None:
         offset, pre_order = await services._calculate_offset(
             total_statuses_to_reorder=1,
             workflow=workflow,
-            reorder_status=reord_st,
+            reorder_reference_status=reord_st,
             reorder_place="before",
         )
         assert pre_order == prev_st.order
-        assert offset == Decimal(50)
+        assert offset == 50
 
         fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(
             next=None, prev=None
@@ -897,11 +897,11 @@ async def test_calculate_offset() -> None:
         offset, pre_order = await services._calculate_offset(
             total_statuses_to_reorder=1,
             workflow=workflow,
-            reorder_status=reord_st,
+            reorder_reference_status=reord_st,
             reorder_place="before",
         )
-        assert pre_order == Decimal(0)
-        assert offset == Decimal(125)
+        assert pre_order == 0
+        assert offset == 125
 
 
 #######################################################
@@ -930,6 +930,9 @@ async def test_reorder_workflow_statuses_same_workflow_ok():
             status3,
             status2,
         ]
+        fake_workflows_repo.list_workflow_status_neighbors.return_value = Neighbor(
+            prev=None, next=None
+        )
 
         await services.reorder_workflow_statuses(
             target_workflow=f.build_workflow(),
@@ -942,6 +945,9 @@ async def test_reorder_workflow_statuses_same_workflow_ok():
             objs_to_update=[status3, status2], fields_to_update=["order", "workflow"]
         )
         fake_workflows_events.emit_event_when_workflow_statuses_are_reordered.assert_awaited_once()
+        assert status1.order == 1
+        assert status2.order == 201
+        assert status3.order == 101
 
 
 async def test_reorder_workflow_statuses_between_workflows_with_anchor_ok():
@@ -1098,6 +1104,35 @@ async def test_reorder_any_workflow_status_does_not_exist():
             statuses=["in-progress", "mooo"],
             reorder={"place": "after", "status": "new"},
         )
+
+
+@pytest.mark.django_db
+async def test_after_in_the_middle_multiple() -> None:
+    workflow = await f.create_workflow(statuses=[])
+    status1 = await f.create_workflow_status(workflow=workflow, order=1)
+    status2 = await f.create_workflow_status(workflow=workflow, order=2)
+    status3 = await f.create_workflow_status(workflow=workflow, order=3)
+    status4 = await f.create_workflow_status(workflow=workflow, order=4)
+    status5 = await f.create_workflow_status(workflow=workflow, order=5)
+
+    await services.reorder_workflow_statuses(
+        target_workflow=workflow,
+        statuses=[status2.id, status3.id, status5.id],
+        reorder={"place": "after", "status": status1.id},
+        source_workflow=workflow,
+    )
+
+    statuses = await repositories.list_workflow_statuses(workflow_id=workflow.id)
+    assert statuses[0].id == status1.id
+    assert statuses[1].id == status2.id
+    assert statuses[1].order == status1.order + 100 * 1
+    assert statuses[2].id == status3.id
+    assert statuses[2].order == status1.order + 100 * 2
+    assert statuses[3].id == status5.id
+    assert statuses[3].order == status1.order + 100 * 3
+    assert statuses[4].id == status4.id
+    # Not enough space, status4 was moved also
+    assert statuses[4].order == status1.order + 100 * 4
 
 
 #######################################################

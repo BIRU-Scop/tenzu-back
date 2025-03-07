@@ -23,6 +23,7 @@ from uuid import UUID
 
 from django.conf import settings
 
+from commons.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
 from commons.utils import transaction_atomic_async
 from projects.projects import repositories as projects_repositories
 from projects.projects import services as projects_services
@@ -40,14 +41,6 @@ from workflows.serializers import (
 )
 from workflows.serializers import services as serializers_services
 from workflows.services import exceptions as ex
-
-DEFAULT_ORDER_OFFSET = Decimal(
-    100
-)  # default offset when adding a workflow or workflow status
-DEFAULT_PRE_ORDER = Decimal(
-    0
-)  # default pre_position when adding a workflow at the beginning
-
 
 ##########################################################
 # create workflow
@@ -417,34 +410,23 @@ async def update_workflow_status(
 async def _calculate_offset(
     workflow: Workflow,
     total_statuses_to_reorder: int,
-    reorder_status: WorkflowStatus,
+    reorder_reference_status: WorkflowStatus,
     reorder_place: str,
-) -> tuple[Decimal, Decimal]:
+    reordered_statuses: list[UUID] = None,
+) -> tuple[int, int]:
     total_slots = total_statuses_to_reorder + 1
 
     neighbors = await workflows_repositories.list_workflow_status_neighbors(
-        status=reorder_status, workflow_id=workflow.id
+        workflow_id=workflow.id,
+        status=reorder_reference_status,
+        excludes={"id__in": reordered_statuses}
+        if reordered_statuses is not None
+        else {},
     )
 
-    if reorder_place == "after":
-        pre_order = reorder_status.order
-        if neighbors.next:
-            post_order = neighbors.next.order
-        else:
-            post_order = pre_order + (DEFAULT_ORDER_OFFSET * total_slots)
-
-    elif reorder_place == "before":
-        post_order = reorder_status.order
-        if neighbors.prev:
-            pre_order = neighbors.prev.order
-        else:
-            pre_order = DEFAULT_PRE_ORDER
-
-    else:
-        return NotImplemented
-
-    offset = (post_order - pre_order) / total_slots
-    return offset, pre_order
+    return calculate_offset(
+        reorder_reference_status, reorder_place, total_slots, neighbors
+    )
 
 
 async def reorder_workflow_statuses(
@@ -483,21 +465,19 @@ async def reorder_workflow_statuses(
         if source_workflow == target_workflow:
             raise ex.NonExistingMoveToStatus("Reorder criteria required")
         else:
-            statuses_to_update_tmp = {s.id: s for s in statuses_to_reorder}
-            for i, id in enumerate(statuses):
-                status = statuses_to_update_tmp[id]
+            for i, status in enumerate(statuses_to_reorder):
                 status.workflow = target_workflow
                 statuses_to_update.append(status)
     # position statuses according to this anchor status
     elif reorder:
         # check anchor workflow status exists
-        reorder_status = await workflows_repositories.get_workflow_status(
+        reorder_reference_status = await workflows_repositories.get_workflow_status(
             status_id=reorder["status"],
             filters={
                 "workflow_id": target_workflow.id,
             },
         )
-        if not reorder_status:
+        if not reorder_reference_status:
             # re-ordering in the same workflow must have a valid anchor status
             raise ex.InvalidWorkflowStatusError(
                 f"Status {reorder['status']} doesn't exist in this workflow"
@@ -512,18 +492,38 @@ async def reorder_workflow_statuses(
         offset, pre_order = await _calculate_offset(
             workflow=target_workflow,
             total_statuses_to_reorder=len(statuses_to_reorder),
-            reorder_status=reorder_status,
+            reorder_reference_status=reorder_reference_status,
             reorder_place=reorder_place,
+            reordered_statuses=statuses,
         )
+        if offset == 0:
+            # There is not enough space left between the stories where stories_to_reorder need to be inserted
+            # We need to move more stories, this should happen very infrequently thanks to the offset
+            after_statuses = await workflows_repositories.list_workflow_statuses(
+                workflow_id=target_workflow.id,
+                filters={
+                    "order__gt": pre_order,
+                },
+                excludes={"id__in": statuses},
+                order_by=["order"],
+            )
+            total_slots = len(statuses_to_reorder) + 1
+            for nearby_after_story in after_statuses:
+                if nearby_after_story.order - pre_order < total_slots:
+                    statuses_to_reorder.append(nearby_after_story)
+                    total_slots += 1
+                else:
+                    offset = (nearby_after_story.order - pre_order) // total_slots
+                    break
+            else:
+                offset = DEFAULT_ORDER_OFFSET
         # update workflow statuses
-        statuses_to_update_tmp = {s.id: s for s in statuses_to_reorder}
-        for i, id in enumerate(statuses):
-            status = statuses_to_update_tmp[id]
+        for i, status in enumerate(statuses_to_reorder):
             status.order = pre_order + (offset * (i + 1))
             status.workflow = target_workflow
             statuses_to_update.append(status)
 
-    # save stories
+    # save status
     await workflows_repositories.bulk_update_workflow_statuses(
         objs_to_update=statuses_to_update, fields_to_update=["order", "workflow"]
     )
