@@ -24,3 +24,4 @@ class ProjectInvitationStatus(TextChoices):
     PENDING = "pending", "Pending"
     ACCEPTED = "accepted", "Accepted"
     REVOKED = "revoked", "Revoked"
+    DENIED = "denied", "Denied"
