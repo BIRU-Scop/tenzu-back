@@ -145,6 +145,7 @@ async def create_project_invitations(
                 "statuses": [
                     ProjectInvitationStatus.PENDING,
                     ProjectInvitationStatus.REVOKED,
+                    ProjectInvitationStatus.DENIED,
                 ],
             },
             select_related=["user", "project", "workspace", "role", "invited_by"],
@@ -436,7 +437,10 @@ async def resend_project_invitation(
 
 async def deny_project_invitation(
     invitation: ProjectInvitation, denied_by: User
-) -> None:
+) -> ProjectInvitation:
+    if not invitation.user:
+        raise ex.InvitationHasNoUserYetError("The invitation does not have a user yet")
+
     if invitation.status == ProjectInvitationStatus.ACCEPTED:
         raise ex.InvitationAlreadyAcceptedError("Cannot deny an accepted invitation")
 
@@ -450,14 +454,14 @@ async def deny_project_invitation(
         invitation=invitation,
         values={
             "status": ProjectInvitationStatus.DENIED,
-            "denied_at": aware_utcnow(),
-            "denied_by": denied_by,
         },
     )
 
     await invitations_events.emit_event_when_project_invitation_is_denied(
         invitation=denied_invitation
     )
+
+    return denied_invitation
 
 
 ##########################################################

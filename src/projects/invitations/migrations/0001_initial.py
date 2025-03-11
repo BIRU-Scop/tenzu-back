@@ -70,6 +70,7 @@ class Migration(migrations.Migration):
                             ("pending", "Pending"),
                             ("accepted", "Accepted"),
                             ("revoked", "Revoked"),
+                            ("denied", "Denied"),
                         ],
                         default="pending",
                         max_length=50,

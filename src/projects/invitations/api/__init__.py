@@ -60,7 +60,7 @@ ACCEPT_PROJECT_INVITATION_BY_TOKEN = IsProjectInvitationRecipient()
 CREATE_PROJECT_INVITATIONS = IsProjectAdmin()
 RESEND_PROJECT_INVITATION = IsProjectAdmin()
 REVOKE_PROJECT_INVITATION = IsProjectAdmin()
-DENY_PROJECT_INVITATION = IsProjectInvitationRecipient()
+DENY_PROJECT_INVITATION = IsAuthenticated()
 UPDATE_PROJECT_INVITATION = IsProjectAdmin()
 
 
@@ -251,34 +251,33 @@ async def revoke_project_invitation(
 
 
 @invitations_router.post(
-    "/projects/{id}/my/invitations/deny",
-    url_name="project.my.invitations.deny",
+    "/projects/{id}/invitations/deny",
+    url_name="project.invitations.deny",
     summary="Deny project invitation for authenticated user",
     response={
-        204: None,
+        200: ProjectInvitationSerializer,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
 )
-async def deny_project_invitation(request, id: Path[B64UUID]) -> tuple[int, None]:
+async def deny_project_invitation(request, id: Path[B64UUID]) -> ProjectInvitation:
     """
-    An authenticated user denies a project invitation for himself.
+    An authenticated user denies a project invitation for themself.
     """
-    invitation = await get_project_invitation_by_username_or_email_or_404(
-        project_id=id, username_or_email=request.user.username
-    )
     await check_permissions(
         permissions=DENY_PROJECT_INVITATION,
         user=request.user,
-        obj=invitation,
+        obj=None,
     )
-    await invitations_services.deny_project_invitation(
-        invitation=invitation, denied_by=request.user
+    invitation = await get_project_invitation_by_username_or_email_or_404(
+        project_id=id, username_or_email=request.user.username
     )
 
-    return 204, None
+    return await invitations_services.deny_project_invitation(
+        invitation=invitation, denied_by=request.user
+    )
 
 
 ##########################################################

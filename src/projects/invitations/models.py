@@ -88,15 +88,6 @@ class ProjectInvitation(models.BaseModel, CreatedAtMetaInfoMixin):
     )
     revoked_at = models.DateTimeField(null=True, blank=True, verbose_name="revoked at")
 
-    denied_by = models.ForeignKey(
-        "users.User",
-        related_name="ihavedenied+",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-    )
-    denied_at = models.DateTimeField(null=True, blank=True, verbose_name="denied at")
-
     class Meta:
         verbose_name = "project invitation"
         verbose_name_plural = "project invitations"
