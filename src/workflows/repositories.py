@@ -163,6 +163,8 @@ class WorkflowStatusFilters(TypedDict, total=False):
     workflow_id: UUID
     workflow__slug: str
     workflow__project_id: UUID
+    order__gt: int
+    id__in: list[UUID]
 
 
 WorkflowStatusSelectRelated = list[
@@ -215,9 +217,14 @@ async def list_workflow_statuses(
     order_by: WorkflowStatusOrderBy = ["order"],
     offset: int | None = None,
     limit: int | None = None,
+    filters: WorkflowStatusFilters = {},
+    excludes: WorkflowStatusFilters = {},
 ) -> list[WorkflowStatus]:
     qs = (
-        WorkflowStatus.objects.all().filter(workflow_id=workflow_id).order_by(*order_by)
+        WorkflowStatus.objects.all()
+        .filter(workflow_id=workflow_id, **filters)
+        .exclude(**excludes)
+        .order_by(*order_by)
     )
 
     if is_empty is not None:
@@ -247,10 +254,14 @@ async def list_workflow_statuses_to_reorder(
 
 @sync_to_async
 def list_workflow_status_neighbors(
-    workflow_id: UUID,
-    status: WorkflowStatus,
+    workflow_id: UUID, status: WorkflowStatus, excludes: WorkflowStatusFilters = {}
 ) -> Neighbor[WorkflowStatus]:
-    qs = WorkflowStatus.objects.all().filter(workflow_id=workflow_id).order_by("order")
+    qs = (
+        WorkflowStatus.objects.all()
+        .filter(workflow_id=workflow_id)
+        .exclude(**excludes)
+        .order_by("order")
+    )
 
     return neighbors_repositories.get_neighbors_sync(obj=status, model_queryset=qs)
 

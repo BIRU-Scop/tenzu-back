@@ -27,23 +27,16 @@ from base.utils.slug import (
     slugify_uniquely_for_queryset,
 )
 from commons.colors import NUM_COLORS
+from commons.ordering import OrderedMixin
 from projects.projects.models import Project
 
 
-class Workflow(models.BaseModel):
+class Workflow(models.BaseModel, OrderedMixin):
     name = models.CharField(
         max_length=250, null=False, blank=False, verbose_name="name"
     )
     slug = models.LowerSlugField(
         max_length=250, null=False, blank=False, verbose_name="slug"
-    )
-    order = models.DecimalField(
-        max_digits=16,
-        decimal_places=10,
-        default=100,
-        null=False,
-        blank=False,
-        verbose_name="order",
     )
     project = models.ForeignKey(
         "projects.Project",
@@ -85,7 +78,7 @@ class Workflow(models.BaseModel):
         super().save(*args, **kwargs)
 
 
-class WorkflowStatus(models.BaseModel):
+class WorkflowStatus(models.BaseModel, OrderedMixin):
     name = models.CharField(max_length=30, null=False, blank=False, verbose_name="name")
     color = models.IntegerField(
         null=False,
@@ -93,14 +86,6 @@ class WorkflowStatus(models.BaseModel):
         default=1,
         verbose_name="color",
         validators=[MaxValueValidator(NUM_COLORS)],
-    )
-    order = models.DecimalField(
-        max_digits=16,
-        decimal_places=10,
-        default=100,
-        null=False,
-        blank=False,
-        verbose_name="order",
     )
     workflow = models.ForeignKey(
         "workflows.Workflow",

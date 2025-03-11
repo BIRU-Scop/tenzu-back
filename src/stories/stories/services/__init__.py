@@ -23,6 +23,7 @@ from uuid import UUID
 
 from base.repositories.neighbors import Neighbor
 from base.utils.datetime import aware_utcnow
+from commons.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
 from projects.projects.models import Project
 from stories.stories import events as stories_events
 from stories.stories import notifications as stories_notifications
@@ -39,11 +40,6 @@ from stories.stories.services import exceptions as ex
 from users.models import User
 from workflows import repositories as workflows_repositories
 from workflows.models import Workflow, WorkflowStatus
-
-DEFAULT_ORDER_OFFSET = Decimal(100)  # default offset when adding a story
-DEFAULT_PRE_ORDER = Decimal(
-    0
-)  # default pre_position when adding a story at the beginning
 
 ##########################################################
 # create story
@@ -315,41 +311,30 @@ async def _calculate_offset(
     total_stories_to_reorder: int,
     target_status: WorkflowStatus,
     reorder_place: str | None = None,
-    reorder_story: Story | None = None,
-) -> tuple[Decimal, Decimal]:
+    reorder_reference_story: Story | None = None,
+    reordered_stories_ref: list[int] = None,
+) -> tuple[int, int]:
     total_slots = total_stories_to_reorder + 1
 
-    if not reorder_story:
+    if not reorder_reference_story:
         latest_story_order = await get_latest_story_order(target_status.id)
 
         if latest_story_order:
             pre_order = latest_story_order
         else:
-            pre_order = DEFAULT_PRE_ORDER
+            pre_order = 0
         post_order = pre_order + (DEFAULT_ORDER_OFFSET * total_slots)
+        offset = (post_order - pre_order) // total_slots
+        return offset, pre_order
 
-    else:
-        neighbors = await stories_repositories.list_story_neighbors(
-            story=reorder_story, filters={"status_id": reorder_story.status_id}
-        )
-        if reorder_place == "after":
-            pre_order = reorder_story.order
-            if neighbors.next:
-                post_order = neighbors.next.order
-            else:
-                post_order = pre_order + (DEFAULT_ORDER_OFFSET * total_slots)
-
-        elif reorder_place == "before":
-            post_order = reorder_story.order
-            if neighbors.prev:
-                pre_order = neighbors.prev.order
-            else:
-                pre_order = DEFAULT_PRE_ORDER
-        else:
-            return NotImplemented
-
-    offset = (post_order - pre_order) / total_slots
-    return offset, pre_order
+    neighbors = await stories_repositories.list_story_neighbors(
+        story=reorder_reference_story,
+        filters={"status_id": reorder_reference_story.status_id},
+        excludes={"ref__in": reordered_stories_ref},
+    )
+    return calculate_offset(
+        reorder_reference_story, reorder_place, total_slots, neighbors
+    )
 
 
 async def reorder_stories(
@@ -380,20 +365,20 @@ async def reorder_stories(
                 f"Ref {reorder['ref']} should not be part of the stories to reorder"
             )
 
-        reorder_story = await stories_repositories.get_story(
+        reorder_reference_story = await stories_repositories.get_story(
             ref=reorder["ref"],
             filters={
                 "workflow_id": workflow.id,
                 "status_id": target_status.id,
             },
         )
-        if not reorder_story:
+        if not reorder_reference_story:
             raise ex.InvalidStoryRefError(
                 f"Ref {reorder['ref']} doesn't exist in this project"
             )
         reorder_place = reorder["place"]
     else:
-        reorder_story = None
+        reorder_reference_story = None
         reorder_place = None
 
     # check all stories "to reorder" exist
@@ -407,17 +392,36 @@ async def reorder_stories(
     offset, pre_order = await _calculate_offset(
         total_stories_to_reorder=len(stories_to_reorder),
         target_status=target_status,
-        reorder_story=reorder_story,
+        reorder_reference_story=reorder_reference_story,
         reorder_place=reorder_place,
+        reordered_stories_ref=stories_refs,
     )
+    if offset == 0:
+        # There is not enough space left between the stories where stories_to_reorder need to be inserted
+        # We need to move more stories, this should happen very infrequently thanks to the offset
+        after_stories = stories_repositories.list_stories(
+            filters={
+                "status_id": reorder_reference_story.status_id,
+                "order__gt": pre_order,
+            },
+            excludes={"ref__in": stories_refs},
+            order_by=["status", "order"],
+        )
+        total_slots = len(stories_to_reorder) + 1
+        async for nearby_after_story in after_stories:
+            if nearby_after_story.order - pre_order < total_slots:
+                stories_to_reorder.append(nearby_after_story)
+                total_slots += 1
+            else:
+                offset = (nearby_after_story.order - pre_order) // total_slots
+                break
+        else:
+            offset = DEFAULT_ORDER_OFFSET
 
     # update stories
-    stories_to_update_tmp = {s.ref: s for s in stories_to_reorder}
     stories_to_update = []
     stories_with_changed_status = []
-    for i, ref in enumerate(stories_refs):
-        story = stories_to_update_tmp[ref]
-
+    for i, story in enumerate(stories_to_reorder):
         if story.status != target_status:
             stories_with_changed_status.append(story)
 
@@ -450,7 +454,7 @@ async def reorder_stories(
     return reorder_story_serializer
 
 
-async def _calculate_next_order(status_id: UUID) -> Decimal:
+async def _calculate_next_order(status_id: UUID) -> int:
     latest_story_order = await get_latest_story_order(status_id)
 
     return DEFAULT_ORDER_OFFSET + (latest_story_order if latest_story_order else 0)

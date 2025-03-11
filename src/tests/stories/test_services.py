@@ -858,14 +858,14 @@ async def test_calculate_offset() -> None:
             total_stories_to_reorder=1, target_status=target_status
         )
         assert pre_order == latest_story.order
-        assert offset == Decimal(100)
+        assert offset == 100
 
         fake_get_latest_story_order.return_value = None
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1, target_status=target_status
         )
-        assert pre_order == Decimal(0)
-        assert offset == Decimal(100)
+        assert pre_order == 0
+        assert offset == 100
 
         # reorder_story
         reord_st = f.build_story(status=target_status, order=250)
@@ -879,11 +879,11 @@ async def test_calculate_offset() -> None:
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1,
             target_status=target_status,
-            reorder_story=reord_st,
+            reorder_reference_story=reord_st,
             reorder_place="after",
         )
         assert pre_order == reord_st.order
-        assert offset == Decimal(25)
+        assert offset == 25
 
         fake_stories_repo.list_story_neighbors.return_value = Neighbor(
             next=None, prev=None
@@ -891,11 +891,11 @@ async def test_calculate_offset() -> None:
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1,
             target_status=target_status,
-            reorder_story=reord_st,
+            reorder_reference_story=reord_st,
             reorder_place="after",
         )
         assert pre_order == reord_st.order
-        assert offset == Decimal(100)
+        assert offset == 100
 
         # before
         fake_stories_repo.list_story_neighbors.return_value = Neighbor(
@@ -904,11 +904,11 @@ async def test_calculate_offset() -> None:
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1,
             target_status=target_status,
-            reorder_story=reord_st,
+            reorder_reference_story=reord_st,
             reorder_place="before",
         )
         assert pre_order == prev_st.order
-        assert offset == Decimal(50)
+        assert offset == 50
 
         fake_stories_repo.list_story_neighbors.return_value = Neighbor(
             next=None, prev=None
@@ -916,11 +916,20 @@ async def test_calculate_offset() -> None:
         offset, pre_order = await services._calculate_offset(
             total_stories_to_reorder=1,
             target_status=target_status,
-            reorder_story=reord_st,
+            reorder_reference_story=reord_st,
             reorder_place="before",
         )
-        assert pre_order == Decimal(0)
-        assert offset == Decimal(125)
+        assert pre_order == 0
+        assert offset == 125
+        reord_st.order = 2
+        offset, pre_order = await services._calculate_offset(
+            total_stories_to_reorder=1,
+            target_status=target_status,
+            reorder_reference_story=reord_st,
+            reorder_place="before",
+        )
+        assert pre_order == -198
+        assert offset == 100
 
 
 #######################################################
@@ -1291,8 +1300,9 @@ async def test_after_in_the_middle(project_template) -> None:
     ]
     assert stories[0].ref == story2.ref
     assert stories[1].ref == story1.ref
-    assert stories[1].order == story2.order + ((story3.order - story2.order) / 2)
+    assert stories[1].order == story2.order + 100
     assert stories[2].ref == story3.ref
+    assert stories[2].order > story3.order
 
 
 @pytest.mark.django_db
@@ -1335,7 +1345,7 @@ async def test_before_in_the_beginning(project_template) -> None:
         async for story in repositories.list_stories(filters={"status_id": status_2.id})
     ]
     assert stories[0].ref == story1.ref
-    assert stories[0].order == story2.order / 2
+    assert stories[0].order == story2.order - 100
     assert stories[1].ref == story2.ref
     assert stories[2].ref == story3.ref
 
@@ -1381,8 +1391,169 @@ async def test_before_in_the_middle(project_template) -> None:
     ]
     assert stories[0].ref == story2.ref
     assert stories[1].ref == story1.ref
-    assert stories[1].order == story2.order + ((story3.order - story2.order) / 2)
+    assert stories[1].order == story2.order + 100
     assert stories[2].ref == story3.ref
+    assert stories[2].order > story3.order
+
+
+@pytest.mark.django_db
+async def test_before_in_the_middle_far_away(project_template) -> None:
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+    status_2 = await sync_to_async(workflow.statuses.last)()
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    story3 = await f.create_story(
+        project=project, workflow=workflow, status=status_2, order=story2.order + 100
+    )
+    # Current state
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story2   |
+    # |          | story3   |
+
+    await services.reorder_stories(
+        reordered_by=project.created_by,
+        project=project,
+        workflow=workflow,
+        target_status_id=status_2.id,
+        stories_refs=[story1.ref],
+        reorder={"place": "before", "ref": story3.ref},
+    )
+    # Now should be
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # |          | story2   |
+    # |          | story1   |
+    # |          | story3   |
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+    ]
+    assert len(stories) == 0
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+    ]
+    assert stories[0].ref == story2.ref
+    assert stories[1].ref == story1.ref
+    assert stories[1].order == story2.order + ((story3.order - story2.order) // 2)
+    assert stories[2].ref == story3.ref
+    assert stories[2].order == story3.order
+
+
+@pytest.mark.django_db
+async def test_before_in_the_middle_multiple(project_template) -> None:
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+    status_2 = await sync_to_async(workflow.statuses.last)()
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    story3 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    story4 = await f.create_story(project=project, workflow=workflow, status=status_2)
+    story5 = await f.create_story(
+        project=project, workflow=workflow, status=status_2, order=story4.order + 100
+    )
+    # Current state
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # | story1   | story2   |
+    # |          | story3   |
+    # |          | story4   |
+    # |          | story5   |
+
+    await services.reorder_stories(
+        reordered_by=project.created_by,
+        project=project,
+        workflow=workflow,
+        target_status_id=status_2.id,
+        stories_refs=[story1.ref],
+        reorder={"place": "before", "ref": story3.ref},
+    )
+    # Now should be
+    # | status_1 | status_2 |
+    # | -------- | -------- |
+    # |          | story2   |
+    # |          | story1   |
+    # |          | story3   |
+    # |          | story4   |
+    # |          | story5   |
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+    ]
+    assert len(stories) == 0
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+    ]
+    assert stories[0].ref == story2.ref
+    assert stories[1].ref == story1.ref
+    assert stories[1].order == story2.order + ((story5.order - story2.order) // 4)
+    assert stories[2].ref == story3.ref
+    assert stories[2].order > story3.order
+    assert stories[3].ref == story4.ref
+    assert stories[3].order > story4.order
+    assert stories[4].ref == story5.ref
+    assert stories[4].order == story5.order
+
+
+@pytest.mark.django_db
+async def test_after_in_the_middle_multiple_same_status(project_template) -> None:
+    project = await f.create_project(project_template)
+    workflow = await sync_to_async(project.workflows.first)()
+    status_1 = await sync_to_async(workflow.statuses.first)()
+
+    story1 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story2 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story3 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story4 = await f.create_story(project=project, workflow=workflow, status=status_1)
+    story5 = await f.create_story(
+        project=project, workflow=workflow, status=status_1, order=story4.order + 100
+    )
+    # Current state
+    # | status_1 |
+    # | -------- |
+    # | story1   |
+    # | story2   |
+    # | story3   |
+    # | story4   |
+    # | story5   |
+
+    await services.reorder_stories(
+        reordered_by=project.created_by,
+        project=project,
+        workflow=workflow,
+        target_status_id=status_1.id,
+        stories_refs=[story2.ref, story3.ref, story5.ref],
+        reorder={"place": "after", "ref": story1.ref},
+    )
+    # Now should be
+    # | status_1 |
+    # | -------- |
+    # | story1   |
+    # | story2   |
+    # | story3   |
+    # | story5   |
+    # | story4   |
+    stories = [
+        story
+        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+    ]
+    assert stories[0].ref == story1.ref
+    assert stories[1].ref == story2.ref
+    assert stories[1].order == story1.order + 100 * 1
+    assert stories[2].ref == story3.ref
+    assert stories[2].order == story1.order + 100 * 2
+    assert stories[3].ref == story5.ref
+    assert stories[3].order == story1.order + 100 * 3
+    assert stories[4].ref == story4.ref
+    # Not enough space, story4 was moved also
+    assert stories[4].order == story1.order + 100 * 4
 
 
 ##########################################################

@@ -19,7 +19,6 @@
 
 import random
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 from pathlib import Path
 from typing import Final
 from uuid import UUID
@@ -32,6 +31,7 @@ from ninja import UploadedFile
 from base.sampledata import constants
 from comments.models import Comment
 from commons.colors import NUM_COLORS
+from commons.ordering import DEFAULT_ORDER_OFFSET
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
@@ -262,7 +262,10 @@ async def create_stories(
                 await _create_story(
                     status=random.choice(statuses),
                     created_by=random.choice(members),
-                    order=Decimal(i),
+                    # first N stories will be spaced using offset, others will not (to easily test for edge cases)
+                    order=DEFAULT_ORDER_OFFSET * i
+                    if i < DEFAULT_ORDER_OFFSET
+                    else DEFAULT_ORDER_OFFSET * DEFAULT_ORDER_OFFSET + i,
                     save=False,
                 )
             )
@@ -305,7 +308,7 @@ async def create_stories(
 async def _create_story(
     status: WorkflowStatus,
     created_by: User,
-    order: Decimal,
+    order: int,
     title: str | None = None,
     description: str | None = None,
     save: bool = True,
