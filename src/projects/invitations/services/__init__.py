@@ -145,6 +145,7 @@ async def create_project_invitations(
                 "statuses": [
                     ProjectInvitationStatus.PENDING,
                     ProjectInvitationStatus.REVOKED,
+                    ProjectInvitationStatus.DENIED,
                 ],
             },
             select_related=["user", "project", "workspace", "role", "invited_by"],
@@ -313,6 +314,9 @@ async def update_project_invitation(
             "Cannot change role in an accepted invitation"
         )
 
+    if invitation.status == ProjectInvitationStatus.DENIED:
+        raise ex.InvitationRevokedError("The invitation has already been denied")
+
     if invitation.status == ProjectInvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation has already been revoked")
 
@@ -344,6 +348,9 @@ async def accept_project_invitation(invitation: ProjectInvitation) -> ProjectInv
         raise ex.InvitationAlreadyAcceptedError(
             "The invitation has already been accepted"
         )
+
+    if invitation.status == ProjectInvitationStatus.DENIED:
+        raise ex.InvitationRevokedError("The invitation is denied")
 
     if invitation.status == ProjectInvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation is revoked")
@@ -382,6 +389,9 @@ async def accept_project_invitation_from_token(
             "The invitation has already been accepted"
         )
 
+    if invitation.status == ProjectInvitationStatus.DENIED:
+        raise ex.InvitationRevokedError("The invitation is denied")
+
     if invitation.status == ProjectInvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation is revoked")
 
@@ -398,6 +408,9 @@ async def resend_project_invitation(
 ) -> None:
     if invitation.status == ProjectInvitationStatus.ACCEPTED:
         raise ex.InvitationAlreadyAcceptedError("Cannot resend an accepted invitation")
+
+    if invitation.status == ProjectInvitationStatus.DENIED:
+        raise ex.InvitationRevokedError("The invitation has already been denied")
 
     if invitation.status == ProjectInvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation has already been revoked")
@@ -418,6 +431,40 @@ async def resend_project_invitation(
 
 
 ##########################################################
+# deny project invitation
+##########################################################
+
+
+async def deny_project_invitation(
+    invitation: ProjectInvitation, denied_by: User
+) -> ProjectInvitation:
+    if not invitation.user:
+        raise ex.InvitationHasNoUserYetError("The invitation does not have a user yet")
+
+    if invitation.status == ProjectInvitationStatus.ACCEPTED:
+        raise ex.InvitationAlreadyAcceptedError("Cannot deny an accepted invitation")
+
+    if invitation.status == ProjectInvitationStatus.REVOKED:
+        raise ex.InvitationRevokedError("Cannot deny a revoked invitation")
+
+    if invitation.status == ProjectInvitationStatus.DENIED:
+        raise ex.InvitationDeniedError("The invitation has already been denied")
+
+    denied_invitation = await invitations_repositories.update_project_invitation(
+        invitation=invitation,
+        values={
+            "status": ProjectInvitationStatus.DENIED,
+        },
+    )
+
+    await invitations_events.emit_event_when_project_invitation_is_denied(
+        invitation=denied_invitation
+    )
+
+    return denied_invitation
+
+
+##########################################################
 # revoke project invitation
 ##########################################################
 
@@ -427,6 +474,9 @@ async def revoke_project_invitation(
 ) -> None:
     if invitation.status == ProjectInvitationStatus.ACCEPTED:
         raise ex.InvitationAlreadyAcceptedError("Cannot revoke an accepted invitation")
+
+    if invitation.status == ProjectInvitationStatus.DENIED:
+        raise ex.InvitationDeniedError("Cannot revoke a denied invitation")
 
     if invitation.status == ProjectInvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation has already been revoked")

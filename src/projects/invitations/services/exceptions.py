@@ -40,6 +40,10 @@ class InvitationRevokedError(TenzuServiceException):
     pass
 
 
+class InvitationDeniedError(TenzuServiceException):
+    pass
+
+
 class InvitationIsNotForThisUserError(TenzuServiceException):
     pass
 
