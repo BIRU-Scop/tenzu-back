@@ -17,7 +17,7 @@ Whether it be about ideas that you have, how you have been using Tenzu or about 
 contributing in the future. We are very active there and you'll be able to receive news about our 
 progress!
 
-We try to keep our [ROADMAP](ROADMAP.md) up-to-date so that you know what to expect for 
+We try to keep our [ROADMAP](README.md#roadmap) up-to-date so that you know what to expect for 
 the coming months.
 
 # Community
