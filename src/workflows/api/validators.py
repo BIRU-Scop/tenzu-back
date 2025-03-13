@@ -27,7 +27,7 @@ from typing_extensions import Annotated
 from base.utils.uuid import decode_b64str_to_uuid
 from base.validators import B64UUID, BaseModel
 from commons.colors import NUM_COLORS
-from exceptions import api as ex
+from commons.exceptions import api as ex
 
 WorkflowStatusName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)

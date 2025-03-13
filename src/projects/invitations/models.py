@@ -17,12 +17,14 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.db import models
+from django.db import models
+
 from base.db.mixins import CreatedAtMetaInfoMixin
+from base.db.models import BaseModel, LowerEmailField
 from projects.invitations.choices import ProjectInvitationStatus
 
 
-class ProjectInvitation(models.BaseModel, CreatedAtMetaInfoMixin):
+class ProjectInvitation(BaseModel, CreatedAtMetaInfoMixin):
     project = models.ForeignKey(
         "projects.Project",
         null=False,
@@ -48,7 +50,7 @@ class ProjectInvitation(models.BaseModel, CreatedAtMetaInfoMixin):
         on_delete=models.CASCADE,
         verbose_name="user",
     )
-    email = models.LowerEmailField(
+    email = LowerEmailField(
         max_length=255, null=False, blank=False, verbose_name="email"
     )
     status = models.CharField(

@@ -19,11 +19,11 @@
 
 from typing import Any
 
+from django.db.models import ForeignKey
 from django.http.request import HttpRequest
 
 from base.db import admin
 from base.db.admin.forms import ModelChoiceField
-from base.db.models import ForeignKey
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
 from projects.projects.models import Project, ProjectTemplate

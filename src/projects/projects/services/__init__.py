@@ -29,7 +29,6 @@ from base.utils.files import uploadfile_to_file
 from base.utils.images import get_thumbnail_url
 from commons.utils import transaction_atomic_async
 from events import event_handlers as actions_events
-from permissions import services as permissions_services
 from projects.invitations import services as pj_invitations_services
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.memberships import repositories as pj_memberships_repositories
@@ -41,6 +40,7 @@ from projects.projects.serializers import ProjectDetailSerializer
 from projects.projects.serializers import services as serializers_services
 from projects.projects.services import exceptions as ex
 from projects.roles import repositories as pj_roles_repositories
+from projects.roles import services as roles_services
 from users import services as users_services
 from users.models import AnyUser, User
 from workflows import repositories as workflows_repositories
@@ -148,13 +148,6 @@ async def list_projects(workspace_id: UUID) -> list[Project]:
 async def list_workspace_projects_for_user(
     workspace: Workspace, user: User
 ) -> list[Project]:
-    ws_membership = await workspace_memberships_repositories.get_workspace_membership(
-        filters={"workspace_id": workspace.id, "user_id": user.id},
-        select_related=[],
-    )
-    if ws_membership:
-        return await list_projects(workspace_id=workspace.id)
-
     return await projects_repositories.list_projects(
         filters={"workspace_id": workspace.id, "memberships__user_id": user.id},
         select_related=["workspace"],
@@ -191,26 +184,11 @@ async def get_project_detail(
         is_project_admin,
         is_project_member,
         project_role_permissions,
-    ) = await permissions_services.get_user_project_role_info(
-        user=user, project=project
-    )
-
-    is_workspace_member = await permissions_services.is_workspace_member(
-        user=user, obj=project.workspace
-    )
+    ) = await roles_services.get_user_project_role_info(user=user, project=project)
 
     user_id = None if user.is_anonymous else user.id
     workspace = await workspaces_services.get_workspace_nested(
         workspace_id=project.workspace_id, user_id=user_id
-    )
-
-    user_permissions = await permissions_services.get_user_permissions_for_project(
-        is_project_admin=is_project_admin,
-        is_project_member=is_project_member,
-        is_workspace_member=is_workspace_member,
-        is_authenticated=user.is_authenticated,
-        project_role_permissions=project_role_permissions,
-        project=project,
     )
 
     user_has_pending_invitation = (
@@ -233,7 +211,7 @@ async def get_project_detail(
         workflows=workflows,
         user_is_admin=is_project_admin,
         user_is_member=is_project_member,
-        user_permissions=user_permissions,
+        user_permissions=project_role_permissions,
         user_has_pending_invitation=user_has_pending_invitation,
     )
 

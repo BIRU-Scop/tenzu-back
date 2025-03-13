@@ -21,28 +21,23 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from permissions import CanViewProject, IsProjectAdmin, IsRelatedToTheUser
+from permissions import check_permissions
 from projects.memberships import services as memberships_services
 from projects.memberships.api.validators import ProjectMembershipValidator
 from projects.memberships.models import ProjectMembership
+from projects.memberships.permissions import MembershipPermissionsCheck
 from projects.memberships.serializers import ProjectMembershipSerializer
 from projects.projects.api import get_project_or_404
 
 membership_router = Router()
-
-# PERMISSIONS
-LIST_PROJECT_MEMBERSHIPS = CanViewProject()
-UPDATE_PROJECT_MEMBERSHIP = IsProjectAdmin()
-DELETE_PROJECT_MEMBERSHIP = IsProjectAdmin() | IsRelatedToTheUser("user")
 
 
 ##########################################################
@@ -71,7 +66,9 @@ async def list_project_memberships(
 
     project = await get_project_or_404(id)
     await check_permissions(
-        permissions=LIST_PROJECT_MEMBERSHIPS, user=request.user, obj=project
+        permissions=MembershipPermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=project,
     )
     return await memberships_services.list_project_memberships(project=project)
 
@@ -106,7 +103,9 @@ async def update_project_membership(
     membership = await get_project_membership_or_404(project_id=id, username=username)
 
     await check_permissions(
-        permissions=UPDATE_PROJECT_MEMBERSHIP, user=request.user, obj=membership
+        permissions=MembershipPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=membership,
     )
 
     return await memberships_services.update_project_membership(
@@ -141,7 +140,9 @@ async def delete_project_membership(
     membership = await get_project_membership_or_404(project_id=id, username=username)
 
     await check_permissions(
-        permissions=DELETE_PROJECT_MEMBERSHIP, user=request.user, obj=membership
+        permissions=MembershipPermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=membership,
     )
 
     await memberships_services.delete_project_membership(membership=membership)

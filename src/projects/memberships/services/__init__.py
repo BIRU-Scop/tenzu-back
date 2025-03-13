@@ -19,7 +19,6 @@
 
 from uuid import UUID
 
-from permissions import services as permissions_services
 from projects.invitations import repositories as project_invitations_repositories
 from projects.memberships import events as memberships_events
 from projects.memberships import repositories as memberships_repositories
@@ -29,6 +28,7 @@ from projects.projects.models import Project
 from projects.roles import repositories as pj_roles_repositories
 from projects.roles.models import ProjectRole
 from stories.assignments import repositories as story_assignments_repositories
+from stories.stories import permissions as stories_permissions
 
 ##########################################################
 # list project memberships
@@ -79,7 +79,7 @@ async def update_project_membership(
     view_story_is_deleted = False
     if membership.role.permissions:
         view_story_is_deleted = (
-            await permissions_services.is_view_story_permission_deleted(
+            await stories_permissions.is_view_story_permission_deleted(
                 old_permissions=membership.role.permissions,
                 new_permissions=project_role.permissions,
             )

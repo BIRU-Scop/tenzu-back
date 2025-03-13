@@ -21,8 +21,8 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.db.models import Q, QuerySet
 
-from base.db.models import Q, QuerySet
 from users.models import User
 from workspaces.invitations.choices import WorkspaceInvitationStatus
 from workspaces.invitations.models import WorkspaceInvitation

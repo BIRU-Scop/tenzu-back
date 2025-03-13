@@ -20,10 +20,10 @@
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from base.api.permissions import And, Not, Or, check_permissions
-from exceptions import api as ex
+from commons.exceptions import api as ex
 from permissions import (
     AllowAny,
+    And,
     CanViewProject,
     DenyAll,
     HasPerm,
@@ -32,6 +32,9 @@ from permissions import (
     IsRelatedToTheUser,
     IsSuperUser,
     IsWorkspaceMember,
+    Not,
+    Or,
+    check_permissions,
 )
 from tests.utils import factories as f
 

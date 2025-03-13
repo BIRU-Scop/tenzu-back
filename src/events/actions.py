@@ -23,16 +23,17 @@ from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Field
 from typing_extensions import Annotated
 
-from base.api.permissions import check_permissions
 from base.utils.uuid import decode_b64str_to_uuid
+from commons.exceptions.api import ForbiddenError
 from events import channels
 from events.events import Event
-from exceptions.api import ForbiddenError
 from ninja_jwt.authentication import JWTBaseAuthentication
 from ninja_jwt.exceptions import AuthenticationFailed
-from permissions import CanViewProject, HasPerm
+from permissions import check_permissions
 from projects.projects.models import Project
+from projects.projects.permissions import ProjectPermissionsCheck
 from workspaces.workspaces.models import Workspace
+from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 
 if TYPE_CHECKING:
     from events.consumers import EventConsumer
@@ -103,14 +104,13 @@ class PingAction(PydanticBaseModel):
 # Project
 
 
-PROJECT_PERMISSIONS = CanViewProject()
-
-
 async def can_user_subscribe_to_project_channel(
     user: AbstractUser, project: Project
 ) -> bool:
     try:
-        await check_permissions(permissions=PROJECT_PERMISSIONS, user=user, obj=project)
+        await check_permissions(
+            permissions=ProjectPermissionsCheck.VIEW.value, user=user, obj=project
+        )
         return True
     except ForbiddenError:
         return False
@@ -205,15 +205,13 @@ class CheckProjectEventsSubscriptionAction(PydanticBaseModel):
 
 # workspace
 
-WORKSPACE_PERMISSIONS = HasPerm("view_workspace")
-
 
 async def can_user_subscribe_to_workspace_channel(
     user: AbstractUser, workspace: Workspace
 ) -> bool:
     try:
         await check_permissions(
-            permissions=WORKSPACE_PERMISSIONS, user=user, obj=workspace
+            permissions=WorkspacePermissionsCheck.VIEW.value, user=user, obj=workspace
         )
         return True
     except ForbiddenError:

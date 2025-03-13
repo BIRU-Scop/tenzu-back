@@ -20,8 +20,9 @@
 from typing import Any
 
 from django.core.validators import MaxValueValidator
+from django.db import models
 
-from base.db import models
+from base.db.models import BaseModel, LowerSlugField
 from base.utils.slug import (
     generate_incremental_int_suffix,
     slugify_uniquely_for_queryset,
@@ -31,13 +32,11 @@ from commons.ordering import OrderedMixin
 from projects.projects.models import Project
 
 
-class Workflow(models.BaseModel, OrderedMixin):
+class Workflow(BaseModel, OrderedMixin):
     name = models.CharField(
         max_length=250, null=False, blank=False, verbose_name="name"
     )
-    slug = models.LowerSlugField(
-        max_length=250, null=False, blank=False, verbose_name="slug"
-    )
+    slug = LowerSlugField(max_length=250, null=False, blank=False, verbose_name="slug")
     project = models.ForeignKey(
         "projects.Project",
         null=False,
@@ -78,7 +77,7 @@ class Workflow(models.BaseModel, OrderedMixin):
         super().save(*args, **kwargs)
 
 
-class WorkflowStatus(models.BaseModel, OrderedMixin):
+class WorkflowStatus(BaseModel, OrderedMixin):
     name = models.CharField(max_length=30, null=False, blank=False, verbose_name="name")
     color = models.IntegerField(
         null=False,

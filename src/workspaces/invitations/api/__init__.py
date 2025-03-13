@@ -19,20 +19,19 @@
 
 from ninja import Path, Router
 
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from permissions import IsWorkspaceMember
+from permissions import check_permissions
 from workspaces.invitations import services as workspaces_invitations_services
 from workspaces.invitations.api.validators import WorkspaceInvitationsValidator
 from workspaces.invitations.models import WorkspaceInvitation
-from workspaces.invitations.permissions import IsWorkspaceInvitationRecipient
+from workspaces.invitations.permissions import InvitationPermissionsCheck
 from workspaces.invitations.serializers import (
     CreateWorkspaceInvitationsSerializer,
     PublicWorkspaceInvitationSerializer,
@@ -42,11 +41,6 @@ from workspaces.invitations.services.exceptions import BadInvitationTokenError
 from workspaces.workspaces.api import get_workspace_or_404
 
 workspace_invit_router = Router()
-
-# PERMISSIONS
-ACCEPT_WORKSPACE_INVITATION_BY_TOKEN = IsWorkspaceInvitationRecipient()
-CREATE_WORKSPACE_INVITATIONS = IsWorkspaceMember()
-LIST_WORKSPACE_INVITATIONS = IsWorkspaceMember()
 
 
 ##########################################################
@@ -77,7 +71,9 @@ async def create_workspace_invitations(
     """
     workspace = await get_workspace_or_404(id=id)
     await check_permissions(
-        permissions=CREATE_WORKSPACE_INVITATIONS, user=request.user, obj=workspace
+        permissions=InvitationPermissionsCheck.CREATE.value,
+        user=request.user,
+        obj=workspace,
     )
 
     return await workspaces_invitations_services.create_workspace_invitations(
@@ -113,7 +109,9 @@ async def list_workspace_invitations(
     """
     workspace = await get_workspace_or_404(id)
     await check_permissions(
-        permissions=LIST_WORKSPACE_INVITATIONS, user=request.user, obj=workspace
+        permissions=InvitationPermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workspace,
     )
 
     return await workspaces_invitations_services.list_pending_workspace_invitations(
@@ -188,7 +186,7 @@ async def accept_workspace_invitation_by_token(
         raise ex.BadRequest("Invalid token")
 
     await check_permissions(
-        permissions=ACCEPT_WORKSPACE_INVITATION_BY_TOKEN,
+        permissions=InvitationPermissionsCheck.ANSWER.value,
         user=request.user,
         obj=invitation,
     )

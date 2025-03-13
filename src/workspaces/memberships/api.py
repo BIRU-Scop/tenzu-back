@@ -19,32 +19,23 @@
 
 from uuid import UUID
 
-from django.http import HttpResponse
-from ninja import Path, Query, Router
+from ninja import Path, Router
 
-from base.api import PaginationQuery, set_pagination
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from permissions import IsWorkspaceMember
+from permissions import check_permissions
 from workspaces.memberships import services as memberships_services
 from workspaces.memberships.models import WorkspaceMembership
+from workspaces.memberships.permissions import MembershipPermissionsCheck
 from workspaces.memberships.serializers import (
-    WorkspaceGuestDetailSerializer,
     WorkspaceMembershipDetailSerializer,
 )
 from workspaces.workspaces.api import get_workspace_or_404
-
-# PERMISSIONS
-LIST_WORKSPACE_MEMBERSHIPS = IsWorkspaceMember()
-LIST_WORKSPACE_GUESTS = IsWorkspaceMember()
-DELETE_WORKSPACE_MEMBERSHIP = IsWorkspaceMember()
-
 
 workspace_membership_router = Router()
 
@@ -74,49 +65,11 @@ async def list_workspace_memberships(
     """
     workspace = await get_workspace_or_404(id)
     await check_permissions(
-        permissions=LIST_WORKSPACE_MEMBERSHIPS, user=request.user, obj=workspace
+        permissions=MembershipPermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workspace,
     )
     return await memberships_services.list_workspace_memberships(workspace=workspace)
-
-
-##########################################################
-# list workspace guests
-##########################################################
-
-
-@workspace_membership_router.get(
-    "/workspaces/{id}/guests",
-    url_name="workspace.guests.list",
-    summary="List workspace guests",
-    response={
-        200: list[WorkspaceGuestDetailSerializer],
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-# TODO: pass to django ninja paginate
-async def list_workspace_guests(
-    request,
-    id: Path[B64UUID],
-    pagination_params: Query[PaginationQuery],
-    response: HttpResponse,
-) -> list[WorkspaceGuestDetailSerializer]:
-    """
-    List workspace guests
-    """
-    workspace = await get_workspace_or_404(id)
-    await check_permissions(
-        permissions=LIST_WORKSPACE_GUESTS, user=request.user, obj=workspace
-    )
-
-    pagination, guests = await memberships_services.list_paginated_workspace_guests(
-        workspace=workspace,
-        offset=pagination_params.offset,
-        limit=pagination_params.limit,
-    )
-    set_pagination(response, pagination)
-    return guests
 
 
 ##########################################################
@@ -143,7 +96,7 @@ async def delete_workspace_membership(
         workspace_id=id, username=username
     )
     await check_permissions(
-        permissions=DELETE_WORKSPACE_MEMBERSHIP,
+        permissions=MembershipPermissionsCheck.DELETE.value,
         user=request.user,
         obj=membership.workspace,
     )

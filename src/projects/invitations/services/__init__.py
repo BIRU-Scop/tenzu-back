@@ -20,13 +20,15 @@
 from typing import Any, cast
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
+from asgiref.sync import async_to_sync, sync_to_async
 from django.conf import settings
+from django.db import transaction
 
 from auth import services as auth_services
 from base.utils import emails
 from base.utils.datetime import aware_utcnow
 from commons.invitations import is_spam
+from commons.utils import transaction_on_commit_async
 from emails.emails import Emails
 from emails.tasks import send_email
 from ninja_jwt.exceptions import TokenError
@@ -210,32 +212,12 @@ async def create_project_invitations(
 ##########################################################
 
 
-async def list_pending_project_invitations(
-    project: Project, user: AnyUser
-) -> list[ProjectInvitation]:
-    if user.is_anonymous:
-        return []
-
-    role = await pj_roles_repositories.get_project_role(
-        filters={"user_id": user.id, "project_id": project.id}
+async def list_project_invitations(project_id: UUID) -> list[ProjectInvitation]:
+    return await invitations_repositories.list_project_invitations(
+        filters={
+            "project_id": project_id,
+        },
     )
-
-    if role and role.is_admin:
-        return await invitations_repositories.list_project_invitations(
-            filters={
-                "project_id": project.id,
-                "status": ProjectInvitationStatus.PENDING,
-            },
-        )
-
-    else:
-        return await invitations_repositories.list_project_invitations(
-            filters={
-                "project_id": project.id,
-                "status": ProjectInvitationStatus.PENDING,
-                "user": user,
-            },
-        )
 
 
 ##########################################################
@@ -256,7 +238,7 @@ async def get_project_invitation(token: str) -> ProjectInvitation | None:
     )
 
 
-async def get_public_project_invitation(
+async def get_project_invitation_from_token(
     token: str,
 ) -> PublicProjectInvitationSerializer | None:
     if invitation := await get_project_invitation(token=token):
@@ -331,9 +313,9 @@ async def update_project_invitation(
         invitation=invitation,
         values={"role": project_role},
     )
-    await invitations_events.emit_event_when_project_invitation_is_updated(
-        invitation=updated_invitation
-    )
+    await transaction_on_commit_async(
+        invitations_events.emit_event_when_project_invitation_is_updated
+    )(invitation=updated_invitation)
 
     return updated_invitation
 

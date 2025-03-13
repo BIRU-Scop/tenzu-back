@@ -17,16 +17,17 @@
 #
 # You can contact BIRU at ask@biru.sh
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import models
 
-from base.db import models
 from base.db.mixins import CreatedMetaInfoMixin
+from base.db.models import BaseModel
 
 #######################################################################
 # Base Notification
 ######################################################################
 
 
-class Notification(models.BaseModel, CreatedMetaInfoMixin):
+class Notification(BaseModel, CreatedMetaInfoMixin):
     type = models.CharField(
         max_length=500,
         null=False,

@@ -16,18 +16,20 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.db import models
 
-from base.db import models
 from base.db.mixins import (
     CreatedMetaInfoMixin,
     DeletedMetaInfoMixin,
     ModifiedAtMetaInfoMixin,
 )
+from base.db.models import BaseModel
 from projects.projects.models import Project
 
 
 class Comment(
-    models.BaseModel,
+    BaseModel,
     CreatedMetaInfoMixin,
     ModifiedAtMetaInfoMixin,
     DeletedMetaInfoMixin,
@@ -41,7 +43,7 @@ class Comment(
         verbose_name="object content type",
     )
     object_id = models.UUIDField(null=False, blank=False, verbose_name="object id")
-    content_object = models.GenericForeignKey(
+    content_object = GenericForeignKey(
         "object_content_type",
         "object_id",
     )

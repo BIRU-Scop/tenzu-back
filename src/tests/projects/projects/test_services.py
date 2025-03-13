@@ -236,13 +236,19 @@ async def test_get_project_detail():
             "projects.projects.services.permissions_services", autospec=True
         ) as fake_permissions_services,
         patch(
+            "projects.projects.services.roless_services", autospec=True
+        ) as fake_roles_services,
+        patch(
+            "projects.projects.services.roless_services", autospec=True
+        ) as fake_roles_services,
+        patch(
             "projects.projects.services.workspaces_services", autospec=True
         ) as fake_workspaces_services,
         patch(
             "projects.projects.services.pj_invitations_services", autospec=True
         ) as fake_pj_invitations_services,
     ):
-        fake_permissions_services.get_user_project_role_info.return_value = (
+        fake_roles_services.get_user_project_role_info.return_value = (
             True,
             True,
             [],
@@ -257,7 +263,7 @@ async def test_get_project_detail():
         )
         await services.get_project_detail(project=project, user=workspace.created_by)
 
-        fake_permissions_services.get_user_project_role_info.assert_awaited_once_with(
+        fake_roles_services.get_user_project_role_info.assert_awaited_once_with(
             project=project, user=workspace.created_by
         )
         fake_permissions_services.get_user_permissions_for_project.assert_awaited_once_with(
@@ -287,13 +293,16 @@ async def test_get_project_detail_anonymous():
             "projects.projects.services.permissions_services", autospec=True
         ) as fake_permissions_services,
         patch(
+            "projects.projects.services.roless_services", autospec=True
+        ) as fake_roles_services,
+        patch(
             "projects.projects.services.workspaces_services", autospec=True
         ) as fake_workspaces_services,
         patch(
             "projects.projects.services.pj_invitations_services", autospec=True
         ) as fake_pj_invitations_services,
     ):
-        fake_permissions_services.get_user_project_role_info.return_value = (
+        fake_roles_services.get_user_project_role_info.return_value = (
             True,
             True,
             [],
@@ -308,7 +317,7 @@ async def test_get_project_detail_anonymous():
         )
         await services.get_project_detail(project=project, user=user)
 
-        fake_permissions_services.get_user_project_role_info.assert_awaited_once_with(
+        fake_roles_services.get_user_project_role_info.assert_awaited_once_with(
             project=project, user=user
         )
         fake_permissions_services.get_user_permissions_for_project.assert_awaited_once_with(

@@ -21,8 +21,8 @@ from typing import Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.db.models import QuerySet
 
-from base.db.models import QuerySet
 from stories.assignments.models import StoryAssignment
 from stories.stories.models import Story
 from users.models import User

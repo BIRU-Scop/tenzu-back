@@ -16,13 +16,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.contrib.contenttypes.fields import GenericRelation
+from django.db import models
 
-from base.db import models
 from comments.models import Comment
 
 
 class RelatedCommentsMixin(models.Model):
-    comments = models.GenericRelation(
+    comments = GenericRelation(
         Comment,
         content_type_field="object_content_type",
         object_id_field="object_id",

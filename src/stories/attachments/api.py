@@ -25,27 +25,22 @@ from ninja import File, Path, Router, UploadedFile
 
 from attachments import services as attachments_services
 from attachments.models import Attachment
-from base.api.permissions import check_permissions
 from base.utils.files import iterfile
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from permissions import HasPerm
+from permissions import check_permissions
 from stories.attachments import events
 from stories.attachments.serializers import StoryAttachmentSerializer
 from stories.stories.api import get_story_or_404
 from stories.stories.models import Story
+from stories.stories.permissions import StoryPermissionsCheck
 
 attachments_router = Router()
-
-# PERMISSIONS
-CREATE_STORY_ATTACHMENT = HasPerm("modify_story")
-LIST_STORY_ATTACHMENTS = HasPerm("view_story")
-DELETE_STORY_ATTACHMENT = HasPerm("modify_story")
 
 
 ################################################
@@ -76,7 +71,7 @@ async def create_story_attachments(
     """
     story = await get_story_or_404(project_id, ref)
     await check_permissions(
-        permissions=CREATE_STORY_ATTACHMENT, user=request.user, obj=story
+        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
     )
 
     event_on_create = partial(
@@ -117,7 +112,7 @@ async def list_story_attachment(
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
     await check_permissions(
-        permissions=LIST_STORY_ATTACHMENTS, user=request.user, obj=story
+        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=story
     )
     attachments = await attachments_services.list_attachments(
         content_object=story,
@@ -156,7 +151,7 @@ async def delete_story_attachment(
         attachment_id=attachment_id, story=story
     )
     await check_permissions(
-        permissions=DELETE_STORY_ATTACHMENT, user=request.user, obj=story
+        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
     )
 
     event_on_delete = partial(
@@ -198,6 +193,7 @@ async def get_story_attachment_file(
     """
     Download a story attachment file
     """
+    # TODO add permission check while keeping it usable by the frontend
     story = await get_story_or_404(project_id=project_id, ref=ref)
     attachment = await get_story_attachment_or_404(
         attachment_id=attachment_id, story=story

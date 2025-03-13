@@ -21,8 +21,8 @@ from uuid import uuid1
 import pytest
 from asgiref.sync import sync_to_async
 from django.core.files import File
+from django.db import models
 
-from base.db import models
 from base.db import sequences as seq
 from projects import references
 from projects.invitations.choices import ProjectInvitationStatus

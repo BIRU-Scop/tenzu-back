@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -17,11 +16,24 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from enum import Enum
 from typing import Any
 
-from django.http import HttpResponse
+from permissions import DenyAll, PermissionComponent
+from projects.invitations.permissions import HasPendingProjectInvitation
+from projects.projects.models import Project
+from users.models import AnyUser
 
 
-def set_headers(response: HttpResponse, headers: dict[str, Any]) -> None:
-    for k, v in headers.items():
-        response.headers[f"Tenzu-{k}"] = str(v)
+class IsProjectMember(PermissionComponent):
+    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+        obj: Project
+        return await obj.roles.filter(users=user).aexists()
+
+
+class ProjectPermissionsCheck(Enum):
+    VIEW = IsProjectMember() | HasPendingProjectInvitation()
+    # TODO
+    MODIFY = DenyAll()
+    DELETE = DenyAll()
+    CREATE = DenyAll()

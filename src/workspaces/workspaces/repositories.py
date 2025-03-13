@@ -22,10 +22,8 @@ from typing import Any, Iterable, Literal
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
-
-from base.db.models import (
+from django.db.models import (
     CharField,
-    Coalesce,
     Count,
     Exists,
     IntegerField,
@@ -35,6 +33,8 @@ from base.db.models import (
     Subquery,
     Value,
 )
+from django.db.models.functions import Coalesce
+
 from base.utils.datetime import aware_utcnow
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.projects.models import Project

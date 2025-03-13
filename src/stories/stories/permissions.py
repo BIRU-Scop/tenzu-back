@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -16,14 +15,22 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from enum import Enum
 
-from django.db import models
-
-from base.db.models import BaseModel
-from base.occ.models import VersionedMixin
+from permissions import DenyAll
 
 
-class SampleOCCItem(BaseModel, VersionedMixin):
-    name = models.CharField(max_length=80, null=False, blank=False)
-    description = models.CharField(max_length=220, null=True, blank=True)
-    is_active = models.BooleanField(default=True, null=False, blank=False)
+async def is_view_story_permission_deleted(
+    old_permissions: list[str], new_permissions: list[str]
+) -> bool:
+    if "view_story" in old_permissions and "view_story" not in new_permissions:
+        return True
+    return False
+
+
+class StoryPermissionsCheck(Enum):
+    # TODO
+    VIEW = DenyAll()
+    MODIFY = DenyAll()
+    DELETE = DenyAll()
+    CREATE = DenyAll()

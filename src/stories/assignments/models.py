@@ -17,11 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.db import models
+from django.db import models
+
 from base.db.mixins import CreatedAtMetaInfoMixin
+from base.db.models import BaseModel
 
 
-class StoryAssignment(models.BaseModel, CreatedAtMetaInfoMixin):
+class StoryAssignment(BaseModel, CreatedAtMetaInfoMixin):
     user = models.ForeignKey(
         "users.User",
         null=False,

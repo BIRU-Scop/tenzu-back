@@ -170,15 +170,15 @@ async def test_update_project_membership_role_view_story_deleted():
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
         patch(
-            "projects.memberships.services.permissions_services", autospec=True
-        ) as fake_permissions_service,
+            "projects.memberships.services.stories_permissions", autospec=True
+        ) as fake_stories_permissions,
         patch(
             "projects.memberships.services.story_assignments_repositories",
             autospec=True,
         ) as fake_story_assignments_repository,
     ):
         fake_pj_role_repository.get_project_role.return_value = role
-        fake_permissions_service.is_view_story_permission_deleted.return_value = True
+        fake_stories_permissions.is_view_story_permission_deleted.return_value = True
 
         updated_membership = await services.update_project_membership(
             membership=membership, role_slug=role.slug

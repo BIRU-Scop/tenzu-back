@@ -16,13 +16,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.contrib.contenttypes.fields import GenericRelation
+from django.db import models
 
-from base.db import models
 from mediafiles.models import Mediafile
 
 
 class RelatedMediafilesMixin(models.Model):
-    mediafiles = models.GenericRelation(
+    mediafiles = GenericRelation(
         Mediafile,
         content_type_field="object_content_type",
         object_id_field="object_id",

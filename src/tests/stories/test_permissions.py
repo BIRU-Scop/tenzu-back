@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -17,13 +16,32 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from django.db import models
+from stories.stories import permissions as permissions
 
-from base.db.models import BaseModel
-from base.occ.models import VersionedMixin
+#####################################################
+# is_view_story_permission_deleted
+#####################################################
 
 
-class SampleOCCItem(BaseModel, VersionedMixin):
-    name = models.CharField(max_length=80, null=False, blank=False)
-    description = models.CharField(max_length=220, null=True, blank=True)
-    is_active = models.BooleanField(default=True, null=False, blank=False)
+async def test_is_view_story_permission_deleted_false():
+    old_permissions = []
+    new_permissions = ["view_story"]
+
+    assert (
+        await permissions.is_view_story_permission_deleted(
+            old_permissions, new_permissions
+        )
+        is False
+    )
+
+
+async def test_is_view_story_permission_deleted_true():
+    old_permissions = ["view_story"]
+    new_permissions = []
+
+    assert (
+        await permissions.is_view_story_permission_deleted(
+            old_permissions, new_permissions
+        )
+        is True
+    )

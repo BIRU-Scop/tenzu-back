@@ -19,12 +19,12 @@
 
 from uuid import UUID
 
+from django.db.models import Model
 from ninja import UploadedFile
 
 from attachments import repositories as attachments_repositories
 from attachments.events import EventOnCreateCallable, EventOnDeleteCallable
 from attachments.models import Attachment
-from base.db.models import Model
 from users.models import User
 
 ##########################################################

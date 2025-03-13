@@ -21,33 +21,26 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from permissions import HasPerm, IsAuthenticated, IsWorkspaceMember
+from permissions import IsAuthenticated, check_permissions
 from workspaces.workspaces import services as workspaces_services
 from workspaces.workspaces.api.validators import (
     UpdateWorkspaceValidator,
     WorkspaceValidator,
 )
 from workspaces.workspaces.models import Workspace
+from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 from workspaces.workspaces.serializers import (
     WorkspaceDetailSerializer,
     WorkspaceSerializer,
 )
-
-# PERMISSIONS
-LIST_MY_WORKSPACES = IsAuthenticated()
-GET_MY_WORKSPACE = IsAuthenticated()
-GET_WORKSPACE = HasPerm("view_workspace")
-DELETE_WORKSPACE = IsWorkspaceMember()
-UPDATE_WORKSPACE = IsWorkspaceMember()
 
 workspace_router = Router()
 
@@ -72,6 +65,10 @@ async def create_workspace(request, data: WorkspaceValidator) -> WorkspaceSerial
     """
     Create a new workspace for the logged user.
     """
+    await check_permissions(
+        permissions=IsAuthenticated(),
+        user=request.user,
+    )
     return await workspaces_services.create_workspace(
         name=data.name, color=data.color, created_by=request.user
     )
@@ -93,7 +90,7 @@ async def list_my_workspaces(request) -> list[WorkspaceDetailSerializer]:
     """
     List the workspaces overviews of the logged user.
     """
-    await check_permissions(permissions=LIST_MY_WORKSPACES, user=request.user, obj=None)
+    await check_permissions(permissions=IsAuthenticated(), user=request.user)
     return await workspaces_services.list_user_workspaces(user=request.user)
 
 
@@ -117,7 +114,11 @@ async def get_workspace(request, id: Path[B64UUID]) -> WorkspaceSerializer:
     Get workspace detail by id.
     """
     workspace = await get_workspace_or_404(id=id)
-    await check_permissions(permissions=GET_WORKSPACE, user=request.user, obj=workspace)
+    await check_permissions(
+        permissions=WorkspacePermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workspace,
+    )
     return await workspaces_services.get_workspace_detail(
         id=workspace.id, user_id=request.user.id
     )
@@ -139,7 +140,8 @@ async def get_my_workspace(request, id: Path[B64UUID]) -> WorkspaceDetailSeriali
     """
     Get the workspaces overview for the logged user.
     """
-    await check_permissions(permissions=GET_MY_WORKSPACE, user=request.user, obj=None)
+    # TODO only keep one of "get_workspace" api, check membership permission and simplify get_user_workspace_overview
+    await check_permissions(permissions=IsAuthenticated(), user=request.user, obj=None)
     workspace_overview = await workspaces_services.get_user_workspace(
         user=request.user, workspace_id=id
     )
@@ -176,7 +178,9 @@ async def update_workspace(
     """
     workspace = await get_workspace_or_404(id)
     await check_permissions(
-        permissions=UPDATE_WORKSPACE, user=request.user, obj=workspace
+        permissions=WorkspacePermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=workspace,
     )
 
     values = form.dict(exclude_unset=True)
@@ -209,7 +213,9 @@ async def delete_workspace(request, id: Path[B64UUID]) -> tuple[int, None]:
     """
     workspace = await get_workspace_or_404(id=id)
     await check_permissions(
-        permissions=DELETE_WORKSPACE, user=request.user, obj=workspace
+        permissions=WorkspacePermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=workspace,
     )
 
     await workspaces_services.delete_workspace(

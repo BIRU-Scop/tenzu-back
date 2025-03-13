@@ -22,8 +22,9 @@ from typing import Generic, TypeVar
 from asgiref.sync import sync_to_async
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connection
+from django.db.models import QuerySet
 
-from base.db.models import BaseModel, QuerySet
+from base.db.models import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 

@@ -17,13 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from dataclasses import dataclass
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
 from permissions import choices, services
+from projects.roles.services import get_user_project_role_info
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -323,7 +323,7 @@ async def test_user_can_view_project_being_other_user_without_permission():
 #####################################################
 
 
-async def get_user_project_role_info():
+async def test_get_user_project_role_info():
     project = await f.create_project()
     with patch(
         "permissions.services.pj_roles_repositories", autospec=True
@@ -397,73 +397,3 @@ async def test_get_user_permissions_for_workspace():
         await services.get_user_permissions_for_workspace(workspace_role_permissions)
         == workspace_role_permissions
     )
-
-
-#####################################################
-# is_view_story_permission_deleted
-#####################################################
-
-
-async def test_is_view_story_permission_deleted_false():
-    old_permissions = []
-    new_permissions = ["view_story"]
-
-    assert (
-        await services.is_view_story_permission_deleted(
-            old_permissions, new_permissions
-        )
-        is False
-    )
-
-
-async def test_is_view_story_permission_deleted_true():
-    old_permissions = ["view_story"]
-    new_permissions = []
-
-    assert (
-        await services.is_view_story_permission_deleted(
-            old_permissions, new_permissions
-        )
-        is True
-    )
-
-
-#####################################################
-# is_an_object_related_to_the_user
-#####################################################
-
-
-async def test_is_an_object_related_to_the_user_with_default_field():
-    user1 = f.build_user()
-    user2 = f.build_user()
-    membership = f.build_project_membership(user=user1)
-    assert await services.is_an_object_related_to_the_user(user1, membership) is True
-    assert await services.is_an_object_related_to_the_user(user2, membership) is False
-
-
-async def test_is_an_object_related_to_the_user_with_custom_field():
-    user1 = f.build_user()
-    user2 = f.build_user()
-    story = f.build_story(created_by=user1)
-    assert (
-        await services.is_an_object_related_to_the_user(
-            user1, story, field="created_by"
-        )
-        is True
-    )
-    assert (
-        await services.is_an_object_related_to_the_user(
-            user2, story, field="created_by"
-        )
-        is False
-    )
-
-
-async def test_is_an_object_related_to_the_user_with_anonymous_user():
-    @dataclass
-    class Obj:
-        user: AnonymousUser
-
-    user = AnonymousUser()
-    obj = Obj(user=user)
-    assert await services.is_an_object_related_to_the_user(user, obj) is False

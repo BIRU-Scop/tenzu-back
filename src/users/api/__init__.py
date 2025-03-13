@@ -23,10 +23,9 @@ from ninja import Query, Router
 
 from base.api import pagination as api_pagination
 from base.api.pagination import PaginationQuery
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_401,
     ERROR_RESPONSE_403,
@@ -34,7 +33,7 @@ from exceptions.api.errors import (
 )
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from ninja_jwt.tokens import RefreshToken
-from permissions import IsAuthenticated
+from permissions import IsAuthenticated, check_permissions
 from users import services as users_services
 from users.api.validators import (
     CreateUserValidator,
@@ -52,9 +51,6 @@ from users.serializers import (
 )
 
 users_router = Router()
-
-# PERMISSIONS
-LIST_USERS_BY_TEXT = IsAuthenticated()
 
 
 #####################################################################
@@ -147,7 +143,7 @@ async def list_users_by_text(
       - 2nd ordering block: *<members of the project's workspace / members of the workspace's projects>*
       - 3rd ordering block: rest of the users
     """
-    await check_permissions(permissions=LIST_USERS_BY_TEXT, user=request.user)
+    await check_permissions(permissions=IsAuthenticated(), user=request.user)
 
     pagination, users = await users_services.list_paginated_users_by_text(
         text=text,

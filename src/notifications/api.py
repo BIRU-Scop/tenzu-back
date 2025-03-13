@@ -21,26 +21,22 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
 from notifications import services as notifications_services
 from notifications.models import Notification
+from notifications.permissions import NotificationPermissionsCheck
 from notifications.serializers import (
     NotificationCountersSerializer,
     NotificationSerializer,
 )
-from permissions import IsAuthenticated
+from permissions import check_permissions
 from users.models import User
-
-LIST_MY_NOTIFICATIONS = IsAuthenticated()
-COUNT_MY_NOTIFICATIONS = IsAuthenticated()
-MARK_MY_NOTIFICATIONS_AS_READ = IsAuthenticated()
 
 notifications_router = Router()
 
@@ -63,7 +59,9 @@ async def list_my_notifications(
     List the notifications of the logged user.
     """
     await check_permissions(
-        permissions=LIST_MY_NOTIFICATIONS, user=request.user, obj=None
+        permissions=NotificationPermissionsCheck.VIEW_SELF.value,
+        user=request.user,
+        obj=None,
     )
     return await notifications_services.list_user_notifications(
         user=request.user, is_read=read
@@ -87,7 +85,9 @@ async def count_my_notifications(request) -> dict[str, int]:
     Get user notifications counters
     """
     await check_permissions(
-        permissions=COUNT_MY_NOTIFICATIONS, user=request.user, obj=None
+        permissions=NotificationPermissionsCheck.VIEW_SELF.value,
+        user=request.user,
+        obj=None,
     )
     return await notifications_services.count_user_notifications(user=request.user)
 
@@ -117,7 +117,9 @@ async def mark_my_notification_as_read(
     Mark a notification as read.
     """
     await check_permissions(
-        permissions=MARK_MY_NOTIFICATIONS_AS_READ, user=request.user, obj=None
+        permissions=NotificationPermissionsCheck.MODIFY_SELF.value,
+        user=request.user,
+        obj=None,
     )
     await get_notification_or_404(user=request.user, id=id)
     return (

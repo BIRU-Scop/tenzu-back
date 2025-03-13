@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.db.models import TextChoices
+from django.db.models import TextChoices
 
 
 class WorkspaceInvitationStatus(TextChoices):

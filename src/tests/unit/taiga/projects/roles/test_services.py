@@ -121,14 +121,14 @@ async def test_update_project_role_permissions_view_story_deleted():
             "projects.roles.services.pj_roles_repositories", autospec=True
         ) as fake_role_repository,
         patch(
-            "projects.roles.services.permissions_services", autospec=True
-        ) as fake_permissions_service,
+            "projects.roles.services.stories_permissions", autospec=True
+        ) as fake_stories_permissions,
         patch(
             "projects.roles.services.story_assignments_repositories", autospec=True
         ) as fake_story_assignments_repository,
     ):
         fake_role_repository.update_project_role_permissions.return_value = role
-        fake_permissions_service.is_view_story_permission_deleted.return_value = True
+        fake_stories_permissions.is_view_story_permission_deleted.return_value = True
         await services.update_project_role_permissions(
             role=role, permissions=permissions
         )

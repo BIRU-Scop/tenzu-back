@@ -24,21 +24,25 @@ from uuid import UUID
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import update_last_login as django_update_last_login
-
-from base.db.models import (
-    BooleanField,
-    Exists,
-    Lower,
-    OuterRef,
-    Q,
-    QuerySet,
+from django.contrib.postgres.lookups import Unaccent
+from django.contrib.postgres.search import (
     SearchQuery,
     SearchRank,
     SearchVector,
-    StrIndex,
-    Unaccent,
+)
+from django.db.models import (
+    BooleanField,
+    Exists,
+    OuterRef,
+    Q,
+    QuerySet,
     Value,
 )
+from django.db.models.functions import (
+    Lower,
+    StrIndex,
+)
+
 from ninja_jwt.token_blacklist.models import OutstandingToken
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation

@@ -19,7 +19,6 @@
 
 from typing import Any, Generic, TypeVar
 
-from fastapi import status
 from pydantic import BaseModel
 
 from . import codes
@@ -82,10 +81,8 @@ ERROR_RESPONSE_403 = ErrorResponse[ForbiddenErrorModel]
 ERROR_RESPONSE_404 = ErrorResponse[NotFoundErrorModel]
 ERROR_RESPONSE_422 = ErrorResponse[UnprocessableEntityModel]
 
-ERROR_400: ErrorsDict = {status.HTTP_400_BAD_REQUEST: {"model": ERROR_RESPONSE_400}}
-ERROR_401: ErrorsDict = {status.HTTP_401_UNAUTHORIZED: {"model": ERROR_RESPONSE_401}}
-ERROR_403: ErrorsDict = {status.HTTP_403_FORBIDDEN: {"model": ERROR_RESPONSE_403}}
-ERROR_404: ErrorsDict = {status.HTTP_404_NOT_FOUND: {"model": ERROR_RESPONSE_404}}
-ERROR_422: ErrorsDict = {
-    status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": ERROR_RESPONSE_422}
-}
+ERROR_400: ErrorsDict = {400: {"model": ERROR_RESPONSE_400}}
+ERROR_401: ErrorsDict = {401: {"model": ERROR_RESPONSE_401}}
+ERROR_403: ErrorsDict = {403: {"model": ERROR_RESPONSE_403}}
+ERROR_404: ErrorsDict = {404: {"model": ERROR_RESPONSE_404}}
+ERROR_422: ErrorsDict = {422: {"model": ERROR_RESPONSE_422}}

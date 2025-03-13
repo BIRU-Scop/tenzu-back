@@ -21,8 +21,8 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.db.models import QuerySet
 
-from base.db.models import QuerySet
 from projects.memberships.models import ProjectMembership
 from projects.projects.models import Project
 from projects.roles.models import ProjectRole

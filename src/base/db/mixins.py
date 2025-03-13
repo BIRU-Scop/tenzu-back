@@ -17,7 +17,8 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.db import models
+from django.db import models
+
 from base.utils.datetime import aware_utcnow
 
 #######################################################

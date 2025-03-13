@@ -102,7 +102,7 @@ async def test_get_public_project_invitation_ok():
         fake_auth_services.get_available_user_logins.return_value = (
             available_user_logins
         )
-        pub_invitation = await services.get_public_project_invitation(token=token)
+        pub_invitation = await services.get_project_invitation_from_token(token=token)
         fake_invitations_repo.get_project_invitation.assert_awaited_once_with(
             filters={"id": str(invitation.id)},
             select_related=["user", "project", "workspace", "role"],
@@ -130,7 +130,7 @@ async def test_get_public_project_invitation_ok_without_user():
         ) as fake_auth_services,
     ):
         fake_invitations_repo.get_project_invitation.return_value = invitation
-        pub_invitation = await services.get_public_project_invitation(token)
+        pub_invitation = await services.get_project_invitation_from_token(token)
         fake_invitations_repo.get_project_invitation.assert_awaited_once_with(
             filters={"id": str(invitation.id)},
             select_related=["user", "project", "workspace", "role"],
@@ -151,7 +151,7 @@ async def test_get_public_project_invitation_error_invitation_not_exists():
         "projects.invitations.services.invitations_repositories", autospec=True
     ) as fake_invitations_repo:
         fake_invitations_repo.get_project_invitation.return_value = None
-        pub_invitation = await services.get_public_project_invitation(token)
+        pub_invitation = await services.get_project_invitation_from_token(token)
         fake_invitations_repo.get_project_invitation.assert_awaited_once_with(
             filters={"id": str(invitation.id)},
             select_related=["user", "project", "workspace", "role"],
@@ -160,7 +160,7 @@ async def test_get_public_project_invitation_error_invitation_not_exists():
 
 
 #######################################################
-# list_pending_project_invitations
+# list_project_invitations
 #######################################################
 
 
@@ -179,46 +179,15 @@ async def test_list_project_invitations_ok_admin():
         fake_invitations_repo.list_project_invitations.return_value = [invitation]
         fake_pj_roles_repo.get_project_role.return_value = role_admin
 
-        invitations = await services.list_pending_project_invitations(
-            project=invitation.project, user=invitation.project.created_by
+        invitations = await services.list_project_invitations(
+            project=invitation.project.id
         )
 
         fake_invitations_repo.list_project_invitations.assert_awaited_once_with(
             filters={
                 "project_id": invitation.project.id,
-                "status": ProjectInvitationStatus.PENDING,
             },
         )
-        assert invitations == [invitation]
-
-
-async def test_list_project_invitations_ok_not_admin():
-    invitation = f.build_project_invitation()
-    not_admin_role = f.build_project_role(is_admin=False)
-
-    with (
-        patch(
-            "projects.invitations.services.invitations_repositories", autospec=True
-        ) as fake_invitations_repo,
-        patch(
-            "projects.invitations.services.pj_roles_repositories", autospec=True
-        ) as fake_pj_roles_repo,
-    ):
-        fake_invitations_repo.list_project_invitations.return_value = [invitation]
-        fake_pj_roles_repo.get_project_role.return_value = not_admin_role
-
-        invitations = await services.list_pending_project_invitations(
-            project=invitation.project, user=invitation.user
-        )
-
-        fake_invitations_repo.list_project_invitations.assert_awaited_once_with(
-            filters={
-                "project_id": invitation.project.id,
-                "status": ProjectInvitationStatus.PENDING,
-                "user": invitation.user,
-            },
-        )
-
         assert invitations == [invitation]
 
 

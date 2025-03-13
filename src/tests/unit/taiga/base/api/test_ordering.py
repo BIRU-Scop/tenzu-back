@@ -21,7 +21,7 @@ import pytest
 from pydantic.alias_generators import to_camel, to_snake
 
 from base.api.ordering import OrderQuery
-from exceptions.api import ValidationError
+from commons.exceptions import ValidationError
 
 
 def test_validate_ordering_valid_params(client):

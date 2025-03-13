@@ -16,8 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from base.db.models import Model, signals
+from django.db.models import Model, signals
 
 
 def get_receivers_for_model(listener_name: str, sender: Model):

@@ -17,9 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from enum import Enum
 from typing import Any
+from uuid import UUID
 
-from base.api.permissions import PermissionComponent
+from permissions import IsAuthenticated, PermissionComponent
+from projects.invitations.models import ProjectInvitation
 from users.models import AnyUser
 
 
@@ -27,9 +30,49 @@ class IsProjectInvitationRecipient(PermissionComponent):
     async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
         from projects.invitations import services as invitations_services
 
-        if not obj or user.is_anonymous or not user.is_active:
+        if not obj:
             return False
 
         return invitations_services.is_project_invitation_for_this_user(
             invitation=obj, user=user
         )
+
+
+class HasPendingProjectInvitation(PermissionComponent):
+    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+        from projects.invitations import services as invitations_services
+
+        if not obj:
+            return False
+
+        return await invitations_services.has_pending_project_invitation(
+            user=user, project=obj
+        )
+
+
+class CanAssignMember(PermissionComponent):
+    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+        # obj is project_id
+        obj: UUID
+        # TODO use role permission
+        return False
+
+
+class CanModifyInvitation(PermissionComponent):
+    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+        # obj is invitation
+        obj: ProjectInvitation
+        # TODO compare role of user and invitation.user
+        # if user.role.is_owner -> return True
+        # if user.role doesn't have invite permission -> return False
+        # if invitation.user.role.is_owner -> return False
+        # return True
+        return False
+
+
+class InvitationPermissionsCheck(Enum):
+    VIEW = CanAssignMember()
+    ANSWER_SELF = IsAuthenticated()
+    ANSWER = IsAuthenticated() & IsProjectInvitationRecipient()
+    CREATE = CanAssignMember()
+    MODIFY = CanModifyInvitation()

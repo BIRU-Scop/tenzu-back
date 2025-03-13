@@ -20,8 +20,9 @@
 from typing import Any
 from uuid import UUID
 
+from django.db.models import Model
+
 from base.api import Pagination
-from base.db.models import Model
 from base.utils.datetime import aware_utcnow
 from comments import repositories as comments_repositories
 from comments.events import (
@@ -100,6 +101,7 @@ async def get_comment(id: UUID, content_object: Model) -> Comment | None:
         filters={"id": id, "content_object": content_object},
         select_related=["created_by", "deleted_by"],
         prefetch_related=["content_object", "project", "workspace"],
+        excludes={"deleted": True},
     )
 
 

@@ -22,7 +22,8 @@ from datetime import datetime
 from typing import Any, TypedDict
 from uuid import UUID
 
-from base.db.models import QuerySet
+from django.db.models import QuerySet
+
 from base.utils.datetime import aware_utcnow
 from notifications.models import Notification
 from users.models import User

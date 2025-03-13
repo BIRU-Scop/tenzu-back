@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -17,13 +16,24 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from django.db import models
+from enum import Enum
+from typing import Any
 
-from base.db.models import BaseModel
-from base.occ.models import VersionedMixin
+from permissions import DenyAll, PermissionComponent
+from users.models import AnyUser
+from workspaces.invitations.permissions import HasPendingWorkspaceInvitation
+from workspaces.workspaces.models import Workspace
 
 
-class SampleOCCItem(BaseModel, VersionedMixin):
-    name = models.CharField(max_length=80, null=False, blank=False)
-    description = models.CharField(max_length=220, null=True, blank=True)
-    is_active = models.BooleanField(default=True, null=False, blank=False)
+class IsWorkspaceMember(PermissionComponent):
+    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+        obj: Workspace
+        return await obj.roles.filter(users=user).aexists()
+
+
+class WorkspacePermissionsCheck(Enum):
+    VIEW = IsWorkspaceMember() | HasPendingWorkspaceInvitation()
+    # TODO
+    MODIFY = DenyAll()
+    DELETE = DenyAll()
+    CREATE = DenyAll()

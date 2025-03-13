@@ -38,3 +38,11 @@ def transaction_atomic_async(func):
             return async_to_sync(func)(*args, **kwargs)
 
     return wrapper
+
+
+def transaction_on_commit_async(func):
+    @sync_to_async
+    def wrapper(*args, **kwargs):
+        transaction.on_commit(lambda: async_to_sync(func)(*args, **kwargs))
+
+    return wrapper

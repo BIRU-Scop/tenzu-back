@@ -22,8 +22,8 @@ from uuid import UUID
 
 from asgiref.sync import sync_to_async
 from django.db import transaction
+from django.db.models import Case, Count, When
 
-from base.db.models import Case, Count, When
 from base.utils.datetime import aware_utcnow
 from base.utils.files import File
 from commons.utils import transaction_atomic_async

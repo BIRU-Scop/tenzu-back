@@ -31,7 +31,7 @@ from emails.emails import Emails
 from emails.tasks import send_email
 from ninja_jwt.exceptions import TokenError
 from users import services as users_services
-from users.models import User
+from users.models import AnyUser, User
 from workspaces.invitations import events as invitations_events
 from workspaces.invitations import repositories as invitations_repositories
 from workspaces.invitations.choices import WorkspaceInvitationStatus
@@ -340,3 +340,17 @@ def is_workspace_invitation_for_this_user(
     Check if a workspace invitation if for a specific user
     """
     return emails.are_the_same(user.email, invitation.email)
+
+
+async def has_pending_workspace_invitation(user: AnyUser, workspace: Workspace) -> bool:
+    if user.is_anonymous:
+        return False
+
+    invitation = await invitations_repositories.get_workspace_invitation(
+        filters={
+            "user": user,
+            "workspace": workspace,
+            "status": WorkspaceInvitationStatus.PENDING,
+        }
+    )
+    return invitation is not None

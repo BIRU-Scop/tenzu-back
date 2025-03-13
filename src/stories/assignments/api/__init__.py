@@ -21,24 +21,20 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from permissions import HasPerm
+from permissions import check_permissions
 from stories.assignments import services as story_assignments_services
 from stories.assignments.api.validators import StoryAssignmentValidator
 from stories.assignments.models import StoryAssignment
 from stories.assignments.serializers import StoryAssignmentSerializer
 from stories.stories.api import get_story_or_404
-
-# PERMISSIONS
-CREATE_STORY_ASSIGNMENT = HasPerm("modify_story")
-DELETE_STORY_ASSIGNMENT = HasPerm("modify_story")
+from stories.stories.permissions import StoryPermissionsCheck
 
 assignments_router = Router()
 
@@ -71,7 +67,7 @@ async def create_story_assignment(
     """
     story = await get_story_or_404(project_id, ref)
     await check_permissions(
-        permissions=CREATE_STORY_ASSIGNMENT, user=request.user, obj=story
+        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
     )
 
     return await story_assignments_services.create_story_assignment(
@@ -111,7 +107,7 @@ async def delete_story_assignment(
     story_assignment = await get_story_assignment_or_404(project_id, ref, username)
     story = await get_story_or_404(project_id, ref)
     await check_permissions(
-        permissions=DELETE_STORY_ASSIGNMENT,
+        permissions=StoryPermissionsCheck.MODIFY.value,
         user=request.user,
         obj=story_assignment.story,
     )

@@ -17,19 +17,62 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from enum import Enum
 from typing import Any
+from uuid import UUID
 
-from base.api.permissions import PermissionComponent
+from permissions import IsAuthenticated, PermissionComponent
 from users.models import AnyUser
+from workspaces.invitations.models import WorkspaceInvitation
 
 
 class IsWorkspaceInvitationRecipient(PermissionComponent):
     async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
         from workspaces.invitations import services as invitations_services
 
-        if not obj or user.is_anonymous or not user.is_active:
+        if not obj:
             return False
 
         return invitations_services.is_workspace_invitation_for_this_user(
             invitation=obj, user=user
         )
+
+
+class HasPendingWorkspaceInvitation(PermissionComponent):
+    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+        from workspaces.invitations import services as invitations_services
+
+        if not obj:
+            return False
+
+        return await invitations_services.has_pending_workspace_invitation(
+            user=user, workspace=obj
+        )
+
+
+class CanAssignMember(PermissionComponent):
+    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+        # obj is workspace_id
+        obj: UUID
+        # TODO use role permission
+        return False
+
+
+class CanModifyInvitation(PermissionComponent):
+    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+        # obj is invitation
+        obj: WorkspaceInvitation
+        # TODO compare role of user and invitation.user
+        # if user.role.is_owner -> return True
+        # if user.role doesn't have invite permission -> return False
+        # if invitation.user.role.is_owner -> return False
+        # return True
+        return False
+
+
+class InvitationPermissionsCheck(Enum):
+    VIEW = CanAssignMember()
+    ANSWER_SELF = IsAuthenticated()
+    ANSWER = IsAuthenticated() & IsWorkspaceInvitationRecipient()
+    CREATE = CanAssignMember()
+    MODIFY = CanModifyInvitation()

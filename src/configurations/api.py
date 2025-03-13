@@ -20,9 +20,9 @@ from ninja import NinjaAPI, Router
 
 from base.services.exceptions import TenzuServiceException
 from base.utils.strings import to_kebab
+from commons.exceptions.api import codes
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
-from exceptions.api import codes
 from integrations.github.auth.api import github_integration_router
 from integrations.gitlab.auth.api import gitlab_integration_router
 from integrations.google.auth.api import google_integration_router

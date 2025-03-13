@@ -23,10 +23,8 @@ from uuid import UUID
 from django.http import HttpResponse
 from ninja import Path, Query, Router
 
-from base.api import headers as api_headers
 from base.api import pagination as api_pagination
 from base.api.pagination import PaginationQuery
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
 from comments import services as comments_services
 from comments.models import Comment
@@ -36,26 +34,19 @@ from comments.validators import (
     CreateCommentValidator,
     UpdateCommentValidator,
 )
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from permissions import HasPerm, IsNotDeleted, IsProjectAdmin, IsRelatedToTheUser
+from permissions import (
+    check_permissions,
+)
 from stories.comments import events, notifications
+from stories.comments.permissions import CommentPermissionsCheck
 from stories.stories.api import get_story_or_404
 from stories.stories.models import Story
-
-# PERMISSIONS
-CREATE_STORY_COMMENT = HasPerm("comment_story")
-LIST_STORY_COMMENTS = HasPerm("view_story")
-UPDATE_STORY_COMMENT = (
-    IsNotDeleted() & IsRelatedToTheUser("created_by") & HasPerm("comment_story")
-)
-DELETE_STORY_COMMENT = IsNotDeleted() & (
-    IsProjectAdmin() | (IsRelatedToTheUser("created_by") & HasPerm("comment_story"))
-)
 
 comments_router = Router()
 
@@ -88,7 +79,7 @@ async def create_story_comments(
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
     await check_permissions(
-        permissions=CREATE_STORY_COMMENT, user=request.user, obj=story
+        permissions=CommentPermissionsCheck.CREATE.value, user=request.user, obj=story
     )
 
     event_on_create = partial(
@@ -141,7 +132,7 @@ async def list_story_comments(
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
     await check_permissions(
-        permissions=LIST_STORY_COMMENTS, user=request.user, obj=story
+        permissions=CommentPermissionsCheck.VIEW.value, user=request.user, obj=story
     )
     (
         pagination,
@@ -154,9 +145,7 @@ async def list_story_comments(
         order_by=order.model_dump(),
     )
     api_pagination.set_pagination(response=response, pagination=pagination)
-    api_headers.set_headers(
-        response=response, headers={"Total-Comments": total_comments}
-    )
+    response.headers["Tenzu-Total-Comments"] = total_comments
     return comments
 
 
@@ -190,7 +179,7 @@ async def update_story_comments(
     story = await get_story_or_404(project_id=project_id, ref=ref)
     comment = await get_story_comment_or_404(comment_id=comment_id, story=story)
     await check_permissions(
-        permissions=UPDATE_STORY_COMMENT, user=request.user, obj=comment
+        permissions=CommentPermissionsCheck.MODIFY.value, user=request.user, obj=comment
     )
 
     values = form.dict(exclude_unset=True)
@@ -231,7 +220,7 @@ async def delete_story_comment(
     story = await get_story_or_404(project_id=project_id, ref=ref)
     comment = await get_story_comment_or_404(comment_id=comment_id, story=story)
     await check_permissions(
-        permissions=DELETE_STORY_COMMENT, user=request.user, obj=comment
+        permissions=CommentPermissionsCheck.DELETE.value, user=request.user, obj=comment
     )
 
     event_on_delete = partial(

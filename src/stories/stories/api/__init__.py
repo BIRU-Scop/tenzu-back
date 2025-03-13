@@ -23,15 +23,14 @@ from django.http import HttpResponse
 from ninja import Path, Query, Router
 
 from base.api import Pagination, PaginationQuery, set_pagination
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from permissions import HasPerm
+from permissions import check_permissions
 from stories.stories import services as stories_services
 from stories.stories.api.validators import (
     ReorderStoriesValidator,
@@ -39,6 +38,7 @@ from stories.stories.api.validators import (
     UpdateStoryValidator,
 )
 from stories.stories.models import Story
+from stories.stories.permissions import StoryPermissionsCheck
 from stories.stories.serializers import (
     ReorderStoriesSerializer,
     StoryDetailSerializer,
@@ -48,14 +48,6 @@ from stories.stories.services.exceptions import InvalidStatusError, InvalidStory
 from workflows.api import get_workflow_or_404
 
 stories_router = Router()
-
-# PERMISSIONS
-LIST_STORIES = HasPerm("view_story")
-GET_STORY = HasPerm("view_story")
-CREATE_STORY = HasPerm("add_story")
-UPDATE_STORY = HasPerm("modify_story")
-REORDER_STORIES = HasPerm("modify_story")
-DELETE_STORY = HasPerm("delete_story")
 
 
 ################################################
@@ -87,7 +79,9 @@ async def create_story(
     workflow = await get_workflow_or_404(
         project_id=project_id, workflow_slug=workflow_slug
     )
-    await check_permissions(permissions=CREATE_STORY, user=request.user, obj=workflow)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.CREATE.value, user=request.user, obj=workflow
+    )
     try:
         return await stories_services.create_story(
             title=form.title,
@@ -132,7 +126,9 @@ async def list_stories(
     workflow = await get_workflow_or_404(
         project_id=project_id, workflow_slug=workflow_slug
     )
-    await check_permissions(permissions=LIST_STORIES, user=request.user, obj=workflow)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=workflow
+    )
     pagination = Pagination(
         offset=pagination_params.offset, limit=pagination_params.limit
     )
@@ -173,7 +169,9 @@ async def get_story(
     Get the detailed information of a story.
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
-    await check_permissions(permissions=GET_STORY, user=request.user, obj=story)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=story
+    )
 
     return await stories_services.get_story_detail(project_id=project_id, ref=ref)
 
@@ -205,7 +203,9 @@ async def update_story(
     Update a story from a project.
     """
     story = await get_story_or_404(project_id, ref)
-    await check_permissions(permissions=UPDATE_STORY, user=request.user, obj=story)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
+    )
 
     values = form.model_dump(exclude_unset=True)
     current_version = values.pop("version")
@@ -247,7 +247,7 @@ async def reorder_stories(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(
-        permissions=REORDER_STORIES, user=request.user, obj=workflow
+        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=workflow
     )
     try:
         return await stories_services.reorder_stories(
@@ -288,7 +288,9 @@ async def delete_story(
     Delete a story
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
-    await check_permissions(permissions=DELETE_STORY, user=request.user, obj=story)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.DELETE.value, user=request.user, obj=story
+    )
 
     await stories_services.delete_story(story=story, deleted_by=request.user)
     return 204, None

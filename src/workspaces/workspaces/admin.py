@@ -19,11 +19,11 @@
 
 from typing import Any
 
+from django.db.models import ForeignKey, QuerySet
 from django.http.request import HttpRequest
 
 from base.db import admin
 from base.db.admin.forms import ModelChoiceField
-from base.db.models import ForeignKey, QuerySet
 from users.models import User
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships.models import WorkspaceMembership

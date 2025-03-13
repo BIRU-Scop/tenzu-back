@@ -41,7 +41,7 @@ from users.models import AnonymousUser
 async def test_is_project_invitation_recipient_permission_with_different_emails(
     invitation_email, user_email, user_is_active, expected
 ):
-    perm = permissions.IsProjectInvitationRecipient()
+    perm = permissions.IsAuthenticatedProjectInvitationRecipient()
     user = f.build_user(email=invitation_email, is_active=user_is_active)
     invitation = f.build_project_invitation(user=user, email=user_email)
 
@@ -49,7 +49,7 @@ async def test_is_project_invitation_recipient_permission_with_different_emails(
 
 
 async def test_is_project_invitation_recipient_permission_with_anonymous_user():
-    perm = permissions.IsProjectInvitationRecipient()
+    perm = permissions.IsAuthenticatedProjectInvitationRecipient()
     user = AnonymousUser()
     invitation = f.build_project_invitation(user=None, email="some@email.com")
 

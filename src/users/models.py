@@ -23,8 +23,9 @@ from typing import Any, Iterable
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser, UserManager
 from django.core.validators import MaxValueValidator, RegexValidator
+from django.db import models
 
-from base.db import models
+from base.db.models import BaseModel, LowerCharField, LowerEmailField, LowerSlugField
 from base.utils.slug import generate_int_suffix, slugify_uniquely
 from commons.colors import NUM_COLORS, generate_random_color
 
@@ -35,8 +36,8 @@ def default_language() -> str:
     return settings.LANGUAGE_CODE
 
 
-class User(models.BaseModel, AbstractBaseUser):
-    username = models.LowerCharField(
+class User(BaseModel, AbstractBaseUser):
+    username = LowerCharField(
         max_length=255,
         null=False,
         blank=False,
@@ -49,7 +50,7 @@ class User(models.BaseModel, AbstractBaseUser):
             )
         ],
     )
-    email = models.LowerEmailField(
+    email = LowerEmailField(
         max_length=255,
         null=False,
         blank=False,
@@ -152,7 +153,7 @@ class User(models.BaseModel, AbstractBaseUser):
         return self.is_active and self.is_superuser
 
 
-class AuthData(models.BaseModel):
+class AuthData(BaseModel):
     user = models.ForeignKey(
         "users.User",
         null=False,
@@ -160,9 +161,7 @@ class AuthData(models.BaseModel):
         related_name="auth_data",
         on_delete=models.CASCADE,
     )
-    key = models.LowerSlugField(
-        max_length=50, null=False, blank=False, verbose_name="key"
-    )
+    key = LowerSlugField(max_length=50, null=False, blank=False, verbose_name="key")
     value = models.CharField(
         max_length=300, null=False, blank=False, verbose_name="value"
     )

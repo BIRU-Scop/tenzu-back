@@ -20,9 +20,8 @@
 import random
 from typing import Generator, Type
 
+from django.db.models import Model, QuerySet
 from slugify import slugify
-
-from base.db.models import Model, QuerySet
 
 
 def generate_incremental_int_suffix() -> Generator[str, None, None]:

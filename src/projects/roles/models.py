@@ -19,7 +19,10 @@
 
 from typing import Any
 
-from base.db import models
+from django.contrib.postgres.fields import ArrayField
+from django.db import models
+
+from base.db.models import BaseModel, LowerSlugField
 from base.utils.datetime import timestamp_mics
 from base.utils.slug import (
     generate_incremental_int_suffix,
@@ -28,14 +31,12 @@ from base.utils.slug import (
 from permissions.choices import ProjectPermissions
 
 
-class ProjectRole(models.BaseModel):
+class ProjectRole(BaseModel):
     name = models.CharField(
         max_length=200, null=False, blank=False, verbose_name="name"
     )
-    slug = models.LowerSlugField(
-        max_length=250, null=False, blank=True, verbose_name="slug"
-    )
-    permissions = models.ArrayField(
+    slug = LowerSlugField(max_length=250, null=False, blank=True, verbose_name="slug")
+    permissions = ArrayField(
         models.TextField(null=False, blank=False, choices=ProjectPermissions.choices),
         null=False,
         blank=False,

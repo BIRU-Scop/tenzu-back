@@ -21,16 +21,15 @@ from uuid import UUID
 
 from ninja import Path, Query, Router
 
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from permissions import HasPerm, IsProjectAdmin
+from permissions import check_permissions
 from projects.projects.api import get_project_or_404
 from workflows import services as workflows_services
 from workflows.api.validators import (
@@ -43,23 +42,12 @@ from workflows.api.validators import (
     UpdateWorkflowValidator,
 )
 from workflows.models import Workflow, WorkflowStatus
+from workflows.permissions import WorkflowPermissionsCheck
 from workflows.serializers import (
     ReorderWorkflowStatusesSerializer,
     WorkflowSerializer,
     WorkflowStatusSerializer,
 )
-
-# PERMISSIONS
-CREATE_WORKFLOW = IsProjectAdmin()
-LIST_WORKFLOWS = HasPerm("view_story")
-GET_WORKFLOW = HasPerm("view_story")
-DELETE_WORKFLOW = IsProjectAdmin()
-UPDATE_WORKFLOW = IsProjectAdmin()
-CREATE_WORKFLOW_STATUS = IsProjectAdmin()
-UPDATE_WORKFLOW_STATUS = IsProjectAdmin()
-DELETE_WORKFLOW_STATUS = IsProjectAdmin()
-REORDER_WORKFLOW_STATUSES = IsProjectAdmin()
-
 
 workflows_router = Router()
 
@@ -89,7 +77,11 @@ async def create_workflow(
     Creates a workflow for a project
     """
     project = await get_project_or_404(project_id)
-    await check_permissions(permissions=CREATE_WORKFLOW, user=request.user, obj=project)
+    await check_permissions(
+        permissions=WorkflowPermissionsCheck.CREATE.value,
+        user=request.user,
+        obj=project,
+    )
 
     return await workflows_services.create_workflow(
         name=form.name,
@@ -122,7 +114,9 @@ async def list_workflows(
     List the workflows of a project
     """
     project = await get_project_or_404(project_id)
-    await check_permissions(permissions=LIST_WORKFLOWS, user=request.user, obj=project)
+    await check_permissions(
+        permissions=WorkflowPermissionsCheck.VIEW.value, user=request.user, obj=project
+    )
     return await workflows_services.list_workflows(project_id=project_id)
 
 
@@ -153,7 +147,9 @@ async def get_workflow_by_id(
     """
 
     workflow = await get_workflow_by_id_or_404(workflow_id=workflow_id)
-    await check_permissions(permissions=GET_WORKFLOW, user=request.user, obj=workflow)
+    await check_permissions(
+        permissions=WorkflowPermissionsCheck.VIEW.value, user=request.user, obj=workflow
+    )
     return await workflows_services.get_workflow_detail(
         project_id=project_id, workflow_slug=workflow.slug
     )
@@ -182,7 +178,9 @@ async def get_workflow(
     workflow = await get_workflow_or_404(
         project_id=project_id, workflow_slug=workflow_slug
     )
-    await check_permissions(permissions=GET_WORKFLOW, user=request.user, obj=workflow)
+    await check_permissions(
+        permissions=WorkflowPermissionsCheck.VIEW.value, user=request.user, obj=workflow
+    )
     return await workflows_services.get_workflow_detail(
         project_id=project_id, workflow_slug=workflow_slug
     )
@@ -218,7 +216,9 @@ async def update_workflow(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(
-        permissions=UPDATE_WORKFLOW, user=request.user, obj=workflow
+        permissions=WorkflowPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=workflow,
     )
 
     values = form.dict(exclude_unset=True)
@@ -265,7 +265,9 @@ async def delete_workflow(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(
-        permissions=DELETE_WORKFLOW, user=request.user, obj=workflow
+        permissions=WorkflowPermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=workflow,
     )
 
     await workflows_services.delete_workflow(
@@ -329,7 +331,9 @@ async def create_workflow_status(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(
-        permissions=CREATE_WORKFLOW_STATUS, user=request.user, obj=workflow
+        permissions=WorkflowPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=workflow,
     )
 
     return await workflows_services.create_workflow_status(
@@ -369,7 +373,9 @@ async def reorder_workflow_statuses(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(
-        permissions=REORDER_WORKFLOW_STATUSES, user=request.user, obj=workflow
+        permissions=WorkflowPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=workflow,
     )
     model_dump = form.model_dump()
 
@@ -411,7 +417,9 @@ async def update_workflow_status(
         project_id=project_id, workflow_slug=workflow_slug, id=id
     )
     await check_permissions(
-        permissions=UPDATE_WORKFLOW_STATUS, user=request.user, obj=workflow_status
+        permissions=WorkflowPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=workflow_status,
     )
 
     return await workflows_services.update_workflow_status(
@@ -458,7 +466,9 @@ async def delete_workflow_status(
         project_id=project_id, workflow_slug=workflow_slug, id=id
     )
     await check_permissions(
-        permissions=DELETE_WORKFLOW_STATUS, user=request.user, obj=workflow_status
+        permissions=WorkflowPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=workflow_status,
     )
 
     await workflows_services.delete_workflow_status(

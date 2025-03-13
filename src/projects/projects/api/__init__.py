@@ -21,48 +21,29 @@ from uuid import UUID
 
 from ninja import File, Form, Path, Router
 
-from base.api.permissions import check_permissions
 from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
-    ERROR_RESPONSE_401,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
 from permissions import (
-    CanViewProject,
-    HasPerm,
-    IsAuthenticated,
-    IsProjectAdmin,
-    IsWorkspaceMember,
+    check_permissions,
 )
-from permissions import services as permissions_services
 from projects.projects import services as projects_services
 from projects.projects.api.validators import (
     LogoField,
-    PermissionsValidator,
     ProjectValidator,
     UpdateProjectValidator,
 )
 from projects.projects.models import Project
+from projects.projects.permissions import ProjectPermissionsCheck
 from projects.projects.serializers import (
     ProjectDetailSerializer,
-    ProjectSummarySerializer,
 )
 from workspaces.workspaces import services as workspaces_services
-from workspaces.workspaces.api import get_workspace_or_404
-
-# PERMISSIONS
-CREATE_PROJECT = HasPerm("view_workspace")
-LIST_WORKSPACE_PROJECTS = IsAuthenticated()  # HasPerm("view_workspace")
-LIST_WORKSPACE_INVITED_PROJECTS = IsAuthenticated()  # HasPerm("view_workspace")
-GET_PROJECT = CanViewProject()
-UPDATE_PROJECT = IsProjectAdmin()
-GET_PROJECT_PUBLIC_PERMISSIONS = IsProjectAdmin()
-UPDATE_PROJECT_PUBLIC_PERMISSIONS = IsProjectAdmin()
-DELETE_PROJECT = IsProjectAdmin() | IsWorkspaceMember()
 
 projects_router = Router()
 
@@ -98,7 +79,9 @@ async def create_project(
         raise ex.BadRequest(f"Workspace {form.workspace_id} does not exist")
 
     await check_permissions(
-        permissions=CREATE_PROJECT, user=request.user, obj=workspace
+        permissions=ProjectPermissionsCheck.CREATE.value,
+        user=request.user,
+        obj=workspace,
     )
     return await projects_services.create_project(
         workspace=workspace,
@@ -107,65 +90,6 @@ async def create_project(
         color=form.color,
         created_by=request.user,
         logo=logo,
-    )
-
-
-##########################################################
-# list projects
-##########################################################
-
-
-@projects_router.get(
-    "/workspaces/{workspace_id}/projects",
-    url_name="workspace.projects.list",
-    summary="List workspace projects",
-    response={
-        200: list[ProjectSummarySerializer],
-        403: ERROR_RESPONSE_403,
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-async def list_workspace_projects(
-    request, workspace_id: Path[B64UUID]
-) -> list[Project]:
-    """
-    List projects of a workspace visible by the user.
-    """
-    workspace = await get_workspace_or_404(id=workspace_id)
-    await check_permissions(
-        permissions=LIST_WORKSPACE_PROJECTS, user=request.user, obj=workspace
-    )
-    return await projects_services.list_workspace_projects_for_user(
-        workspace=workspace, user=request.user
-    )
-
-
-@projects_router.get(
-    "/workspaces/{workspace_id}/invited-projects",
-    url_name="workspace.invited-projects.list",
-    summary="List of projects in a workspace where the user is invited",
-    response={
-        200: list[ProjectSummarySerializer],
-        403: ERROR_RESPONSE_403,
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-async def list_workspace_invited_projects(
-    request, workspace_id: Path[B64UUID]
-) -> list[Project]:
-    """
-    Get all the invitations to projects that  a user has in a workspace
-    """
-    workspace = await get_workspace_or_404(id=workspace_id)
-    await check_permissions(
-        permissions=LIST_WORKSPACE_INVITED_PROJECTS, user=request.user, obj=workspace
-    )
-    return await projects_services.list_workspace_invited_projects_for_user(
-        workspace=workspace, user=request.user
     )
 
 
@@ -192,34 +116,12 @@ async def get_project(request, id: Path[B64UUID]) -> ProjectDetailSerializer:
     """
 
     project = await get_project_or_404(id)
-    await check_permissions(permissions=GET_PROJECT, user=request.user, obj=project)
+    await check_permissions(
+        permissions=ProjectPermissionsCheck.VIEW.value, user=request.user, obj=project
+    )
     return await projects_services.get_project_detail(
         project=project, user=request.user
     )
-
-
-@projects_router.get(
-    "/projects/{id}/public-permissions",
-    url_name="project.public-permissions.list",
-    summary="List project public permissions",
-    response={
-        200: list[str],
-        403: ERROR_RESPONSE_403,
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-async def list_project_public_permissions(request, id: Path[B64UUID]) -> list[str]:
-    """
-    Get project public permissions
-    """
-
-    project = await get_project_or_404(id)
-    await check_permissions(
-        permissions=GET_PROJECT_PUBLIC_PERMISSIONS, user=request.user, obj=project
-    )
-    return project.public_permissions or []
 
 
 ##########################################################
@@ -252,7 +154,9 @@ async def update_project(
     Update project
     """
     project = await get_project_or_404(id)
-    await check_permissions(permissions=UPDATE_PROJECT, user=request.user, obj=project)
+    await check_permissions(
+        permissions=ProjectPermissionsCheck.MODIFY.value, user=request.user, obj=project
+    )
 
     values = form.model_dump(exclude_unset=True)
     # if a file is present, we need to assign it
@@ -260,39 +164,6 @@ async def update_project(
         values["logo"] = logo
     return await projects_services.update_project(
         project=project, updated_by=request.user, values=values
-    )
-
-
-@projects_router.put(
-    "/projects/{id}/public-permissions",
-    url_name="project.public-permissions.put",
-    summary="Edit project public permissions",
-    response={
-        200: list[str],
-        400: ERROR_RESPONSE_400,
-        401: ERROR_RESPONSE_401,
-        403: ERROR_RESPONSE_403,
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-async def update_project_public_permissions(
-    request,
-    id: Path[B64UUID],
-    form: PermissionsValidator,
-) -> list[str]:
-    """
-    Edit project public permissions
-    """
-
-    project = await get_project_or_404(id)
-    await check_permissions(
-        permissions=UPDATE_PROJECT_PUBLIC_PERMISSIONS, user=request.user, obj=project
-    )
-
-    return await projects_services.update_project_public_permissions(
-        project, form.permissions
     )
 
 
@@ -321,36 +192,12 @@ async def delete_project(
     Delete a project
     """
     project = await get_project_or_404(id)
-    await check_permissions(permissions=DELETE_PROJECT, user=request.user, obj=project)
+    await check_permissions(
+        permissions=ProjectPermissionsCheck.DELETE.value, user=request.user, obj=project
+    )
 
     await projects_services.delete_project(project=project, deleted_by=request.user)
     return 204, None
-
-
-##########################################################
-# misc permissions
-##########################################################
-
-
-@projects_router.get(
-    "/my/projects/{id}/permissions",
-    url_name="my.projects.permissions.list",
-    summary="List my project permissions",
-    response={
-        200: list[str],
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-async def list_my_project_permissions(request, id: Path[B64UUID]) -> list[str]:
-    """
-    List the computed permissions a user has over a project.
-    """
-    project = await get_project_or_404(id)
-    return await permissions_services.get_user_permissions(
-        user=request.user, obj=project
-    )
 
 
 ##########################################################

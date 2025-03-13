@@ -18,9 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 
 from asgiref.sync import sync_to_async
+from django.db.models import Model
 from ninja import UploadedFile
 
-from base.db.models import Model
 from base.utils.files import get_size, uploadfile_to_file
 from mediafiles.models import Mediafile
 from projects.projects.models import Project
