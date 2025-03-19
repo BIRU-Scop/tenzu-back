@@ -110,55 +110,6 @@ async def verify_user(
 
 
 #####################################################################
-# list users (search)
-#####################################################################
-
-
-@users_router.get(
-    "/users/search",
-    url_name="users.search",
-    summary="List all users matching a full text search, ordered (when provided) by their closeness"
-    " to a project or a workspace.",
-    response={
-        200: list[UserSearchSerializer],
-        403: ERROR_RESPONSE_403,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-# TODO @paginate
-async def list_users_by_text(
-    request,
-    response: HttpResponse,
-    pagination_params: Query[PaginationQuery],
-    text: str = None,
-    project: Query[B64UUID] = None,
-    workspace: Query[B64UUID] = None,
-) -> list[User]:
-    """
-    List all the users matching the full-text search criteria in their usernames and/or full names. The response will be
-    ***alphabetically ordered in blocks***, according to their proximity to a *<project/workspace>* when any of
-    these two parameters are received:
-      - 1st ordering block: *<project / workspace>* members,
-      - 2nd ordering block: *<members of the project's workspace / members of the workspace's projects>*
-      - 3rd ordering block: rest of the users
-    """
-    await check_permissions(permissions=IsAuthenticated(), user=request.user)
-
-    pagination, users = await users_services.list_paginated_users_by_text(
-        text=text,
-        project_id=project,
-        workspace_id=workspace,
-        offset=pagination_params.offset,
-        limit=pagination_params.limit,
-    )
-
-    api_pagination.set_pagination(response=response, pagination=pagination)
-
-    return users
-
-
-#####################################################################
 # get user
 #####################################################################
 

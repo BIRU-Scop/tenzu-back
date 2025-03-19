@@ -246,6 +246,14 @@ async def list_paginated_users_by_text(
     workspace_id: UUID | None = None,
     project_id: UUID | None = None,
 ) -> tuple[Pagination, list[User]]:
+    """
+    List all the users matching the full-text search criteria in their usernames and/or full names. The response will be
+    ***alphabetically ordered in blocks***, according to their proximity to a *<project/workspace>* when any of
+    these two parameters are received:
+      - 1st ordering block: *<project / workspace>* members,
+      - 2nd ordering block: *<members of the project's workspace / members of the workspace's projects>*
+      - 3rd ordering block: rest of the users
+    """
     if workspace_id:
         users = await users_repositories.list_workspace_users_by_text(
             text_search=text, workspace_id=workspace_id, offset=offset, limit=limit
