@@ -31,6 +31,8 @@ if TYPE_CHECKING:
 
 
 class PermissionComponent(metaclass=abc.ABCMeta):
+    error = ex.ForbiddenError("User doesn't have permissions to perform this action")
+
     @abc.abstractmethod
     async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
         raise NotImplementedError
@@ -100,6 +102,7 @@ class And(PermissionOperator):
 
         for component in self.components:
             if not await component.is_authorized(user, obj):
+                self.error = component.error
                 valid = False
                 break
 
@@ -120,7 +123,7 @@ async def check_permissions(
         return
 
     if not await permissions.is_authorized(user=user, obj=obj):
-        raise ex.ForbiddenError("User doesn't have permissions to perform this action")
+        raise permissions.error
 
 
 ############################################################
@@ -144,6 +147,9 @@ class IsSuperUser(PermissionComponent):
 
 
 class IsAuthenticated(PermissionComponent):
+    # NOTE: We force a 401 instead of using the default (which would return a 403)
+    error = ex.AuthorizationError("User is anonymous")
+
     async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
         return bool(user and user.is_authenticated)
 

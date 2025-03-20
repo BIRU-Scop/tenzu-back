@@ -18,17 +18,12 @@
 # You can contact BIRU at ask@biru.sh
 
 from asgiref.sync import sync_to_async
-from django.http import HttpResponse
-from ninja import Query, Router
+from ninja import Router
 
-from base.api import pagination as api_pagination
-from base.api.pagination import PaginationQuery
-from base.validators import B64UUID
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_401,
-    ERROR_RESPONSE_403,
     ERROR_RESPONSE_422,
 )
 from ninja_jwt.schema import TokenObtainPairOutputSchema
@@ -45,7 +40,6 @@ from users.api.validators import (
 from users.models import User
 from users.serializers import (
     UserDeleteInfoSerializer,
-    UserSearchSerializer,
     UserSerializer,
     VerificationInfoSerializer,
 )
@@ -126,9 +120,7 @@ async def get_my_user(request) -> User:
     Get the current authenticated user (according to the auth token in the request headers).
     """
 
-    if request.user.is_anonymous:
-        # NOTE: We force a 401 instead of using the permissions system (which would return a 403)
-        raise ex.AuthorizationError("User is anonymous")
+    await check_permissions(permissions=IsAuthenticated(), user=request.user)
 
     return request.user
 
@@ -154,9 +146,7 @@ async def update_my_user(request, form: UpdateUserValidator) -> User:
     """
     Update the current authenticated user (according to the auth token in the request headers).
     """
-    if request.user.is_anonymous:
-        # NOTE: We force a 401 instead of using the permissions system (which would return a 403)
-        raise ex.AuthorizationError("User is anonymous")
+    await check_permissions(permissions=IsAuthenticated(), user=request.user)
 
     return await users_services.update_user(
         user=request.user,
@@ -191,9 +181,7 @@ async def delete_user(request) -> tuple[int, None]:
     - All invitations related with this user in workspaces and projects are deleted
     - User is deleted
     """
-    if request.user.is_anonymous:
-        # NOTE: We force a 401 instead of using the permissions system (which would return a 403)
-        raise ex.AuthorizationError("User is anonymous")
+    await check_permissions(permissions=IsAuthenticated(), user=request.user)
 
     await users_services.delete_user(user=request.user)
     return 204, None
@@ -220,9 +208,7 @@ async def get_user_delete_info(request) -> UserDeleteInfoSerializer:
     - A list projects where the user is the only project admin and is not the only workspace member
     or is not workspace member
     """
-    if request.user.is_anonymous:
-        # NOTE: We force a 401 instead of using the permissions system (which would return a 403)
-        raise ex.AuthorizationError("User is anonymous")
+    await check_permissions(permissions=IsAuthenticated(), user=request.user)
 
     return await users_services.get_user_delete_info(user=request.user)
 
