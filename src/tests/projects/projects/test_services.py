@@ -178,7 +178,10 @@ async def test_list_workspace_projects_for_a_ws_member():
             workspace=workspace, user=workspace.created_by
         )
         fake_projects_repo.list_projects.assert_awaited_once_with(
-            filters={"workspace_id": workspace.id},
+            filters={
+                "workspace_id": workspace.id,
+                "memberships__user_id": workspace.created_by.id,
+            },
             select_related=["workspace"],
         )
 
@@ -233,13 +236,7 @@ async def test_get_project_detail():
 
     with (
         patch(
-            "projects.projects.services.permissions_services", autospec=True
-        ) as fake_permissions_services,
-        patch(
-            "projects.projects.services.roless_services", autospec=True
-        ) as fake_roles_services,
-        patch(
-            "projects.projects.services.roless_services", autospec=True
+            "projects.projects.services.roles_services", autospec=True
         ) as fake_roles_services,
         patch(
             "projects.projects.services.workspaces_services", autospec=True
@@ -253,8 +250,6 @@ async def test_get_project_detail():
             True,
             [],
         )
-        fake_permissions_services.get_user_permissions_for_project.return_value = []
-        fake_permissions_services.is_workspace_member.return_value = True
         fake_pj_invitations_services.has_pending_project_invitation.return_value = True
         fake_workspaces_services.get_workspace_nested.return_value = (
             WorkspaceNestedSerializer(
@@ -265,14 +260,6 @@ async def test_get_project_detail():
 
         fake_roles_services.get_user_project_role_info.assert_awaited_once_with(
             project=project, user=workspace.created_by
-        )
-        fake_permissions_services.get_user_permissions_for_project.assert_awaited_once_with(
-            is_project_admin=True,
-            is_workspace_member=True,
-            is_project_member=True,
-            is_authenticated=True,
-            project_role_permissions=[],
-            project=project,
         )
         fake_pj_invitations_services.has_pending_project_invitation.assert_awaited_once_with(
             user=workspace.created_by, project=project
@@ -285,15 +272,11 @@ async def test_get_project_detail():
 async def test_get_project_detail_anonymous():
     user = AnonymousUser()
     workspace = await f.create_workspace()
-    permissions = ["modify_story", "view_story"]
-    project = f.build_project(workspace=workspace, public_permissions=permissions)
+    project = f.build_project(workspace=workspace)
 
     with (
         patch(
-            "projects.projects.services.permissions_services", autospec=True
-        ) as fake_permissions_services,
-        patch(
-            "projects.projects.services.roless_services", autospec=True
+            "projects.projects.services.roles_services", autospec=True
         ) as fake_roles_services,
         patch(
             "projects.projects.services.workspaces_services", autospec=True
@@ -307,8 +290,6 @@ async def test_get_project_detail_anonymous():
             True,
             [],
         )
-        fake_permissions_services.get_user_permissions_for_project.return_value = []
-        fake_permissions_services.is_workspace_member.return_value = True
         fake_pj_invitations_services.has_pending_project_invitation.return_value = False
         fake_workspaces_services.get_workspace_nested.return_value = (
             WorkspaceNestedSerializer(
@@ -319,14 +300,6 @@ async def test_get_project_detail_anonymous():
 
         fake_roles_services.get_user_project_role_info.assert_awaited_once_with(
             project=project, user=user
-        )
-        fake_permissions_services.get_user_permissions_for_project.assert_awaited_once_with(
-            is_project_admin=True,
-            is_workspace_member=True,
-            is_project_member=True,
-            is_authenticated=False,
-            project_role_permissions=[],
-            project=project,
         )
         fake_pj_invitations_services.has_pending_project_invitation.assert_not_awaited()
         fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(
@@ -579,34 +552,6 @@ async def test_update_project_landing_page_ok_new_slug():
             project_detail=fake_updated_project_detail,
             project_id=fake_updated_project.b64id,
             updated_by=user,
-        )
-
-
-##########################################################
-# update_project_public_permissions
-##########################################################
-
-
-async def test_update_project_public_permissions_ok():
-    project = f.build_project()
-    permissions = ["modify_story", "view_story"]
-
-    with (
-        patch(
-            "projects.projects.services.projects_repositories", autospec=True
-        ) as fake_project_repository,
-        patch(
-            "projects.projects.services.projects_events", autospec=True
-        ) as fake_projects_events,
-    ):
-        await services.update_project_public_permissions(
-            project=project, permissions=permissions
-        )
-        fake_project_repository.update_project.assert_awaited_once_with(
-            project=project, values={"public_permissions": permissions}
-        )
-        fake_projects_events.emit_event_when_project_permissions_are_updated.assert_awaited_with(
-            project=project
         )
 
 

@@ -91,7 +91,6 @@ class ProjectAdmin(admin.ModelAdmin):
                 "fields": ("color", "logo", ("created_at", "modified_at")),
             },
         ),
-        ("Permissions", {"fields": ("public_permissions",)}),
     )
     readonly_fields = ("id", "b64id", "created_at", "modified_at")
     list_display = [
@@ -99,8 +98,6 @@ class ProjectAdmin(admin.ModelAdmin):
         "name",
         "workspace",
         "created_by",
-        "public_user_can_view",
-        "anon_user_can_view",
     ]
     list_filter = ("workspace", "created_by")
     search_fields = [
@@ -115,14 +112,6 @@ class ProjectAdmin(admin.ModelAdmin):
         ProjectInvitationInline,
         WorkflowInline,
     ]
-
-    @admin.display(description="allow public users", boolean=True)
-    def public_user_can_view(self, obj: Project) -> bool:
-        return obj.public_user_can_view
-
-    @admin.display(description="allow anonymous users", boolean=True)
-    def anon_user_can_view(self, obj: Project) -> bool:
-        return obj.anon_user_can_view
 
 
 @admin.register(ProjectTemplate)

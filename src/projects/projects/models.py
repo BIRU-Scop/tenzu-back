@@ -93,26 +93,6 @@ class Project(BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
     def slug(self) -> str:
         return slugify(self.name)
 
-    @property
-    def public_user_can_view(self) -> bool:
-        """
-        Any registered user can view the project
-        """
-        return bool(self.public_permissions)
-
-    @property
-    def anon_user_can_view(self) -> bool:
-        """
-        Any unregistered/anonymous user can view the project
-        """
-        return bool(self.anon_permissions)
-
-    @property
-    def anon_permissions(self) -> list[str]:
-        return list(
-            filter(lambda x: x.startswith("view_"), self.public_permissions or [])
-        )
-
     def save(self, *args: Any, **kwargs: Any) -> None:
         super().save(*args, **kwargs)
 

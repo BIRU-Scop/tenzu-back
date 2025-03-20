@@ -57,7 +57,7 @@ async def test_create_story_attachment_200_ok(client):
 
 
 async def test_create_story_attachment_403_forbidden_error_no_permissions(client):
-    project = await f.create_project(public_permissions=[])
+    project = await f.create_project()
     story = await f.create_story(project=project)
     user = await f.create_user()
     file = f.build_image_file("image")

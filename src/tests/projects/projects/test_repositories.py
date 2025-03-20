@@ -381,16 +381,6 @@ async def test_update_project_delete_logo(project_template):
     assert updated_project.logo == models.FileField(None)
 
 
-async def test_update_project_public_permissions(project_template):
-    project = await f.create_project(template=project_template, name="Project 1")
-    await repositories.update_project(
-        project,
-        values={"public_permissions": ["add_story", "view_story"]},
-    )
-    assert len(project.public_permissions) == 2
-    assert len(project.anon_permissions) == 1
-
-
 ##########################################################
 # delete_projects
 ##########################################################

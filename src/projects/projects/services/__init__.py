@@ -285,25 +285,6 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
     return updated_project
 
 
-async def update_project_public_permissions(
-    project: Project, permissions: list[str]
-) -> list[str]:
-    await projects_repositories.update_project(
-        project=project, values={"public_permissions": permissions}
-    )
-
-    # TODO: emit an event to users/project with the new permissions when a change happens?
-    await projects_events.emit_event_when_project_permissions_are_updated(
-        project=project
-    )
-    if not permissions:
-        await actions_events.emit_event_action_to_check_project_subscription(
-            project_b64id=project.b64id
-        )
-
-    return permissions
-
-
 ##########################################################
 # delete project
 ##########################################################

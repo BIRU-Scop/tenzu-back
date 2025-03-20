@@ -101,9 +101,6 @@ async def load_test_data() -> None:
         created_by=custom_user, name="Custom workspace"
     )
     await _create_empty_project(created_by=custom_user, workspace=workspace)
-    await _create_inconsistent_permissions_project(
-        created_by=custom_user, workspace=workspace
-    )
     await _create_project_with_several_roles(
         created_by=custom_user, workspace=workspace, users=users
     )
@@ -254,22 +251,6 @@ async def _create_empty_project(created_by: User, workspace: Workspace) -> None:
         created_by=created_by,
         workspace=workspace,
     )
-
-
-async def _create_inconsistent_permissions_project(
-    created_by: User, workspace: Workspace
-) -> None:
-    # give general role less permissions than public-permissions
-    project = await factories.create_project(
-        name="Inconsistent Permissions",
-        created_by=created_by,
-        workspace=workspace,
-    )
-    general_members_role = await sync_to_async(project.roles.get)(slug="general")
-    general_members_role.permissions = ["view_story"]
-    await sync_to_async(general_members_role.save)()
-    project.public_permissions = choices.ProjectPermissions.values
-    await sync_to_async(project.save)()
 
 
 async def _create_project_with_several_roles(
@@ -533,7 +514,6 @@ async def _create_project_membership_scenario() -> None:
     )
     members_role = await sync_to_async(project.roles.get)(slug="general")
     members_role.permissions = ["view_story"]
-    project.public_permissions = ["view_story"]
     await sync_to_async(members_role.save)()
     await pj_memberships_repositories.create_project_membership(
         user=user1002, project=project, role=members_role
@@ -557,7 +537,6 @@ async def _create_project_membership_scenario() -> None:
     )
     members_role = await sync_to_async(project.roles.get)(slug="general")
     members_role.permissions = ["view_story"]
-    project.public_permissions = ["view_story"]
     await sync_to_async(members_role.save)()
     await pj_memberships_repositories.create_project_membership(
         user=user1002, project=project, role=members_role
@@ -584,7 +563,6 @@ async def _create_project_membership_scenario() -> None:
     )
     members_role = await sync_to_async(project.roles.get)(slug="general")
     members_role.permissions = ["view_story"]
-    project.public_permissions = ["view_story"]
     await sync_to_async(members_role.save)()
     await pj_memberships_repositories.create_project_membership(
         user=user1002, project=project, role=members_role

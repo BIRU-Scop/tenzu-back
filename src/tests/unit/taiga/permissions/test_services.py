@@ -349,44 +349,6 @@ async def get_user_workspace_role_info():
 
 
 #####################################################
-# get_user_permissions_for_project
-#####################################################
-
-
-async def test_get_user_permissions_for_project():
-    project = await f.create_project()
-
-    params = [True, False, False, False, [], project]
-    assert (
-        await services.get_user_permissions_for_project(*params)
-        == choices.ProjectPermissions.values
-    )
-
-    params = [False, True, False, False, [], project]
-    assert (
-        await services.get_user_permissions_for_project(*params)
-        == choices.ProjectPermissions.values
-    )
-
-    params = [False, False, True, True, ["view_story"], project]
-    res = await services.get_user_permissions_for_project(*params)
-    assert "view_story" in res
-    assert len(res) == 1
-
-    params = [False, False, False, True, [], project]
-    assert (
-        await services.get_user_permissions_for_project(*params)
-        == project.public_permissions
-    )
-
-    params = [False, False, False, False, [], project]
-    assert (
-        await services.get_user_permissions_for_project(*params)
-        == project.anon_permissions
-    )
-
-
-#####################################################
 # get_user_permissions_for_workspace
 #####################################################
 
