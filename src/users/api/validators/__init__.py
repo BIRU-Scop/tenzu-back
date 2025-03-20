@@ -21,18 +21,20 @@ from django.conf import settings
 from pydantic import EmailStr, Field, StrictBool, StringConstraints, field_validator
 from typing_extensions import Annotated, Optional
 
-from base.validators import BaseModel, LanguageCode
 from commons.colors import NUM_COLORS
+from commons.validators import BaseModel, LanguageCode, check_not_empty
 from users.api.validators.mixins import PasswordMixin
 
 #####################################################################
 # User
 #####################################################################
 
+FullName = Annotated[str, StringConstraints(max_length=50)]
+
 
 class CreateUserValidator(PasswordMixin, BaseModel):
     email: EmailStr
-    full_name: Annotated[str, StringConstraints(max_length=50)]  # type: ignore
+    full_name: FullName  # type: ignore
     accept_terms: StrictBool
     color: Annotated[int, Field(gt=0, le=NUM_COLORS)] | None = None  # type: ignore
     lang: LanguageCode | None = None
@@ -44,8 +46,7 @@ class CreateUserValidator(PasswordMixin, BaseModel):
     @field_validator("email", "full_name")
     @classmethod
     def check_not_empty(cls, v: str) -> str:
-        assert v != "", "Empty field is not allowed"
-        return v
+        return check_not_empty(v)
 
     @field_validator("email")
     @classmethod
@@ -61,20 +62,20 @@ class CreateUserValidator(PasswordMixin, BaseModel):
     @field_validator("accept_terms")
     @classmethod
     def check_accept_terms(cls, v: bool) -> bool:
-        assert v is True, "User has to accept terms of service"
+        if v is False:
+            raise ValueError("User has to accept terms of service")
         return v
 
 
 class UpdateUserValidator(BaseModel):
-    full_name: Optional[Annotated[str, StringConstraints(max_length=50)]] = None
+    full_name: Optional[FullName] = None
     lang: Optional[LanguageCode] = None
     password: Optional[str] = None
 
-    @field_validator("full_name", "lang")
+    @field_validator("full_name", "lang", mode="before")
     @classmethod
     def check_not_empty(cls, v: str) -> str:
-        assert v != "", "Empty field is not allowed"
-        return v
+        return check_not_empty(v)
 
 
 class VerifyTokenValidator(BaseModel):

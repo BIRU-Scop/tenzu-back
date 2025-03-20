@@ -26,13 +26,13 @@ from ninja import File, Path, Router, UploadedFile
 from attachments import services as attachments_services
 from attachments.models import Attachment
 from base.utils.files import iterfile
-from base.validators import B64UUID
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from commons.validators import B64UUID
 from permissions import check_permissions
 from stories.attachments import events
 from stories.attachments.serializers import StoryAttachmentSerializer

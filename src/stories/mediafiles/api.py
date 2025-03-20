@@ -19,12 +19,12 @@
 
 from ninja import File, Path, Router, UploadedFile
 
-from base.validators import B64UUID
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from commons.validators import B64UUID
 from mediafiles import services as mediafiles_services
 from mediafiles.models import Mediafile
 from mediafiles.serializers import MediafileSerializer

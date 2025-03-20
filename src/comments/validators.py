@@ -23,7 +23,7 @@ from pydantic import Field, model_serializer
 from pydantic.alias_generators import to_snake
 
 from base.api.ordering import OrderQuery
-from base.validators import BaseModel, StrNotEmpty
+from commons.validators import BaseModel, StrNotEmpty
 
 CommentOrderQuery = OrderQuery(
     allowed=[

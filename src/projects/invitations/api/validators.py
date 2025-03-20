@@ -31,7 +31,7 @@ from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated
 
 from base.utils.emails import is_email
-from base.validators import BaseModel
+from commons.validators import BaseModel, check_not_empty
 
 
 class ProjectInvitationValidator(BaseModel):
@@ -72,8 +72,7 @@ class RevokeProjectInvitationValidator(BaseModel):
     @field_validator("username_or_email")
     @classmethod
     def check_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        assert v != "", "Empty field is not allowed"
-        return v
+        return check_not_empty(v)
 
     @field_validator("username_or_email")
     @classmethod
@@ -95,8 +94,7 @@ class ResendProjectInvitationValidator(BaseModel):
     @field_validator("username_or_email")
     @classmethod
     def check_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        assert v != "", "Empty field is not allowed"
-        return v
+        return check_not_empty(v)
 
     @field_validator("username_or_email")
     @classmethod
@@ -118,5 +116,4 @@ class UpdateProjectInvitationValidator(BaseModel):
     @field_validator("role_slug")
     @classmethod
     def check_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        assert v != "", "Empty field is not allowed"
-        return v
+        return check_not_empty(v)

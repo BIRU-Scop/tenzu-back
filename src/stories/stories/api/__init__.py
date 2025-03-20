@@ -23,13 +23,13 @@ from django.http import HttpResponse
 from ninja import Path, Query, Router
 
 from base.api import Pagination, PaginationQuery, set_pagination
-from base.validators import B64UUID
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from commons.validators import B64UUID
 from permissions import check_permissions
 from stories.stories import services as stories_services
 from stories.stories.api.validators import (

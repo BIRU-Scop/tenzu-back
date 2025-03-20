@@ -21,7 +21,6 @@ from uuid import UUID
 
 from ninja import File, Form, Path, Router
 
-from base.validators import B64UUID
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -29,6 +28,7 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from commons.validators import B64UUID
 from permissions import (
     check_permissions,
 )

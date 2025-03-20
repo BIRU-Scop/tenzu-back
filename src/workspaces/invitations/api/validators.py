@@ -17,14 +17,14 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import List, Set
+from typing import List
 
 from django.conf import settings
 from pydantic import Field, field_validator
 from typing_extensions import Annotated
 
 from base.utils.emails import is_email
-from base.validators import BaseModel, StrNotEmpty
+from commons.validators import BaseModel, StrNotEmpty
 
 
 class WorkspaceInvitationValidator(BaseModel):

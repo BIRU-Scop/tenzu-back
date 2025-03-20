@@ -17,6 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.validators.fields.i18n import LanguageCode  # noqa
-from base.validators.fields.text import StrNotEmpty  # noqa
-from base.validators.fields.uuid import B64UUID  # noqa
+from typing import Any
+
+from commons.validators.base import BaseModel  # noqa
+from commons.validators.fields import *  # noqa
+
+
+def check_not_empty(v: Any) -> Any:
+    if v == "":
+        raise ValueError("Empty field is not allowed")
+    return v

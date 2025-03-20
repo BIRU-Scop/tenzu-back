@@ -31,8 +31,8 @@ from typing_extensions import Annotated
 
 from base.utils.images import valid_content_type, valid_image_content
 from base.utils.uuid import decode_b64str_to_uuid
-from base.validators import BaseModel
 from commons.colors import NUM_COLORS
+from commons.validators import BaseModel
 from permissions.validators import Permissions
 
 B64UUID = Annotated[

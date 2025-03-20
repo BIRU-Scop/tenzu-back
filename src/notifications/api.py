@@ -21,13 +21,13 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.validators import B64UUID
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from commons.validators import B64UUID
 from notifications import services as notifications_services
 from notifications.models import Notification
 from notifications.permissions import NotificationPermissionsCheck

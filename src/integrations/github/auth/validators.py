@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.validators import BaseModel, LanguageCode
+from commons.validators import BaseModel, LanguageCode
 
 
 class GithubLoginValidator(BaseModel):

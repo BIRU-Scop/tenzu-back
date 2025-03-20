@@ -17,5 +17,27 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.validators.base import BaseModel  # noqa
-from base.validators.fields import *  # noqa
+from typing import Annotated
+
+from django.conf import settings
+from pydantic import (
+    AfterValidator,
+)
+from pydantic.json_schema import WithJsonSchema
+
+from base.i18n import i18n
+
+
+def language_available(v: str) -> str:
+    if not i18n.is_language_available(v):
+        raise ValueError(f"Language {v} is not available")
+    return v
+
+
+LanguageCode = Annotated[
+    str,
+    AfterValidator(language_available),
+    WithJsonSchema(
+        {"example": settings.LANGUAGE_CODE, "enum": i18n.available_languages}
+    ),
+]

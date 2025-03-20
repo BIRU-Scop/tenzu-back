@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.validators import BaseModel, StrNotEmpty
+from commons.validators import BaseModel, StrNotEmpty
 
 
 class StoryAssignmentValidator(BaseModel):

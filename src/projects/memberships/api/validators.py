@@ -19,7 +19,7 @@
 
 from pydantic import field_validator
 
-from base.validators import BaseModel
+from commons.validators import BaseModel, check_not_empty
 
 
 class ProjectMembershipValidator(BaseModel):
@@ -28,5 +28,4 @@ class ProjectMembershipValidator(BaseModel):
     @field_validator("role_slug")
     @classmethod
     def check_not_empty(cls, v: str) -> str:
-        assert v != "", "Empty field is not allowed"
-        return v
+        return check_not_empty(v)

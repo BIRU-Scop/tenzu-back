@@ -25,7 +25,6 @@ from ninja import Path, Query, Router
 
 from base.api import pagination as api_pagination
 from base.api.pagination import PaginationQuery
-from base.validators import B64UUID
 from comments import services as comments_services
 from comments.models import Comment
 from comments.serializers import CommentSerializer
@@ -40,6 +39,7 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from commons.validators import B64UUID
 from permissions import (
     check_permissions,
 )

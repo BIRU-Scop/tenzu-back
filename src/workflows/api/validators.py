@@ -25,9 +25,9 @@ from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated
 
 from base.utils.uuid import decode_b64str_to_uuid
-from base.validators import B64UUID, BaseModel
 from commons.colors import NUM_COLORS
 from commons.exceptions import api as ex
+from commons.validators import B64UUID, BaseModel
 
 WorkflowStatusName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)
@@ -68,7 +68,8 @@ class ReorderValidator(BaseModel):
     @field_validator("place")
     @classmethod
     def check_valid_place(cls, v: str, info: ValidationInfo) -> str:
-        assert v in ["before", "after"], "Place should be 'after' or 'before'"
+        if v not in ["before", "after"]:
+            raise ValueError("Place should be 'after' or 'before'")
         return v
 
 

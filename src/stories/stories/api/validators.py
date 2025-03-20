@@ -23,7 +23,7 @@ from pydantic import Field, StringConstraints, field_validator, model_validator
 from pydantic.types import PositiveInt
 from typing_extensions import Annotated
 
-from base.validators import B64UUID, BaseModel
+from commons.validators import B64UUID, BaseModel
 
 Title = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)
