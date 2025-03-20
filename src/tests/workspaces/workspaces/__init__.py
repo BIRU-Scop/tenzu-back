@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -16,28 +15,3 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-import pytest
-from pydantic import ValidationError
-
-from base.validators import BaseModel
-from base.validators.fields.i18n import LanguageCode
-
-
-class Model(BaseModel):
-    x: LanguageCode
-
-
-def test_language_code_with_valid_value():
-    m = Model(x="en-US")
-
-    assert m.x == "en-US"
-
-
-@pytest.mark.parametrize(
-    "value",
-    ["invalid", "en_us", "", None],
-)
-def test_language_code_with_invalid_value(value):
-    with pytest.raises(ValidationError):
-        Model(x=value)

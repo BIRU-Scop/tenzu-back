@@ -34,10 +34,10 @@ pytestmark = pytest.mark.django_db
 ##########################################################
 
 
-async def test_create_project_invitations():
+async def test_create_project_invitations(project_template):
     user = await f.create_user()
     user2 = await f.create_user()
-    project = await f.create_project()
+    project = await f.create_project(project_template)
     role = await f.create_project_role(project=project)
     role2 = await f.create_project_role(project=project)
     objs = [
@@ -167,8 +167,8 @@ async def get_project_invitation_by_id_not_found() -> None:
 ##########################################################
 
 
-async def test_list_project_invitations_all_pending_users():
-    project = await f.create_project()
+async def test_list_project_invitations_all_pending_users(project_template):
+    project = await f.create_project(project_template)
     general_role = await sync_to_async(project.roles.get)(slug="general")
     email_a = "a@user.com"
     email_b = "b@user.com"
@@ -233,8 +233,8 @@ async def test_list_project_invitations_all_pending_users():
     assert response[4].email == email_z
 
 
-async def test_list_project_invitations_single_pending_user():
-    project = await f.create_project()
+async def test_list_project_invitations_single_pending_user(project_template):
+    project = await f.create_project(project_template)
     general_role = await sync_to_async(project.roles.get)(slug="general")
 
     user1 = await f.create_user(full_name="AAA")
@@ -264,8 +264,10 @@ async def test_list_project_invitations_single_pending_user():
     assert response[0].email == user1.email
 
 
-async def test_list_project_invitations_single_pending_non_existing_user():
-    project = await f.create_project()
+async def test_list_project_invitations_single_pending_non_existing_user(
+    project_template,
+):
+    project = await f.create_project(project_template)
     general_role = await sync_to_async(project.roles.get)(slug="general")
 
     non_existing_email = "non-existing@email.com"
@@ -288,8 +290,8 @@ async def test_list_project_invitations_single_pending_non_existing_user():
     assert invitations[0].email == non_existing_email
 
 
-async def test_list_project_invitations_all_accepted_users():
-    project = await f.create_project()
+async def test_list_project_invitations_all_accepted_users(project_template):
+    project = await f.create_project(project_template)
     general_role = await sync_to_async(project.roles.get)(slug="general")
 
     user1 = await f.create_user(full_name="AAA")
@@ -322,8 +324,8 @@ async def test_list_project_invitations_all_accepted_users():
 ##########################################################
 
 
-async def test_update_project_invitation():
-    project = await f.create_project()
+async def test_update_project_invitation(project_template):
+    project = await f.create_project(project_template)
     user = await f.create_user()
     old_role = await f.create_project_role(project=project)
     invitation = await f.create_project_invitation(
@@ -343,8 +345,8 @@ async def test_update_project_invitation():
     assert updated_invitation.role == new_role
 
 
-async def test_bulk_update_project_invitations():
-    project = await f.create_project()
+async def test_bulk_update_project_invitations(project_template):
+    project = await f.create_project(project_template)
     role1 = await f.create_project_role(project=project)
     invitation1 = await f.create_project_invitation(role=role1)
     invitation2 = await f.create_project_invitation(role=role1)
@@ -376,8 +378,8 @@ async def test_bulk_update_project_invitations():
 ##########################################################
 
 
-async def test_delete_project_invitation():
-    project = await f.create_project()
+async def test_delete_project_invitation(project_template):
+    project = await f.create_project(project_template)
     user = await f.create_user()
     role = await f.create_project_role(project=project)
     await f.create_project_invitation(
@@ -399,8 +401,8 @@ async def test_delete_project_invitation():
 ##########################################################
 
 
-async def test_get_total_project_invitations():
-    project = await f.create_project()
+async def test_get_total_project_invitations(project_template):
+    project = await f.create_project(project_template)
     general_role = await sync_to_async(project.roles.get)(slug="general")
 
     user1 = await f.create_user(full_name="AAA")

@@ -15,6 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import contextlib
 
 import pytest
 from procrastinate import App, testing
@@ -57,11 +58,25 @@ class TestTasksQueueManager:
         self._app.connector.reset()  # type: ignore[attr-defined]
 
 
+@contextlib.contextmanager
+def replace_connector(app, connector):
+    old_connector = app.connector
+    app.connector = connector
+    app.job_manager.connector = connector
+    try:
+        yield app
+    finally:
+        app.connector = old_connector
+        app.job_manager.connector = old_connector
+
+
 @pytest.fixture(autouse=True)
-def in_memory_app(monkeypatch) -> App:
-    app = procrastinate_app.current_app.with_connector(testing.InMemoryConnector())
-    monkeypatch.setattr(procrastinate_app, "current_app", app)
-    return app
+def in_memory_app():
+    in_memory = testing.InMemoryConnector()
+
+    # TODO replace with procrastinate_app.current_app.replace_connector(in_memory) once procrastinates has been updated
+    with replace_connector(procrastinate_app.current_app, in_memory) as app:
+        yield app
 
 
 @pytest.fixture

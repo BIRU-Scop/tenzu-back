@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import cast
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
@@ -46,7 +45,6 @@ from projects.roles import repositories as pj_roles_repositories
 from users import events as users_events
 from users import repositories as users_repositories
 from users.models import User
-from users.repositories import UserFilters
 from users.serializers import UserDeleteInfoSerializer, VerificationInfoSerializer
 from users.serializers import services as serializers_services
 from users.services import exceptions as ex

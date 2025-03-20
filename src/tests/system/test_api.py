@@ -18,28 +18,16 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
-from pydantic import ValidationError
 
-from base.validators import BaseModel
-from base.validators.fields.text import StrNotEmpty
-
-#########################################################
-# StrNotEmpty
-#########################################################
+pytestmark = pytest.mark.django_db(transaction=True)
 
 
-class Model(BaseModel):
-    x: StrNotEmpty
+##########################################################
+# GET /system/languages
+##########################################################
 
 
-def test_str_not_empty_with_valid_value():
-    assert Model(x="a").x == "a"
-
-
-@pytest.mark.parametrize(
-    "value",
-    ["", "   ", None],
-)
-def test_str_not_empty_with_invalid_value(value):
-    with pytest.raises(ValidationError):
-        Model(x=value)
+async def test_get_system_languages(client):
+    response = await client.get("/system/languages")
+    assert response.status_code == 200, response.text
+    assert len(response.json()) >= 1

@@ -51,12 +51,14 @@ def test_validate_invitations_more_than_50():
         invitations.append({"username_or_email": f"test{i}@email.com"})
 
     with pytest.raises(
-        ValidationError, match=r"value_error.list.max_items"
+        ValidationError, match=r"type=too_long.+input_type=list"
     ) as validation_errors:
         WorkspaceInvitationsValidator(invitations=invitations)
 
     expected_error_fields = ["invitations"]
-    expected_error_messages = ["ensure this value has at most 50 items"]
+    expected_error_messages = [
+        "List should have at most 50 items after validation, not 55"
+    ]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
     )

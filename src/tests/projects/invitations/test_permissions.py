@@ -29,27 +29,26 @@ from users.models import AnonymousUser
 
 
 @pytest.mark.parametrize(
-    "invitation_email, user_email, user_is_active, expected",
+    "invitation_email, user_email, expected",
     [
         # Allowed / True
-        ("test@email.com", "test@email.com", True, True),
+        ("test@email.com", "test@email.com", True),
         # Not allowed / False
-        ("test@email.com", "test@email.com", False, False),
-        ("test1@email.com", "test@email.com", True, False),
+        ("test1@email.com", "test@email.com", False),
     ],
 )
 async def test_is_project_invitation_recipient_permission_with_different_emails(
-    invitation_email, user_email, user_is_active, expected
+    invitation_email, user_email, expected
 ):
-    perm = permissions.IsAuthenticatedProjectInvitationRecipient()
-    user = f.build_user(email=invitation_email, is_active=user_is_active)
+    perm = permissions.InvitationPermissionsCheck.ANSWER.value
+    user = f.build_user(email=invitation_email)
     invitation = f.build_project_invitation(user=user, email=user_email)
 
     assert await perm.is_authorized(user, invitation) == expected
 
 
 async def test_is_project_invitation_recipient_permission_with_anonymous_user():
-    perm = permissions.IsAuthenticatedProjectInvitationRecipient()
+    perm = permissions.InvitationPermissionsCheck.ANSWER.value
     user = AnonymousUser()
     invitation = f.build_project_invitation(user=None, email="some@email.com")
 

@@ -24,6 +24,7 @@ from asgiref.sync import sync_to_async
 
 from base.db.exceptions import IntegrityError
 from projects.invitations.choices import ProjectInvitationStatus
+from projects.projects.models import ProjectTemplate
 from tests.utils import factories as f
 from users import repositories as users_repositories
 from users.models import User
@@ -46,7 +47,7 @@ async def test_create_user_success():
     user = await users_repositories.create_user(
         email=email, full_name=full_name, color=color, password=password, lang=lang
     )
-    await user.refresh_from_db()
+    await user.arefresh_from_db()
     assert user.email == email.lower()
     assert user.username == "email"
     assert user.password
@@ -122,12 +123,12 @@ async def test_list_users_by_emails():
     assert user3 not in users
 
 
-async def test_list_guests_in_ws_for_project():
+async def test_list_guests_in_ws_for_project(project_template):
     member = await f.create_user()
     invitee = await f.create_user()
     workspace = await f.create_workspace()
     project = await f.create_project(
-        created_by=workspace.created_by, workspace=workspace
+        project_template, created_by=workspace.created_by, workspace=workspace
     )
     general_role = await f.create_project_role(project=project, is_admin=False)
     await f.create_project_membership(user=member, project=project, role=general_role)
@@ -149,11 +150,11 @@ async def test_list_guests_in_ws_for_project():
     assert member in users
 
 
-async def test_list_guests_in_workspace():
+async def test_list_guests_in_workspace(project_template):
     workspace = await f.create_workspace()
     pj_member = await f.create_user()
     project = await f.create_project(
-        created_by=workspace.created_by, workspace=workspace
+        project_template, created_by=workspace.created_by, workspace=workspace
     )
     general_role = await f.create_project_role(project=project, is_admin=False)
     await f.create_project_membership(
@@ -204,7 +205,9 @@ class ListUserByText(IsolatedAsyncioTestCase):
 
         # electra is a pj-member (from the previous workspace)
         self.project = await f.create_project(
-            workspace=self.workspace, created_by=self.ws_pj_admin
+            template=await ProjectTemplate.objects.afirst(),
+            workspace=self.workspace,
+            created_by=self.ws_pj_admin,
         )
         self.general_role = await f.create_project_role(
             project=self.project, is_admin=False

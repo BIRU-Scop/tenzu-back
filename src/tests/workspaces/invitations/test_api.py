@@ -18,7 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
-from fastapi import status
 
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
@@ -45,8 +44,10 @@ async def test_create_workspace_invitations_200_ok(client):
         ]
     }
     client.login(workspace.created_by)
-    response = client.post(f"/workspaces/{workspace.b64id}/invitations", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/invitations", json=data
+    )
+    assert response.status_code == 200, response.text
 
 
 async def test_create_workspace_invitations_400_bad_request_not_existing_username(
@@ -55,11 +56,13 @@ async def test_create_workspace_invitations_400_bad_request_not_existing_usernam
     workspace = await f.create_workspace()
     data = {"invitations": [{"username_or_email": "not-a-username"}]}
     client.login(workspace.created_by)
-    response = client.post(f"/workspaces/{workspace.b64id}/invitations", json=data)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/invitations", json=data
+    )
+    assert response.status_code == 400, response.text
 
 
-async def test_create_workspace_invitations_403_forbidden_anonymous_user(client):
+async def test_create_workspace_invitations_401_not_authorised_anonymous_user(client):
     workspace = await f.create_workspace()
     data = {
         "invitations": [
@@ -67,8 +70,10 @@ async def test_create_workspace_invitations_403_forbidden_anonymous_user(client)
             {"username_or_email": "test@email.com"},
         ]
     }
-    response = client.post(f"/workspaces/{workspace.b64id}/invitations", json=data)
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/invitations", json=data
+    )
+    assert response.status_code == 401, response.text
 
 
 async def test_create_workspace_invitations_403_forbidden_user_without_permission(
@@ -83,8 +88,10 @@ async def test_create_workspace_invitations_403_forbidden_user_without_permissio
     }
     user = await f.create_user()
     client.login(user)
-    response = client.post(f"/workspaces/{workspace.b64id}/invitations", json=data)
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/invitations", json=data
+    )
+    assert response.status_code == 403, response.text
 
 
 async def test_create_workspace_invitations_404_not_found_workspace_b64id(client):
@@ -96,8 +103,10 @@ async def test_create_workspace_invitations_404_not_found_workspace_b64id(client
         ]
     }
     client.login(user)
-    response = client.post(f"/workspaces/{NOT_EXISTING_B64ID}/invitations", json=data)
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
+    response = await client.post(
+        f"/workspaces/{NOT_EXISTING_B64ID}/invitations", json=data
+    )
+    assert response.status_code == 404, response.text
 
 
 async def test_create_workspace_invitations_422_unprocessable_workspace_b64id(client):
@@ -109,8 +118,8 @@ async def test_create_workspace_invitations_422_unprocessable_workspace_b64id(cl
         ]
     }
     client.login(user)
-    response = client.post(f"/workspaces/{INVALID_B64ID}/invitations", json=data)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
+    response = await client.post(f"/workspaces/{INVALID_B64ID}/invitations", json=data)
+    assert response.status_code == 422, response.text
 
 
 ##########################################################
@@ -151,8 +160,8 @@ async def test_list_workspaces_invitations_200_ok(client):
 
     client.login(workspace.created_by)
 
-    response = client.get(f"/workspaces/{workspace.b64id}/invitations")
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.get(f"/workspaces/{workspace.b64id}/invitations")
+    assert response.status_code == 200, response.text
     assert len(response.json()) == 3
 
 
@@ -160,15 +169,15 @@ async def test_list_workspaces_invitations_403_forbidden_no_permissions(client):
     workspace = await f.create_workspace()
     user1 = await f.create_user(full_name="AAA")
     client.login(user1)
-    response = client.get(f"/workspaces/{workspace.b64id}/invitations")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
+    response = await client.get(f"/workspaces/{workspace.b64id}/invitations")
+    assert response.status_code == 403, response.text
 
 
 async def test_list_workspaces_404_not_found_workspace_b64id(client):
     workspace = await f.create_workspace()
     client.login(workspace.created_by)
-    response = client.get(f"/workspaces/{NOT_EXISTING_B64ID}/invitations")
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
+    response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}/invitations")
+    assert response.status_code == 404, response.text
 
 
 async def test_list_workspaces_422_unprocessable_workspace_b64id(client):
@@ -176,10 +185,10 @@ async def test_list_workspaces_422_unprocessable_workspace_b64id(client):
     client.login(workspace.created_by)
     offset = 0
     limit = 1
-    response = client.get(
+    response = await client.get(
         f"/workspaces/{INVALID_B64ID}/invitations?offset={offset}&limit={limit}"
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
+    assert response.status_code == 422, response.text
 
 
 #########################################################################
@@ -191,21 +200,21 @@ async def test_get_workspace_invitation_200_ok(client):
     invitation = await f.create_workspace_invitation()
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
-    response = client.get(f"/workspaces/invitations/{str(token)}")
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.get(f"/workspaces/invitations/{str(token)}")
+    assert response.status_code == 200, response.text
 
 
 async def test_get_workspace_invitation_400_bad_request_invalid_token(client):
-    response = client.get("/workspaces/invitations/invalid-token")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.get("/workspaces/invitations/invalid-token")
+    assert response.status_code == 400, response.text
 
 
 async def test_get_workspace_invitation_404_not_found_token(client):
     invitation = f.build_workspace_invitation(id=111)
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
-    response = client.get(f"/workspaces/invitations/{str(token)}")
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
+    response = await client.get(f"/workspaces/invitations/{str(token)}")
+    assert response.status_code == 404, response.text
 
 
 #########################################################################
@@ -219,18 +228,32 @@ async def test_accept_workspace_invitation_200_ok(client):
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
     client.login(user)
-    response = client.post(f"/workspaces/invitations/{str(token)}/accept")
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post(f"/workspaces/invitations/{str(token)}/accept")
+    assert response.status_code == 200, response.text
 
 
 async def test_accept_workspace_invitation_400_bad_request_invalid_token(client):
-    response = client.post("/workspaces/invitations/invalid-token/accept")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    user = await f.create_user()
+    client.login(user)
+    response = await client.post("/workspaces/invitations/invalid-token/accept")
+    assert response.status_code == 400, response.text
+
+
+async def test_accept_workspace_invitation_403_forbidden(client):
+    user = await f.create_user()
+    invitation = await f.create_workspace_invitation(id=111)
+    token = await WorkspaceInvitationToken.create_for_object(invitation)
+
+    client.login(user)
+    response = await client.post(f"/workspaces/invitations/{str(token)}/accept")
+    assert response.status_code == 403, response.text
 
 
 async def test_accept_workspace_invitation_404_not_found_token(client):
+    user = await f.create_user()
     invitation = f.build_workspace_invitation(id=111)
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
-    response = client.post(f"/workspaces/invitations/{str(token)}/accept")
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
+    client.login(user)
+    response = await client.post(f"/workspaces/invitations/{str(token)}/accept")
+    assert response.status_code == 404, response.text

@@ -180,7 +180,7 @@ async def test_list_project_invitations_ok_admin():
         fake_pj_roles_repo.get_project_role.return_value = role_admin
 
         invitations = await services.list_project_invitations(
-            project=invitation.project.id
+            project_id=invitation.project.id
         )
 
         fake_invitations_repo.list_project_invitations.assert_awaited_once_with(

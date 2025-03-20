@@ -21,7 +21,6 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
-from fastapi import status
 
 from projects.invitations.services import _generate_project_invitation_token
 from tests.utils import factories as f
@@ -48,8 +47,8 @@ async def test_create_user_ok_with_token_project(client):
         "lang": "es-ES",
     }
 
-    response = client.post("/users", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post("/users", json=data)
+    assert response.status_code == 200, response.text
 
 
 async def test_create_user_ok_with_token_workspace(client):
@@ -64,8 +63,8 @@ async def test_create_user_ok_with_token_workspace(client):
         "lang": "es-ES",
     }
 
-    response = client.post("/users", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post("/users", json=data)
+    assert response.status_code == 200, response.text
 
 
 async def test_create_user_email_already_exists(client):
@@ -77,8 +76,8 @@ async def test_create_user_email_already_exists(client):
         "acceptTerms": True,
     }
     client.post("/users", json=data)
-    response = client.post("/users", json=data)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.post("/users", json=data)
+    assert response.status_code == 400, response.text
 
 
 ##########################################################
@@ -91,14 +90,14 @@ async def test_verify_user_ok(client):
 
     data = {"token": await _generate_verify_user_token(user)}
 
-    response = client.post("/users/verify", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post("/users/verify", json=data)
+    assert response.status_code == 200, response.text
     assert response.json()["projectInvitation"] is None
 
 
-async def test_verify_user_ok_accepting_pj_invitation(client):
+async def test_verify_user_ok_accepting_pj_invitation(client, project_template):
     user = await f.create_user(is_active=False)
-    project = await f.create_project()
+    project = await f.create_project(project_template)
     role = await f.create_project_role(project=project)
     project_invitation = await f.create_project_invitation(
         project=project, role=role, email=user.email
@@ -113,8 +112,8 @@ async def test_verify_user_ok_accepting_pj_invitation(client):
         )
     }
 
-    response = client.post("/users/verify", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post("/users/verify", json=data)
+    assert response.status_code == 200, response.text
     assert response.json()["projectInvitation"] is not None
 
 
@@ -134,8 +133,8 @@ async def test_verify_user_ok_accepting_ws_invitation(client):
         )
     }
 
-    response = client.post("/users/verify", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post("/users/verify", json=data)
+    assert response.status_code == 200, response.text
     assert response.json()["workspaceInvitation"] is not None
 
 
@@ -145,8 +144,8 @@ async def test_verify_user_ok_with_invalid_pj_invitation(client):
     project_invitation_token = "invalid-invitation-token"
     data = {"token": await _generate_verify_user_token(user, project_invitation_token)}
 
-    response = client.post("/users/verify", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post("/users/verify", json=data)
+    assert response.status_code == 200, response.text
     assert response.json()["projectInvitation"] is None
 
 
@@ -158,16 +157,16 @@ async def test_verify_user_ok_with_invalid_ws_invitation(client):
         "token": await _generate_verify_user_token(user, workspace_invitation_token)
     }
 
-    response = client.post("/users/verify", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post("/users/verify", json=data)
+    assert response.status_code == 200, response.text
     assert response.json()["workspaceInvitation"] is None
 
 
 async def test_verify_user_error_invalid_token(client):
     data = {"token": "invalid token"}
 
-    response = client.post("/users/verify", json=data)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.post("/users/verify", json=data)
+    assert response.status_code == 400, response.text
 
 
 async def test_verify_user_error_expired_token(client):
@@ -179,8 +178,8 @@ async def test_verify_user_error_expired_token(client):
 
         data = {"token": await _generate_verify_user_token(user)}
 
-        response = client.post("/users/verify", json=data)
-        assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+        response = await client.post("/users/verify", json=data)
+        assert response.status_code == 400, response.text
 
 
 async def test_verify_user_error_used_token(client):
@@ -188,87 +187,10 @@ async def test_verify_user_error_used_token(client):
 
     data = {"token": await _generate_verify_user_token(user)}
 
-    response = client.post("/users/verify", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
-    response = client.post("/users/verify", json=data)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
-
-
-#####################################################################
-# GET /users/search
-#####################################################################
-
-
-async def test_list_users_by_text_anonymous(client):
-    text = "text_to_search"
-    project_id = "6JgsbGyoEe2VExhWgGrI2w"
-    offset = 0
-    limit = 1
-
-    response = client.get(
-        f"/users/search?text={text}&project={project_id}&offset={offset}&limit={limit}"
-    )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
-
-
-async def test_list_project_users_by_text(client):
-    project = await f.create_project()
-    user = await f.create_user()
-    user2 = await f.create_user()
-    client.login(user)
-
-    text = user2.username
-    project_id = project.b64id
-    offset = 0
-    limit = 10
-
-    response = client.get(
-        f"/users/search?text={text}&project={project_id}&offset={offset}&limit={limit}"
-    )
-    assert response.status_code == status.HTTP_200_OK, response.text
-    assert len(response.json()) == 1
-    assert response.headers["Pagination-Offset"] == "0"
-    assert response.headers["Pagination-Limit"] == "10"
-
-
-async def test_list_workspace_users_by_text(client):
-    workspace = await f.create_workspace()
-    user = await f.create_user()
-    user2 = await f.create_user()
-    client.login(user)
-
-    text = user2.username
-    workspace_id = workspace.b64id
-    offset = 0
-    limit = 10
-
-    response = client.get(
-        f"/users/search?text={text}&workspace={workspace_id}&offset={offset}&limit={limit}"
-    )
-    assert response.status_code == status.HTTP_200_OK, response.text
-    assert len(response.json()) == 1
-    assert response.headers["Pagination-Offset"] == "0"
-    assert response.headers["Pagination-Limit"] == "10"
-
-
-async def test_list_users_by_text_no_results(client):
-    project = await f.create_project()
-    user = await f.create_user()
-    await f.create_user()
-    client.login(user)
-
-    text = "noresults"
-    project_id = project.b64id
-    offset = 0
-    limit = 10
-
-    response = client.get(
-        f"/users/search?text={text}&project={project_id}&offset={offset}&limit={limit}"
-    )
-    assert response.status_code == status.HTTP_200_OK, response.text
-    assert len(response.json()) == 0
-    assert response.headers["Pagination-Offset"] == "0"
-    assert response.headers["Pagination-Limit"] == "10"
+    response = await client.post("/users/verify", json=data)
+    assert response.status_code == 200, response.text
+    response = await client.post("/users/verify", json=data)
+    assert response.status_code == 400, response.text
 
 
 ##########################################################
@@ -277,18 +199,18 @@ async def test_list_users_by_text_no_results(client):
 
 
 async def test_my_user_error_no_authenticated_user(client):
-    response = client.get("/my/user")
+    response = await client.get("/my/user")
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == 401
 
 
 async def test_my_user_success(client):
     user = await f.create_user()
 
     client.login(user)
-    response = client.get("/my/user")
+    response = await client.get("/my/user")
 
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == 200
     assert "email" in response.json().keys()
 
 
@@ -302,9 +224,9 @@ async def test_update_my_user_error_no_authenticated_user(client):
         "fullName": "Ada Lovelace",
         "lang": "es-ES",
     }
-    response = client.put("/my/user", json=data)
+    response = await client.put("/my/user", json=data)
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == 401
 
 
 async def test_update_my_user_success(client):
@@ -315,9 +237,9 @@ async def test_update_my_user_success(client):
     }
 
     client.login(user)
-    response = client.put("/my/user", json=data)
+    response = await client.put("/my/user", json=data)
 
-    assert response.status_code == status.HTTP_200_OK, response.text
+    assert response.status_code == 200, response.text
 
 
 #####################################################################
@@ -329,14 +251,14 @@ async def test_delete_user_204_no_content(client):
     user = await f.create_user(username="user", is_active=True)
 
     client.login(user)
-    response = client.delete("/my/user")
-    assert response.status_code == status.HTTP_204_NO_CONTENT, response.text
+    response = await client.delete("/my/user")
+    assert response.status_code == 204, response.text
 
 
 async def test_delete_user_401_unauthorized_user(client):
-    response = client.get("/my/user")
+    response = await client.get("/my/user")
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == 401
 
 
 #####################################################################
@@ -345,45 +267,57 @@ async def test_delete_user_401_unauthorized_user(client):
 
 
 async def test_get_user_delete_info_no_authenticated_user(client):
-    response = client.get("/my/user/delete-info")
+    response = await client.get("/my/user/delete-info")
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == 401
 
 
-async def test_get_user_delete_info_success(client):
+async def test_get_user_delete_info_success(client, project_template):
     user = await f.create_user(username="user", is_active=True)
     other_user = await f.create_user(username="other_user", is_active=True)
     ws1 = await f.create_workspace(name="ws1", created_by=user)
     # user only pj admin but only pj member and only ws member
-    await f.create_project(name="pj1_ws1", created_by=user, workspace=ws1)
+    await f.create_project(
+        project_template, name="pj1_ws1", created_by=user, workspace=ws1
+    )
     # user only pj admin and not only pj member but only ws member
-    pj2_ws1 = await f.create_project(name="pj2_ws1", created_by=user, workspace=ws1)
+    pj2_ws1 = await f.create_project(
+        project_template, name="pj2_ws1", created_by=user, workspace=ws1
+    )
     await f.create_project_membership(user=other_user, project=pj2_ws1)
     ws2 = await f.create_workspace(name="ws2", created_by=user)
     await f.create_workspace_membership(user=other_user, workspace=ws2)
     # user not only ws member but not only pj admin
-    pj1_ws2 = await f.create_project(name="pj1_ws2", created_by=user, workspace=ws2)
+    pj1_ws2 = await f.create_project(
+        project_template, name="pj1_ws2", created_by=user, workspace=ws2
+    )
     admin_role = await pj1_ws2.roles.aget(is_admin=True)
     await f.create_project_membership(user=other_user, project=pj1_ws2, role=admin_role)
     ws3 = await f.create_workspace(name="ws3", created_by=other_user)
     # user not ws member and only pj admin
-    pj1_ws3 = await f.create_project(name="pj1_ws3", created_by=user, workspace=ws3)
+    pj1_ws3 = await f.create_project(
+        project_template, name="pj1_ws3", created_by=user, workspace=ws3
+    )
     await f.create_project_membership(user=other_user, project=pj1_ws3)
     ws4 = await f.create_workspace(name="ws4", created_by=user)
     await f.create_workspace_membership(user=other_user, workspace=ws4)
     # user not only ws member and not only pj admin
-    pj1_ws4 = await f.create_project(name="pj1_ws4", created_by=user, workspace=ws4)
+    pj1_ws4 = await f.create_project(
+        project_template, name="pj1_ws4", created_by=user, workspace=ws4
+    )
     admin_role = await pj1_ws4.roles.aget(is_admin=True)
     await f.create_project_membership(user=other_user, project=pj1_ws4, role=admin_role)
     # user not only ws member and only pj admin
-    pj2_ws4 = await f.create_project(name="pj2_ws4", created_by=user, workspace=ws4)
+    pj2_ws4 = await f.create_project(
+        project_template, name="pj2_ws4", created_by=user, workspace=ws4
+    )
     await f.create_project_membership(user=other_user, project=pj2_ws4)
     # user only ws member without projects
     await f.create_workspace(name="ws5", created_by=user)
 
     client.login(user)
-    response = client.get("/my/user/delete-info")
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.get("/my/user/delete-info")
+    assert response.status_code == 200, response.text
     assert len(response.json()) == 2
     assert response.json().keys() == {"workspaces", "projects"}
     assert len(response.json()["workspaces"]) == 1
@@ -403,31 +337,31 @@ async def test_resquest_reset_password_ok(client):
 
     data = {"email": user.email}
 
-    response = client.post("/users/reset-password", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post("/users/reset-password", json=data)
+    assert response.status_code == 200, response.text
 
 
 async def test_resquest_reset_password_ok_with_no_registered_email(client):
     data = {"email": "unregistered@email.com"}
 
-    response = client.post("/users/reset-password", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post("/users/reset-password", json=data)
+    assert response.status_code == 200, response.text
 
 
 async def test_resquest_reset_password_ok_with_invalid_email(client):
     data = {"email": "invalid@email"}
 
-    response = client.post("/users/reset-password", json=data)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
-    assert response.json()["error"]["detail"][0]["type"] == "value_error.email"
+    response = await client.post("/users/reset-password", json=data)
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"][0]["type"] == "value_error"
 
 
 async def test_resquest_reset_password_error_with_no_email(client):
     data = {}
 
-    response = client.post("/users/reset-password", json=data)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
-    assert response.json()["error"]["detail"][0]["type"] == "value_error.missing"
+    response = await client.post("/users/reset-password", json=data)
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"][0]["type"] == "missing"
 
 
 ##########################################################
@@ -439,8 +373,8 @@ async def test_verify_reset_password_token(client):
     user = await f.create_user()
     token = await _generate_reset_password_token(user)
 
-    response = client.get(f"/users/reset-password/{token}/verify")
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.get(f"/users/reset-password/{token}/verify")
+    assert response.status_code == 200, response.text
     assert response.json() is True
 
 
@@ -448,15 +382,15 @@ async def test_verify_reset_password_error_inactive_user(client):
     user = await f.create_user(is_active=False)
     token = await _generate_reset_password_token(user)
 
-    response = client.get(f"/users/reset-password/{token}/verify")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.get(f"/users/reset-password/{token}/verify")
+    assert response.status_code == 400, response.text
 
 
 async def test_verify_reset_password_error_invalid_token(client):
     token = "invalid_token"
 
-    response = client.get(f"/users/reset-password/{token}/verify")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.get(f"/users/reset-password/{token}/verify")
+    assert response.status_code == 400, response.text
 
 
 async def test_verify_reset_password_error_used_token(client):
@@ -464,10 +398,10 @@ async def test_verify_reset_password_error_used_token(client):
     token = await _generate_reset_password_token(user)
     data = {"password": "123123.a"}
 
-    response = client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
-    response = client.get(f"/users/reset-password/{token}/verify")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.post(f"/users/reset-password/{token}", json=data)
+    assert response.status_code == 200, response.text
+    response = await client.get(f"/users/reset-password/{token}/verify")
+    assert response.status_code == 400, response.text
 
 
 async def test_verify_reset_password_error_expired_token(client):
@@ -478,8 +412,8 @@ async def test_verify_reset_password_error_expired_token(client):
         user = await f.create_user()
         token = await _generate_reset_password_token(user)
 
-        response = client.get(f"/users/reset-password/{token}/verify")
-        assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+        response = await client.get(f"/users/reset-password/{token}/verify")
+        assert response.status_code == 400, response.text
 
 
 ##########################################################
@@ -492,8 +426,8 @@ async def test_reset_password_ok(client):
     token = await _generate_reset_password_token(user)
     data = {"password": "123123.a"}
 
-    response = client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
+    response = await client.post(f"/users/reset-password/{token}", json=data)
+    assert response.status_code == 200, response.text
     assert "access" in response.json()
     assert "refresh" in response.json()
 
@@ -503,9 +437,9 @@ async def test_reset_password_error_with_no_password(client):
     token = await _generate_reset_password_token(user)
     data = {}
 
-    response = client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
-    assert response.json()["error"]["detail"][0]["type"] == "value_error.missing"
+    response = await client.post(f"/users/reset-password/{token}", json=data)
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"][0]["type"] == "missing"
 
 
 async def test_reset_password_error_with_invalid_password(client):
@@ -513,12 +447,9 @@ async def test_reset_password_error_with_invalid_password(client):
     token = await _generate_reset_password_token(user)
     data = {"password": "123123"}
 
-    response = client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
-    assert (
-        response.json()["error"]["detail"][0]["type"]
-        == "value_error.any_str.min_length"
-    )
+    response = await client.post(f"/users/reset-password/{token}", json=data)
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"][0]["type"] == "string_too_short"
 
 
 async def test_reset_password_error_inactive_user(client):
@@ -526,16 +457,16 @@ async def test_reset_password_error_inactive_user(client):
     token = await _generate_reset_password_token(user)
     data = {"password": "123123.a"}
 
-    response = client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.post(f"/users/reset-password/{token}", json=data)
+    assert response.status_code == 400, response.text
 
 
 async def test_reset_password_error_invalid_token(client):
     token = "invalid_token"
     data = {"password": "123123.a"}
 
-    response = client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.post(f"/users/reset-password/{token}", json=data)
+    assert response.status_code == 400, response.text
 
 
 async def test_reset_password_error_used_token(client):
@@ -543,10 +474,10 @@ async def test_reset_password_error_used_token(client):
     token = await _generate_reset_password_token(user)
     data = {"password": "123123.a"}
 
-    response = client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == status.HTTP_200_OK, response.text
-    response = client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    response = await client.post(f"/users/reset-password/{token}", json=data)
+    assert response.status_code == 200, response.text
+    response = await client.post(f"/users/reset-password/{token}", json=data)
+    assert response.status_code == 400, response.text
 
 
 async def test_reset_password_error_expired_token(client):
@@ -558,5 +489,5 @@ async def test_reset_password_error_expired_token(client):
         token = await _generate_reset_password_token(user)
         data = {"password": "123123.a"}
 
-        response = client.post(f"/users/reset-password/{token}", json=data)
-        assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+        response = await client.post(f"/users/reset-password/{token}", json=data)
+        assert response.status_code == 400, response.text

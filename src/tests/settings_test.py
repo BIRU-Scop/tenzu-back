@@ -36,4 +36,6 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 NINJA_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "SIGNING_KEY": "not very secret in tests",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
 }

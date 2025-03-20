@@ -534,18 +534,6 @@ def get_total_users(
 
 
 @sync_to_async
-def get_total_project_users_by_text(
-    text_search: str = "", project_id: UUID | None = None, exclude_inactive: bool = True
-) -> int:
-    qs = _list_project_users_by_text_qs(
-        text_search=text_search,
-        project_id=project_id,
-        exclude_inactive=exclude_inactive,
-    )
-    return qs.count()
-
-
-@sync_to_async
 def get_total_workspace_users_by_text(
     text_search: str = "",
     workspace_id: UUID | None = None,

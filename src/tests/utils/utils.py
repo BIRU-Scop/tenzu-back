@@ -18,6 +18,8 @@
 # You can contact BIRU at ask@biru.sh
 
 import json
+from typing import Any
+from unittest.mock import Mock
 
 from pydantic import ValidationError
 
@@ -35,3 +37,18 @@ def check_validation_errors(
             assert (
                 error["msg"] in error_msgs
             ), f"'{error['msg']}' is not one of the expected errors {error_msgs}"
+
+
+def preserve_real_attrs(mocked_object: Mock, real_object: Any, attr_names: list):
+    """
+    Set back the real attribute on a mock object
+    """
+    for attr_name in attr_names:
+        real_attr = getattr(real_object, attr_name)
+        setattr(
+            mocked_object,
+            attr_name,
+            (lambda *args, **kwargs: real_attr(mocked_object, *args, **kwargs))
+            if callable(real_attr)
+            else real_attr,
+        )

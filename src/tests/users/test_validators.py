@@ -86,13 +86,23 @@ def test_validate_create_user_not_accepted_terms():
 
 
 @pytest.mark.parametrize(
-    "email",
+    "email, error",
     [
-        "noAtnoDomain" "not.at.domain",
-        "email@domain",
+        (
+            "noAtnoDomain",
+            "value is not a valid email address: An email address must have an @-sign.",
+        ),
+        (
+            "not.at.domain",
+            "value is not a valid email address: An email address must have an @-sign.",
+        ),
+        (
+            "email@domain",
+            "value is not a valid email address: The part after the @-sign is not valid. It should have a period.",
+        ),
     ],
 )
-def test_validate_create_user_invalid_email(email):
+def test_validate_create_user_invalid_email(email, error):
     email = email
     full_name = "User fullname"
     password = "Dragon123"
@@ -104,7 +114,7 @@ def test_validate_create_user_invalid_email(email):
         )
 
     expected_error_fields = ["email"]
-    expected_error_messages = ["value is not a valid email address"]
+    expected_error_messages = [error]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
     )
@@ -113,12 +123,12 @@ def test_validate_create_user_invalid_email(email):
 @pytest.mark.parametrize(
     "password, error",
     [
-        ("UPPERAndLower", "Invalid password"),
-        ("UPPERANDNUMBER0", "Invalid password"),
-        ("lowerandnumber0", "Invalid password"),
-        ("&/()@+01234", "Invalid password"),
-        ("symbol+andlower", "Invalid password"),
-        ("SHORT", "ensure this value has at least 8 characters"),
+        ("UPPERAndLower", "Assertion failed, Invalid password"),
+        ("UPPERANDNUMBER0", "Assertion failed, Invalid password"),
+        ("lowerandnumber0", "Assertion failed, Invalid password"),
+        ("&/()@+01234", "Assertion failed, Invalid password"),
+        ("symbol+andlower", "Assertion failed, Invalid password"),
+        ("SHORT", "String should have at least 8 characters"),
     ],
 )
 def test_validate_create_user_invalid_password(password, error):
@@ -137,9 +147,9 @@ def test_validate_create_user_invalid_password(password, error):
 @pytest.mark.parametrize(
     "color, error",
     [
-        (0, "ensure this value is greater than 0"),
-        (9, "ensure this value is less than 9"),
-        (-1, "ensure this value is greater than 0"),
+        (0, "Input should be greater than 0"),
+        (9, "Input should be less than or equal to 8"),
+        (-1, "Input should be greater than 0"),
     ],
 )
 def test_validate_create_user_invalid_color(color, error):
@@ -180,10 +190,10 @@ def test_validate_update_user_ok_all_fields():
 
 def test_validate_update_user_wrong_not_all_required_fields():
     with pytest.raises(ValidationError) as validation_errors:
-        UpdateUserValidator()
+        UpdateUserValidator(full_name="", lang="")
 
     expected_error_fields = ["fullName", "lang"]
-    expected_error_messages = ["Field required"]
+    expected_error_messages = ["Value error, Empty field is not allowed"]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
     )
@@ -203,4 +213,6 @@ def test_validate_update_user_invalid_language(lang):
             lang=lang,
         )
 
-    check_validation_errors(validation_errors, ["lang"], ["Language is not available"])
+    check_validation_errors(
+        validation_errors, ["lang"], [f"Value error, Language {lang} is not available"]
+    )
