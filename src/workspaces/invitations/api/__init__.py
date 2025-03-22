@@ -149,8 +149,8 @@ async def get_public_workspace_invitation(
                 token=token
             )
         )
-    except BadInvitationTokenError:
-        raise ex.BadRequest("Invalid token")
+    except BadInvitationTokenError as e:
+        raise ex.BadRequest(str(e))
     if not invitation:
         raise ex.NotFoundError("Invitation not found")
 
@@ -182,8 +182,8 @@ async def accept_workspace_invitation_by_token(
     """
     try:
         invitation = await get_workspace_invitation_by_token_or_404(token=token)
-    except BadInvitationTokenError:
-        raise ex.BadRequest("Invalid token")
+    except BadInvitationTokenError as e:
+        raise ex.BadRequest(str(e))
 
     await check_permissions(
         permissions=InvitationPermissionsCheck.ANSWER.value,
