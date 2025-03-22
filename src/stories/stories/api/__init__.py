@@ -92,7 +92,7 @@ async def create_story(
             user=request.user,
         )
     except InvalidStatusError as e:
-        raise ex.BadRequest(e.__str__())
+        raise ex.BadRequest(str(e))
 
 
 ################################################
@@ -259,7 +259,7 @@ async def reorder_stories(
             reorder=form.get_reorder_dict(),
         )
     except InvalidStoryRefError as e:
-        raise ex.BadRequest(e.__str__())
+        raise ex.BadRequest(str(e))
 
 
 ################################################

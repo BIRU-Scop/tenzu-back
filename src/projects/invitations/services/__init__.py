@@ -231,7 +231,7 @@ async def get_project_invitation(token: str) -> ProjectInvitation | None:
     except TokenError:
         raise ex.BadInvitationTokenError("Invalid or expired token")
 
-    invitation_data = cast(ProjectInvitationFilters, invitation_token.object_data)
+    invitation_data = cast(ProjectInvitationFilters, invitation_token.object_id_data)
     return await invitations_repositories.get_project_invitation(
         filters=invitation_data,
         select_related=["user", "project", "workspace", "role"],

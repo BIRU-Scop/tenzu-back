@@ -48,7 +48,7 @@ class InvitationToken(Token):
     object_id_claim = "invitation_id"
 
     @property
-    def object_data(self) -> dict[str, Any]:
+    def object_id_data(self) -> dict[str, Any]:
         """
         Get the saved object data from the payload.
         """
@@ -62,6 +62,8 @@ class InvitationToken(Token):
         Returns a token for the given object that will be provided.
         """
         object_id = getattr(obj, cls.object_id_field)
+        if not isinstance(object_id, int):
+            object_id = str(object_id)
         token = cls()
         token[cls.object_id_claim] = object_id
         return token

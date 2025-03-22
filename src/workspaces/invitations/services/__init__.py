@@ -206,8 +206,9 @@ async def get_workspace_invitation(token: str) -> WorkspaceInvitation | None:
     except TokenError:
         raise ex.BadInvitationTokenError("Invalid or expired token")
 
+    invitation_data = cast(WorkspaceInvitationFilters, invitation_token.object_id_data)
     return await invitations_repositories.get_workspace_invitation(
-        filters=cast(WorkspaceInvitationFilters, invitation_token.object_data),
+        filters=invitation_data,
         select_related=["user", "workspace"],
     )
 

@@ -483,7 +483,8 @@ async def _get_user_and_reset_password_token(
         filters={
             settings.NINJA_JWT["USER_ID_FIELD"]: reset_token.get(
                 settings.NINJA_JWT["USER_ID_CLAIM"]
-            )
+            ),
+            "is_active": True,
         }
     )
     if not user:
