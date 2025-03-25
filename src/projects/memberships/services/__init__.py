@@ -132,8 +132,10 @@ async def delete_project_membership(
         await project_invitations_repositories.delete_project_invitation(
             filters={
                 "project_id": membership.project_id,
-                "username_or_email": membership.user.email,
             },
+            q_filter=project_invitations_repositories.username_or_email_query(
+                membership.user.email
+            ),
         )
         await memberships_events.emit_event_when_project_membership_is_deleted(
             membership=membership

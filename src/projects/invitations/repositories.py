@@ -21,11 +21,10 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
-from projects.projects.models import Project
 from users.models import User
 
 ##########################################################
@@ -33,37 +32,21 @@ from users.models import User
 ##########################################################
 
 
-DEFAULT_QUERYSET = ProjectInvitation.objects.all()
-
-
 class ProjectInvitationFilters(TypedDict, total=False):
     id: UUID
     user: User
-    username_or_email: str
-    project: Project
+    email: str
     project_id: UUID
     status: ProjectInvitationStatus
-    statuses: list[ProjectInvitationStatus]
+    status__in: list[ProjectInvitationStatus]
 
 
-def _apply_filters_to_queryset(
-    qs: QuerySet[ProjectInvitation],
-    filters: ProjectInvitationFilters = {},
-) -> QuerySet[ProjectInvitation]:
-    filter_data = dict(filters.copy())
-
-    if "username_or_email" in filter_data:
-        username_or_email = filter_data.pop("username_or_email")
-        by_user = Q(user__username__iexact=username_or_email) | Q(
-            user__email__iexact=username_or_email
-        )
-        by_email = Q(user__isnull=True, email__iexact=username_or_email)
-        qs = qs.filter(by_user | by_email)
-
-    if "statuses" in filter_data:
-        filter_data["status__in"] = filter_data.pop("statuses")
-
-    return qs.filter(**filter_data)
+def username_or_email_query(username_or_email: str) -> Q:
+    by_user = Q(user__username__iexact=username_or_email) | Q(
+        user__email__iexact=username_or_email
+    )
+    by_email = Q(user__isnull=True, email__iexact=username_or_email)
+    return by_user | by_email
 
 
 ProjectInvitationSelectRelated = list[
@@ -71,48 +54,18 @@ ProjectInvitationSelectRelated = list[
         "user",
         "project",
         "role",
-        "workspace",
+        "project__workspace",
         "invited_by",
     ]
 ]
 
 
-def _apply_select_related_to_queryset(
-    qs: QuerySet[ProjectInvitation],
-    select_related: ProjectInvitationSelectRelated,
-) -> QuerySet[ProjectInvitation]:
-    select_related_data = []
-
-    for key in select_related:
-        if key == "workspace":
-            select_related_data.append("project__workspace")
-        else:
-            select_related_data.append(key)
-
-    return qs.select_related(*select_related_data)
-
-
 ProjectInvitationOrderBy = list[
     Literal[
-        "full_name",
+        "user__full_name",
         "email",
     ]
 ]
-
-
-def _apply_order_by_to_queryset(
-    qs: QuerySet[ProjectInvitation],
-    order_by: ProjectInvitationOrderBy,
-) -> QuerySet[ProjectInvitation]:
-    order_by_data = []
-
-    for key in order_by:
-        if key == "full_name":
-            order_by_data.append("user__full_name")
-        else:
-            order_by_data.append(key)
-
-    return qs.order_by(*order_by_data)
 
 
 ##########################################################
@@ -120,15 +73,12 @@ def _apply_order_by_to_queryset(
 ##########################################################
 
 
-@sync_to_async
-def create_project_invitations(
+async def create_project_invitations(
     objs: list[ProjectInvitation],
     select_related: ProjectInvitationSelectRelated = ["user", "project", "role"],
 ) -> list[ProjectInvitation]:
-    qs = _apply_select_related_to_queryset(
-        qs=DEFAULT_QUERYSET, select_related=select_related
-    )
-    return qs.bulk_create(objs=objs)
+    qs = ProjectInvitation.objects.all().select_related(*select_related)
+    return await qs.abulk_create(objs=objs)
 
 
 ##########################################################
@@ -136,22 +86,24 @@ def create_project_invitations(
 ##########################################################
 
 
-@sync_to_async
-def list_project_invitations(
+async def list_project_invitations(
     filters: ProjectInvitationFilters = {},
     offset: int | None = None,
     limit: int | None = None,
     select_related: ProjectInvitationSelectRelated = ["project", "user", "role"],
-    order_by: ProjectInvitationOrderBy = ["full_name", "email"],
+    order_by: ProjectInvitationOrderBy = ["user__full_name", "email"],
 ) -> list[ProjectInvitation]:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    qs = _apply_order_by_to_queryset(order_by=order_by, qs=qs)
+    qs = (
+        ProjectInvitation.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+        .order_by(*order_by)
+    )
 
     if limit is not None and offset is not None:
         limit += offset
 
-    return list(qs[offset:limit])
+    return [a async for a in qs[offset:limit]]
 
 
 ##########################################################
@@ -159,17 +111,29 @@ def list_project_invitations(
 ##########################################################
 
 
-@sync_to_async
-def get_project_invitation(
+async def get_project_invitation(
     filters: ProjectInvitationFilters = {},
+    q_filter: Q | None = None,
     select_related: ProjectInvitationSelectRelated = ["user", "project", "role"],
 ) -> ProjectInvitation | None:
-    qs = _apply_filters_to_queryset(filters=filters, qs=DEFAULT_QUERYSET)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
+    qs = (
+        ProjectInvitation.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+    )
+    if q_filter:
+        qs = qs.filter(q_filter)
     try:
-        return qs.get()
+        return await qs.aget()
     except ProjectInvitation.DoesNotExist:
         return None
+
+
+async def exist_project_invitation(
+    filters: ProjectInvitationFilters = {},
+) -> bool:
+    qs = ProjectInvitation.objects.all().filter(**filters)
+    return await qs.aexists()
 
 
 ##########################################################
@@ -177,27 +141,24 @@ def get_project_invitation(
 ##########################################################
 
 
-@sync_to_async
-def update_project_invitation(
+async def update_project_invitation(
     invitation: ProjectInvitation, values: dict[str, Any]
 ) -> ProjectInvitation:
     for attr, value in values.items():
         setattr(invitation, attr, value)
 
-    invitation.save()
+    await invitation.asave()
     return invitation
 
 
-@sync_to_async
-def bulk_update_project_invitations(
+async def bulk_update_project_invitations(
     objs_to_update: list[ProjectInvitation], fields_to_update: list[str]
 ) -> None:
-    ProjectInvitation.objects.bulk_update(objs_to_update, fields_to_update)
+    await ProjectInvitation.objects.abulk_update(objs_to_update, fields_to_update)
 
 
-@sync_to_async
-def update_user_projects_invitations(user: User) -> None:
-    ProjectInvitation.objects.filter(email=user.email).update(user=user)
+async def update_user_projects_invitations(user: User) -> None:
+    await ProjectInvitation.objects.filter(email=user.email).aupdate(user=user)
 
 
 ##########################################################
@@ -205,21 +166,12 @@ def update_user_projects_invitations(user: User) -> None:
 ##########################################################
 
 
-@sync_to_async
-def delete_project_invitation(filters: ProjectInvitationFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    count, _ = qs.delete()
-    return count
-
-
-##########################################################
-# misc
-##########################################################
-
-
-@sync_to_async
-def get_total_project_invitations(
+async def delete_project_invitation(
     filters: ProjectInvitationFilters = {},
+    q_filter: Q | None = None,
 ) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    return qs.count()
+    qs = ProjectInvitation.objects.all().filter(**filters)
+    if q_filter:
+        qs = qs.filter(q_filter)
+    count, _ = await qs.adelete()
+    return count

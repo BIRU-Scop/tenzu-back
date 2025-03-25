@@ -121,12 +121,12 @@ async def create_workspace_invitations(
         invitation = await invitations_repositories.get_workspace_invitation(
             filters={
                 "workspace_id": workspace.id,
-                "username_or_email": email,
-                "statuses": [
+                "status__in": [
                     WorkspaceInvitationStatus.PENDING,
                     WorkspaceInvitationStatus.REVOKED,
                 ],
             },
+            q_filter=invitations_repositories.username_or_email_query(email),
             select_related=["user", "workspace", "invited_by"],
         )
 
@@ -347,11 +347,10 @@ async def has_pending_workspace_invitation(user: AnyUser, workspace: Workspace) 
     if user.is_anonymous:
         return False
 
-    invitation = await invitations_repositories.get_workspace_invitation(
+    return await invitations_repositories.exist_workspace_invitation(
         filters={
             "user": user,
-            "workspace": workspace,
+            "workspace_id": workspace,
             "status": WorkspaceInvitationStatus.PENDING,
         }
     )
-    return invitation is not None

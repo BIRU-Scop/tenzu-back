@@ -133,8 +133,10 @@ async def delete_workspace_membership(
         await workspace_invitations_repositories.delete_workspace_invitation(
             filters={
                 "workspace_id": membership.workspace_id,
-                "username_or_email": membership.user.email,
             },
+            q_filter=workspace_invitations_repositories.username_or_email_query(
+                membership.user.email
+            ),
         )
         await workspace_memberships_events.emit_event_when_workspace_membership_is_deleted(
             membership=membership

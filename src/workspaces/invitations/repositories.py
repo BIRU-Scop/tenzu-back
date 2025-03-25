@@ -20,8 +20,7 @@
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 
 from users.models import User
 from workspaces.invitations.choices import WorkspaceInvitationStatus
@@ -32,36 +31,22 @@ from workspaces.invitations.models import WorkspaceInvitation
 ##########################################################
 
 
-DEFAULT_QUERYSET = WorkspaceInvitation.objects.all()
-
-
 class WorkspaceInvitationFilters(TypedDict, total=False):
     id: UUID
     username_or_email: str
     user: User
+    email: str
     workspace_id: UUID
     status: WorkspaceInvitationStatus
-    statuses: list[WorkspaceInvitationStatus]
+    status__in: list[WorkspaceInvitationStatus]
 
 
-def _apply_filters_to_queryset(
-    qs: QuerySet[WorkspaceInvitation],
-    filters: WorkspaceInvitationFilters = {},
-) -> QuerySet[WorkspaceInvitation]:
-    filter_data = dict(filters.copy())
-
-    if "username_or_email" in filter_data:
-        username_or_email = filter_data.pop("username_or_email")
-        by_user = Q(user__username__iexact=username_or_email) | Q(
-            user__email__iexact=username_or_email
-        )
-        by_email = Q(user__isnull=True, email__iexact=username_or_email)
-        qs = qs.filter(by_user | by_email)
-
-    if "statuses" in filter_data:
-        filter_data["status__in"] = filter_data.pop("statuses")
-
-    return qs.filter(**filter_data)
+def username_or_email_query(username_or_email: str) -> Q:
+    by_user = Q(user__username__iexact=username_or_email) | Q(
+        user__email__iexact=username_or_email
+    )
+    by_email = Q(user__isnull=True, email__iexact=username_or_email)
+    return by_user | by_email
 
 
 WorkspaceInvitationSelectRelated = list[
@@ -73,34 +58,12 @@ WorkspaceInvitationSelectRelated = list[
 ]
 
 
-def _apply_select_related_to_queryset(
-    qs: QuerySet[WorkspaceInvitation],
-    select_related: WorkspaceInvitationSelectRelated,
-) -> QuerySet[WorkspaceInvitation]:
-    return qs.select_related(*select_related)
-
-
 WorkspaceInvitationOrderBy = list[
     Literal[
-        "full_name",
+        "user__full_name",
         "email",
     ]
 ]
-
-
-def _apply_order_by_to_queryset(
-    qs: QuerySet[WorkspaceInvitation],
-    order_by: WorkspaceInvitationOrderBy,
-) -> QuerySet[WorkspaceInvitation]:
-    order_by_data = []
-
-    for key in order_by:
-        if key == "full_name":
-            order_by_data.append("user__full_name")
-        else:
-            order_by_data.append(key)
-
-    return qs.order_by(*order_by_data)
 
 
 ##########################################################
@@ -108,15 +71,12 @@ def _apply_order_by_to_queryset(
 ##########################################################
 
 
-@sync_to_async
-def create_workspace_invitations(
+async def create_workspace_invitations(
     objs: list[WorkspaceInvitation],
     select_related: WorkspaceInvitationSelectRelated = [],
 ) -> list[WorkspaceInvitation]:
-    qs = _apply_select_related_to_queryset(
-        qs=DEFAULT_QUERYSET, select_related=select_related
-    )
-    return qs.bulk_create(objs=objs)
+    qs = WorkspaceInvitation.objects.all().select_related(*select_related)
+    return await qs.abulk_create(objs=objs)
 
 
 ##########################################################
@@ -124,22 +84,24 @@ def create_workspace_invitations(
 ##########################################################
 
 
-@sync_to_async
-def list_workspace_invitations(
+async def list_workspace_invitations(
     filters: WorkspaceInvitationFilters = {},
     offset: int | None = None,
     limit: int | None = None,
     select_related: WorkspaceInvitationSelectRelated = [],
-    order_by: WorkspaceInvitationOrderBy = ["full_name", "email"],
+    order_by: WorkspaceInvitationOrderBy = ["user__full_name", "email"],
 ) -> list[WorkspaceInvitation]:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    qs = _apply_order_by_to_queryset(order_by=order_by, qs=qs)
+    qs = (
+        WorkspaceInvitation.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+        .order_by(*order_by)
+    )
 
     if limit is not None and offset is not None:
         limit += offset
 
-    return list(qs[offset:limit])
+    return [a async for a in qs[offset:limit]]
 
 
 ##########################################################
@@ -147,17 +109,27 @@ def list_workspace_invitations(
 ##########################################################
 
 
-@sync_to_async
-def get_workspace_invitation(
+async def get_workspace_invitation(
     filters: WorkspaceInvitationFilters = {},
+    q_filter: Q | None = None,
     select_related: WorkspaceInvitationSelectRelated = [],
 ) -> WorkspaceInvitation | None:
-    qs = _apply_filters_to_queryset(filters=filters, qs=DEFAULT_QUERYSET)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
+    qs = (
+        WorkspaceInvitation.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+    )
     try:
-        return qs.get()
+        return await qs.aget()
     except WorkspaceInvitation.DoesNotExist:
         return None
+
+
+async def exist_workspace_invitation(
+    filters: WorkspaceInvitationFilters = {},
+) -> bool:
+    qs = WorkspaceInvitation.objects.all().filter(**filters)
+    return await qs.aexists()
 
 
 ##########################################################
@@ -165,27 +137,24 @@ def get_workspace_invitation(
 ##########################################################
 
 
-@sync_to_async
-def update_workspace_invitation(
+async def update_workspace_invitation(
     invitation: WorkspaceInvitation, values: dict[str, Any]
 ) -> WorkspaceInvitation:
     for attr, value in values.items():
         setattr(invitation, attr, value)
 
-    invitation.save()
+    await invitation.asave()
     return invitation
 
 
-@sync_to_async
-def bulk_update_workspace_invitations(
+async def bulk_update_workspace_invitations(
     objs_to_update: list[WorkspaceInvitation], fields_to_update: list[str]
 ) -> None:
-    WorkspaceInvitation.objects.bulk_update(objs_to_update, fields_to_update)
+    await WorkspaceInvitation.objects.abulk_update(objs_to_update, fields_to_update)
 
 
-@sync_to_async
-def update_user_workspaces_invitations(user: User) -> None:
-    WorkspaceInvitation.objects.filter(email=user.email).update(user=user)
+async def update_user_workspaces_invitations(user: User) -> None:
+    await WorkspaceInvitation.objects.filter(email=user.email).aupdate(user=user)
 
 
 ##########################################################
@@ -193,21 +162,12 @@ def update_user_workspaces_invitations(user: User) -> None:
 ##########################################################
 
 
-@sync_to_async
-def delete_workspace_invitation(filters: WorkspaceInvitationFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    count, _ = qs.delete()
-    return count
-
-
-##########################################################
-# misc
-##########################################################
-
-
-@sync_to_async
-def get_total_workspace_invitations(
+async def delete_workspace_invitation(
     filters: WorkspaceInvitationFilters = {},
+    q_filter: Q | None = None,
 ) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    return qs.count()
+    qs = WorkspaceInvitation.objects.all().filter(**filters)
+    if q_filter:
+        qs = qs.filter(q_filter)
+    count, _ = await qs.adelete()
+    return count

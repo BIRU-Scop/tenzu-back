@@ -143,14 +143,20 @@ async def create_project_invitations(
         invitation = await invitations_repositories.get_project_invitation(
             filters={
                 "project_id": project.id,
-                "username_or_email": email,
-                "statuses": [
+                "status__in": [
                     ProjectInvitationStatus.PENDING,
                     ProjectInvitationStatus.REVOKED,
                     ProjectInvitationStatus.DENIED,
                 ],
             },
-            select_related=["user", "project", "workspace", "role", "invited_by"],
+            q_filter=invitations_repositories.username_or_email_query(email),
+            select_related=[
+                "user",
+                "project",
+                "project__workspace",
+                "role",
+                "invited_by",
+            ],
         )
 
         if invitation:
@@ -234,7 +240,7 @@ async def get_project_invitation(token: str) -> ProjectInvitation | None:
     invitation_data = cast(ProjectInvitationFilters, invitation_token.object_id_data)
     return await invitations_repositories.get_project_invitation(
         filters=invitation_data,
-        select_related=["user", "project", "workspace", "role"],
+        select_related=["user", "project", "project__workspace", "role"],
     )
 
 
@@ -258,8 +264,9 @@ async def get_project_invitation_by_username_or_email(
     project_id: UUID, username_or_email: str
 ) -> ProjectInvitation | None:
     return await invitations_repositories.get_project_invitation(
-        filters={"project_id": project_id, "username_or_email": username_or_email},
-        select_related=["user", "project", "workspace", "role", "invited_by"],
+        filters={"project_id": project_id},
+        q_filter=invitations_repositories.username_or_email_query(username_or_email),
+        select_related=["user", "project", "project__workspace", "role", "invited_by"],
     )
 
 
@@ -268,7 +275,7 @@ async def get_project_invitation_by_id(
 ) -> ProjectInvitation | None:
     return await invitations_repositories.get_project_invitation(
         filters={"project_id": project_id, "id": id},
-        select_related=["user", "project", "workspace", "role", "invited_by"],
+        select_related=["user", "project", "project__workspace", "role", "invited_by"],
     )
 
 
@@ -281,7 +288,7 @@ async def update_user_projects_invitations(user: User) -> None:
     await invitations_repositories.update_user_projects_invitations(user=user)
     invitations = await invitations_repositories.list_project_invitations(
         filters={"user": user, "status": ProjectInvitationStatus.PENDING},
-        select_related=["user", "role", "project", "workspace"],
+        select_related=["user", "role", "project", "project__workspace"],
     )
     await invitations_events.emit_event_when_project_invitations_are_updated(
         invitations=invitations
@@ -533,11 +540,10 @@ async def has_pending_project_invitation(user: AnyUser, project: Project) -> boo
     if user.is_anonymous:
         return False
 
-    invitation = await invitations_repositories.get_project_invitation(
+    return await invitations_repositories.exist_project_invitation(
         filters={
             "user": user,
-            "project": project,
+            "project_id": project.id,
             "status": ProjectInvitationStatus.PENDING,
         }
     )
-    return invitation is not None
