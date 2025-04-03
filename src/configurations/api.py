@@ -31,7 +31,9 @@ from ninja_jwt.authentication import AsyncJWTAuth
 from ninja_jwt.ninja_extra.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from notifications.api import notifications_router
 from projects.invitations.api import invitations_router as projects_invitations_router
-from projects.memberships.api import membership_router as projects_memberships_router
+from projects.memberships.api import (
+    project_membership_router as projects_memberships_router,
+)
 from projects.projects.api import projects_router
 from stories.assignments.api import assignments_router as stories_assignments_router
 from stories.attachments.api import attachments_router as stories_attachments_router

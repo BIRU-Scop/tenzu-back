@@ -270,7 +270,7 @@ async def accept_workspace_invitation(
     )
 
     await memberships_repositories.create_workspace_membership(
-        workspace=invitation.workspace, user=invitation.user
+        workspace=invitation.workspace, user=invitation.user, role=invitation.role
     )
     await invitations_events.emit_event_when_workspace_invitation_is_accepted(
         invitation=invitation

@@ -19,9 +19,32 @@
 
 from asgiref.sync import sync_to_async
 
+from permissions import choices
 from workspaces.invitations.choices import WorkspaceInvitationStatus
 
 from .base import Factory, factory
+
+# WORKSPACE ROLE
+
+
+class WorkspaceRoleFactory(Factory):
+    name = factory.Sequence(lambda n: f"Role {n}")
+    slug = factory.Sequence(lambda n: f"test-role-{n}")
+    permissions = choices.WorkspacePermissions.values
+    workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
+
+    class Meta:
+        model = "workspaces_memberships.WorkspaceRole"
+
+
+@sync_to_async
+def create_workspace_role(**kwargs):
+    return WorkspaceRoleFactory.create(**kwargs)
+
+
+def build_workspace_role(**kwargs):
+    return WorkspaceRoleFactory.build(**kwargs)
+
 
 # WORKSPACE MEMBERSHIP
 
@@ -29,6 +52,7 @@ from .base import Factory, factory
 class WorkspaceMembershipFactory(Factory):
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
+    role = factory.SubFactory("tests.utils.factories.WorkspaceRoleFactory")
 
     class Meta:
         model = "workspaces_memberships.WorkspaceMembership"
@@ -80,11 +104,12 @@ class WorkspaceFactory(Factory):
 @sync_to_async
 def create_workspace(**kwargs):
     """Create workspace and its dependencies"""
-    defaults = {}
-    defaults.update(kwargs)
+    workspace = WorkspaceFactory.create(**kwargs)
 
-    workspace = WorkspaceFactory.create(**defaults)
-    WorkspaceMembershipFactory.create(user=workspace.created_by, workspace=workspace)
+    owner_role = WorkspaceRoleFactory.create(workspace=workspace, is_owner=True)
+    WorkspaceMembershipFactory.create(
+        user=workspace.created_by, workspace=workspace, role=owner_role
+    )
 
     return workspace
 

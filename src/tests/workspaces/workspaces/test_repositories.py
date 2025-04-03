@@ -185,28 +185,6 @@ async def test_get_workspace_detail_projects(project_template):
 
 
 ##########################################################
-# get_workspace_summary
-##########################################################
-
-
-async def test_get_workspace_summary():
-    workspace = await f.create_workspace()
-    res = await repositories.get_workspace_summary(
-        workspace_id=workspace.id,
-    )
-    assert res.name == workspace.name
-
-
-async def test_get_workspace_summary_non_existing():
-    non_existing_ws_id = uuid.uuid1()
-    res = await repositories.get_workspace_summary(
-        workspace_id=non_existing_ws_id,
-    )
-
-    assert res is None
-
-
-##########################################################
 # update workspace
 ##########################################################
 

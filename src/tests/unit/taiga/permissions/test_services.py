@@ -318,22 +318,6 @@ async def test_user_can_view_project_being_other_user_without_permission():
 
 
 #####################################################
-# get_user_workspace_role_info
-#####################################################
-
-
-async def get_user_workspace_role_info():
-    workspace = await f.create_workspace()
-    with patch(
-        "permissions.services.ws_roles_repositories", autospec=True
-    ) as fake_repository:
-        await get_user_workspace_role_info(
-            user=workspace.created_by, workspace=workspace
-        )
-        fake_repository.get_workspace_role_for_user.assert_awaited_once()
-
-
-#####################################################
 # get_user_permissions_for_workspace
 #####################################################
 

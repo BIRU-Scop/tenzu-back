@@ -22,32 +22,62 @@ from uuid import UUID
 from memberships.models import Membership, Role
 
 
-class MembershipFilters(TypedDict, total=False):
-    project_id: UUID
+class _MembershipFilters(TypedDict, total=False):
     user__username: str
     user_id: UUID
     role__permissions__contains: list[str]
 
 
-MembershipSelectRelated = list[
+class ProjectMembershipFilters(_MembershipFilters):
+    project_id: UUID
+
+
+class WorkspaceMembershipFilters(_MembershipFilters):
+    workspace_id: UUID
+
+
+MembershipFilters = ProjectMembershipFilters | WorkspaceMembershipFilters
+
+ProjectMembershipSelectRelated = list[
     Literal[
         "project",
         "role",
         "user",
     ]
 ]
+WorkspaceMembershipSelectRelated = list[
+    Literal[
+        "workspace",
+        "role",
+        "user",
+    ]
+]
+MembershipSelectRelated = (
+    ProjectMembershipSelectRelated | WorkspaceMembershipSelectRelated
+)
 
 MembershipOrderBy = list[Literal["user__full_name",]]
 TM = TypeVar("TM", bound=Membership)
 
 
-class ProjectRoleFilters(TypedDict, total=False):
-    project_id: UUID
+class _RoleFilters(TypedDict, total=False):
     slug: str
     memberships__user_id: UUID
 
 
+class ProjectRoleFilters(_RoleFilters):
+    project_id: UUID
+
+
+class WorkspaceRoleFilters(_RoleFilters):
+    workspace_id: UUID
+
+
+RoleFilters = ProjectRoleFilters | WorkspaceRoleFilters
+
 ProjectRoleSelectRelated = list[Literal["project",]]
+WorkspaceRoleSelectRelated = list[Literal["workspace",]]
+RoleSelectRelated = ProjectRoleSelectRelated | WorkspaceRoleSelectRelated
 TR = TypeVar("TR", bound=Role)
 
 ##########################################################
@@ -134,7 +164,7 @@ async def has_other_owner_memberships(model: type[TM], exclude_id: UUID):
 
 async def list_roles(
     model: type[TR],
-    filters: ProjectRoleFilters = {},
+    filters: RoleFilters = {},
     offset: int | None = None,
     limit: int | None = None,
 ) -> list[TR]:
@@ -153,8 +183,8 @@ async def list_roles(
 
 async def get_role(
     model: type[TR],
-    filters: ProjectRoleFilters = {},
-    select_related: ProjectRoleSelectRelated = ["project"],
+    filters: RoleFilters = {},
+    select_related: RoleSelectRelated = [],
 ) -> TR:
     qs = model.objects.all().filter(**filters).select_related(*select_related)
     return await qs.aget()

@@ -18,12 +18,12 @@
 # You can contact BIRU at ask@biru.sh
 from uuid import UUID
 
-from memberships import repositories as memberships_repositories
 from memberships import services as memberships_services
 from memberships.services import exceptions as ex
 from permissions.choices import ProjectPermissions
 from projects.invitations import repositories as project_invitations_repositories
 from projects.memberships import events as memberships_events
+from projects.memberships import repositories as memberships_repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project
 from stories.assignments import repositories as story_assignments_repositories
@@ -72,9 +72,7 @@ async def update_project_membership(
         raise ex.NonExistingRoleError("Role does not exist") from e
 
     if not project_role.is_owner:
-        if await memberships_services.is_membership_the_only_owner(
-            ProjectMembership, membership
-        ):
+        if await memberships_services.is_membership_the_only_owner(membership):
             raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
 
     # Check if new role has view_story permission
@@ -112,9 +110,7 @@ async def update_project_membership(
 async def delete_project_membership(
     membership: ProjectMembership,
 ) -> bool:
-    if await memberships_services.is_membership_the_only_owner(
-        ProjectMembership, membership
-    ):
+    if await memberships_services.is_membership_the_only_owner(membership):
         raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
 
     deleted = await memberships_repositories.delete_membership(membership)
@@ -161,7 +157,9 @@ async def list_project_roles(project: Project) -> list[ProjectRole]:
 
 async def get_project_role(project_id: UUID, slug: str) -> ProjectRole:
     return await memberships_repositories.get_role(
-        ProjectRole, filters={"project_id": project_id, "slug": slug}
+        ProjectRole,
+        filters={"project_id": project_id, "slug": slug},
+        select_related=["project"],
     )
 
 

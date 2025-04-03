@@ -43,7 +43,7 @@ from projects.memberships.permissions import (
 from projects.memberships.serializers import ProjectMembershipSerializer
 from projects.projects.api import get_project_or_404
 
-membership_router = Router()
+project_membership_router = Router()
 
 
 ##########################################################
@@ -51,7 +51,7 @@ membership_router = Router()
 ##########################################################
 
 
-@membership_router.get(
+@project_membership_router.get(
     "/projects/{id}/memberships",
     url_name="project.memberships.list",
     summary="List project memberships",
@@ -69,7 +69,6 @@ async def list_project_memberships(
     """
     List project memberships
     """
-
     project = await get_project_or_404(id)
     await check_permissions(
         permissions=MembershipPermissionsCheck.VIEW.value,
@@ -84,7 +83,7 @@ async def list_project_memberships(
 ##########################################################
 
 
-@membership_router.patch(
+@project_membership_router.patch(
     "/projects/{id}/memberships/{username}",
     url_name="project.memberships.update",
     summary="Update project membership",
@@ -124,7 +123,7 @@ async def update_project_membership(
 ##########################################################
 
 
-@membership_router.delete(
+@project_membership_router.delete(
     "/projects/{id}/memberships/{username}",
     url_name="project.memberships.delete",
     summary="Delete project membership",
@@ -160,7 +159,7 @@ async def delete_project_membership(
 ##########################################################
 
 
-@membership_router.get(
+@project_membership_router.get(
     "/projects/{project_id}/roles",
     url_name="project.roles.list",
     summary="List project roles",
@@ -189,10 +188,10 @@ async def list_project_roles(request, project_id: Path[B64UUID]):
 ##########################################################
 
 
-@membership_router.put(
+@project_membership_router.put(
     "/projects/{project_id}/roles/{role_slug}",
-    url_name="project.roles.permissions.put",
-    summary="Edit project roles permissions",
+    url_name="project.roles.put",
+    summary="Edit project roles",
     response={
         200: RoleSerializer,
         400: ERROR_RESPONSE_400,
@@ -202,7 +201,7 @@ async def list_project_roles(request, project_id: Path[B64UUID]):
     },
     by_alias=True,
 )
-async def update_project_role_permissions(
+async def update_project_role(
     request,
     project_id: Path[B64UUID],
     role_slug: str,
@@ -228,7 +227,7 @@ async def update_project_role_permissions(
     return role
 
 
-# TODO create and delete api
+# TODO create and delete api (for delete, have replacement role for existing users)
 
 ################################################
 # misc
@@ -243,7 +242,9 @@ async def get_project_membership_or_404(
             project_id=project_id, username=username
         )
     except ProjectMembership.DoesNotExist as e:
-        raise ex.NotFoundError("Membership not found") from e
+        raise ex.NotFoundError(
+            f"User {username} is not a member of project {project_id}"
+        ) from e
 
     return membership
 

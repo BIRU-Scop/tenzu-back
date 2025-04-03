@@ -83,15 +83,6 @@ async def emit_event_when_project_membership_is_deleted(
         ),
     )
 
-    # for ws-members in settings>people>non-members
-    await events_manager.publish_on_workspace_channel(
-        workspace=membership.project.workspace,
-        type=DELETE_PROJECT_MEMBERSHIP,
-        content=DeleteProjectMembershipContent(
-            membership=membership, workspace_id=membership.project.workspace_id
-        ),
-    )
-
 
 UPDATE_PROJECT_ROLE_PERMISSIONS = "projectroles.update"
 

@@ -17,8 +17,22 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.services.exceptions import TenzuServiceException
+from pydantic import ConfigDict
+
+from base.serializers import BaseModel
+from memberships.serializers import RoleSerializer
+from users.serializers.nested import UserNestedSerializer
+from workspaces.workspaces.serializers.nested import WorkspaceSmallNestedSerializer
 
 
-class MembershipIsTheOnlyMemberError(TenzuServiceException):
-    pass
+class WorkspaceMembershipSerializer(BaseModel):
+    user: UserNestedSerializer
+    workspace: WorkspaceSmallNestedSerializer
+    role: RoleSerializer
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkspaceMembershipDeletedSerializer(BaseModel):
+    user: UserNestedSerializer
+    workspace: WorkspaceSmallNestedSerializer
+    model_config = ConfigDict(from_attributes=True)

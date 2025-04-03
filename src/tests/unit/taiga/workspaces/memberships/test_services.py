@@ -18,21 +18,13 @@
 # You can contact BIRU at ask@biru.sh
 
 from unittest.mock import patch
-from uuid import uuid1
 
 import pytest
 
+from memberships.services import exceptions as ex
 from tests.utils import factories as f
 from workspaces.memberships import services
-from workspaces.memberships.services import (
-    WS_ROLE_NAME_GUEST,
-    WS_ROLE_NAME_MEMBER,
-    WS_ROLE_NAME_NONE,
-)
-from workspaces.memberships.services import exceptions as ex
-
-pytestmark = pytest.mark.django_db
-
+from workspaces.memberships.models import WorkspaceRole
 
 #######################################################
 # list_workspace_memberships
@@ -71,51 +63,6 @@ async def test_list_workspace_memberships():
         )
         fake_serializer_services.serialize_workspace_membership_detail.assert_called_once_with(
             ws_membership=workspace_membership,
-            projects=[project],
-        )
-        fake_pj_repositories.list_projects.assert_awaited_once_with(
-            filters={"workspace_id": workspace.id, "memberships__user_id": user.id}
-        )
-
-
-async def test_list_paginated_workspace_guests():
-    user = await f.create_user()
-    workspace = await f.create_workspace()
-    project = await f.create_project(
-        created_by=workspace.created_by, workspace=workspace
-    )
-    await f.create_project_membership(user=user, project=project)
-    offset = 0
-    limit = 10
-
-    with (
-        patch(
-            "workspaces.memberships.services.users_repositories", autospec=True
-        ) as fake_users_repos,
-        patch(
-            "workspaces.memberships.services.serializer_services", autospec=True
-        ) as fake_serializer_services,
-        patch(
-            "workspaces.memberships.services.projects_repositories", autospec=True
-        ) as fake_pj_repositories,
-    ):
-        fake_users_repos.list_users.return_value = [user]
-        fake_users_repos.get_total_users.return_value = 1
-        fake_pj_repositories.list_projects.return_value = [project]
-
-        await services.list_paginated_workspace_guests(
-            workspace=workspace, offset=offset, limit=limit
-        )
-        fake_users_repos.list_users.assert_awaited_once_with(
-            filters={"guests_in_workspace": workspace},
-            offset=offset,
-            limit=limit,
-        )
-        fake_users_repos.get_total_users.assert_awaited_once_with(
-            filters={"guests_in_workspace": workspace},
-        )
-        fake_serializer_services.serialize_workspace_guest_detail.assert_called_once_with(
-            user=user,
             projects=[project],
         )
         fake_pj_repositories.list_projects.assert_awaited_once_with(
@@ -197,93 +144,27 @@ async def test_delete_workspace_latest_membership():
 
 
 ##########################################################
-# misc - get_workspace_role_name
+# misc - get_workspace_role
 ##########################################################
 
 
-async def test_get_workspace_role_name_with_admin_user():
-    workspace_id = uuid1()
-    user_id = uuid1()
+async def test_get_workspace_role():
+    workspace = f.build_workspace()
+    role = f.build_workspace_role(workspace=workspace)
     with (
         patch(
             "workspaces.memberships.services.workspace_memberships_repositories",
             autospec=True,
         ) as fake_ws_memberships_repo,
     ):
-        fake_ws_memberships_repo.get_workspace_membership.return_value = (
-            "Workspace membership"
-        )
-        ret = await services.get_workspace_role_name(
-            workspace_id=workspace_id, user_id=user_id
+        fake_ws_memberships_repo.get_role.return_value = role
+        ret = await services.get_workspace_role(
+            workspace_id=workspace.id, slug=role.slug
         )
 
-        fake_ws_memberships_repo.get_workspace_membership.assert_awaited_once_with(
-            filters={"workspace_id": workspace_id, "user_id": user_id}
+        fake_ws_memberships_repo.get_role.assert_awaited_once_with(
+            WorkspaceRole,
+            filters={"workspace_id": workspace.id, "slug": role.slug},
+            select_related=["workspace"],
         )
-        assert ret is WS_ROLE_NAME_MEMBER
-
-
-async def test_get_workspace_role_name_with_guest_user():
-    workspace_id = uuid1()
-    user_id = uuid1()
-    with (
-        patch(
-            "workspaces.memberships.services.workspace_memberships_repositories",
-            autospec=True,
-        ) as fake_ws_memberships_repo,
-        patch(
-            "workspaces.memberships.services.projects_memberships_repositories",
-            autospec=True,
-        ) as fake_pj_memberships_repo,
-    ):
-        fake_ws_memberships_repo.get_workspace_membership.return_value = None
-        fake_pj_memberships_repo.exist_project_membership.return_value = True
-        ret = await services.get_workspace_role_name(
-            workspace_id=workspace_id, user_id=user_id
-        )
-
-        fake_ws_memberships_repo.get_workspace_membership.assert_awaited_once_with(
-            filters={"workspace_id": workspace_id, "user_id": user_id}
-        )
-        fake_pj_memberships_repo.exist_project_membership.assert_awaited_once_with(
-            filters={"user_id": user_id, "workspace_id": workspace_id}
-        )
-        assert ret is WS_ROLE_NAME_GUEST
-
-
-async def test_get_workspace_role_name_with_no_related_user():
-    workspace_id = uuid1()
-    user_id = uuid1()
-    with (
-        patch(
-            "workspaces.memberships.services.workspace_memberships_repositories",
-            autospec=True,
-        ) as fake_ws_memberships_repo,
-        patch(
-            "workspaces.memberships.services.projects_memberships_repositories",
-            autospec=True,
-        ) as fake_pj_memberships_repo,
-    ):
-        fake_ws_memberships_repo.get_workspace_membership.return_value = None
-        fake_pj_memberships_repo.exist_project_membership.return_value = False
-        ret = await services.get_workspace_role_name(
-            workspace_id=workspace_id, user_id=user_id
-        )
-
-        fake_ws_memberships_repo.get_workspace_membership.assert_awaited_once_with(
-            filters={"workspace_id": workspace_id, "user_id": user_id}
-        )
-        fake_pj_memberships_repo.exist_project_membership.assert_awaited_once_with(
-            filters={"user_id": user_id, "workspace_id": workspace_id}
-        )
-        assert ret is WS_ROLE_NAME_NONE
-
-
-async def test_get_workspace_role_name_with_no_user():
-    workspace_id = uuid1()
-    user_id = None
-    ret = await services.get_workspace_role_name(
-        workspace_id=workspace_id, user_id=user_id
-    )
-
-    assert ret is WS_ROLE_NAME_NONE
+        assert ret == role

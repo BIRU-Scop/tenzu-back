@@ -646,6 +646,7 @@ async def _create_workspace_memberships(
 
     # add ws members
     for user in users:
+        # TODO add role
         await ws_memberships_repositories.create_workspace_membership(
             user=user, workspace=workspace
         )

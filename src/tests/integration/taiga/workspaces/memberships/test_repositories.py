@@ -23,6 +23,7 @@ import pytest
 
 from tests.utils import factories as f
 from workspaces.memberships import repositories
+from workspaces.memberships.models import WorkspaceMembership
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -35,13 +36,15 @@ pytestmark = pytest.mark.django_db(transaction=True)
 async def test_create_workspace_membership():
     user = await f.create_user()
     workspace = await f.create_workspace()
+    role = workspace.roles.first()
 
     membership = await repositories.create_workspace_membership(
-        user=user, workspace=workspace
+        user=user, workspace=workspace, role=role
     )
 
     assert membership.user_id == user.id
     assert membership.workspace_id == workspace.id
+    assert membership.role_id == role.id
 
 
 ##########################################################
@@ -54,10 +57,16 @@ async def test_list_workspace_memberships():
     user1 = await f.create_user()
     user2 = await f.create_user()
     workspace = await f.create_workspace(created_by=admin)
-    await repositories.create_workspace_membership(user=user1, workspace=workspace)
-    await repositories.create_workspace_membership(user=user2, workspace=workspace)
+    role = workspace.roles.first()
+    await repositories.create_workspace_membership(
+        user=user1, workspace=workspace, role=role
+    )
+    await repositories.create_workspace_membership(
+        user=user2, workspace=workspace, role=role
+    )
 
-    memberships = await repositories.list_workspace_memberships(
+    memberships = await repositories.list_memberships(
+        WorkspaceMembership,
         filters={"workspace_id": workspace.id},
     )
     assert len(memberships) == 3
@@ -72,29 +81,35 @@ async def test_get_workspace_membership():
     user = await f.create_user()
     workspace = await f.create_workspace(created_by=user)
 
-    membership = await repositories.get_workspace_membership(
+    membership = await repositories.get_membership(
+        WorkspaceMembership,
         filters={"user_id": user.id, "workspace_id": workspace.id},
         select_related=["workspace", "user"],
     )
     assert membership.workspace == workspace
     assert membership.user == user
 
-    membership = await repositories.get_workspace_membership(
-        filters={"id": membership.id}, select_related=["workspace", "user"]
+    membership = await repositories.get_membership(
+        WorkspaceMembership,
+        filters={"id": membership.id},
+        select_related=["workspace", "user"],
     )
     assert membership.workspace == workspace
     assert membership.user == user
 
-    membership = await repositories.get_workspace_membership(
-        filters={"username": user.username}, select_related=["workspace", "user"]
+    membership = await repositories.get_membership(
+        WorkspaceMembership,
+        filters={"username": user.username},
+        select_related=["workspace", "user"],
     )
     assert membership.workspace == workspace
     assert membership.user == user
 
 
 async def test_get_workspace_membership_none():
-    membership = await repositories.get_workspace_membership(
-        filters={"user_id": uuid.uuid1(), "workspace_id": uuid.uuid1()}
+    membership = await repositories.get_membership(
+        WorkspaceMembership,
+        filters={"user_id": uuid.uuid1(), "workspace_id": uuid.uuid1()},
     )
     assert membership is None
 
@@ -108,46 +123,33 @@ async def test_delete_stories() -> None:
     user = await f.create_user()
     member = await f.create_user()
     workspace = await f.create_workspace(created_by=user)
-    membership = await f.create_workspace_membership(workspace=workspace, user=member)
-    deleted = await repositories.delete_workspace_memberships(
-        filters={"id": membership.id}
+    role = workspace.roles.first()
+    membership = await f.create_workspace_membership(
+        workspace=workspace, user=member, role=role
     )
+    deleted = await repositories.delete_membership(membership)
     assert deleted == 1
 
 
 ##########################################################
-# misc - list_workspace_members_excluding_user
+# misc - list_workspace_members
 ##########################################################
 
 
-async def test_list_workspace_members_excluding_user():
+async def test_list_workspace_members():
     admin = await f.create_user()
     user1 = await f.create_user()
     user2 = await f.create_user()
     workspace = await f.create_workspace(created_by=admin)
-    await repositories.create_workspace_membership(user=user1, workspace=workspace)
-    await repositories.create_workspace_membership(user=user2, workspace=workspace)
+    role = workspace.roles.first()
+    await repositories.create_workspace_membership(
+        user=user1, workspace=workspace, role=role
+    )
+    await repositories.create_workspace_membership(
+        user=user2, workspace=workspace, role=role
+    )
 
-    list_ws_members = await repositories.list_workspace_members_excluding_user(
+    list_ws_members = await repositories.list_workspace_members(
         workspace=workspace, exclude_user=admin
     )
     assert len(list_ws_members) == 2
-
-
-##########################################################
-# misc - get_total_project_memberships
-##########################################################
-
-
-async def test_get_total_workspaces_memberships():
-    admin = await f.create_user()
-    user1 = await f.create_user()
-    user2 = await f.create_user()
-    workspace = await f.create_workspace(created_by=admin)
-    await repositories.create_workspace_membership(user=user1, workspace=workspace)
-    await repositories.create_workspace_membership(user=user2, workspace=workspace)
-
-    total_memberships = await repositories.get_total_workspace_memberships(
-        filters={"workspace_id": workspace.id}
-    )
-    assert total_memberships == 3

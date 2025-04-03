@@ -25,12 +25,10 @@ from memberships.models import Membership
 ##########################################################
 
 
-async def is_membership_the_only_owner(
-    model: type[Membership], membership: Membership
-) -> bool:
+async def is_membership_the_only_owner(membership: Membership) -> bool:
     if not membership.role.is_owner:
         return False
 
     return await memberships_repositories.has_other_owner_memberships(
-        model=model, exclude_id=membership.id
+        model=membership.__class__, exclude_id=membership.id
     )

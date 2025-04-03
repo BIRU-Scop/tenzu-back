@@ -55,6 +55,7 @@ from workspaces.invitations.choices import WorkspaceInvitationStatus
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import events as ws_memberships_events
 from workspaces.memberships import repositories as ws_memberships_repositories
+from workspaces.memberships.models import WorkspaceMembership
 from workspaces.workspaces import events as workspaces_events
 from workspaces.workspaces import repositories as workspaces_repositories
 from workspaces.workspaces.models import Workspace
@@ -324,10 +325,8 @@ async def delete_user(user: User) -> bool:
         select_related=["workspace"],
     )
     for pj in projects:
-        workspace_members = (
-            await ws_memberships_repositories.list_workspace_members_excluding_user(
-                workspace=pj.workspace, exclude_user=user
-            )
+        workspace_members = await ws_memberships_repositories.list_workspace_members(
+            workspace=pj.workspace, exclude_user=user
         )
         project_members = await pj_memberships_repositories.list_project_members(
             project=pj, exclude_user=user
@@ -369,13 +368,13 @@ async def delete_user(user: User) -> bool:
                 )
 
     # delete ws memberships
-    ws_memberships = await ws_memberships_repositories.list_workspace_memberships(
-        filters={"user_id": user.id}, select_related=["user", "workspace"]
+    ws_memberships = await ws_memberships_repositories.list_memberships(
+        WorkspaceMembership,
+        filters={"user_id": user.id},
+        select_related=["user", "workspace"],
     )
     for ws_membership in ws_memberships:
-        deleted = await ws_memberships_repositories.delete_workspace_memberships(
-            filters={"id": ws_membership.id},
-        )
+        deleted = await ws_memberships_repositories.delete_membership(ws_membership)
         if deleted > 0:
             await ws_memberships_events.emit_event_when_workspace_membership_is_deleted(
                 membership=ws_membership

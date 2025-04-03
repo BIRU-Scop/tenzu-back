@@ -26,16 +26,13 @@ from tests.utils import factories as f
 from workspaces.workspaces import services
 from workspaces.workspaces.services import exceptions as ex
 
-pytestmark = pytest.mark.django_db
-
-
 ##########################################################
 # create_workspace
 ##########################################################
 
 
 async def test_create_workspace():
-    user = await f.create_user()
+    user = f.build_user()
     name = "workspace1"
     color = 5
     with (
@@ -52,8 +49,8 @@ async def test_create_workspace():
 
 
 async def test_create_workspace_detail():
-    workspace = await f.create_workspace()
-    user = await f.create_user()
+    workspace = f.build_workspace()
+    user = f.build_user()
     name = "workspace1"
     color = 5
     with (
@@ -78,7 +75,7 @@ async def test_create_workspace_detail():
 
 
 async def test_get_my_workspaces_projects():
-    user = await f.create_user()
+    user = f.build_user()
 
     with patch(
         "workspaces.workspaces.services.workspaces_repositories", autospec=True
@@ -109,8 +106,9 @@ async def test_get_workspace():
 
 
 async def test_get_workspace_detail():
-    workspace = await f.create_workspace(name="test")
+    workspace = f.build_workspace(name="test")
     workspace.has_projects = True
+    membership = f.build_workspace_membership(workspace=workspace)
 
     with (
         patch(
@@ -119,7 +117,11 @@ async def test_get_workspace_detail():
         patch(
             "workspaces.workspaces.services.projects_repositories", autospec=True
         ) as fake_projects_repo,
+        patch(
+            "workspaces.workspaces.services.ws_memberships_repositories", autospec=True
+        ) as fake_ws_memberships_repositories,
     ):
+        fake_ws_memberships_repositories.get_membership.return_value = membership
         fake_projects_repo.get_total_projects.return_value = 1
         fake_workspaces_repo.get_workspace_detail.return_value = workspace
         await services.get_workspace_detail(
@@ -137,27 +139,28 @@ async def test_get_workspace_detail():
 
 
 async def get_workspace_nested():
-    workspace = await f.create_workspace()
+    workspace = f.build_workspace()
+    membership = f.build_workspace_membership(workspace=workspace)
 
     with (
         patch(
             "workspaces.workspaces.services.workspaces_repositories", autospec=True
         ) as fake_workspaces_repo,
         patch(
-            "workspaces.workspaces.services.ws_roles_services", autospec=True
-        ) as fake_ws_roles_services,
+            "workspaces.workspaces.services.ws_memberships_repositories", autospec=True
+        ) as fake_ws_memberships_repositories,
     ):
-        fake_ws_roles_services.get_workspace_role_name.return_value = "owner"
-        fake_workspaces_repo.get_workspace_summary.return_value = workspace
+        fake_ws_memberships_repositories.get_membership.return_value = membership
+        fake_workspaces_repo.get_workspace.return_value = workspace
 
         await services.get_workspace_nested(
             workspace_id=workspace.id, user_id=workspace.created_by.id
         )
 
-        fake_ws_roles_services.get_workspace_role_name.assert_awaited_with(
+        fake_ws_memberships_repositories.get_membership.assert_awaited_with(
             workspace_id=workspace.id, user_id=workspace.created_by.id
         )
-        fake_workspaces_repo.get_workspace_summary.assert_awaited_with(
+        fake_workspaces_repo.get_workspace.assert_awaited_with(
             workspace_id=workspace.id,
         )
 
@@ -187,7 +190,7 @@ async def test_update_workspace_ok(tqmanager):
 
 
 async def test_delete_workspace_without_projects():
-    workspace = await f.create_workspace()
+    workspace = f.build_workspace()
 
     with (
         patch(
@@ -218,7 +221,7 @@ async def test_delete_workspace_without_projects():
 
 
 async def test_delete_workspace_with_projects():
-    workspace = await f.create_workspace()
+    workspace = f.build_workspace()
 
     with (
         patch(
@@ -242,7 +245,7 @@ async def test_delete_workspace_with_projects():
 
 
 async def test_delete_workspace_not_deleted_in_db():
-    workspace = await f.create_workspace()
+    workspace = f.build_workspace()
 
     with (
         patch(

@@ -222,14 +222,6 @@ async def get_workspace_detail(
         return None
 
 
-async def get_workspace_summary(workspace_id: UUID) -> Workspace | None:
-    qs = Workspace.objects.all().filter(id=workspace_id)
-    try:
-        return await qs.aget()
-    except Workspace.DoesNotExist:
-        return None
-
-
 async def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
     # Generic annotations:
     has_projects = Exists(Project.objects.filter(workspace=OuterRef("pk")))

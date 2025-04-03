@@ -199,8 +199,13 @@ class ListUserByText(IsolatedAsyncioTestCase):
 
         # elettescar is ws-member
         self.workspace = await f.create_workspace(created_by=self.ws_pj_admin, color=2)
+        self.general_workspace_role = await f.create_workspace_role(
+            workspace=self.workspace, is_owner=False
+        )
         await f.create_workspace_membership(
-            user=self.elettescar, workspace=self.workspace
+            user=self.elettescar,
+            workspace=self.workspace,
+            role=self.general_workspace_role,
         )
 
         # electra is a pj-member (from the previous workspace)

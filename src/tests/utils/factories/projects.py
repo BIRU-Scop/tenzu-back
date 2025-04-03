@@ -116,9 +116,9 @@ def create_project(template, **kwargs):
         project=project, template=template
     )
 
-    admin_role = project.roles.get(is_owner=True)
+    owner_role = project.roles.get(is_owner=True)
     ProjectMembershipFactory.create(
-        user=project.created_by, project=project, role=admin_role
+        user=project.created_by, project=project, role=owner_role
     )
 
     return project

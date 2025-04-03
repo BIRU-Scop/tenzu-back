@@ -963,7 +963,7 @@ async def test_delete_user_success():
         # result projects updated with a new pj admin
         ws_members_ws5_excluding_user = [user4, user3]
         ws_members_ws6_excluding_user = [user3, user2]
-        fake_ws_memberships_repo.list_workspace_members_excluding_user.side_effect = [
+        fake_ws_memberships_repo.list_workspace_members.side_effect = [
             ws_members_ws5_excluding_user,
             ws_members_ws6_excluding_user,
         ]
@@ -984,12 +984,12 @@ async def test_delete_user_success():
         )
 
         # result workspaces memberships deleted
-        fake_ws_memberships_repo.list_workspace_memberships.return_value = [
+        fake_ws_memberships_repo.list_memberships.return_value = [
             ws_member1_ws6,
             ws_member1_ws4,
             ws_member1_ws3,
         ]
-        fake_ws_memberships_repo.delete_workspace_memberships.side_effect = [1, 1, 1]
+        fake_ws_memberships_repo.delete_membership.side_effect = [1, 1, 1]
 
         # result workspaces invitations deleted
         fake_ws_invitations_repo.list_workspace_invitations.return_value = [
@@ -1055,15 +1055,9 @@ async def test_delete_user_success():
         fake_pj_memberships_events.emit_event_when_project_membership_is_created.assert_awaited()
 
         # workspaces memberships deleted
-        fake_ws_memberships_repo.delete_workspace_memberships.assert_any_await(
-            filters={"id": ws_member1_ws6.id}
-        )
-        fake_ws_memberships_repo.delete_workspace_memberships.assert_any_await(
-            filters={"id": ws_member1_ws4.id}
-        )
-        fake_ws_memberships_repo.delete_workspace_memberships.assert_any_await(
-            filters={"id": ws_member1_ws3.id}
-        )
+        fake_ws_memberships_repo.delete_membership.assert_any_await(ws_member1_ws6)
+        fake_ws_memberships_repo.delete_membership.assert_any_await(ws_member1_ws4)
+        fake_ws_memberships_repo.delete_membership.assert_any_await(ws_member1_ws3)
         fake_ws_memberships_events.emit_event_when_workspace_membership_is_deleted.assert_any_await(
             membership=ws_member1_ws6
         )
