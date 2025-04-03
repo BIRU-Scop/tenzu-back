@@ -84,7 +84,7 @@ async def test_create_story_200_ok_user_has_valid_perm_ok(client, project_templa
         workspace=workspace,
     )
     pj_role = await f.create_project_role(
-        permissions=list(FULL_PERMISSIONS), is_admin=False, project=project
+        permissions=list(FULL_PERMISSIONS), is_owner=False, project=project
     )
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
@@ -146,7 +146,7 @@ async def test_create_story_403_forbidden_user_has_not_valid_perm(
         workspace=workspace,
     )
     pj_role = await f.create_project_role(
-        permissions=list(NO_ADD_STORY_PERMISSIONS), is_admin=False, project=project
+        permissions=list(NO_ADD_STORY_PERMISSIONS), is_owner=False, project=project
     )
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 

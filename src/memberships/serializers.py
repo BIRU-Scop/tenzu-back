@@ -17,12 +17,15 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.services.exceptions import TenzuServiceException
+from ninja import Schema
+from pydantic import ConfigDict
 
 
-class NonExistingRoleError(TenzuServiceException):
-    pass
-
-
-class MembershipIsTheOnlyAdminError(TenzuServiceException):
-    pass
+class RoleSerializer(Schema):
+    name: str
+    slug: str
+    is_owner: bool
+    order: int
+    editable: bool
+    permissions: list[str]
+    model_config = ConfigDict(from_attributes=True)

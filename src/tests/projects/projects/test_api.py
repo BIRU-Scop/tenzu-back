@@ -98,7 +98,7 @@ async def test_get_project_200_ok_being_project_member(client, project_template)
     project = await f.create_project(project_template)
     general_member_role = await f.create_project_role(
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
         project=project,
     )
 
@@ -116,7 +116,7 @@ async def test_get_project_200_ok_being_invited_user(client, project_template):
     project = await f.create_project(project_template)
     general_member_role = await f.create_project_role(
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
         project=project,
     )
 

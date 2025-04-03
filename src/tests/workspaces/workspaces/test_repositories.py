@@ -23,8 +23,8 @@ from unittest import IsolatedAsyncioTestCase
 import pytest
 from asgiref.sync import sync_to_async
 
+from projects.memberships.models import ProjectRole
 from projects.projects.models import Project, ProjectTemplate
-from projects.roles.models import ProjectRole
 from tests.utils import factories as f
 from workspaces.workspaces import repositories
 

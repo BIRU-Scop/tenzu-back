@@ -22,6 +22,7 @@ from uuid import UUID
 
 from base.api import Pagination
 from projects.memberships import repositories as projects_memberships_repositories
+from projects.memberships.models import ProjectMembership
 from projects.projects import repositories as projects_repositories
 from users import repositories as users_repositories
 from workspaces.invitations import repositories as workspace_invitations_repositories
@@ -161,13 +162,16 @@ async def get_workspace_role_name(
 ) -> str:
     if not user_id:
         return WS_ROLE_NAME_NONE
-
-    if await workspace_memberships_repositories.get_workspace_membership(
-        filters={"workspace_id": workspace_id, "user_id": user_id},
-    ):
-        return WS_ROLE_NAME_MEMBER
-    elif await projects_memberships_repositories.exist_project_membership(
-        filters={"user_id": user_id, "workspace_id": workspace_id}
-    ):
-        return WS_ROLE_NAME_GUEST
+    try:
+        if await workspace_memberships_repositories.get_workspace_membership(
+            filters={"workspace_id": workspace_id, "user_id": user_id},
+        ):
+            return WS_ROLE_NAME_MEMBER
+        elif await projects_memberships_repositories.get_membership(
+            ProjectMembership,
+            filters={"user_id": user_id, "project__workspace_id": workspace_id},
+        ):
+            return WS_ROLE_NAME_GUEST
+    except ProjectMembership.DoesNotExist:
+        pass
     return WS_ROLE_NAME_NONE

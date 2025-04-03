@@ -16,19 +16,17 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
 from uuid import UUID
 
+from memberships import repositories as memberships_repositories
+from memberships import services as memberships_services
+from memberships.services import exceptions as ex
+from permissions.choices import ProjectPermissions
 from projects.invitations import repositories as project_invitations_repositories
 from projects.memberships import events as memberships_events
-from projects.memberships import repositories as memberships_repositories
-from projects.memberships.models import ProjectMembership
-from projects.memberships.services import exceptions as ex
+from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project
-from projects.roles import repositories as pj_roles_repositories
-from projects.roles.models import ProjectRole
 from stories.assignments import repositories as story_assignments_repositories
-from stories.stories import permissions as stories_permissions
 
 ##########################################################
 # list project memberships
@@ -36,7 +34,8 @@ from stories.stories import permissions as stories_permissions
 
 
 async def list_project_memberships(project: Project) -> list[ProjectMembership]:
-    return await memberships_repositories.list_project_memberships(
+    return await memberships_repositories.list_memberships(
+        ProjectMembership,
         filters={"project_id": project.id},
         select_related=["user", "role", "project"],
     )
@@ -47,12 +46,11 @@ async def list_project_memberships(project: Project) -> list[ProjectMembership]:
 ##########################################################
 
 
-async def get_project_membership(
-    project_id: UUID, username: str
-) -> ProjectMembership | None:
-    return await memberships_repositories.get_project_membership(
-        filters={"project_id": project_id, "username": username},
-        select_related=["user", "role", "project", "workspace"],
+async def get_project_membership(project_id: UUID, username: str) -> ProjectMembership:
+    return await memberships_repositories.get_membership(
+        ProjectMembership,
+        filters={"project_id": project_id, "user__username": username},
+        select_related=["user", "role", "project"],
     )
 
 
@@ -64,28 +62,28 @@ async def get_project_membership(
 async def update_project_membership(
     membership: ProjectMembership, role_slug: str
 ) -> ProjectMembership:
-    project_role = await pj_roles_repositories.get_project_role(
-        filters={"project_id": membership.project_id, "slug": role_slug}
-    )
-
-    if not project_role:
-        raise ex.NonExistingRoleError("Role does not exist")
-
-    if not project_role.is_admin:
-        if await _is_membership_the_only_admin(membership_role=membership.role):
-            raise ex.MembershipIsTheOnlyAdminError("Membership is the only admin")
-
-    # Check if new role has view_story permission
-    view_story_is_deleted = False
-    if membership.role.permissions:
-        view_story_is_deleted = (
-            await stories_permissions.is_view_story_permission_deleted(
-                old_permissions=membership.role.permissions,
-                new_permissions=project_role.permissions,
-            )
+    try:
+        project_role = await memberships_repositories.get_role(
+            ProjectRole,
+            filters={"project_id": membership.project_id, "slug": role_slug},
         )
 
-    updated_membership = await memberships_repositories.update_project_membership(
+    except ProjectRole.DoesNotExist as e:
+        raise ex.NonExistingRoleError("Role does not exist") from e
+
+    if not project_role.is_owner:
+        if await memberships_services.is_membership_the_only_owner(
+            ProjectMembership, membership
+        ):
+            raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
+
+    # Check if new role has view_story permission
+    view_story_is_deleted = (
+        ProjectPermissions.VIEW_STORY.value in membership.role.permissions
+        and ProjectPermissions.VIEW_STORY.value not in project_role.permissions
+    )
+
+    updated_membership = await memberships_repositories.update_membership(
         membership=membership,
         values={"role": project_role},
     )
@@ -114,12 +112,12 @@ async def update_project_membership(
 async def delete_project_membership(
     membership: ProjectMembership,
 ) -> bool:
-    if await _is_membership_the_only_admin(membership_role=membership.role):
-        raise ex.MembershipIsTheOnlyAdminError("Membership is the only admin")
+    if await memberships_services.is_membership_the_only_owner(
+        ProjectMembership, membership
+    ):
+        raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
 
-    deleted = await memberships_repositories.delete_project_membership(
-        filters={"id": membership.id},
-    )
+    deleted = await memberships_repositories.delete_membership(membership)
     if deleted > 0:
         # Delete stories assignments
         await story_assignments_repositories.delete_stories_assignments(
@@ -146,15 +144,57 @@ async def delete_project_membership(
 
 
 ##########################################################
-# misc
+# list project roles
 ##########################################################
 
 
-async def _is_membership_the_only_admin(membership_role: ProjectRole) -> bool:
-    if not membership_role.is_admin:
-        return False
-
-    num_admins = await memberships_repositories.get_total_project_memberships(
-        filters={"role_id": membership_role.id}
+async def list_project_roles(project: Project) -> list[ProjectRole]:
+    return await memberships_repositories.list_roles(
+        ProjectRole, filters={"project_id": project.id}
     )
-    return num_admins == 1
+
+
+##########################################################
+# get project role
+##########################################################
+
+
+async def get_project_role(project_id: UUID, slug: str) -> ProjectRole:
+    return await memberships_repositories.get_role(
+        ProjectRole, filters={"project_id": project_id, "slug": slug}
+    )
+
+
+##########################################################
+# update project role
+##########################################################
+
+
+async def update_project_role_permissions(
+    role: ProjectRole, permissions: list[str]
+) -> ProjectRole:
+    if not role.editable:
+        raise ex.NonEditableRoleError(f"Role {role.slug} is not editable")
+
+    # Check if new permissions have view_story
+    view_story_is_deleted = (
+        ProjectPermissions.VIEW_STORY.value in role.permissions
+        and ProjectPermissions.VIEW_STORY.value not in permissions
+    )
+
+    project_role_permissions = await memberships_repositories.update_role(
+        role=role,
+        values={"permissions": permissions},
+    )
+
+    await memberships_events.emit_event_when_project_role_permissions_are_updated(
+        role=role
+    )
+
+    # Unassign stories for user if the new permissions don't have view_story
+    if view_story_is_deleted:
+        await story_assignments_repositories.delete_stories_assignments(
+            filters={"role_id": role.id}
+        )
+
+    return project_role_permissions

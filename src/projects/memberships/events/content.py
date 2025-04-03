@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.serializers import UUIDB64, BaseModel
+from memberships.serializers import RoleSerializer
 from projects.memberships.serializers import (
     ProjectMembershipDeletedSerializer,
     ProjectMembershipSerializer,
@@ -30,4 +31,8 @@ class ProjectMembershipContent(BaseModel):
 
 class DeleteProjectMembershipContent(BaseModel):
     membership: ProjectMembershipDeletedSerializer
-    workspace: UUIDB64
+    workspace_id: UUIDB64
+
+
+class ProjectRoleContent(RoleSerializer):
+    pass

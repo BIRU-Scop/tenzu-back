@@ -7,10 +7,11 @@
         "slug": "kanban",
         "roles": [
             {
-                "slug": "admin",
+                "slug": "owner",
                 "name": "Administrator",
+                "editable": false,
                 "order": 1,
-                "is_admin": true,
+                "is_owner": true,
                 "permissions": [
                   "add_story",
                   "comment_story",
@@ -22,8 +23,9 @@
             {
                 "slug": "general",
                 "name": "General",
+                "editable": true,
                 "order": 2,
-                "is_admin": false,
+                "is_owner": false,
                 "permissions": [
                   "add_story",
                   "comment_story",

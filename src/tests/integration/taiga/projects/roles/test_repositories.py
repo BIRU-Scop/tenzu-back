@@ -21,8 +21,8 @@ import pytest
 from asgiref.sync import sync_to_async
 
 from permissions import choices
+from projects.memberships import repositories
 from projects.memberships import repositories as memberships_repositories
-from projects.roles import repositories
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -41,7 +41,7 @@ async def test_create_project_roles():
         order=1,
         project=project,
         permissions=[],
-        is_admin=True,
+        is_owner=True,
     )
     assert project_role_res.name == "project-role"
     assert project_role_res.project == project
@@ -69,7 +69,7 @@ async def test_get_project_role_return_role():
         name="Role test",
         slug="role-test",
         permissions=choices.ProjectPermissions.choices,
-        is_admin=True,
+        is_owner=True,
         project=project,
     )
     assert (
@@ -93,7 +93,7 @@ async def test_get_project_role_return_none():
 async def test_get_project_role_for_user_admin():
     user = await f.create_user()
     project = await f.create_project(created_by=user)
-    role = await sync_to_async(project.roles.get)(slug="admin")
+    role = await sync_to_async(project.roles.get)(slug="owner")
 
     assert (
         await repositories.get_project_role(
@@ -106,7 +106,7 @@ async def test_get_project_role_for_user_admin():
 async def test_get_project_role_for_user_member():
     user = await f.create_user()
     project = await f.create_project()
-    role = await sync_to_async(project.roles.exclude(slug="admin").first)()
+    role = await sync_to_async(project.roles.exclude(slug="owner").first)()
     await memberships_repositories.create_project_membership(
         user=user, project=project, role=role
     )

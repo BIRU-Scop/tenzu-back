@@ -326,7 +326,7 @@ async def test_delete_story_comments_200_ok_with_admin_user(client):
 
 async def test_delete_story_comments_200_ok_with_owner_user(client):
     project = await f.create_project()
-    generic_role = await project.roles.aget(is_admin=False)
+    generic_role = await project.roles.aget(is_owner=False)
     owner_user = await f.create_user()
     await f.create_project_membership(user=owner_user, role=generic_role)
     story = await f.create_story(project=project)
@@ -347,7 +347,7 @@ async def test_delete_story_comments_200_ok_with_owner_user(client):
 
 async def test_delete_story_comment_403_forbidden_because_no_owner_or_admin(client):
     project = await f.create_project()
-    generic_role = await project.roles.aget(is_admin=False)
+    generic_role = await project.roles.aget(is_owner=False)
     owner_user = await f.create_user()
     await f.create_project_membership(user=owner_user, role=generic_role)
     member_user = await f.create_user()
@@ -398,7 +398,7 @@ async def test_delete_story_comment_error_403_forbbiden_because_owner_witout_per
     client,
 ):
     project = await f.create_project()
-    generic_role = await project.roles.aget(is_admin=False)
+    generic_role = await project.roles.aget(is_owner=False)
     member_user = await f.create_user()
     await f.create_project_membership(user=member_user, role=generic_role)
     story = await f.create_story(project=project)

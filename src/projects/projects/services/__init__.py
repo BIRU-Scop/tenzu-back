@@ -28,10 +28,10 @@ from ninja import UploadedFile
 from base.utils.files import uploadfile_to_file
 from base.utils.images import get_thumbnail_url
 from commons.utils import transaction_atomic_async
-from events import event_handlers as actions_events
 from projects.invitations import services as pj_invitations_services
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.memberships import repositories as pj_memberships_repositories
+from projects.memberships.models import ProjectRole
 from projects.projects import events as projects_events
 from projects.projects import repositories as projects_repositories
 from projects.projects import tasks as projects_tasks
@@ -39,12 +39,9 @@ from projects.projects.models import Project
 from projects.projects.serializers import ProjectDetailSerializer
 from projects.projects.serializers import services as serializers_services
 from projects.projects.services import exceptions as ex
-from projects.roles import repositories as pj_roles_repositories
-from projects.roles import services as roles_services
 from users import services as users_services
 from users.models import AnyUser, User
 from workflows import repositories as workflows_repositories
-from workspaces.memberships import repositories as workspace_memberships_repositories
 from workspaces.workspaces import services as workspaces_services
 from workspaces.workspaces.models import Workspace
 
@@ -117,18 +114,19 @@ async def _create_project(
             "Try to load fixtures again and check if the error persist."
         )
 
-    # assign 'created_by' to the project as 'admin' role
-    if admin_role := await pj_roles_repositories.get_project_role(
-        filters={"project_id": project.id, "slug": "admin"}
-    ):
-        await pj_memberships_repositories.create_project_membership(
-            user=created_by, project=project, role=admin_role
+    try:
+        # assign 'created_by' to the project as 'owner' role
+        owner_role = await pj_memberships_repositories.get_role(
+            ProjectRole, filters={"project_id": project.id, "slug": "owner"}
         )
-    else:
+    except ProjectRole.DoesNotExist as e:
         raise Exception(
-            "Default project template does not have a role with the slug 'admin'. "
+            "Default project template does not have a role with the slug 'owner'. "
             "Try to load fixtures again and check if the error persist."
-        )
+        ) from e
+    await pj_memberships_repositories.create_project_membership(
+        user=created_by, project=project, role=owner_role
+    )
 
     return project
 
@@ -181,10 +179,24 @@ async def get_project_detail(
     project: Project, user: AnyUser
 ) -> ProjectDetailSerializer:
     (
-        is_project_admin,
+        is_project_owner,
         is_project_member,
         project_role_permissions,
-    ) = await roles_services.get_user_project_role_info(user=user, project=project)
+    ) = False, False, []
+    if not user.is_anonymous:
+        try:
+            role = await pj_memberships_repositories.get_role(
+                ProjectRole,
+                filters={"memberships__user_id": user.id, "project_id": project.id},
+                select_related=[],
+            )
+            (
+                is_project_owner,
+                is_project_member,
+                project_role_permissions,
+            ) = role.is_owner, True, role.permissions
+        except ProjectRole.DoesNotExist:
+            pass
 
     user_id = None if user.is_anonymous else user.id
     workspace = await workspaces_services.get_workspace_nested(
@@ -209,7 +221,7 @@ async def get_project_detail(
         project=project,
         workspace=workspace,
         workflows=workflows,
-        user_is_admin=is_project_admin,
+        user_is_owner=is_project_owner,
         user_is_member=is_project_member,
         user_permissions=project_role_permissions,
         user_has_pending_invitation=user_has_pending_invitation,

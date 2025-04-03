@@ -23,7 +23,6 @@ import pytest
 from django.contrib.auth.models import AnonymousUser
 
 from permissions import choices, services
-from projects.roles.services import get_user_project_role_info
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -36,14 +35,14 @@ pytestmark = pytest.mark.django_db
 
 async def test_is_project_admin_without_project():
     user = await f.create_user()
-    is_admin = await services.is_project_admin(user=user, obj=None)
-    assert is_admin is False
+    is_owner = await services.is_project_admin(user=user, obj=None)
+    assert is_owner is False
 
 
 async def test_is_project_admin_being_project_admin():
     project = await f.create_project()
-    is_admin = await services.is_project_admin(user=project.created_by, obj=project)
-    assert is_admin is True
+    is_owner = await services.is_project_admin(user=project.created_by, obj=project)
+    assert is_owner is True
 
 
 async def test_is_project_admin_being_project_member():
@@ -52,7 +51,7 @@ async def test_is_project_admin_being_project_member():
     user2 = await f.create_user()
     general_member_role = await f.create_project_role(
         project=project,
-        is_admin=False,
+        is_owner=False,
     )
     await f.create_project_membership(
         user=user2, project=project, role=general_member_role
@@ -257,7 +256,7 @@ async def test_user_can_view_project_being_a_project_member():
     project = await f.create_project()
     general_member_role = await f.create_project_role(
         project=project,
-        is_admin=False,
+        is_owner=False,
     )
     await f.create_project_membership(
         user=user, project=project, role=general_member_role
@@ -277,7 +276,7 @@ async def test_user_can_view_project_having_a_pending_invitation():
     project = await f.create_project()
     general_member_role = await f.create_project_role(
         project=project,
-        is_admin=False,
+        is_owner=False,
     )
     await f.create_project_invitation(
         user=user, project=project, role=general_member_role
@@ -316,20 +315,6 @@ async def test_user_can_view_project_being_other_user_without_permission():
     with patch("permissions.services.get_user_permissions", return_value=perms):
         assert await services.user_can_view_project(user=user, obj=project) is False
         services.get_user_permissions.assert_awaited_once_with(user=user, obj=project)
-
-
-#####################################################
-# get_user_project_role_info
-#####################################################
-
-
-async def test_get_user_project_role_info():
-    project = await f.create_project()
-    with patch(
-        "permissions.services.pj_roles_repositories", autospec=True
-    ) as fake_repository:
-        await get_user_project_role_info(user=project.created_by, project=project)
-        fake_repository.get_project_role.assert_awaited_once()
 
 
 #####################################################

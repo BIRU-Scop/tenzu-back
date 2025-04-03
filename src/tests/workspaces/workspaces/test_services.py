@@ -147,7 +147,7 @@ async def get_workspace_nested():
             "workspaces.workspaces.services.ws_roles_services", autospec=True
         ) as fake_ws_roles_services,
     ):
-        fake_ws_roles_services.get_workspace_role_name.return_value = "admin"
+        fake_ws_roles_services.get_workspace_role_name.return_value = "owner"
         fake_workspaces_repo.get_workspace_summary.return_value = workspace
 
         await services.get_workspace_nested(

@@ -17,10 +17,15 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from django.apps import AppConfig
+from pydantic import field_validator
+
+from commons.validators import BaseModel, check_not_empty
 
 
-# Override the default label to avoid duplicates
-class ProjectRoleConfig(AppConfig):
-    name = "projects.roles"
-    label = "projects_roles"
+class MembershipValidator(BaseModel):
+    role_slug: str
+
+    @field_validator("role_slug")
+    @classmethod
+    def check_not_empty(cls, v: str) -> str:
+        return check_not_empty(v)

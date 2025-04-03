@@ -48,7 +48,7 @@ class ProjectDetailSerializer(ProjectLogoBaseSerializer):
     workflows: list[WorkflowNestedSerializer]
 
     # User related fields
-    user_is_admin: bool
+    user_is_owner: bool
     user_is_member: bool
     user_has_pending_invitation: bool
     user_permissions: list[str]

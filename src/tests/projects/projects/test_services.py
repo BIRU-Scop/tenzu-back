@@ -23,13 +23,12 @@ from unittest.mock import patch
 import pytest
 
 from projects.invitations.choices import ProjectInvitationStatus
+from projects.memberships.models import ProjectRole
 from projects.projects import services
 from projects.projects.services import exceptions as ex
 from tests.utils import factories as f
 from users.models import AnonymousUser
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
-
-pytestmark = pytest.mark.django_db
 
 
 async def test_get_landing_page_for_workflow():
@@ -63,23 +62,24 @@ async def test_create_project():
         fake_get_project_detail.assert_awaited_once()
 
 
-async def test_internal_create_project(project_template):
+async def test_internal_create_project():
     workspace = f.build_workspace()
+    project = f.build_project(workspace=workspace)
 
     with (
+        patch("projects.projects.services.workflows_repositories", autospec=True),
         patch(
             "projects.projects.services.projects_repositories", autospec=True
         ) as fake_project_repository,
         patch(
-            "projects.projects.services.pj_roles_repositories", autospec=True
-        ) as fake_pj_role_repository,
-        patch(
             "projects.projects.services.pj_memberships_repositories", autospec=True
         ) as fake_pj_memberships_repository,
+        patch("projects.projects.services.workspaces_services", autospec=True),
+        patch("projects.projects.services.pj_invitations_services", autospec=True),
+        patch("projects.projects.services.serializers_services", autospec=True),
+        patch("django.db.transaction.atomic", autospec=True),
     ):
-        fake_project_repository.create_project.return_value = await f.create_project(
-            project_template
-        )
+        fake_project_repository.create_project.return_value = project
 
         await services.create_project(
             workspace=workspace,
@@ -91,7 +91,7 @@ async def test_internal_create_project(project_template):
 
         fake_project_repository.create_project.assert_awaited_once()
         fake_project_repository.get_project_template.assert_awaited_once()
-        fake_pj_role_repository.get_project_role.assert_awaited_once()
+        assert len(fake_pj_memberships_repository.get_role.await_args_list) == 2
         fake_pj_memberships_repository.create_project_membership.assert_awaited_once()
 
 
@@ -107,12 +107,12 @@ async def test_create_project_with_logo():
             "projects.projects.services.projects_repositories", autospec=True
         ) as fake_project_repository,
         patch(
-            "projects.projects.services.pj_roles_repositories", autospec=True
-        ) as fake_pj_roles_repository,
-        patch("projects.projects.services.pj_memberships_repositories", autospec=True),
+            "projects.projects.services.pj_memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repositories,
+        patch("django.db.transaction.atomic", autospec=True),
     ):
         fake_project_repository.create_project.return_value = project
-        fake_pj_roles_repository.get_project_role.return_value = role
+        fake_pj_memberships_repositories.get_role.return_value = role
 
         await services._create_project(
             workspace=workspace,
@@ -128,20 +128,20 @@ async def test_create_project_with_logo():
         assert service_file_param["logo"].file == logo.file
 
 
-async def test_create_project_with_no_logo(project_template):
+async def test_create_project_with_no_logo():
     workspace = f.build_workspace()
+    project = f.build_project(workspace=workspace)
+    project_template = f.build_project_template()
 
     with (
         patch(
             "projects.projects.services.projects_repositories", autospec=True
         ) as fake_project_repository,
-        patch("projects.projects.services.pj_roles_repositories", autospec=True),
         patch("projects.projects.services.pj_memberships_repositories", autospec=True),
+        patch("django.db.transaction.atomic", autospec=True),
     ):
         fake_project_repository.get_project_template.return_value = project_template
-        fake_project_repository.create_project.return_value = await f.create_project(
-            project_template
-        )
+        fake_project_repository.create_project.return_value = project
         await services._create_project(
             workspace=workspace,
             name="n",
@@ -167,7 +167,7 @@ async def test_create_project_with_no_logo(project_template):
 
 
 async def test_list_workspace_projects_for_a_ws_member():
-    workspace = await f.create_workspace()
+    workspace = f.build_workspace()
 
     with (
         patch(
@@ -231,13 +231,17 @@ async def test_list_workspace_invited_projects_for_user():
 
 
 async def test_get_project_detail():
-    workspace = await f.create_workspace()
+    workspace = f.build_workspace()
     project = f.build_project(created_by=workspace.created_by, workspace=workspace)
+    role = f.build_project_role(project=project, is_owner=True, permissions=[])
 
     with (
         patch(
-            "projects.projects.services.roles_services", autospec=True
-        ) as fake_roles_services,
+            "projects.projects.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repositories,
+        patch(
+            "projects.projects.services.pj_memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repositories,
         patch(
             "projects.projects.services.workspaces_services", autospec=True
         ) as fake_workspaces_services,
@@ -245,21 +249,23 @@ async def test_get_project_detail():
             "projects.projects.services.pj_invitations_services", autospec=True
         ) as fake_pj_invitations_services,
     ):
-        fake_roles_services.get_user_project_role_info.return_value = (
-            True,
-            True,
-            [],
-        )
+        fake_workflows_repositories.list_workflows.return_value = []
+        fake_pj_memberships_repositories.get_role.return_value = role
         fake_pj_invitations_services.has_pending_project_invitation.return_value = True
         fake_workspaces_services.get_workspace_nested.return_value = (
             WorkspaceNestedSerializer(
-                id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="admin"
+                id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="owner"
             )
         )
         await services.get_project_detail(project=project, user=workspace.created_by)
 
-        fake_roles_services.get_user_project_role_info.assert_awaited_once_with(
-            project=project, user=workspace.created_by
+        fake_pj_memberships_repositories.get_role.assert_awaited_once_with(
+            ProjectRole,
+            filters={
+                "memberships__user_id": workspace.created_by.id,
+                "project_id": project.id,
+            },
+            select_related=[],
         )
         fake_pj_invitations_services.has_pending_project_invitation.assert_awaited_once_with(
             user=workspace.created_by, project=project
@@ -271,13 +277,17 @@ async def test_get_project_detail():
 
 async def test_get_project_detail_anonymous():
     user = AnonymousUser()
-    workspace = await f.create_workspace()
+    workspace = f.build_workspace()
     project = f.build_project(workspace=workspace)
+    role = f.build_project_role(project=project, is_owner=True, permissions=[])
 
     with (
         patch(
-            "projects.projects.services.roles_services", autospec=True
-        ) as fake_roles_services,
+            "projects.projects.services.workflows_repositories", autospec=True
+        ) as fake_workflows_repositories,
+        patch(
+            "projects.projects.services.pj_memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repositories,
         patch(
             "projects.projects.services.workspaces_services", autospec=True
         ) as fake_workspaces_services,
@@ -285,22 +295,17 @@ async def test_get_project_detail_anonymous():
             "projects.projects.services.pj_invitations_services", autospec=True
         ) as fake_pj_invitations_services,
     ):
-        fake_roles_services.get_user_project_role_info.return_value = (
-            True,
-            True,
-            [],
-        )
+        fake_workflows_repositories.list_workflows.return_value = []
+        fake_pj_memberships_repositories.get_role.return_value = role
         fake_pj_invitations_services.has_pending_project_invitation.return_value = False
         fake_workspaces_services.get_workspace_nested.return_value = (
             WorkspaceNestedSerializer(
-                id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="admin"
+                id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="owner"
             )
         )
         await services.get_project_detail(project=project, user=user)
 
-        fake_roles_services.get_user_project_role_info.assert_awaited_once_with(
-            project=project, user=user
-        )
+        fake_pj_memberships_repositories.get_role.assert_not_awaited()
         fake_pj_invitations_services.has_pending_project_invitation.assert_not_awaited()
         fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(
             workspace_id=workspace.id, user_id=user.id

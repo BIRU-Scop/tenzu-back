@@ -34,7 +34,7 @@ class ProjectInvitation(BaseModel, CreatedAtMetaInfoMixin):
         verbose_name="project",
     )
     role = models.ForeignKey(
-        "projects_roles.ProjectRole",
+        "projects_memberships.ProjectRole",
         null=False,
         blank=False,
         related_name="invitations",

@@ -28,10 +28,9 @@ from base.sampledata import factories
 from commons.colors import NUM_COLORS
 from permissions import choices
 from projects.memberships import repositories as pj_memberships_repositories
-from projects.memberships.models import ProjectMembership
+from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects import services as projects_services
 from projects.projects.models import Project
-from projects.roles.models import ProjectRole
 from users.models import User
 from workflows.models import Workflow, WorkflowStatus
 from workspaces.memberships import repositories as ws_memberships_repositories
@@ -186,14 +185,14 @@ def _create_project_role(project: Project, name: str | None = None) -> ProjectRo
     return ProjectRole.objects.create(
         project=project,
         name=name,
-        is_admin=False,
+        is_owner=False,
         permissions=choices.ProjectPermissions.values,
     )
 
 
 @sync_to_async
 def _get_project_other_roles(project: Project) -> list[ProjectRole]:
-    return list(project.roles.exclude(slug="admin"))
+    return list(project.roles.exclude(slug="owner"))
 
 
 @sync_to_async

@@ -27,3 +27,11 @@ class MembershipPermissionsCheck(Enum):
     # TODO
     MODIFY = DenyAll()
     DELETE = DenyAll() | IsRelatedToTheUser("user")
+
+
+class RolePermissionsCheck(Enum):
+    VIEW = IsProjectMember()
+    # TODO
+    CREATE = DenyAll()
+    MODIFY = DenyAll()
+    DELETE = DenyAll()

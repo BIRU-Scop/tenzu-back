@@ -46,6 +46,7 @@ from .projects import (  # noqa
     create_project_membership,
     create_project_role,
     create_simple_project,
+    build_project_template,
 )
 from .storage import (
     StoragedObjectFactory,

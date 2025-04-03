@@ -39,7 +39,7 @@ async def test_create_project_invitations_anonymous_user(client, project_templat
     project = await f.create_project(project_template)
     data = {
         "invitations": [
-            {"email": "user-test@email.com", "role_slug": "admin"},
+            {"email": "user-test@email.com", "role_slug": "owner"},
             {"email": "test@email.com", "role_slug": "general"},
         ]
     }
@@ -53,7 +53,7 @@ async def test_create_project_invitations_user_without_permission(
     project = await f.create_project(project_template)
     data = {
         "invitations": [
-            {"email": "user-test@email.com", "role_slug": "admin"},
+            {"email": "user-test@email.com", "role_slug": "owner"},
             {"email": "test@email.com", "role_slug": "general"},
         ]
     }
@@ -67,7 +67,7 @@ async def test_create_project_invitations_project_not_found(client):
     user = await f.create_user()
     data = {
         "invitations": [
-            {"email": "user-test@email.com", "role_slug": "admin"},
+            {"email": "user-test@email.com", "role_slug": "owner"},
             {"email": "test@email.com", "role_slug": "general"},
         ]
     }
@@ -105,7 +105,7 @@ async def test_create_project_invitations(client, project_template):
     project = await f.create_project(project_template)
     data = {
         "invitations": [
-            {"email": "invitee2@tenzu.demo", "role_slug": "admin"},
+            {"email": "invitee2@tenzu.demo", "role_slug": "owner"},
             {"email": "test@email.com", "role_slug": "general"},
             {"username": invitee1.username, "role_slug": "general"},
         ]
@@ -545,7 +545,7 @@ async def test_revoke_project_invitation_already_member_invalid(
     project = await f.create_project(project_template)
     general_member_role = await f.create_project_role(
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
         project=project,
     )
     user = await f.create_user()
@@ -571,7 +571,7 @@ async def test_revoke_project_invitation_revoked(client, project_template):
     project = await f.create_project(project_template)
     general_member_role = await f.create_project_role(
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
         project=project,
     )
     user = await f.create_user()
@@ -605,7 +605,7 @@ async def test_update_project_invitation_role_invitation_not_exist(
 
     client.login(project.created_by)
     id = uuid.uuid1()
-    data = {"role_slug": "admin"}
+    data = {"role_slug": "owner"}
     response = await client.patch(
         f"projects/{project.b64id}/invitations/{id}", json=data
     )
@@ -620,7 +620,7 @@ async def test_update_project_invitation_role_user_without_permission(
     general_member_role = await f.create_project_role(
         project=project,
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
     )
     await f.create_project_membership(
         user=user, project=project, role=general_member_role
@@ -635,7 +635,7 @@ async def test_update_project_invitation_role_user_without_permission(
     )
 
     client.login(user)
-    data = {"role_slug": "admin"}
+    data = {"role_slug": "owner"}
     response = await client.patch(
         f"/projects/{project.b64id}/invitations/{invitation.id}", json=data
     )
@@ -648,14 +648,14 @@ async def test_update_project_invitation_role_ok(client, project_template):
     general_member_role = await f.create_project_role(
         project=project,
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
     )
     invitation = await f.create_project_invitation(
         user=user, project=project, role=general_member_role, email=user.email
     )
 
     client.login(project.created_by)
-    data = {"role_slug": "admin"}
+    data = {"role_slug": "owner"}
     response = await client.patch(
         f"projects/{project.b64id}/invitations/{invitation.id}", json=data
     )

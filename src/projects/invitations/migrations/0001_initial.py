@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("projects", "0001_initial"),
-        ("projects_roles", "0001_initial"),
+        ("projects_memberships", "0001_initial"),
     ]
 
     operations = [
@@ -138,7 +138,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="invitations",
-                        to="projects_roles.projectrole",
+                        to="projects_memberships.projectrole",
                         verbose_name="role",
                     ),
                 ),

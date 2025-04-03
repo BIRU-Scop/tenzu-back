@@ -49,7 +49,7 @@ async def test_create_workspace_membership():
 ##########################################################
 
 
-async def test_list_project_memberships():
+async def test_list_workspace_memberships():
     admin = await f.create_user()
     user1 = await f.create_user()
     user2 = await f.create_user()

@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from asgiref.sync import sync_to_async
+from asgiref.sync import async_to_sync, sync_to_async
 
 from permissions import choices
 from projects.projects import repositories as projects_repositories
@@ -34,7 +34,7 @@ class ProjectRoleFactory(Factory):
     project = factory.SubFactory("tests.utils.factories.ProjectFactory")
 
     class Meta:
-        model = "projects_roles.ProjectRole"
+        model = "projects_memberships.ProjectRole"
 
 
 @sync_to_async
@@ -112,11 +112,11 @@ def create_simple_project(**kwargs):
 def create_project(template, **kwargs):
     """Create project and its dependencies"""
     project = ProjectFactory.create(**kwargs)
-    projects_repositories.apply_template_to_project_sync(
+    async_to_sync(projects_repositories.apply_template_to_project)(
         project=project, template=template
     )
 
-    admin_role = project.roles.get(is_admin=True)
+    admin_role = project.roles.get(is_owner=True)
     ProjectMembershipFactory.create(
         user=project.created_by, project=project, role=admin_role
     )
@@ -126,3 +126,21 @@ def create_project(template, **kwargs):
 
 def build_project(**kwargs):
     return ProjectFactory.build(**kwargs)
+
+
+# PROJECT
+
+
+class ProjectTemplateFactory(Factory):
+    name = factory.Sequence(lambda n: f"Project Template {n}")
+    slug = factory.Sequence(lambda n: f"template-{n}")
+    roles = []
+    workflows = [{"slug": "main", "name": "Main", "order": 1}]
+    workflow_statuses = []
+
+    class Meta:
+        model = "projects.ProjectTemplate"
+
+
+def build_project_template(**kwargs):
+    return ProjectTemplateFactory.build(**kwargs)

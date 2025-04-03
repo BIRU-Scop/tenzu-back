@@ -80,7 +80,6 @@ INSTALLED_APPS = [
     "projects.invitations",
     "projects.memberships",
     "projects.projects",
-    "projects.roles",
     "stories.assignments",
     "stories.stories",
     "attachments",

@@ -21,7 +21,6 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
-from django.db import transaction
 from django.db.models import Case, Count, When
 
 from base.utils.datetime import aware_utcnow
@@ -29,8 +28,8 @@ from base.utils.files import File
 from commons.utils import transaction_atomic_async
 from projects import references
 from projects.invitations.choices import ProjectInvitationStatus
+from projects.memberships import repositories as memberships_repositories
 from projects.projects.models import Project, ProjectTemplate
-from projects.roles import repositories as pj_roles_repositories
 from users.models import User
 from workflows import repositories as workflows_repositories
 from workspaces.workspaces.models import Workspace
@@ -45,7 +44,7 @@ class ProjectFilters(TypedDict, total=False):
     invitations__user_id: UUID
     invitations__status: ProjectInvitationStatus
     memberships__user_id: UUID
-    memberships__role__is_admin: bool
+    memberships__role__is_owner: bool
 
 
 ProjectSelectRelated = list[Literal["workspace",]]
@@ -98,14 +97,14 @@ async def list_projects(
     order_by: ProjectOrderBy = ["-created_at"],
     offset: int | None = None,
     limit: int | None = None,
-    num_admins: int | None = None,
+    num_owners: int | None = None,
     is_individual_project: bool | None = None,
 ) -> list[Project]:
     qs = Project.objects.all()
-    if num_admins is not None:
+    if num_owners is not None:
         qs = qs.annotate(
-            num_admins=Count(Case(When(memberships__role__is_admin=True, then=1)))
-        ).filter(num_admins=num_admins)
+            num_owners=Count(Case(When(memberships__role__is_owner=True, then=1)))
+        ).filter(num_owners=num_owners)
 
     # filters for those projects where the user is the only project member
     if is_individual_project is not None:
@@ -231,32 +230,31 @@ async def get_project_template(
 ##########################################################
 
 
-@transaction.atomic
-def apply_template_to_project_sync(template: ProjectTemplate, project: Project) -> None:
+@transaction_atomic_async
+async def apply_template_to_project(
+    template: ProjectTemplate, project: Project
+) -> None:
     for role in template.roles:
-        pj_roles_repositories.create_project_role_sync(
+        await memberships_repositories.create_project_role(
             name=role["name"],
             slug=role["slug"],
             order=role["order"],
             project=project,
             permissions=role["permissions"],
-            is_admin=role["is_admin"],
+            is_owner=role["is_owner"],
+            editable=role["editable"],
         )
 
     for workflow in template.workflows:
-        wf = workflows_repositories.create_workflow_sync(
+        wf = await workflows_repositories.create_workflow(
             name=workflow["name"],
-            slug=workflow["slug"],
             order=workflow["order"],
             project=project,
         )
         for status in template.workflow_statuses:
-            workflows_repositories.create_workflow_status_sync(
+            await workflows_repositories.create_workflow_status(
                 name=status["name"],
                 color=status["color"],
                 order=status["order"],
                 workflow=wf,
             )
-
-
-apply_template_to_project = sync_to_async(apply_template_to_project_sync)

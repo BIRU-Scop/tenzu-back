@@ -17,22 +17,20 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from events import events_manager
-from projects.roles.events.content import ProjectRoleContent
-from projects.roles.models import ProjectRole
+from memberships import repositories as memberships_repositories
+from memberships.models import Membership
 
-UPDATE_PROJECT_ROLE_PERMISSIONS = "projectroles.update"
+##########################################################
+# misc
+##########################################################
 
 
-async def emit_event_when_project_role_permissions_are_updated(
-    role: ProjectRole,
-) -> None:
-    """
-    This event is emitted whenever the permissions list changes for a role
-    :param role: The project role affected by the permission change
-    """
-    await events_manager.publish_on_project_channel(
-        project=role.project,
-        type=UPDATE_PROJECT_ROLE_PERMISSIONS,
-        content=ProjectRoleContent.from_orm(role),
+async def is_membership_the_only_owner(
+    model: type[Membership], membership: Membership
+) -> bool:
+    if not membership.role.is_owner:
+        return False
+
+    return await memberships_repositories.has_other_owner_memberships(
+        model=model, exclude_id=membership.id
     )

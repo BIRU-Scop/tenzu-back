@@ -25,15 +25,14 @@ from django.http.request import HttpRequest
 from base.db import admin
 from base.db.admin.forms import ModelChoiceField
 from projects.invitations.models import ProjectInvitation
-from projects.memberships.models import ProjectMembership
+from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project, ProjectTemplate
-from projects.roles.models import ProjectRole
 from workflows.admin import WorkflowInline
 
 
 class ProjectRoleInline(admin.TabularInline):
     model = ProjectRole
-    fields = ("project", "name", "slug", "order", "is_admin", "permissions")
+    fields = ("project", "name", "slug", "order", "is_owner", "permissions")
     extra = 0
 
 

@@ -26,9 +26,9 @@ from django.db import models
 from base.db import sequences as seq
 from projects import references
 from projects.invitations.choices import ProjectInvitationStatus
+from projects.memberships.models import ProjectRole
 from projects.projects import repositories
 from projects.projects.models import Project
-from projects.roles.models import ProjectRole
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -132,10 +132,10 @@ async def test_list_projects_user_only_member(project_template):
     pj_list = await repositories.list_projects(
         filters={
             "memberships__user_id": user.id,
-            "memberships__role__is_admin": True,
+            "memberships__role__is_owner": True,
         },
         is_individual_project=True,
-        num_admins=1,
+        num_owners=1,
         select_related=["workspace"],
     )
 
@@ -168,16 +168,16 @@ async def test_list_projects_user_only_admin_but_not_only_member(project_templat
     pj2_ws3 = await f.create_project(
         template=project_template, created_by=user, workspace=ws3
     )
-    admin_role = await pj1_ws3.roles.aget(is_admin=True)
+    admin_role = await pj1_ws3.roles.aget(is_owner=True)
     await f.create_project_membership(user=other_user, project=pj2_ws3, role=admin_role)
 
     pj_list = await repositories.list_projects(
         filters={
             "memberships__user_id": user.id,
-            "memberships__role__is_admin": True,
+            "memberships__role__is_owner": True,
         },
         is_individual_project=False,
-        num_admins=1,
+        num_owners=1,
         select_related=["workspace"],
     )
 

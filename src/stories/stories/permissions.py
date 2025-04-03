@@ -20,14 +20,6 @@ from enum import Enum
 from permissions import DenyAll
 
 
-async def is_view_story_permission_deleted(
-    old_permissions: list[str], new_permissions: list[str]
-) -> bool:
-    if "view_story" in old_permissions and "view_story" not in new_permissions:
-        return True
-    return False
-
-
 class StoryPermissionsCheck(Enum):
     # TODO
     VIEW = DenyAll()

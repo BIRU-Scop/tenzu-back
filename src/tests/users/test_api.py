@@ -291,7 +291,7 @@ async def test_get_user_delete_info_success(client, project_template):
     pj1_ws2 = await f.create_project(
         project_template, name="pj1_ws2", created_by=user, workspace=ws2
     )
-    admin_role = await pj1_ws2.roles.aget(is_admin=True)
+    admin_role = await pj1_ws2.roles.aget(is_owner=True)
     await f.create_project_membership(user=other_user, project=pj1_ws2, role=admin_role)
     ws3 = await f.create_workspace(name="ws3", created_by=other_user)
     # user not ws member and only pj admin
@@ -305,7 +305,7 @@ async def test_get_user_delete_info_success(client, project_template):
     pj1_ws4 = await f.create_project(
         project_template, name="pj1_ws4", created_by=user, workspace=ws4
     )
-    admin_role = await pj1_ws4.roles.aget(is_admin=True)
+    admin_role = await pj1_ws4.roles.aget(is_owner=True)
     await f.create_project_membership(user=other_user, project=pj1_ws4, role=admin_role)
     # user not only ws member and only pj admin
     pj2_ws4 = await f.create_project(

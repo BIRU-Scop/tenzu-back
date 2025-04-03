@@ -259,7 +259,7 @@ async def test_create_workflow_status_being_pj_admin_ok(client, project_template
 async def test_create_workflow_status_forbidden(client, project_template):
     pj_member = await f.create_user()
     project = await f.create_project(project_template)
-    pj_role = await f.create_project_role(is_admin=False, project=project)
+    pj_role = await f.create_project_role(is_owner=False, project=project)
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     workflow = await f.create_workflow(project=project)

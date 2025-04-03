@@ -143,7 +143,7 @@ class DenyAll(PermissionComponent):
 
 class IsSuperUser(PermissionComponent):
     async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
-        return bool(user and user.is_authenticated and user.is_superuser)
+        return bool(user and user.is_superuser)
 
 
 class IsAuthenticated(PermissionComponent):

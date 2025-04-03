@@ -227,7 +227,7 @@ async def test_delete_story_attachments_204_no_content(client):
 
 async def test_delete_story_attachment_403_forbidden_no_permissions(client):
     project = await f.create_project()
-    generic_role = await project.roles.aget(is_admin=False)
+    generic_role = await project.roles.aget(is_owner=False)
     member_user = await f.create_user()
     await f.create_project_membership(user=member_user, role=generic_role)
     story = await f.create_story(project=project)

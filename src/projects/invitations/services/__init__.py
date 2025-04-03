@@ -20,9 +20,8 @@
 from typing import Any, cast
 from uuid import UUID
 
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.db import transaction
 
 from auth import services as auth_services
 from base.utils import emails
@@ -45,9 +44,9 @@ from projects.invitations.serializers import services as serializers_services
 from projects.invitations.services import exceptions as ex
 from projects.invitations.tokens import ProjectInvitationToken
 from projects.memberships import repositories as memberships_repositories
+from projects.memberships import services as memberships_services
+from projects.memberships.models import ProjectRole
 from projects.projects.models import Project
-from projects.roles import repositories as pj_roles_repositories
-from projects.roles import services as pj_roles_services
 from users import services as users_services
 from users.models import AnyUser, User
 
@@ -79,9 +78,9 @@ async def create_project_invitations(
     # emails =    ['user1@tenzu.demo']  |  emails_roles =    ['general']
     # usernames = ['user3']             |  usernames_roles = ['admin']
 
-    project_roles_dict = await pj_roles_services.list_project_roles_as_dict(
-        project=project
-    )
+    project_roles_dict = {
+        r.slug: r for r in await memberships_services.list_project_roles(project)
+    }
     # project_roles_dict = {'admin': <Role: Administrator>, 'general': <Role: General>}
     project_roles_slugs = project_roles_dict.keys()
     wrong_roles_slugs = set(emails_roles + usernames_roles) - project_roles_slugs
@@ -309,12 +308,14 @@ async def update_project_invitation(
     if invitation.status == ProjectInvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation has already been revoked")
 
-    project_role = await pj_roles_repositories.get_project_role(
-        filters={"project_id": invitation.project_id, "slug": role_slug}
-    )
+    try:
+        project_role = await memberships_repositories.get_role(
+            ProjectRole,
+            filters={"project_id": invitation.project_id, "slug": role_slug},
+        )
 
-    if not project_role:
-        raise ex.NonExistingRoleError("Role does not exist")
+    except ProjectRole.DoesNotExist as e:
+        raise ex.NonExistingRoleError("Role does not exist") from e
 
     updated_invitation = await invitations_repositories.update_project_invitation(
         invitation=invitation,

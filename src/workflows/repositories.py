@@ -59,23 +59,9 @@ WorkflowOrderBy = list[Literal["order", "-order"]]
 ##########################################################
 
 
-def create_workflow_sync(
-    name: str,
-    slug: str,
-    order: Decimal,
-    project: Project,
-) -> Workflow:
-    return Workflow.objects.create(
-        name=name,
-        slug=slug,
-        order=order,
-        project=project,
-    )
-
-
 async def create_workflow(
     name: str,
-    order: Decimal,
+    order: int,
     project: Project,
 ) -> Workflow:
     return await Workflow.objects.acreate(

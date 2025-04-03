@@ -36,10 +36,10 @@ from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import repositories as pj_memberships_repositories
+from projects.memberships.models import ProjectRole
 from projects.projects import services as projects_services
 from projects.projects.models import Project
 from projects.references import get_new_project_reference_id
-from projects.roles.models import ProjectRole
 from stories.assignments.models import StoryAssignment
 from stories.stories.models import Story
 from users.models import User
@@ -148,9 +148,9 @@ async def create_project(
 async def create_project_memberships(project_id: UUID, users: list[User]) -> None:
     project = await get_project_with_related_info(project_id)
 
-    # get admin and other roles
-    other_roles = [r for r in project.roles.all() if r.slug != "admin"]
-    admin_role = await project.roles.aget(slug="admin")
+    # get owner and other roles
+    other_roles = [r for r in project.roles.all() if r.slug != "owner"]
+    owner_role = await project.roles.aget(slug="owner")
 
     # get users except the creator of the project
     users = [u for u in users if u.id != project.created_by_id]
@@ -159,7 +159,7 @@ async def create_project_memberships(project_id: UUID, users: list[User]) -> Non
     num_admins = random.randint(0, len(users) // 3)
     for user in users[:num_admins]:
         await pj_memberships_repositories.create_project_membership(
-            user=user, project=project, role=admin_role
+            user=user, project=project, role=owner_role
         )
 
     if other_roles:

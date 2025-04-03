@@ -21,29 +21,9 @@ from unittest.mock import patch
 
 import pytest
 
-from projects.roles import services
-from projects.roles.services import exceptions as ex
+from memberships.services import exceptions as ex
+from projects.memberships import services
 from tests.utils import factories as f
-
-#######################################################
-# list_project_roles_as_dict
-#######################################################
-
-
-async def test_list_project_roles_as_dict():
-    role = f.build_project_role(is_admin=True)
-
-    with patch(
-        "projects.roles.services.pj_roles_repositories", autospec=True
-    ) as fake_role_repository:
-        fake_role_repository.list_project_roles.return_value = [role]
-        ret = await services.list_project_roles_as_dict(project=role.project)
-
-        fake_role_repository.list_project_roles.assert_awaited_once_with(
-            filters={"project_id": role.project_id}
-        )
-        assert ret[role.slug] == role
-
 
 #######################################################
 # get_project_role
@@ -55,7 +35,7 @@ async def test_get_project_role():
     slug = "general"
 
     with patch(
-        "projects.roles.services.pj_roles_repositories", autospec=True
+        "projects.memberships.services.memberships_repositories", autospec=True
     ) as fake_role_repository:
         fake_role_repository.get_project_role.return_value = f.build_project_role()
         await services.get_project_role(project_id=project.id, slug=slug)
@@ -67,13 +47,13 @@ async def test_get_project_role():
 #######################################################
 
 
-async def test_update_project_role_permissions_is_admin():
-    role = f.build_project_role(is_admin=True)
+async def test_update_project_role_permissions_is_owner():
+    role = f.build_project_role(is_owner=True)
     permissions = []
 
     with (
         patch(
-            "projects.roles.services.pj_roles_events", autospec=True
+            "projects.memberships.services.memberships_events", autospec=True
         ) as fake_roles_events,
         pytest.raises(ex.NonEditableRoleError),
     ):
@@ -89,10 +69,10 @@ async def test_update_project_role_permissions_ok():
 
     with (
         patch(
-            "projects.roles.services.pj_roles_events", autospec=True
+            "projects.memberships.services.memberships_events", autospec=True
         ) as fake_roles_events,
         patch(
-            "projects.roles.services.pj_roles_repositories", autospec=True
+            "projects.memberships.services.memberships_repositories", autospec=True
         ) as fake_role_repository,
     ):
         fake_role_repository.update_project_role_permissions.return_value = role
@@ -115,16 +95,17 @@ async def test_update_project_role_permissions_view_story_deleted():
 
     with (
         patch(
-            "projects.roles.services.pj_roles_events", autospec=True
+            "projects.memberships.services.memberships_events", autospec=True
         ) as fake_roles_events,
         patch(
-            "projects.roles.services.pj_roles_repositories", autospec=True
+            "projects.memberships.services.memberships_repositories", autospec=True
         ) as fake_role_repository,
         patch(
-            "projects.roles.services.stories_permissions", autospec=True
+            "projects.memberships.services.stories_permissions", autospec=True
         ) as fake_stories_permissions,
         patch(
-            "projects.roles.services.story_assignments_repositories", autospec=True
+            "projects.memberships.services.story_assignments_repositories",
+            autospec=True,
         ) as fake_story_assignments_repository,
     ):
         fake_role_repository.update_project_role_permissions.return_value = role

@@ -20,6 +20,14 @@
 from base.services.exceptions import TenzuServiceException
 
 
+class NonExistingRoleError(TenzuServiceException):
+    pass
+
+
+class MembershipIsTheOnlyOwnerError(TenzuServiceException):
+    pass
+
+
 class NonEditableRoleError(TenzuServiceException):
     pass
 

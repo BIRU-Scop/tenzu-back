@@ -195,7 +195,7 @@ async def _create_scenario_freelance_working_for_others() -> None:
     await factories.create_project_membership(
         project=proj, user=userd1, role=general_role
     )
-    admin_role = await proj.roles.aget(slug="admin")
+    admin_role = await proj.roles.aget(slug="owner")
     await factories.create_project_membership(
         project=proj, user=userd0, role=admin_role
     )

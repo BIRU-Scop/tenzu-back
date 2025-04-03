@@ -59,7 +59,7 @@ async def test_create_story_assignment_user_without_view_story_permission():
     user = f.build_user()
     project = f.build_project()
     role = f.build_project_role(
-        project=project, permissions=list(NO_VIEW_STORY_PERMISSIONS), is_admin=False
+        project=project, permissions=list(NO_VIEW_STORY_PERMISSIONS), is_owner=False
     )
     f.build_project_membership(user=user, project=project, role=role)
     story = f.build_story(project=project)
@@ -81,7 +81,7 @@ async def test_create_story_assignment_user_without_view_story_permission():
         ) as fake_stories_assignments_notifications,
         pytest.raises(ex.InvalidAssignmentError),
     ):
-        fake_pj_memberships_repo.get_project_membership.return_value = None
+        fake_pj_memberships_repo.get_membership.return_value = None
         fake_story_assignment_repo.create_story_assignment.return_value = None, False
 
         await services.create_story_assignment(
@@ -118,7 +118,7 @@ async def test_create_story_assignment_ok():
             autospec=True,
         ) as fake_stories_assignments_notifications,
     ):
-        fake_pj_memberships_repo.get_project_membership.return_value = membership
+        fake_pj_memberships_repo.get_membership.return_value = membership
         fake_story_assignment_repo.create_story_assignment.return_value = (
             story_assignment,
             True,
@@ -165,7 +165,7 @@ async def test_create_story_assignment_already_assignment():
             autospec=True,
         ) as fake_stories_assignments_notifications,
     ):
-        fake_pj_memberships_repo.get_project_membership.return_value = membership
+        fake_pj_memberships_repo.get_membership.return_value = membership
         fake_story_assignment_repo.create_story_assignment.return_value = (
             story_assignment,
             True,

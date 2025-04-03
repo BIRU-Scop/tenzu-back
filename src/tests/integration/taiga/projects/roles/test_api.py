@@ -89,7 +89,7 @@ async def test_update_project_role_permissions_user_without_permission(client):
 
 async def test_update_project_role_permissions_role_admin(client):
     project = await f.create_project()
-    role_slug = "admin"
+    role_slug = "owner"
     data = {"permissions": ["view_story"]}
 
     client.login(project.created_by)

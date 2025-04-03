@@ -71,7 +71,7 @@ async def test_list_workspace_guests(client):
     member = await f.create_user()
     workspace = await f.create_workspace(created_by=user)
     project = await f.create_project(created_by=user, workspace=workspace)
-    general_role = await f.create_project_role(project=project, is_admin=False)
+    general_role = await f.create_project_role(project=project, is_owner=False)
     await f.create_project_membership(user=member, project=project, role=general_role)
 
     client.login(user)
@@ -85,7 +85,7 @@ async def test_list_workspace_guests_with_pagination(client):
     member2 = await f.create_user()
     workspace = await f.create_workspace(created_by=user)
     project = await f.create_project(created_by=user, workspace=workspace)
-    general_role = await f.create_project_role(project=project, is_admin=False)
+    general_role = await f.create_project_role(project=project, is_owner=False)
     await f.create_project_membership(user=member1, project=project, role=general_role)
     await f.create_project_membership(user=member2, project=project, role=general_role)
     offset = 0

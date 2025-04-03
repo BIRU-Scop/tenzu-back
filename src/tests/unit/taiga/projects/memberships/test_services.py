@@ -39,7 +39,7 @@ async def test_list_project_memberships():
         "projects.memberships.services.memberships_repositories", autospec=True
     ) as fake_membership_repository:
         await services.list_project_memberships(project=project)
-        fake_membership_repository.list_project_memberships.assert_awaited_once()
+        fake_membership_repository.list_memberships.assert_awaited_once()
 
 
 #######################################################
@@ -50,7 +50,7 @@ async def test_list_project_memberships():
 async def test_update_project_membership_role_non_existing_role():
     project = f.build_project()
     user = f.build_user()
-    general_role = f.build_project_role(project=project, is_admin=False)
+    general_role = f.build_project_role(project=project, is_owner=False)
     membership = f.build_project_membership(
         user=user, project=project, role=general_role
     )
@@ -81,11 +81,11 @@ async def test_update_project_membership_role_non_existing_role():
 
 async def test_update_project_membership_role_only_one_admin():
     project = f.build_project()
-    admin_role = f.build_project_role(project=project, is_admin=True)
+    admin_role = f.build_project_role(project=project, is_owner=True)
     membership = f.build_project_membership(
         user=project.created_by, project=project, role=admin_role
     )
-    general_role = f.build_project_role(project=project, is_admin=False)
+    general_role = f.build_project_role(project=project, is_owner=False)
     with (
         patch(
             "projects.memberships.services.pj_roles_repositories", autospec=True
@@ -96,7 +96,7 @@ async def test_update_project_membership_role_only_one_admin():
         patch(
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
-        pytest.raises(ex.MembershipIsTheOnlyAdminError),
+        pytest.raises(ex.MembershipIsTheOnlyOwnerError),
     ):
         fake_pj_role_repository.get_project_role.return_value = general_role
         fake_membership_repository.get_total_project_memberships.return_value = 1
@@ -117,11 +117,11 @@ async def test_update_project_membership_role_only_one_admin():
 async def test_update_project_membership_role_ok():
     project = f.build_project()
     user = f.build_user()
-    general_role = f.build_project_role(project=project, is_admin=False)
+    general_role = f.build_project_role(project=project, is_owner=False)
     membership = f.build_project_membership(
         user=user, project=project, role=general_role
     )
-    admin_role = f.build_project_role(project=project, is_admin=True)
+    admin_role = f.build_project_role(project=project, is_owner=True)
     with (
         patch(
             "projects.memberships.services.pj_roles_repositories", autospec=True
@@ -154,9 +154,9 @@ async def test_update_project_membership_role_view_story_deleted():
     project = f.build_project()
     user = f.build_user()
     permissions = []
-    admin_role = f.build_project_role(project=project, is_admin=True)
+    admin_role = f.build_project_role(project=project, is_owner=True)
     role = f.build_project_role(
-        project=project, is_admin=False, permissions=permissions
+        project=project, is_owner=False, permissions=permissions
     )
     membership = f.build_project_membership(user=user, project=project, role=admin_role)
     with (
@@ -204,7 +204,7 @@ async def test_update_project_membership_role_view_story_deleted():
 
 async def test_delete_project_membership_only_one_admin():
     project = f.build_project()
-    admin_role = f.build_project_role(project=project, is_admin=True)
+    admin_role = f.build_project_role(project=project, is_owner=True)
     membership = f.build_project_membership(
         user=project.created_by, project=project, role=admin_role
     )
@@ -215,7 +215,7 @@ async def test_delete_project_membership_only_one_admin():
         patch(
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
-        pytest.raises(ex.MembershipIsTheOnlyAdminError),
+        pytest.raises(ex.MembershipIsTheOnlyOwnerError),
     ):
         fake_membership_repository.get_total_project_memberships.return_value = 1
 
@@ -223,14 +223,14 @@ async def test_delete_project_membership_only_one_admin():
         fake_membership_repository.get_total_project_memberships.assert_awaited_once_with(
             filters={"role_id": admin_role.id}
         )
-        fake_membership_repository.delete_project_membership.assert_not_awaited()
+        fake_membership_repository.delete_membership.assert_not_awaited()
         fake_membership_events.emit_event_when_project_membership_is_deleted.assert_not_awaited()
 
 
 async def test_delete_project_membership_ok():
     project = f.build_project()
     user = f.build_user()
-    general_role = f.build_project_role(project=project, is_admin=False)
+    general_role = f.build_project_role(project=project, is_owner=False)
     membership = f.build_project_membership(
         user=user, project=project, role=general_role
     )
@@ -250,9 +250,9 @@ async def test_delete_project_membership_ok():
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
     ):
-        fake_membership_repository.delete_project_membership.return_value = 1
+        fake_membership_repository.delete_membership.return_value = 1
         await services.delete_project_membership(membership=membership)
-        fake_membership_repository.delete_project_membership.assert_awaited_once_with(
+        fake_membership_repository.delete_membership.assert_awaited_once_with(
             filters={"id": membership.id},
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(

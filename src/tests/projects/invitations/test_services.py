@@ -29,6 +29,7 @@ from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.services import exceptions as ex
 from projects.invitations.services.exceptions import NonExistingUsernameError
 from projects.invitations.tokens import ProjectInvitationToken
+from projects.memberships.models import ProjectRole
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -166,18 +167,18 @@ async def test_get_public_project_invitation_error_invitation_not_exists():
 
 async def test_list_project_invitations_ok_admin():
     invitation = f.build_project_invitation()
-    role_admin = f.build_project_role(is_admin=True)
+    role_admin = f.build_project_role(is_owner=True)
 
     with (
         patch(
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
         patch(
-            "projects.invitations.services.pj_roles_repositories", autospec=True
+            "projects.invitations.services.memberships_repositories", autospec=True
         ) as fake_pj_roles_repo,
     ):
         fake_invitations_repo.list_project_invitations.return_value = [invitation]
-        fake_pj_roles_repo.get_project_role.return_value = role_admin
+        fake_pj_roles_repo.get_role.return_value = role_admin
 
         invitations = await services.list_project_invitations(
             project_id=invitation.project.id
@@ -199,7 +200,7 @@ async def test_list_project_invitations_ok_admin():
 async def test_send_project_invitations_for_existing_user(tqmanager, correlation_id):
     user = f.build_user(email="user-test@email.com")
     project = f.build_project()
-    role = f.build_project_role(project=project, slug="admin")
+    role = f.build_project_role(project=project, slug="owner")
 
     invitation = f.build_project_invitation(
         user=user,
@@ -284,15 +285,13 @@ async def test_create_project_invitations_non_existing_role(tqmanager):
 
     with (
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role.slug: role
-        }
+        fake_memberships_services.list_project_roles.return_value = [role]
 
         with pytest.raises(ex.NonExistingRoleError):
             await services.create_project_invitations(
@@ -314,8 +313,8 @@ async def test_create_project_invitations_already_member(tqmanager):
             "projects.invitations.services.users_services", autospec=True
         ) as fake_users_services,
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.memberships_repositories", autospec=True
         ) as fake_memberships_repo,
@@ -326,9 +325,7 @@ async def test_create_project_invitations_already_member(tqmanager):
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role.slug: role
-        }
+        fake_memberships_services.list_project_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {user.email: user}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
         fake_memberships_repo.list_project_members.return_value = [user]
@@ -344,7 +341,7 @@ async def test_create_project_invitations_already_member(tqmanager):
 
 async def test_create_project_invitations_with_pending_invitations(tqmanager):
     project = f.build_project()
-    role = f.build_project_role(project=project, slug="admin")
+    role = f.build_project_role(project=project, slug="owner")
     role2 = f.build_project_role(project=project, slug="general")
     created_at = aware_utcnow() - timedelta(days=1)  # to avoid time spam
     invitation = f.build_project_invitation(
@@ -359,8 +356,8 @@ async def test_create_project_invitations_with_pending_invitations(tqmanager):
 
     with (
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
@@ -371,9 +368,7 @@ async def test_create_project_invitations_with_pending_invitations(tqmanager):
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role2.slug: role2
-        }
+        fake_memberships_services.list_project_roles.return_value = [role2]
         fake_invitations_repo.get_project_invitation.return_value = invitation
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
@@ -390,7 +385,7 @@ async def test_create_project_invitations_with_pending_invitations(tqmanager):
 
 async def test_create_project_invitations_with_pending_invitations_time_spam(tqmanager):
     project = f.build_project()
-    role = f.build_project_role(project=project, slug="admin")
+    role = f.build_project_role(project=project, slug="owner")
     role2 = f.build_project_role(project=project, slug="general")
     invitation = f.build_project_invitation(
         user=None,
@@ -403,8 +398,8 @@ async def test_create_project_invitations_with_pending_invitations_time_spam(tqm
 
     with (
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
@@ -416,9 +411,7 @@ async def test_create_project_invitations_with_pending_invitations_time_spam(tqm
         ) as fake_invitations_events,
         override_settings(**{"INVITATION_RESEND_TIME": 10}),
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role2.slug: role2
-        }
+        fake_memberships_services.list_project_roles.return_value = [role2]
         fake_invitations_repo.get_project_invitation.return_value = invitation
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
@@ -435,7 +428,7 @@ async def test_create_project_invitations_with_pending_invitations_time_spam(tqm
 
 async def test_create_project_invitations_with_revoked_invitations(tqmanager):
     project = f.build_project()
-    role = f.build_project_role(project=project, slug="admin")
+    role = f.build_project_role(project=project, slug="owner")
     role2 = f.build_project_role(project=project, slug="general")
     created_at = aware_utcnow() - timedelta(days=1)  # to avoid time spam
     invitation = f.build_project_invitation(
@@ -451,8 +444,8 @@ async def test_create_project_invitations_with_revoked_invitations(tqmanager):
 
     with (
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
@@ -463,9 +456,7 @@ async def test_create_project_invitations_with_revoked_invitations(tqmanager):
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role2.slug: role2
-        }
+        fake_memberships_services.list_project_roles.return_value = [role2]
         fake_invitations_repo.get_project_invitation.return_value = invitation
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
@@ -482,7 +473,7 @@ async def test_create_project_invitations_with_revoked_invitations(tqmanager):
 
 async def test_create_project_invitations_with_revoked_invitations_time_spam(tqmanager):
     project = f.build_project()
-    role = f.build_project_role(project=project, slug="admin")
+    role = f.build_project_role(project=project, slug="owner")
     role2 = f.build_project_role(project=project, slug="general")
     invitation = f.build_project_invitation(
         project=project,
@@ -496,8 +487,8 @@ async def test_create_project_invitations_with_revoked_invitations_time_spam(tqm
 
     with (
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
@@ -509,9 +500,7 @@ async def test_create_project_invitations_with_revoked_invitations_time_spam(tqm
         ) as fake_invitations_events,
         override_settings(**{"INVITATION_RESEND_TIME": 10}),
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role2.slug: role2
-        }
+        fake_memberships_services.list_project_roles.return_value = [role2]
         fake_invitations_repo.get_project_invitation.return_value = invitation
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
@@ -530,7 +519,7 @@ async def test_create_project_invitations_by_emails(tqmanager):
     user1 = f.build_user()
     user2 = f.build_user(email="user-test@email.com")
     project = f.build_project()
-    role1 = f.build_project_role(project=project, slug="admin")
+    role1 = f.build_project_role(project=project, slug="owner")
     role2 = f.build_project_role(project=project, slug="general")
 
     invitations = [
@@ -543,8 +532,8 @@ async def test_create_project_invitations_by_emails(tqmanager):
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.users_services", autospec=True
         ) as fake_users_services,
@@ -552,10 +541,7 @@ async def test_create_project_invitations_by_emails(tqmanager):
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role1.slug: role1,
-            role2.slug: role2,
-        }
+        fake_memberships_services.list_project_roles.return_value = [role1, role2]
         fake_users_services.list_users_emails_as_dict.return_value = {
             user2.email: user2
         }
@@ -566,7 +552,7 @@ async def test_create_project_invitations_by_emails(tqmanager):
             project=project, invitations=invitations, invited_by=user1
         )
 
-        fake_pj_roles_services.list_project_roles_as_dict.assert_awaited_once_with(
+        fake_memberships_services.list_project_roles.assert_awaited_once_with(
             project=project
         )
         fake_users_services.list_users_emails_as_dict.assert_awaited_once()
@@ -582,7 +568,7 @@ async def test_create_project_invitations_by_usernames(tqmanager):
     user2 = f.build_user()
     user3 = f.build_user()
     project = f.build_project()
-    role1 = f.build_project_role(project=project, slug="admin")
+    role1 = f.build_project_role(project=project, slug="owner")
     role2 = f.build_project_role(project=project, slug="general")
 
     invitations = [
@@ -595,8 +581,8 @@ async def test_create_project_invitations_by_usernames(tqmanager):
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.users_services", autospec=True
         ) as fake_users_services,
@@ -604,10 +590,7 @@ async def test_create_project_invitations_by_usernames(tqmanager):
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role1.slug: role1,
-            role2.slug: role2,
-        }
+        fake_memberships_services.list_project_roles.return_value = [role1, role2]
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {
             user2.username: user2,
@@ -619,7 +602,7 @@ async def test_create_project_invitations_by_usernames(tqmanager):
             project=project, invitations=invitations, invited_by=user1
         )
 
-        fake_pj_roles_services.list_project_roles_as_dict.assert_awaited_once_with(
+        fake_memberships_services.list_project_roles.assert_awaited_once_with(
             project=project
         )
         fake_invitations_repo.create_project_invitations.assert_awaited_once()
@@ -634,7 +617,7 @@ async def test_create_project_invitations_duplicated_email_username(tqmanager):
     user3 = f.build_user(email="test3@email.com", username="user3")
     user4 = f.build_user(email="test4@email.com", username="user4")
     project = f.build_project()
-    role1 = f.build_project_role(project=project, slug="admin")
+    role1 = f.build_project_role(project=project, slug="owner")
     role2 = f.build_project_role(project=project, slug="general")
 
     invitations = [
@@ -654,8 +637,8 @@ async def test_create_project_invitations_duplicated_email_username(tqmanager):
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.users_services", autospec=True
         ) as fake_users_services,
@@ -663,10 +646,7 @@ async def test_create_project_invitations_duplicated_email_username(tqmanager):
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role1.slug: role1,
-            role2.slug: role2,
-        }
+        fake_memberships_services.list_project_roles.return_value = [role1, role2]
         fake_users_services.list_users_emails_as_dict.return_value = {
             user3.email: user3,
             user4.email: user4,
@@ -682,7 +662,7 @@ async def test_create_project_invitations_duplicated_email_username(tqmanager):
             project=project, invitations=invitations, invited_by=user1
         )
 
-        fake_pj_roles_services.list_project_roles_as_dict.assert_awaited_once_with(
+        fake_memberships_services.list_project_roles.assert_awaited_once_with(
             project=project
         )
         fake_users_services.list_users_emails_as_dict.assert_awaited_once()
@@ -701,22 +681,20 @@ async def test_create_project_invitations_duplicated_email_username(tqmanager):
 async def test_create_project_invitations_invalid_username(tqmanager):
     user1 = f.build_user(email="test@email.com", username="user1")
     project = f.build_project()
-    role = f.build_project_role(project=project, slug="admin")
+    role = f.build_project_role(project=project, slug="owner")
 
     invitations = [{"username": "not existing username", "role_slug": role.slug}]
 
     with (
         patch(
-            "projects.invitations.services.pj_roles_services", autospec=True
-        ) as fake_pj_roles_services,
+            "projects.invitations.services.memberships_services", autospec=True
+        ) as fake_memberships_services,
         patch(
             "projects.invitations.services.users_services", autospec=True
         ) as fake_users_services,
         pytest.raises(NonExistingUsernameError),
     ):
-        fake_pj_roles_services.list_project_roles_as_dict.return_value = {
-            role.slug: role
-        }
+        fake_memberships_services.list_project_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
 
@@ -783,7 +761,7 @@ async def tests_accept_project_invitation_error_invitation_has_already_been_acce
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
         patch(
-            "projects.invitations.services.pj_roles_repositories", autospec=True
+            "projects.invitations.services.memberships_repositories", autospec=True
         ) as fake_pj_roles_repo,
         patch(
             "projects.invitations.services.invitations_events", autospec=True
@@ -814,7 +792,7 @@ async def tests_accept_project_invitation_error_invitation_has_been_revoked() ->
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
         patch(
-            "projects.invitations.services.pj_roles_repositories", autospec=True
+            "projects.invitations.services.memberships_repositories", autospec=True
         ) as fake_pj_roles_repo,
         patch(
             "projects.invitations.services.invitations_events", autospec=True
@@ -1349,7 +1327,7 @@ async def test_revoke_project_invitation_revoked() -> None:
 async def test_update_project_invitation_role_invitation_accepted() -> None:
     user = f.build_user()
     project = f.build_project()
-    general_role = f.build_project_role(project=project, is_admin=False)
+    general_role = f.build_project_role(project=project, is_owner=False)
     invitation = f.build_project_invitation(
         project=project,
         user=user,
@@ -1376,7 +1354,7 @@ async def test_update_project_invitation_role_invitation_accepted() -> None:
 async def test_update_project_invitation_role_invitation_revoked() -> None:
     user = f.build_user()
     project = f.build_project()
-    general_role = f.build_project_role(project=project, is_admin=False)
+    general_role = f.build_project_role(project=project, is_owner=False)
     invitation = f.build_project_invitation(
         project=project,
         user=user,
@@ -1403,7 +1381,7 @@ async def test_update_project_invitation_role_invitation_revoked() -> None:
 async def test_update_project_invitation_role_non_existing_role():
     project = f.build_project()
     user = f.build_user()
-    general_role = f.build_project_role(project=project, is_admin=False)
+    general_role = f.build_project_role(project=project, is_owner=False)
     invitation = f.build_project_invitation(
         project=project,
         user=user,
@@ -1414,7 +1392,7 @@ async def test_update_project_invitation_role_non_existing_role():
     non_existing_role_slug = "non_existing_role_slug"
     with (
         patch(
-            "projects.invitations.services.pj_roles_repositories", autospec=True
+            "projects.invitations.services.memberships_repositories", autospec=True
         ) as fake_pj_roles_repo,
         patch(
             "projects.invitations.services.invitations_repositories", autospec=True
@@ -1424,13 +1402,14 @@ async def test_update_project_invitation_role_non_existing_role():
         ) as fake_invitations_events,
         pytest.raises(ex.NonExistingRoleError),
     ):
-        fake_pj_roles_repo.get_project_role.return_value = None
+        fake_pj_roles_repo.get_role.side_effect = ProjectRole.DoesNotExist
 
         await services.update_project_invitation(
             invitation=invitation, role_slug=non_existing_role_slug
         )
-        fake_pj_roles_repo.get_project_role.assert_awaited_once_with(
-            project=project, slug=non_existing_role_slug
+        fake_pj_roles_repo.get_role.assert_awaited_once_with(
+            ProjectRole,
+            filters={"project_id": project.id, "slug": non_existing_role_slug},
         )
         fake_invitations_repo.update_project_invitation.assert_not_awaited()
         fake_invitations_events.emit_event_when_project_invitation_is_updated.assert_not_awaited()
@@ -1439,7 +1418,7 @@ async def test_update_project_invitation_role_non_existing_role():
 async def test_update_project_invitation_role_ok():
     project = f.build_project()
     user = f.build_user()
-    general_role = f.build_project_role(project=project, is_admin=False)
+    general_role = f.build_project_role(project=project, is_owner=False)
     invitation = f.build_project_invitation(
         project=project,
         user=user,
@@ -1447,10 +1426,10 @@ async def test_update_project_invitation_role_ok():
         role=general_role,
         status=ProjectInvitationStatus.PENDING,
     )
-    admin_role = f.build_project_role(project=project, is_admin=True)
+    admin_role = f.build_project_role(project=project, is_owner=True)
     with (
         patch(
-            "projects.invitations.services.pj_roles_repositories", autospec=True
+            "projects.invitations.services.memberships_repositories", autospec=True
         ) as fake_pj_roles_repo,
         patch(
             "projects.invitations.services.invitations_repositories", autospec=True
@@ -1459,12 +1438,12 @@ async def test_update_project_invitation_role_ok():
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
-        fake_pj_roles_repo.get_project_role.return_value = admin_role
+        fake_pj_roles_repo.get_role.return_value = admin_role
         updated_invitation = await services.update_project_invitation(
             invitation=invitation, role_slug=admin_role.slug
         )
-        fake_pj_roles_repo.get_project_role.assert_awaited_once_with(
-            filters={"project_id": project.id, "slug": admin_role.slug}
+        fake_pj_roles_repo.get_role.assert_awaited_once_with(
+            ProjectRole, filters={"project_id": project.id, "slug": admin_role.slug}
         )
         fake_invitations_repo.update_project_invitation.assert_awaited_once_with(
             invitation=invitation, values={"role": admin_role}

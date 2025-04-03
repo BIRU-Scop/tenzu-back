@@ -21,8 +21,9 @@ from events import events_manager
 from projects.memberships.events.content import (
     DeleteProjectMembershipContent,
     ProjectMembershipContent,
+    ProjectRoleContent,
 )
-from projects.memberships.models import ProjectMembership
+from projects.memberships.models import ProjectMembership, ProjectRole
 
 CREATE_PROJECT_MEMBERSHIP = "projectmemberships.create"
 UPDATE_PROJECT_MEMBERSHIP = "projectmemberships.update"
@@ -69,7 +70,7 @@ async def emit_event_when_project_membership_is_deleted(
         project=membership.project,
         type=DELETE_PROJECT_MEMBERSHIP,
         content=DeleteProjectMembershipContent(
-            membership=membership, workspace=membership.project.workspace_id
+            membership=membership, workspace_id=membership.project.workspace_id
         ),
     )
 
@@ -78,7 +79,7 @@ async def emit_event_when_project_membership_is_deleted(
         user=membership.user,
         type=DELETE_PROJECT_MEMBERSHIP,
         content=DeleteProjectMembershipContent(
-            membership=membership, workspace=membership.project.workspace_id
+            membership=membership, workspace_id=membership.project.workspace_id
         ),
     )
 
@@ -87,6 +88,23 @@ async def emit_event_when_project_membership_is_deleted(
         workspace=membership.project.workspace,
         type=DELETE_PROJECT_MEMBERSHIP,
         content=DeleteProjectMembershipContent(
-            membership=membership, workspace=membership.project.workspace_id
+            membership=membership, workspace_id=membership.project.workspace_id
         ),
+    )
+
+
+UPDATE_PROJECT_ROLE_PERMISSIONS = "projectroles.update"
+
+
+async def emit_event_when_project_role_permissions_are_updated(
+    role: ProjectRole,
+) -> None:
+    """
+    This event is emitted whenever the permissions list changes for a role
+    :param role: The project role affected by the permission change
+    """
+    await events_manager.publish_on_project_channel(
+        project=role.project,
+        type=UPDATE_PROJECT_ROLE_PERMISSIONS,
+        content=ProjectRoleContent.from_orm(role),
     )

@@ -22,9 +22,9 @@ from typing import Any
 from pydantic import ConfigDict, EmailStr, validator
 
 from base.serializers import UUIDB64, BaseModel
+from memberships.serializers import RoleSerializer
 from projects.invitations.choices import ProjectInvitationStatus
 from projects.projects.serializers.nested import ProjectSmallNestedSerializer
-from projects.roles.serializers.nested import ProjectRoleNestedSerializer
 from users.serializers.nested import UserNestedSerializer
 
 
@@ -41,7 +41,7 @@ class ProjectInvitationSerializer(BaseModel):
     id: UUIDB64
     project: ProjectSmallNestedSerializer
     user: UserNestedSerializer | None = None
-    role: ProjectRoleNestedSerializer
+    role: RoleSerializer
     email: EmailStr
     workspace_id: UUIDB64
 
@@ -55,7 +55,7 @@ class ProjectInvitationSerializer(BaseModel):
 class PrivateEmailProjectInvitationSerializer(BaseModel):
     id: UUIDB64
     user: UserNestedSerializer | None = None
-    role: ProjectRoleNestedSerializer
+    role: RoleSerializer
     email: EmailStr | None = None
     model_config = ConfigDict(from_attributes=True)
 

@@ -31,13 +31,13 @@ pytestmark = pytest.mark.django_db
 ##########################################################
 
 
-async def test_get_project_memberships(client):
+async def test_list_project_memberships(client):
     project = await f.create_project()
 
     general_member_role = await f.create_project_role(
         project=project,
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
     )
 
     pj_member = await f.create_user()
@@ -97,7 +97,7 @@ async def test_update_project_membership_role_user_without_permission(client):
     general_member_role = await f.create_project_role(
         project=project,
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
     )
     await f.create_project_membership(
         user=user, project=project, role=general_member_role
@@ -118,7 +118,7 @@ async def test_update_project_membership_role_ok(client):
     general_member_role = await f.create_project_role(
         project=project,
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
     )
     await f.create_project_membership(
         user=user, project=project, role=general_member_role
@@ -126,7 +126,7 @@ async def test_update_project_membership_role_ok(client):
 
     client.login(project.created_by)
     username = user.username
-    data = {"role_slug": "admin"}
+    data = {"role_slug": "owner"}
     response = client.patch(
         f"projects/{project.b64id}/memberships/{username}", json=data
     )
@@ -153,7 +153,7 @@ async def test_delete_project_membership_without_permissions(client):
     general_member_role = await f.create_project_role(
         project=project,
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
     )
     await f.create_project_membership(
         user=member, project=project, role=general_member_role
@@ -172,7 +172,7 @@ async def test_delete_project_membership_project_admin(client):
     general_member_role = await f.create_project_role(
         project=project,
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
     )
     await f.create_project_membership(
         user=member, project=project, role=general_member_role
@@ -189,7 +189,7 @@ async def test_delete_project_membership_self_request(client):
     general_member_role = await f.create_project_role(
         project=project,
         permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
     )
     await f.create_project_membership(
         user=member, project=project, role=general_member_role

@@ -130,7 +130,7 @@ async def test_list_guests_in_ws_for_project(project_template):
     project = await f.create_project(
         project_template, created_by=workspace.created_by, workspace=workspace
     )
-    general_role = await f.create_project_role(project=project, is_admin=False)
+    general_role = await f.create_project_role(project=project, is_owner=False)
     await f.create_project_membership(user=member, project=project, role=general_role)
     await f.create_project_invitation(
         email=invitee.email,
@@ -156,7 +156,7 @@ async def test_list_guests_in_workspace(project_template):
     project = await f.create_project(
         project_template, created_by=workspace.created_by, workspace=workspace
     )
-    general_role = await f.create_project_role(project=project, is_admin=False)
+    general_role = await f.create_project_role(project=project, is_owner=False)
     await f.create_project_membership(
         user=pj_member, project=project, role=general_role
     )
@@ -210,7 +210,7 @@ class ListUserByText(IsolatedAsyncioTestCase):
             created_by=self.ws_pj_admin,
         )
         self.general_role = await f.create_project_role(
-            project=self.project, is_admin=False
+            project=self.project, is_owner=False
         )
         await f.create_project_membership(
             user=self.electra, project=self.project, role=self.general_role

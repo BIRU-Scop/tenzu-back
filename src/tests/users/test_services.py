@@ -722,7 +722,7 @@ async def test_delete_user_success():
 
     ws2 = f.build_workspace(name="ws2", created_by=user)
     pj1_ws2 = f.build_project(name="pj1_ws2", created_by=user, workspace=ws2)
-    general_role_pj1_ws2 = f.build_project_role(is_admin=False)
+    general_role_pj1_ws2 = f.build_project_role(is_owner=False)
     f.build_project_invitation(
         email=user2.email,
         user=user2,
@@ -809,12 +809,12 @@ async def test_delete_user_success():
     )
     f.build_workspace_membership(user=user4, workspace=ws5)
 
-    admin_role_pj1_ws5 = f.build_project_role(is_admin=True)
+    admin_role_pj1_ws5 = f.build_project_role(is_owner=True)
     pj1_ws5 = admin_role_pj1_ws5.project
     pj_member1_pj1_ws5 = f.build_project_membership(
         user=user, project=pj1_ws5, role=admin_role_pj1_ws5
     )
-    general_role_pj1_ws5 = f.build_project_role(project=pj1_ws5, is_admin=False)
+    general_role_pj1_ws5 = f.build_project_role(project=pj1_ws5, is_owner=False)
     f.build_project_invitation(
         email=user2.email,
         user=user2,
@@ -854,12 +854,12 @@ async def test_delete_user_success():
     )
     f.build_workspace_membership(user=user3, workspace=ws6)
 
-    admin_role_pj1_ws6 = f.build_project_role(is_admin=True)
+    admin_role_pj1_ws6 = f.build_project_role(is_owner=True)
     pj1_ws6 = admin_role_pj1_ws6.project
     pj_member1_pj1_ws6 = f.build_project_membership(
         user=user, project=pj1_ws6, role=admin_role_pj1_ws6
     )
-    general_role_pj1_ws6 = f.build_project_role(project=pj1_ws6, is_admin=False)
+    general_role_pj1_ws6 = f.build_project_role(project=pj1_ws6, is_owner=False)
     f.build_project_invitation(
         email=user4.email,
         user=user4,
@@ -872,7 +872,7 @@ async def test_delete_user_success():
 
     # projects where the user is pj member
     pj2_ws6 = f.build_project(name="pj2_ws6", created_by=user2, workspace=ws6)
-    general_role_pj2_ws6 = f.build_project_role(is_admin=False)
+    general_role_pj2_ws6 = f.build_project_role(is_owner=False)
     inv1_pj2_ws6 = f.build_project_invitation(
         email=user.email,
         user=user,
@@ -893,7 +893,7 @@ async def test_delete_user_success():
     f.build_comment(created_by=user)
 
     f.build_project(name="pj3_ws6", created_by=user2, workspace=ws6)
-    general_role_pj3_ws6 = f.build_project_role(is_admin=False)
+    general_role_pj3_ws6 = f.build_project_role(is_owner=False)
     inv1_pj3_ws6 = f.build_project_invitation(
         email=user.email,
         user=user,
@@ -922,9 +922,6 @@ async def test_delete_user_success():
         patch(
             "users.services.pj_memberships_repositories", autospec=True
         ) as fake_pj_memberships_repo,
-        patch(
-            "users.services.pj_roles_repositories", autospec=True
-        ) as fake_pj_roles_repo,
         patch(
             "users.services.pj_memberships_events", autospec=True
         ) as fake_pj_memberships_events,
@@ -972,20 +969,16 @@ async def test_delete_user_success():
         ]
         pj_members_pj1_ws5_excluding_user = [user3, user2]
         pj_members_pj1_ws6_excluding_user = [user4]
-        fake_pj_memberships_repo.list_project_members_excluding_user.side_effect = [
+        fake_pj_memberships_repo.list_project_members.side_effect = [
             pj_members_pj1_ws5_excluding_user,
             pj_members_pj1_ws6_excluding_user,
         ]
-        fake_pj_roles_repo.get_project_role.side_effect = [
+        fake_pj_memberships_repo.get_role.side_effect = [
             admin_role_pj1_ws5,
             admin_role_pj1_ws6,
         ]
-        fake_pj_memberships_repo.get_project_membership.return_value = (
-            pj_member3_pj1_ws5
-        )
-        fake_pj_memberships_repo.update_project_membership.return_value = (
-            pj_member3_pj1_ws5
-        )
+        fake_pj_memberships_repo.get_membership.return_value = pj_member3_pj1_ws5
+        fake_pj_memberships_repo.update_membership.return_value = pj_member3_pj1_ws5
         fake_pj_memberships_repo.create_project_membership.return_value = MagicMock(
             project=pj1_ws6, role=admin_role_pj1_ws6, user=user2
         )
@@ -1008,12 +1001,12 @@ async def test_delete_user_success():
         fake_ws_invitations_repo.delete_workspace_invitation.side_effect = [1, 1, 1, 1]
 
         # result projects memberships deleted
-        fake_pj_memberships_repo.list_project_memberships.return_value = [
+        fake_pj_memberships_repo.list_memberships.return_value = [
             pj_member1_pj2_ws6,
             pj_member1_pj1_ws6,
             pj_member1_pj1_ws5,
         ]
-        fake_pj_memberships_repo.delete_project_membership.side_effect = [1, 1, 1]
+        fake_pj_memberships_repo.delete_membership.side_effect = [1, 1, 1]
 
         # result projects invitations deleted
         fake_pj_invitations_repo.list_project_invitations.return_value = [
@@ -1049,7 +1042,7 @@ async def test_delete_user_success():
         )
 
         # projects updated with a new pj admin
-        fake_pj_memberships_repo.update_project_membership.assert_any_await(
+        fake_pj_memberships_repo.update_membership.assert_any_await(
             membership=pj_member3_pj1_ws5,
             values={"role": admin_role_pj1_ws5},
         )
@@ -1099,15 +1092,9 @@ async def test_delete_user_success():
         )
 
         # projects memberships deleted
-        fake_pj_memberships_repo.delete_project_membership.assert_any_await(
-            filters={"id": pj_member1_pj2_ws6.id}
-        )
-        fake_pj_memberships_repo.delete_project_membership.assert_any_await(
-            filters={"id": pj_member1_pj1_ws6.id}
-        )
-        fake_pj_memberships_repo.delete_project_membership.assert_any_await(
-            filters={"id": pj_member1_pj1_ws5.id}
-        )
+        fake_pj_memberships_repo.delete_membership.assert_any_await(pj_member1_pj2_ws6)
+        fake_pj_memberships_repo.delete_membership.assert_any_await(pj_member1_pj1_ws6)
+        fake_pj_memberships_repo.delete_membership.assert_any_await(pj_member1_pj1_ws5)
         fake_pj_memberships_events.emit_event_when_project_membership_is_deleted.assert_any_await(
             membership=pj_member1_pj2_ws6
         )
@@ -1439,7 +1426,7 @@ async def test_list_projects_delete_info():
     f.build_workspace_membership(user=other_user, workspace=ws2)
     # user not only ws member but not only pj admin
     pj1_ws2 = f.build_project(created_by=user, workspace=ws2)
-    admin_role = f.build_project_role(project=pj1_ws2, is_admin=True)
+    admin_role = f.build_project_role(project=pj1_ws2, is_owner=True)
     f.build_project_membership(user=other_user, project=pj1_ws2, role=admin_role)
     ws3 = f.build_workspace(created_by=other_user)
     # user not ws member and only pj admin
@@ -1449,7 +1436,7 @@ async def test_list_projects_delete_info():
     f.build_workspace_membership(user=other_user, workspace=ws4)
     # user not only ws member and only pj admin
     pj1_ws4 = f.build_project(created_by=user, workspace=ws4)
-    admin_role = f.build_project_role(project=pj1_ws4, is_admin=True)
+    admin_role = f.build_project_role(project=pj1_ws4, is_owner=True)
     f.build_project_membership(user=other_user, project=pj1_ws4, role=admin_role)
 
     with (
@@ -1469,10 +1456,10 @@ async def test_list_projects_delete_info():
         fake_projects_repo.list_projects.assert_called_once_with(
             filters={
                 "memberships__user_id": user.id,
-                "memberships__role__is_admin": True,
+                "memberships__role__is_owner": True,
             },
             is_individual_project=False,
-            num_admins=1,
+            num_owners=1,
             select_related=["workspace"],
         )
         assert projects == [pj1_ws4, pj1_ws3]

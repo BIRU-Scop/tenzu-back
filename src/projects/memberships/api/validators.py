@@ -17,15 +17,10 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import field_validator
 
-from commons.validators import BaseModel, check_not_empty
+from commons.validators import BaseModel
+from permissions.validators import Permissions
 
 
-class ProjectMembershipValidator(BaseModel):
-    role_slug: str
-
-    @field_validator("role_slug")
-    @classmethod
-    def check_not_empty(cls, v: str) -> str:
-        return check_not_empty(v)
+class RoleValidator(BaseModel):
+    permissions: Permissions

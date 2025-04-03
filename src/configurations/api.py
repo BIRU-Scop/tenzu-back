@@ -33,7 +33,6 @@ from notifications.api import notifications_router
 from projects.invitations.api import invitations_router as projects_invitations_router
 from projects.memberships.api import membership_router as projects_memberships_router
 from projects.projects.api import projects_router
-from projects.roles.api import roles_router as project_roles_router
 from stories.assignments.api import assignments_router as stories_assignments_router
 from stories.attachments.api import attachments_router as stories_attachments_router
 from stories.comments.api import comments_router as stories_comments_router
@@ -87,7 +86,6 @@ def healthcheck(request):
 
 api.add_router("", tags=["Projects"], router=projects_router)
 api.add_router("", tags=["Projects", "Memberships"], router=projects_memberships_router)
-api.add_router("", tags=["Projects", "Roles"], router=project_roles_router)
 api.add_router("", tags=["Projects", "Invitations"], router=projects_invitations_router)
 api.add_router("", system_router)
 api.add_router("", tags=["Stories"], router=stories_router)
