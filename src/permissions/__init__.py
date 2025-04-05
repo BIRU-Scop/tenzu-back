@@ -20,6 +20,7 @@
 import abc
 from typing import TYPE_CHECKING, Any
 
+from base.db.mixins import DeletedAtMetaInfoMixin
 from commons.exceptions import api as ex
 
 if TYPE_CHECKING:
@@ -132,17 +133,17 @@ async def check_permissions(
 
 
 class AllowAny(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
         return True
 
 
 class DenyAll(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
         return False
 
 
 class IsSuperUser(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
         return bool(user and user.is_superuser)
 
 
@@ -150,7 +151,7 @@ class IsAuthenticated(PermissionComponent):
     # NOTE: We force a 401 instead of using the default (which would return a 403)
     error = ex.AuthorizationError("User is anonymous")
 
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
         return bool(user and user.is_authenticated)
 
 
@@ -159,7 +160,7 @@ class IsRelatedToTheUser(PermissionComponent):
         self.related_field = field
         super().__init__(*components)
 
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
         return obj and getattr(obj, self.related_field) == user
 
 
@@ -170,5 +171,7 @@ class IsNotDeleted(PermissionComponent):
     `base.db.mixins.DeletedMetaInfoMixin`.
     """
 
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(
+        self, user: "AnyUser", obj: DeletedAtMetaInfoMixin = None
+    ) -> bool:
         return not hasattr(obj, "deleted_at") or obj.deleted_at is None

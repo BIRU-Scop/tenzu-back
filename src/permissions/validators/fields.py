@@ -17,48 +17,57 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Annotated, Any, Callable, Generator
+from typing import Annotated, Any, Callable, Generator, TypeVar
 
 from pydantic import (
     AfterValidator,
 )
 from pydantic.json_schema import WithJsonSchema
 
+from commons.validators import check_not_empty
 from permissions import choices
 
 CallableGenerator = Generator[Callable[..., Any], None, None]
 
+P = TypeVar("P", bound=choices.PermissionsBase)
 
-def validate_permissions(value: list[str]):
-    if not _permissions_are_valid(permissions=value):
-        raise ValueError(
-            "One or more permissions are not valid. Maybe, there is a typo."
-        )
-    if not _permissions_are_compatible(permissions=value):
-        raise ValueError("Given permissions are incompatible")
+
+def validate_permissions(permissions_type: type[P], value: list[str]) -> set[P]:
+    value = set(check_not_empty(value))
+    _check_permissions_are_valid(permissions_type, permissions=value)
+    _check_permissions_are_compatible(permissions_type, permissions=value)
     return value
 
 
-Permissions = Annotated[
+ProjectPermissionsField = Annotated[
     list[str],
-    AfterValidator(validate_permissions),
-    WithJsonSchema({"example": ["view_story"]}),
+    AfterValidator(
+        lambda value: validate_permissions(choices.ProjectPermissions, value)
+    ),
+    WithJsonSchema({"example": [choices.ProjectPermissions.VIEW_STORY.value]}),
+]
+WorkspacePermissionsField = Annotated[
+    list[str],
+    AfterValidator(
+        lambda value: validate_permissions(choices.WorkspacePermissions, value)
+    ),
+    WithJsonSchema({"example": [choices.WorkspacePermissions.CREATE_PROJECT.value]}),
 ]
 
 
-def _permissions_are_valid(permissions: list[str]) -> bool:
-    return set.issubset(set(permissions), set(choices.ProjectPermissions))
+def _check_permissions_are_valid(
+    permissions_type: type[P], permissions: set[str]
+) -> None:
+    invalid_permissions = permissions - set(permissions_type)
+    if invalid_permissions:
+        raise ValueError(
+            f"The following permissions are not valid: {invalid_permissions}."
+        )
 
 
-def _permissions_are_compatible(permissions: list[str]) -> bool:
-    # a user cannot edit a story if she has no view permission
-    if "view_story" not in permissions and set.intersection(
-        set(permissions), choices.EditStoryPermissions
-    ):
-        return False
-
-    # a user cannot have "comment_story" permissions if she has no "view_story" permission
-    if "comment_story" in permissions and "view_story" not in permissions:
-        return False
-
-    return True
+def _check_permissions_are_compatible(
+    permissions_type: type[P], permissions: set[str]
+) -> None:
+    for permission, required_permission in permissions_type.dependencies():
+        if permission in permissions and required_permission not in permissions:
+            raise ValueError(f"{permission} needs {required_permission} permission")

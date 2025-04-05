@@ -217,7 +217,7 @@ async def update_project_role(
     )
 
     try:
-        # TODO enable changing name (and slug?) also
+        # TODO enable changing name also
         await memberships_services.update_project_role_permissions(
             role, form.permissions
         )
@@ -227,7 +227,7 @@ async def update_project_role(
     return role
 
 
-# TODO create and delete api (for delete, have replacement role for existing users and pending invitations)
+# TODO create and delete api (for delete, have replacement role for existing users and pending invitations) take care of editable attribute
 
 ################################################
 # misc

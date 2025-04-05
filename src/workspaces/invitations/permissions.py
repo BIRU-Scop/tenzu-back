@@ -75,4 +75,4 @@ class InvitationPermissionsCheck(Enum):
     ANSWER_SELF = IsAuthenticated()
     ANSWER = IsAuthenticated() & IsWorkspaceInvitationRecipient()
     CREATE = CanAssignMember()
-    MODIFY = CanModifyInvitation()
+    MODIFY = CanAssignMember() & CanModifyInvitation()

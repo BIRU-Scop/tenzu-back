@@ -19,8 +19,8 @@
 
 
 from commons.validators import BaseModel
-from permissions.validators import Permissions
+from permissions.validators import WorkspacePermissionsField
 
 
 class RoleValidator(BaseModel):
-    permissions: Permissions
+    permissions: WorkspacePermissionsField

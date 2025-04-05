@@ -24,6 +24,6 @@ from commons.validators.fields import *  # noqa
 
 
 def check_not_empty(v: Any) -> Any:
-    if v == "":
+    if v == "" or v == []:
         raise ValueError("Empty field is not allowed")
     return v

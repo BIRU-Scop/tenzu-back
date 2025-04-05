@@ -54,7 +54,7 @@ class RoleBase(ModelBase):
     """
 
     def __new__(
-        cls,
+        metacls,
         name,
         bases,
         attrs,
@@ -62,7 +62,7 @@ class RoleBase(ModelBase):
     ):
         parents = [b for b in bases if isinstance(b, RoleBase)]
         if not parents:
-            return super().__new__(cls, name, bases, attrs, **kwargs)
+            return super().__new__(metacls, name, bases, attrs, **kwargs)
 
         try:
             reference_model: type[BaseModel] = kwargs["reference_model"]
@@ -140,7 +140,7 @@ class RoleBase(ModelBase):
         attrs["__repr__"] = __repr__
         attrs["save"] = save
         attrs["reference_model_filter"] = _get_reference_model_filter(reference_model)
-        return super().__new__(cls, name, bases, attrs)
+        return super().__new__(metacls, name, bases, attrs)
 
 
 class Role(BaseModel, metaclass=RoleBase):
@@ -182,7 +182,7 @@ class MembershipBase(ModelBase):
     """
 
     def __new__(
-        cls,
+        metacls,
         name,
         bases,
         attrs,
@@ -190,7 +190,7 @@ class MembershipBase(ModelBase):
     ):
         parents = [b for b in bases if isinstance(b, MembershipBase)]
         if not parents:
-            return super().__new__(cls, name, bases, attrs, **kwargs)
+            return super().__new__(metacls, name, bases, attrs, **kwargs)
 
         try:
             reference_model: type[BaseModel] = kwargs["reference_model"]
@@ -256,7 +256,7 @@ class MembershipBase(ModelBase):
         attrs["__str__"] = __str__
         attrs["__repr__"] = __repr__
         attrs["reference_model_filter"] = _get_reference_model_filter(reference_model)
-        return super().__new__(cls, name, bases, attrs)
+        return super().__new__(metacls, name, bases, attrs)
 
 
 class Membership(BaseModel, CreatedAtMetaInfoMixin, metaclass=MembershipBase):
@@ -286,7 +286,7 @@ class InvitationBase(ModelBase):
     """
 
     def __new__(
-        cls,
+        metacls,
         name,
         bases,
         attrs,
@@ -294,7 +294,7 @@ class InvitationBase(ModelBase):
     ):
         parents = [b for b in bases if isinstance(b, InvitationBase)]
         if not parents:
-            return super().__new__(cls, name, bases, attrs, **kwargs)
+            return super().__new__(metacls, name, bases, attrs, **kwargs)
 
         try:
             reference_model: type[BaseModel] = kwargs["reference_model"]
@@ -363,7 +363,7 @@ class InvitationBase(ModelBase):
         attrs["__str__"] = __str__
         attrs["__repr__"] = __repr__
         attrs["reference_model_filter"] = _get_reference_model_filter(reference_model)
-        return super().__new__(cls, name, bases, attrs)
+        return super().__new__(metacls, name, bases, attrs)
 
 
 class Invitation(BaseModel, CreatedAtMetaInfoMixin, metaclass=InvitationBase):
