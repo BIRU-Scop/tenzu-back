@@ -18,8 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 
 import json
+from contextlib import contextmanager
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from pydantic import ValidationError
 
@@ -52,3 +53,12 @@ def preserve_real_attrs(mocked_object: Mock, real_object: Any, attr_names: list)
             if callable(real_attr)
             else real_attr,
         )
+
+
+@contextmanager
+def patch_db_transaction():
+    with (
+        patch("django.db.transaction.atomic", autospec=True),
+        patch("django.db.transaction.on_commit", new=lambda fn: fn()),
+    ):
+        yield

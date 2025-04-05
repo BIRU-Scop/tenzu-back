@@ -24,7 +24,7 @@ from uuid import UUID
 from django.conf import settings
 
 from commons.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
-from commons.utils import transaction_atomic_async
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from projects.projects import repositories as projects_repositories
 from projects.projects import services as projects_services
 from projects.projects.models import Project
@@ -95,9 +95,9 @@ async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
     )
 
     # emit event
-    await workflows_events.emit_event_when_workflow_is_created(
-        project=workflow.project, workflow=serialized_workflow
-    )
+    await transaction_on_commit_async(
+        workflows_events.emit_event_when_workflow_is_created
+    )(project=workflow.project, workflow=serialized_workflow)
 
     return serialized_workflow
 
@@ -224,7 +224,9 @@ async def update_workflow(
         )
 
     # Emit event
-    await workflows_events.emit_event_when_workflow_is_updated(
+    await transaction_on_commit_async(
+        workflows_events.emit_event_when_workflow_is_updated
+    )(
         project=workflow.project,
         workflow=updated_workflow_detail,
     )
@@ -322,7 +324,9 @@ async def delete_workflow(
                 workflow_slug=target_workflow.slug,
             )
 
-        await workflows_events.emit_event_when_workflow_is_deleted(
+        await transaction_on_commit_async(
+            workflows_events.emit_event_when_workflow_is_deleted
+        )(
             project=workflow.project,
             workflow=workflow_detail,
             target_workflow=target_workflow_detail,
@@ -343,6 +347,7 @@ async def create_workflow_status(
     latest_status = await workflows_repositories.list_workflow_statuses(
         workflow_id=workflow.id, order_by=["-order"], offset=0, limit=1
     )
+    # TODO prevent concurrency for order by using subquery
     order = DEFAULT_ORDER_OFFSET + (latest_status[0].order if latest_status else 0)
 
     # Create workflow status
@@ -432,6 +437,7 @@ async def _calculate_offset(
     )
 
 
+@transaction_atomic_async
 async def reorder_workflow_statuses(
     target_workflow: Workflow,
     statuses: list[UUID],
@@ -546,9 +552,9 @@ async def reorder_workflow_statuses(
     )
 
     # event
-    await workflows_events.emit_event_when_workflow_statuses_are_reordered(
-        project=target_workflow.project, reorder=reorder_status_serializer
-    )
+    await transaction_on_commit_async(
+        workflows_events.emit_event_when_workflow_statuses_are_reordered
+    )(project=target_workflow.project, reorder=reorder_status_serializer)
 
     return reorder_status_serializer
 
@@ -558,6 +564,7 @@ async def reorder_workflow_statuses(
 ##########################################################
 
 
+@transaction_atomic_async
 async def delete_workflow_status(
     workflow_status: WorkflowStatus, deleted_by: User, target_status_id: UUID | None
 ) -> bool:
@@ -616,7 +623,9 @@ async def delete_workflow_status(
         status_id=workflow_status.id
     )
     if deleted > 0:
-        await workflows_events.emit_event_when_workflow_status_is_deleted(
+        await transaction_on_commit_async(
+            workflows_events.emit_event_when_workflow_status_is_deleted
+        )(
             project=workflow_status.project,
             workflow_status=workflow_status,
             target_status=target_status,

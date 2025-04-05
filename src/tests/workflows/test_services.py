@@ -25,6 +25,7 @@ from django.test import override_settings
 
 from base.repositories.neighbors import Neighbor
 from tests.utils import factories as f
+from tests.utils.utils import patch_db_transaction
 from workflows import repositories, services
 from workflows.serializers import (
     DeleteWorkflowSerializer,
@@ -53,7 +54,7 @@ async def test_create_workflow_ok():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         fake_workflows_repo.list_workflows.return_value = None
         fake_workflows_repo.create_workflow.return_value = workflow
@@ -98,7 +99,7 @@ async def test_create_workflow_no_landing_change():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         fake_workflows_repo.list_workflows.return_value = [workflow2]
         fake_workflows_repo.create_workflow.return_value = workflow1
@@ -138,7 +139,7 @@ async def test_create_workflow_reached_num_workflows_error():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
         override_settings(**{"MAX_NUM_WORKFLOWS": 1}),
         pytest.raises(ex.MaxNumWorkflowCreatedError),
     ):
@@ -289,7 +290,7 @@ async def test_update_workflow_ok():
         patch(
             "workflows.services.projects_services", autospec=True
         ) as fake_projects_services,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         updated_workflow = await services.update_workflow(
             project_id=project.id, workflow=workflow, updated_by=user, values=values
@@ -316,7 +317,7 @@ async def test_update_workflow_update_landing_to_new_slug():
         patch(
             "workflows.services.projects_services", autospec=True
         ) as fake_projects_services,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         await services.update_workflow(
             project_id=workflow.project.id,
@@ -456,7 +457,7 @@ async def test_delete_workflow_no_target_workflow_ok():
         patch(
             "workflows.services.projects_services", autospec=True
         ) as fake_projects_services,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         user = f.build_user()
         workflow = f.build_workflow()
@@ -506,7 +507,7 @@ async def test_delete_workflow_update_landing_to_new_slug():
         patch(
             "workflows.services.projects_services", autospec=True
         ) as fake_projects_services,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         user = f.build_user()
         workflow = f.build_workflow(
@@ -556,7 +557,7 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         user = f.build_user()
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
@@ -674,7 +675,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         user = f.build_user()
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
@@ -777,7 +778,7 @@ async def test_delete_workflow_not_existing_target_workflow_exception():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
         pytest.raises(ex.NonExistingMoveToWorkflow),
     ):
         user = f.build_user()
@@ -824,7 +825,7 @@ async def test_delete_workflow_same_target_workflow_exception():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
         pytest.raises(ex.SameMoveToWorkflow),
     ):
         user = f.build_user()
@@ -939,6 +940,7 @@ async def test_reorder_workflow_statuses_same_workflow_ok():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
+        patch_db_transaction(),
     ):
         workflow = f.build_workflow()
         status1 = f.build_workflow_status(workflow=workflow, order=1)
@@ -980,6 +982,7 @@ async def test_reorder_workflow_statuses_between_workflows_with_anchor_ok():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
+        patch_db_transaction(),
     ):
         workflow1 = f.build_workflow()
         workflow2 = f.build_workflow()
@@ -1022,6 +1025,7 @@ async def test_reorder_workflow_statuses_between_workflows_no_anchor_ok():
         patch(
             "workflows.services.workflows_events", autospec=True
         ) as fake_workflows_events,
+        patch_db_transaction(),
     ):
         workflow1 = f.build_workflow()
         workflow2 = f.build_workflow(statuses=[])
@@ -1057,6 +1061,7 @@ async def test_reorder_workflow_statuses_between_workflows_no_anchor_same_workfl
         patch(
             "workflows.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
+        patch_db_transaction(),
         pytest.raises(ex.NonExistingMoveToStatus),
     ):
         workflow = f.build_workflow()
@@ -1077,10 +1082,11 @@ async def test_reorder_workflow_statuses_between_workflows_no_anchor_same_workfl
 
 async def test_reorder_workflow_status_repeated():
     with (
-        pytest.raises(ex.InvalidWorkflowStatusError),
         patch(
             "workflows.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
+        patch_db_transaction(),
+        pytest.raises(ex.InvalidWorkflowStatusError),
     ):
         workflow = f.build_workflow()
         status = f.build_workflow_status(workflow=workflow, order=1)
@@ -1098,6 +1104,7 @@ async def test_reorder_anchor_workflow_status_does_not_exist():
         patch(
             "workflows.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
+        patch_db_transaction(),
         pytest.raises(ex.InvalidWorkflowStatusError),
     ):
         fake_workflows_repo.get_workflow_status.return_value = None
@@ -1114,6 +1121,7 @@ async def test_reorder_any_workflow_status_does_not_exist():
         patch(
             "workflows.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
+        patch_db_transaction(),
         pytest.raises(ex.InvalidWorkflowStatusError),
     ):
         fake_workflows_repo.get_workflow_status.return_value = None
@@ -1184,6 +1192,7 @@ async def test_delete_workflow_status_moving_stories_ok():
         patch(
             "workflows.services.stories_services", autospec=True
         ) as fake_stories_services,
+        patch_db_transaction(),
     ):
         fake_workflows_repo.delete_workflow_status.return_value = 1
         fake_get_workflow_status.return_value = workflow_status2
@@ -1248,6 +1257,7 @@ async def test_delete_workflow_status_deleting_stories_ok():
         patch(
             "workflows.services.stories_services", autospec=True
         ) as fake_stories_services,
+        patch_db_transaction(),
     ):
         fake_workflows_repo.delete_workflow_status.return_value = 2
         fake_workflows_repo.get_workflow_status.return_value = 1
@@ -1281,6 +1291,7 @@ async def test_delete_workflow_status_wrong_target_status_ex():
         patch(
             "workflows.services.get_workflow_status", autospec=True
         ) as fake_get_workflow_status,
+        patch_db_transaction(),
         pytest.raises(ex.NonExistingMoveToStatus),
     ):
         fake_get_workflow_status.return_value = None
@@ -1307,6 +1318,7 @@ async def test_delete_workflow_status_same_target_status_ex():
         patch(
             "workflows.services.get_workflow_status", autospec=True
         ) as fake_get_workflow_status,
+        patch_db_transaction(),
         pytest.raises(ex.SameMoveToStatus),
     ):
         fake_get_workflow_status.return_value = workflow_status1

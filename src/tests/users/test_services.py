@@ -31,7 +31,7 @@ from ninja_jwt.exceptions import TokenError
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from projects.invitations.models import ProjectInvitation
 from tests.utils import factories as f
-from tests.utils.utils import preserve_real_attrs
+from tests.utils.utils import patch_db_transaction, preserve_real_attrs
 from users import services
 from users.services import exceptions as ex
 from users.tokens import ResetPasswordToken, VerifyUserToken
@@ -248,7 +248,7 @@ async def test_verify_user():
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_workspace_invitations_services,
         patch("users.services.aware_utcnow") as fake_aware_utcnow,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         fake_aware_utcnow.return_value = now
         await services.verify_user(user=user)
@@ -286,7 +286,7 @@ async def test_verify_user_ok_no_invitation_tokens_to_accept():
         patch(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         FakeVerifyUserToken.return_value.payload = token_data
         preserve_real_attrs(FakeVerifyUserToken.return_value, VerifyUserToken, ["get"])
@@ -349,7 +349,7 @@ async def test_verify_user_ok_accepting_or_not_a_project_invitation_token(
         patch(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         FakeVerifyUserToken.return_value.get.side_effect = [
             1,
@@ -424,7 +424,7 @@ async def test_verify_user_ok_accepting_or_not_a_workspace_invitation_token(
         patch(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         # Second call will be `verify_token.get("project_invitation_token", None)` and should return None
         FakeVerifyUserToken.return_value.get.side_effect = [
@@ -487,7 +487,7 @@ async def test_verify_user_error_with_invalid_data():
     with (
         patch("users.services.VerifyUserToken", autospec=True) as FakeVerifyUserToken,
         patch("users.services.users_repositories", autospec=True) as fake_users_repo,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
         pytest.raises(ex.BadVerifyUserTokenError),
     ):
         preserve_real_attrs(
@@ -524,7 +524,7 @@ async def test_verify_user_error_project_invitation_token(exception):
         ) as fake_invitations_services,
         patch("users.services.workspace_invitations_services", autospec=True),
         patch("users.services.auth_services", autospec=True) as fake_auth_services,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         FakeVerifyUserToken.return_value.get.side_effect = [
             1,

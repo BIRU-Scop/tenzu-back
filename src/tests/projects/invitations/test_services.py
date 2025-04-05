@@ -31,6 +31,7 @@ from projects.invitations.models import ProjectInvitation
 from projects.invitations.tokens import ProjectInvitationToken
 from projects.memberships.models import ProjectRole
 from tests.utils import factories as f
+from tests.utils.utils import patch_db_transaction
 
 #######################################################
 # get_project_invitation
@@ -967,7 +968,7 @@ async def test_update_user_projects_invitations() -> None:
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
-        patch("django.db.transaction.on_commit", new=lambda fn: fn()),
+        patch_db_transaction(),
     ):
         await services.update_user_projects_invitations(user=user)
         fake_invitations_repositories.update_user_invitations.assert_awaited_once_with(
@@ -1380,7 +1381,7 @@ async def test_update_project_invitation_role_non_existing_role():
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
-        patch("django.db.transaction.on_commit", new=lambda fn: fn()),
+        patch_db_transaction(),
         pytest.raises(ex.NonExistingRoleError),
     ):
         fake_memberships_repositories.get_role.side_effect = ProjectRole.DoesNotExist
@@ -1415,7 +1416,7 @@ async def test_update_project_invitation_role_ok():
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
-        patch("django.db.transaction.on_commit", new=lambda fn: fn()),
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.get_role.return_value = admin_role
         updated_invitation = await services.update_project_invitation(

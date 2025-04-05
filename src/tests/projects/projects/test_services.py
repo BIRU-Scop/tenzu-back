@@ -27,6 +27,7 @@ from projects.memberships.models import ProjectRole
 from projects.projects import services
 from projects.projects.services import exceptions as ex
 from tests.utils import factories as f
+from tests.utils.utils import patch_db_transaction
 from users.models import AnonymousUser
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
@@ -77,7 +78,7 @@ async def test_internal_create_project():
         patch("projects.projects.services.workspaces_services", autospec=True),
         patch("projects.projects.services.pj_invitations_services", autospec=True),
         patch("projects.projects.services.serializers_services", autospec=True),
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         fake_project_repository.create_project.return_value = project
 
@@ -109,7 +110,7 @@ async def test_create_project_with_logo():
         patch(
             "projects.projects.services.pj_memberships_repositories", autospec=True
         ) as fake_pj_memberships_repositories,
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         fake_project_repository.create_project.return_value = project
         fake_pj_memberships_repositories.get_role.return_value = role
@@ -138,7 +139,7 @@ async def test_create_project_with_no_logo():
             "projects.projects.services.projects_repositories", autospec=True
         ) as fake_project_repository,
         patch("projects.projects.services.pj_memberships_repositories", autospec=True),
-        patch("django.db.transaction.atomic", autospec=True),
+        patch_db_transaction(),
     ):
         fake_project_repository.get_project_template.return_value = project_template
         fake_project_repository.create_project.return_value = project

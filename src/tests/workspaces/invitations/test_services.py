@@ -27,6 +27,7 @@ from base.utils.datetime import aware_utcnow
 from memberships.choices import InvitationStatus
 from memberships.services import exceptions as ex
 from tests.utils import factories as f
+from tests.utils.utils import patch_db_transaction
 from workspaces.invitations import services
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.invitations.tokens import WorkspaceInvitationToken
@@ -509,7 +510,7 @@ async def test_update_user_workspaces_invitations() -> None:
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
-        patch("django.db.transaction.on_commit", new=lambda fn: fn()),
+        patch_db_transaction(),
     ):
         await services.update_user_workspaces_invitations(user=user)
         fake_invitations_repositories.update_user_invitations.assert_awaited_once_with(

@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 from uuid import UUID
 
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from memberships import services as memberships_services
 from memberships.services import exceptions as ex
 from permissions.choices import ProjectPermissions
@@ -60,6 +61,7 @@ async def get_project_membership(project_id: UUID, username: str) -> ProjectMemb
 ##########################################################
 
 
+@transaction_atomic_async
 async def update_project_membership(
     membership: ProjectMembership, role_slug: str
 ) -> ProjectMembership:
@@ -87,9 +89,9 @@ async def update_project_membership(
         values={"role": project_role},
     )
 
-    await memberships_events.emit_event_when_project_membership_is_updated(
-        membership=updated_membership
-    )
+    await transaction_on_commit_async(
+        memberships_events.emit_event_when_project_membership_is_updated
+    )(membership=updated_membership)
 
     # Unassign stories for user if the new role doesn't have view_story permission
     if view_story_is_deleted:
@@ -170,6 +172,7 @@ async def get_project_role(project_id: UUID, slug: str) -> ProjectRole:
 ##########################################################
 
 
+@transaction_atomic_async
 async def update_project_role_permissions(
     role: ProjectRole, permissions: list[str]
 ) -> ProjectRole:
@@ -187,9 +190,9 @@ async def update_project_role_permissions(
         values={"permissions": permissions},
     )
 
-    await memberships_events.emit_event_when_project_role_permissions_are_updated(
-        role=role
-    )
+    await transaction_on_commit_async(
+        memberships_events.emit_event_when_project_role_permissions_are_updated
+    )(role=role)
 
     # Unassign stories for user if the new permissions don't have view_story
     if view_story_is_deleted:
