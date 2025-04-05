@@ -33,7 +33,7 @@ class IsProjectInvitationRecipient(PermissionComponent):
         if not obj:
             return False
 
-        return invitations_services.is_project_invitation_for_this_user(
+        return invitations_services.is_invitation_for_this_user(
             invitation=obj, user=user
         )
 
@@ -45,8 +45,8 @@ class HasPendingProjectInvitation(PermissionComponent):
         if not obj:
             return False
 
-        return await invitations_services.has_pending_project_invitation(
-            user=user, project=obj
+        return await invitations_services.has_pending_invitation(
+            user=user, reference_object=obj
         )
 
 

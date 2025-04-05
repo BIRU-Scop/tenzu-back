@@ -22,8 +22,8 @@ import uuid
 import pytest
 from asgiref.sync import sync_to_async
 
+from memberships.choices import InvitationStatus
 from permissions import choices
-from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.tokens import ProjectInvitationToken
 from tests.utils import factories as f
 
@@ -130,7 +130,7 @@ async def test_list_project_invitations_admin(client, project_template):
         user=user1,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     user2 = await f.create_user(full_name="BBB")
     await f.create_project_invitation(
@@ -138,14 +138,14 @@ async def test_list_project_invitations_admin(client, project_template):
         user=user2,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_project_invitation(
         email="non-existing@email.com",
         user=None,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     user = await f.create_user()
     await f.create_project_invitation(
@@ -153,7 +153,7 @@ async def test_list_project_invitations_admin(client, project_template):
         user=user,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
 
     client.login(project.created_by)
@@ -266,7 +266,7 @@ async def test_accept_project_invitation_error_user_has_no_permission_over_this_
 async def test_accept_project_invitation_error_invitation_already_accepted(client):
     user = await f.create_user()
     invitation = await f.create_project_invitation(
-        email=user.email, status=ProjectInvitationStatus.ACCEPTED
+        email=user.email, status=InvitationStatus.ACCEPTED
     )
     token = await ProjectInvitationToken.create_for_object(invitation)
 
@@ -278,7 +278,7 @@ async def test_accept_project_invitation_error_invitation_already_accepted(clien
 async def test_accept_project_invitation_error_invitation_revoked(client):
     user = await f.create_user()
     invitation = await f.create_project_invitation(
-        email=user.email, status=ProjectInvitationStatus.REVOKED
+        email=user.email, status=InvitationStatus.REVOKED
     )
     token = await ProjectInvitationToken.create_for_object(invitation)
 
@@ -298,7 +298,7 @@ async def test_accept_user_project_invitation(client, project_template):
     invitation = await f.create_project_invitation(
         email=invited_user.email,
         user=invited_user,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
         project=project,
     )
     await ProjectInvitationToken.create_for_object(invitation)
@@ -327,7 +327,7 @@ async def test_accept_user_already_accepted_project_invitation(
     invitation = await f.create_project_invitation(
         email=invited_user.email,
         user=invited_user,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
         project=project,
     )
     await ProjectInvitationToken.create_for_object(invitation)
@@ -343,7 +343,7 @@ async def test_accept_user_revoked_project_invitation(client, project_template):
     invitation = await f.create_project_invitation(
         email=invited_user.email,
         user=invited_user,
-        status=ProjectInvitationStatus.REVOKED,
+        status=InvitationStatus.REVOKED,
         project=project,
     )
     await ProjectInvitationToken.create_for_object(invitation)
@@ -431,7 +431,7 @@ async def test_resend_project_invitation_already_accepted(client, project_templa
         user=user,
         email=user.email,
         project=project,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
 
     client.login(project.created_by)
@@ -449,7 +449,7 @@ async def test_resend_project_invitation_revoked(client, project_template):
         user=user,
         email=user.email,
         project=project,
-        status=ProjectInvitationStatus.REVOKED,
+        status=InvitationStatus.REVOKED,
     )
 
     client.login(project.created_by)
@@ -469,7 +469,7 @@ async def test_revoke_project_invitation_for_email_ok(client, project_template):
     project = await f.create_project(project_template)
     email = "someone@email.com"
     await f.create_project_invitation(
-        user=None, email=email, project=project, status=ProjectInvitationStatus.PENDING
+        user=None, email=email, project=project, status=InvitationStatus.PENDING
     )
 
     client.login(project.created_by)
@@ -487,7 +487,7 @@ async def test_revoke_project_invitation_for_username_ok(client, project_templat
         user=user,
         email=user.email,
         project=project,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
 
     client.login(project.created_by)
@@ -505,7 +505,7 @@ async def test_revoke_project_invitation_for_user_email_ok(client, project_templ
         user=user,
         email=user.email,
         project=project,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
 
     client.login(project.created_by)
@@ -556,7 +556,7 @@ async def test_revoke_project_invitation_already_member_invalid(
         user=user,
         email=user.email,
         project=project,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
 
     client.login(project.created_by)
@@ -582,7 +582,7 @@ async def test_revoke_project_invitation_revoked(client, project_template):
         user=user,
         email=user.email,
         project=project,
-        status=ProjectInvitationStatus.REVOKED,
+        status=InvitationStatus.REVOKED,
     )
 
     client.login(project.created_by)

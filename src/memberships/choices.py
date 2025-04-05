@@ -20,7 +20,8 @@
 from django.db.models import TextChoices
 
 
-class WorkspaceInvitationStatus(TextChoices):
+class InvitationStatus(TextChoices):
     PENDING = "pending", "Pending"
     ACCEPTED = "accepted", "Accepted"
     REVOKED = "revoked", "Revoked"
+    DENIED = "denied", "Denied"

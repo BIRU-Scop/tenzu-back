@@ -20,11 +20,11 @@
 from pydantic import ConfigDict
 
 from base.serializers import BaseModel
-from workspaces.invitations.choices import WorkspaceInvitationStatus
+from memberships.choices import InvitationStatus
 from workspaces.workspaces.serializers.nested import WorkspaceSmallNestedSerializer
 
 
 class WorkspaceInvitationNestedSerializer(BaseModel):
-    status: WorkspaceInvitationStatus
+    status: InvitationStatus
     workspace: WorkspaceSmallNestedSerializer
     model_config = ConfigDict(from_attributes=True)

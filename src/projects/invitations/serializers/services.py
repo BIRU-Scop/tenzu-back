@@ -17,20 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from memberships.serializers.services import serialize_create_invitations  # noqa
 from projects.invitations.models import ProjectInvitation
 from projects.invitations.serializers import (
-    CreateProjectInvitationsSerializer,
     PublicProjectInvitationSerializer,
 )
-
-
-def serialize_create_project_invitations(
-    invitations: list[ProjectInvitation],
-    already_members: int,
-) -> CreateProjectInvitationsSerializer:
-    return CreateProjectInvitationsSerializer(
-        invitations=invitations, already_members=already_members
-    )
 
 
 def serialize_public_project_invitation(

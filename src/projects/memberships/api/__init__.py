@@ -227,7 +227,7 @@ async def update_project_role(
     return role
 
 
-# TODO create and delete api (for delete, have replacement role for existing users)
+# TODO create and delete api (for delete, have replacement role for existing users and pending invitations)
 
 ################################################
 # misc

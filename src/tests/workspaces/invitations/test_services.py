@@ -24,14 +24,12 @@ import pytest
 from django.test import override_settings
 
 from base.utils.datetime import aware_utcnow
+from memberships.choices import InvitationStatus
+from memberships.services import exceptions as ex
 from tests.utils import factories as f
 from workspaces.invitations import services
-from workspaces.invitations.choices import WorkspaceInvitationStatus
-from workspaces.invitations.services import exceptions as ex
+from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.invitations.tokens import WorkspaceInvitationToken
-
-pytestmark = pytest.mark.django_db
-
 
 #######################################################
 # create_workspace_invitations
@@ -41,14 +39,15 @@ pytestmark = pytest.mark.django_db
 async def test_create_workspace_invitations_already_member(tqmanager):
     user = f.build_user()
     workspace = f.build_workspace()
-    invitations = [{"username_or_email": user.email}]
+    role = f.build_workspace_role(workspace=workspace)
+    invitations = [{"email": user.email, "role_slug": role.slug}]
 
     with (
         patch(
-            "workspaces.invitations.services.users_services", autospec=True
+            "memberships.services.users_services", autospec=True
         ) as fake_users_services,
         patch(
-            "workspaces.invitations.services.memberships_repositories", autospec=True
+            "memberships.services.memberships_repositories", autospec=True
         ) as fake_memberships_repo,
         patch(
             "workspaces.invitations.services.invitations_repositories", autospec=True
@@ -57,9 +56,10 @@ async def test_create_workspace_invitations_already_member(tqmanager):
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
+        fake_memberships_repo.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {user.email: user}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
-        fake_memberships_repo.list_workspace_members.return_value = [user]
+        fake_memberships_repo.list_members.return_value = [user]
 
         await services.create_workspace_invitations(
             workspace=workspace,
@@ -67,7 +67,7 @@ async def test_create_workspace_invitations_already_member(tqmanager):
             invited_by=workspace.created_by,
         )
 
-        fake_invitations_repo.create_workspace_invitations.assert_not_awaited()
+        fake_invitations_repo.create_invitations.assert_not_awaited()
         assert len(tqmanager.pending_jobs) == 0
         fake_invitations_events.emit_event_when_workspace_invitations_are_created.assert_not_awaited()
 
@@ -82,21 +82,23 @@ async def test_create_workspace_invitations_with_pending_invitations_time_spam(
         email="test@email.com",
         invited_by=workspace.created_by,
     )
-    invitations = [{"username_or_email": invitation.email}]
+    role = f.build_workspace_role(workspace=workspace)
+    invitations = [{"email": invitation.email, "role_slug": role.slug}]
 
     with (
         patch(
-            "workspaces.invitations.services.invitations_repositories", autospec=True
-        ) as fake_invitations_repo,
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
         patch(
-            "workspaces.invitations.services.users_services", autospec=True
+            "memberships.services.users_services", autospec=True
         ) as fake_users_services,
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
         override_settings(**{"INVITATION_RESEND_TIME": 10}),
     ):
-        fake_invitations_repo.get_workspace_invitation.return_value = invitation
+        fake_memberships_repositories.get_invitation.return_value = invitation
+        fake_memberships_repositories.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
 
@@ -106,7 +108,7 @@ async def test_create_workspace_invitations_with_pending_invitations_time_spam(
             invited_by=workspace.created_by,
         )
 
-        fake_invitations_repo.bulk_update_workspace_invitations.assert_awaited_once()
+        fake_memberships_repositories.bulk_update_invitations.assert_awaited_once()
 
         assert len(tqmanager.pending_jobs) == 0
         fake_invitations_events.emit_event_when_workspace_invitations_are_created.assert_awaited_once()
@@ -114,7 +116,9 @@ async def test_create_workspace_invitations_with_pending_invitations_time_spam(
 
 async def test_create_workspace_invitations_with_pending_invitations(tqmanager):
     workspace = f.build_workspace()
-    created_at = aware_utcnow() - timedelta(days=1)  # to avoid time spam
+    created_at = aware_utcnow() - timedelta(days=1)
+    role = f.build_workspace_role(workspace=workspace)
+    # to avoid time spam
     invitation = f.build_workspace_invitation(
         workspace=workspace,
         user=None,
@@ -122,21 +126,22 @@ async def test_create_workspace_invitations_with_pending_invitations(tqmanager):
         created_at=created_at,
         invited_by=workspace.created_by,
     )
-    invitations = [{"username_or_email": invitation.email}]
+    invitations = [{"email": invitation.email, "role_slug": role.slug}]
 
     with (
         patch(
-            "workspaces.invitations.services.invitations_repositories", autospec=True
-        ) as fake_invitations_repo,
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
         patch(
-            "workspaces.invitations.services.users_services", autospec=True
+            "memberships.services.users_services", autospec=True
         ) as fake_users_services,
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
         override_settings(**{"INVITATION_RESEND_TIME": 10}),
     ):
-        fake_invitations_repo.get_workspace_invitation.return_value = invitation
+        fake_memberships_repositories.get_invitation.return_value = invitation
+        fake_memberships_repositories.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
 
@@ -146,7 +151,7 @@ async def test_create_workspace_invitations_with_pending_invitations(tqmanager):
             invited_by=workspace.created_by,
         )
 
-        fake_invitations_repo.bulk_update_workspace_invitations.assert_awaited_once()
+        fake_memberships_repositories.bulk_update_invitations.assert_awaited_once()
 
         assert len(tqmanager.pending_jobs) == 1
         fake_invitations_events.emit_event_when_workspace_invitations_are_created.assert_awaited_once()
@@ -156,28 +161,32 @@ async def test_create_workspace_invitations_by_emails(tqmanager):
     user1 = f.build_user()
     user2 = f.build_user(email="user-test@email.com")
     workspace = f.build_workspace()
+    role = f.build_workspace_role(workspace=workspace)
 
     invitations = [
-        {"username_or_email": user2.email},
-        {"username_or_email": "test@email.com"},
+        {"email": user2.email, "role_slug": role.slug},
+        {"email": "test@email.com", "role_slug": role.slug},
     ]
 
     with (
         patch(
-            "workspaces.invitations.services.invitations_repositories", autospec=True
-        ) as fake_invitations_repo,
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
         patch(
-            "workspaces.invitations.services.users_services", autospec=True
+            "memberships.services.users_services", autospec=True
         ) as fake_users_services,
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
+        fake_memberships_repositories.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {
             user2.email: user2
         }
         fake_users_services.list_users_usernames_as_dict.return_value = {}
-        fake_invitations_repo.get_workspace_invitation.return_value = None
+        fake_memberships_repositories.get_invitation.side_effect = (
+            WorkspaceInvitation.DoesNotExist
+        )
 
         await services.create_workspace_invitations(
             workspace=workspace, invitations=invitations, invited_by=user1
@@ -185,7 +194,7 @@ async def test_create_workspace_invitations_by_emails(tqmanager):
 
         fake_users_services.list_users_emails_as_dict.assert_awaited_once()
         fake_users_services.list_users_usernames_as_dict.assert_not_awaited()
-        fake_invitations_repo.create_workspace_invitations.assert_awaited_once()
+        fake_memberships_repositories.create_invitations.assert_awaited_once()
 
         assert len(tqmanager.pending_jobs) == 2
         fake_invitations_events.emit_event_when_workspace_invitations_are_created.assert_awaited_once()
@@ -196,35 +205,39 @@ async def test_create_workspace_invitations_by_usernames(tqmanager):
     user2 = f.build_user()
     user3 = f.build_user()
     workspace = f.build_workspace()
+    role = f.build_workspace_role(workspace=workspace)
 
     invitations = [
-        {"username_or_email": user2.username},
-        {"username_or_email": user3.username},
+        {"username": user2.username, "role_slug": role.slug},
+        {"username": user3.username, "role_slug": role.slug},
     ]
 
     with (
         patch(
-            "workspaces.invitations.services.invitations_repositories", autospec=True
-        ) as fake_invitations_repo,
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
         patch(
-            "workspaces.invitations.services.users_services", autospec=True
+            "memberships.services.users_services", autospec=True
         ) as fake_users_services,
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
+        fake_memberships_repositories.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {
             user2.username: user2,
             user3.username: user3,
         }
-        fake_invitations_repo.get_workspace_invitation.return_value = None
+        fake_memberships_repositories.get_invitation.side_effect = (
+            WorkspaceInvitation.DoesNotExist
+        )
 
         await services.create_workspace_invitations(
             workspace=workspace, invitations=invitations, invited_by=user1
         )
 
-        fake_invitations_repo.create_workspace_invitations.assert_awaited_once()
+        fake_memberships_repositories.create_invitations.assert_awaited_once()
 
         assert len(tqmanager.pending_jobs) == 2
         fake_invitations_events.emit_event_when_workspace_invitations_are_created.assert_awaited_once()
@@ -236,26 +249,32 @@ async def test_create_workspace_invitations_duplicated_email_username(tqmanager)
     user3 = f.build_user(email="test3@email.com", username="user3")
     user4 = f.build_user(email="test4@email.com", username="user4")
     workspace = f.build_workspace()
+    role = f.build_workspace_role(workspace=workspace)
 
     invitations = [
-        {"username_or_email": user2.username, "email": "test2@email.com"},
-        {"username_or_email": user3.username},
-        {"username_or_email": user4.username},
-        {"username_or_email": "test3@email.com"},
-        {"username_or_email": "test4@email.com"},
+        {
+            "username": user2.username,
+            "email": "test2@email.com",
+            "role_slug": role.slug,
+        },
+        {"username": user3.username, "role_slug": role.slug},
+        {"username": user4.username, "role_slug": role.slug},
+        {"email": "test3@email.com", "role_slug": role.slug},
+        {"email": "test4@email.com", "role_slug": role.slug},
     ]
 
     with (
         patch(
-            "workspaces.invitations.services.invitations_repositories", autospec=True
-        ) as fake_invitations_repo,
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
         patch(
-            "workspaces.invitations.services.users_services", autospec=True
+            "memberships.services.users_services", autospec=True
         ) as fake_users_services,
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
+        fake_memberships_repositories.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {
             user3.email: user3,
             user4.email: user4,
@@ -265,7 +284,9 @@ async def test_create_workspace_invitations_duplicated_email_username(tqmanager)
             user3.username: user3,
             user4.username: user4,
         }
-        fake_invitations_repo.get_workspace_invitation.return_value = None
+        fake_memberships_repositories.get_invitation.side_effect = (
+            WorkspaceInvitation.DoesNotExist
+        )
 
         await services.create_workspace_invitations(
             workspace=workspace, invitations=invitations, invited_by=user1
@@ -273,7 +294,7 @@ async def test_create_workspace_invitations_duplicated_email_username(tqmanager)
 
         fake_users_services.list_users_emails_as_dict.assert_awaited_once()
         fake_users_services.list_users_usernames_as_dict.assert_awaited_once()
-        fake_invitations_repo.create_workspace_invitations.assert_awaited_once()
+        fake_memberships_repositories.create_invitations.assert_awaited_once()
 
         assert len(tqmanager.pending_jobs) == 3
         assert list(map(lambda x: x["args"]["to"], tqmanager.pending_jobs)) == [
@@ -287,15 +308,20 @@ async def test_create_workspace_invitations_duplicated_email_username(tqmanager)
 async def test_create_workspace_invitations_invalid_username(tqmanager):
     user1 = f.build_user(email="test@email.com", username="user1")
     workspace = f.build_workspace()
+    role = f.build_workspace_role(workspace=workspace)
 
-    invitations = [{"username_or_email": "not existing username"}]
+    invitations = [{"username": "not existing username", "role_slug": role.slug}]
 
     with (
         patch(
-            "workspaces.invitations.services.users_services", autospec=True
+            "memberships.services.users_services", autospec=True
         ) as fake_users_services,
-        pytest.raises(ex.NonExistingUsernameError),
+        patch(
+            "memberships.services.memberships_repositories.list_roles"
+        ) as fake_list_roles,
+        pytest.raises(ex.InvitationNonExistingUsernameError),
     ):
+        fake_list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {}
         fake_users_services.list_users_usernames_as_dict.return_value = {}
 
@@ -317,16 +343,17 @@ async def test_list_workspace_invitations():
             "workspaces.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
     ):
-        fake_invitations_repo.list_workspace_invitations.return_value = [invitation]
+        fake_invitations_repo.list_invitations.return_value = [invitation]
 
         invitations = await services.list_pending_workspace_invitations(
             workspace=invitation.workspace
         )
 
-        fake_invitations_repo.list_workspace_invitations.assert_awaited_once_with(
+        fake_invitations_repo.list_invitations.assert_awaited_once_with(
+            WorkspaceInvitation,
             filters={
                 "workspace_id": invitation.workspace.id,
-                "status": WorkspaceInvitationStatus.PENDING,
+                "status": InvitationStatus.PENDING,
             },
             select_related=["user", "workspace"],
         )
@@ -347,11 +374,12 @@ async def test_get_workspace_invitation_ok():
             "workspaces.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
     ):
-        fake_invitations_repo.get_workspace_invitation.return_value = invitation
+        fake_invitations_repo.get_invitation.return_value = invitation
         inv = await services.get_workspace_invitation(token)
-        fake_invitations_repo.get_workspace_invitation.assert_awaited_once_with(
+        fake_invitations_repo.get_invitation.assert_awaited_once_with(
+            WorkspaceInvitation,
             filters={"id": str(invitation.id)},
-            select_related=["user", "workspace"],
+            select_related=["user", "workspace", "role"],
         )
         assert inv == invitation
 
@@ -370,13 +398,16 @@ async def test_get_workspace_invitation_error_not_found():
             "workspaces.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
     ):
-        fake_invitations_repo.get_workspace_invitation.return_value = None
-        inv = await services.get_workspace_invitation(token)
-        fake_invitations_repo.get_workspace_invitation.assert_awaited_once_with(
-            filters={"id": str(invitation.id)},
-            select_related=["user", "workspace"],
+        fake_invitations_repo.get_invitation.side_effect = (
+            WorkspaceInvitation.DoesNotExist
         )
-        assert inv is None
+        with pytest.raises(WorkspaceInvitation.DoesNotExist):
+            await services.get_workspace_invitation(token)
+        fake_invitations_repo.get_invitation.assert_awaited_once_with(
+            WorkspaceInvitation,
+            filters={"id": str(invitation.id)},
+            select_related=["user", "workspace", "role"],
+        )
 
 
 #######################################################
@@ -398,14 +429,15 @@ async def test_get_public_workspace_invitation_ok():
             "workspaces.invitations.services.auth_services", autospec=True
         ) as fake_auth_services,
     ):
-        fake_invitations_repo.get_workspace_invitation.return_value = invitation
+        fake_invitations_repo.get_invitation.return_value = invitation
         fake_auth_services.get_available_user_logins.return_value = (
             available_user_logins
         )
         pub_invitation = await services.get_public_workspace_invitation(token=token)
-        fake_invitations_repo.get_workspace_invitation.assert_awaited_once_with(
+        fake_invitations_repo.get_invitation.assert_awaited_once_with(
+            WorkspaceInvitation,
             filters={"id": str(invitation.id)},
-            select_related=["user", "workspace"],
+            select_related=["user", "workspace", "role"],
         )
         fake_auth_services.get_available_user_logins.assert_awaited_once_with(
             user=invitation.user
@@ -429,11 +461,12 @@ async def test_get_public_workspace_invitation_ok_without_user():
             "workspaces.invitations.services.auth_services", autospec=True
         ) as fake_auth_services,
     ):
-        fake_invitations_repo.get_workspace_invitation.return_value = invitation
+        fake_invitations_repo.get_invitation.return_value = invitation
         pub_invitation = await services.get_public_workspace_invitation(token)
-        fake_invitations_repo.get_workspace_invitation.assert_awaited_once_with(
+        fake_invitations_repo.get_invitation.assert_awaited_once_with(
+            WorkspaceInvitation,
             filters={"id": str(invitation.id)},
-            select_related=["user", "workspace"],
+            select_related=["user", "workspace", "role"],
         )
         fake_auth_services.get_available_user_logins.assert_not_awaited()
 
@@ -450,13 +483,16 @@ async def test_get_public_workspace_invitation_error_invitation_not_exists():
     with patch(
         "workspaces.invitations.services.invitations_repositories", autospec=True
     ) as fake_invitations_repo:
-        fake_invitations_repo.get_workspace_invitation.return_value = None
-        pub_invitation = await services.get_public_workspace_invitation(token)
-        fake_invitations_repo.get_workspace_invitation.assert_awaited_once_with(
-            filters={"id": str(invitation.id)},
-            select_related=["user", "workspace"],
+        fake_invitations_repo.get_invitation.side_effect = (
+            WorkspaceInvitation.DoesNotExist
         )
-        assert pub_invitation is None
+        with pytest.raises(WorkspaceInvitation.DoesNotExist):
+            await services.get_public_workspace_invitation(token)
+        fake_invitations_repo.get_invitation.assert_awaited_once_with(
+            WorkspaceInvitation,
+            filters={"id": str(invitation.id)},
+            select_related=["user", "workspace", "role"],
+        )
 
 
 #######################################################
@@ -473,13 +509,15 @@ async def test_update_user_workspaces_invitations() -> None:
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch("django.db.transaction.on_commit", new=lambda fn: fn()),
     ):
         await services.update_user_workspaces_invitations(user=user)
-        fake_invitations_repositories.update_user_workspaces_invitations.assert_awaited_once_with(
-            user=user
+        fake_invitations_repositories.update_user_invitations.assert_awaited_once_with(
+            WorkspaceInvitation, user=user
         )
-        fake_invitations_repositories.list_workspace_invitations.assert_awaited_once_with(
-            filters={"user": user, "status": WorkspaceInvitationStatus.PENDING},
+        fake_invitations_repositories.list_invitations.assert_awaited_once_with(
+            WorkspaceInvitation,
+            filters={"user": user, "status": InvitationStatus.PENDING},
             select_related=["workspace"],
         )
         fake_invitations_events.emit_event_when_workspace_invitations_are_updated.assert_awaited_once()
@@ -499,24 +537,24 @@ async def tests_accept_workspace_invitation() -> None:
 
     with (
         patch(
-            "workspaces.invitations.services.invitations_repositories", autospec=True
-        ) as fake_invitations_repo,
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repo,
         patch(
             "workspaces.invitations.services.memberships_repositories", autospec=True
-        ) as fake_memberships_repo,
+        ) as fake_ws_memberships_repo,
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
     ):
-        fake_invitations_repo.update_workspace_invitation.return_value = invitation
+        fake_memberships_repo.update_invitation.return_value = invitation
         await services.accept_workspace_invitation(invitation=invitation)
 
-        fake_invitations_repo.update_workspace_invitation.assert_awaited_once_with(
+        fake_memberships_repo.update_invitation.assert_awaited_once_with(
             invitation=invitation,
-            values={"status": WorkspaceInvitationStatus.ACCEPTED},
+            values={"status": InvitationStatus.ACCEPTED},
         )
-        fake_memberships_repo.create_workspace_membership.assert_awaited_once_with(
-            workspace=workspace, user=user
+        fake_ws_memberships_repo.create_workspace_membership.assert_awaited_once_with(
+            workspace=workspace, role=invitation.role, user=user
         )
         fake_invitations_events.emit_event_when_workspace_invitation_is_accepted.assert_awaited_once_with(
             invitation=invitation
@@ -531,7 +569,7 @@ async def tests_accept_workspace_invitation_error_invitation_has_already_been_ac
     invitation = f.build_workspace_invitation(
         workspace=workspace,
         user=user,
-        status=WorkspaceInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
         email=user.email,
     )
 
@@ -556,7 +594,7 @@ async def tests_accept_workspace_invitation_error_invitation_has_been_revoked() 
     invitation = f.build_workspace_invitation(
         workspace=workspace,
         user=user,
-        status=WorkspaceInvitationStatus.REVOKED,
+        status=InvitationStatus.REVOKED,
         email=user.email,
     )
 
@@ -615,7 +653,7 @@ async def tests_accept_workspace_invitation_from_token_error_no_invitation_found
         ) as fake_accept_workspace_invitation,
         pytest.raises(ex.InvitationDoesNotExistError),
     ):
-        fake_get_workspace_invitation.return_value = None
+        fake_get_workspace_invitation.side_effect = WorkspaceInvitation.DoesNotExist
 
         await services.accept_workspace_invitation_from_token(
             token="some_token", user=user
@@ -653,7 +691,7 @@ async def tests_accept_workspace_invitation_from_token_error_invitation_is_for_o
 async def tests_accept_workspace_invitation_from_token_error_already_accepted() -> None:
     user = f.build_user()
     invitation = f.build_workspace_invitation(
-        user=user, email=user.email, status=WorkspaceInvitationStatus.ACCEPTED
+        user=user, email=user.email, status=InvitationStatus.ACCEPTED
     )
     token = str(await WorkspaceInvitationToken.create_for_object(invitation))
 
@@ -673,7 +711,7 @@ async def tests_accept_workspace_invitation_from_token_error_already_accepted() 
 async def tests_accept_workspace_invitation_from_token_error_revoked() -> None:
     user = f.build_user()
     invitation = f.build_workspace_invitation(
-        user=user, email=user.email, status=WorkspaceInvitationStatus.REVOKED
+        user=user, email=user.email, status=InvitationStatus.REVOKED
     )
     token = str(await WorkspaceInvitationToken.create_for_object(invitation))
 

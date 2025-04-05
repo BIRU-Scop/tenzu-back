@@ -22,8 +22,8 @@ import random
 from django.db import transaction
 
 from base.sampledata import factories
+from memberships.choices import InvitationStatus
 from projects.invitations import repositories as pj_invitations_repositories
-from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
 from projects.projects.models import Project
 from users import repositories as users_repositories
@@ -660,7 +660,7 @@ async def _create_accepted_project_invitations(project: Project) -> None:
             project=project,
             role=m.role,
             email=m.user.email,
-            status=ProjectInvitationStatus.ACCEPTED,
+            status=InvitationStatus.ACCEPTED,
             invited_by=project.created_by,
         )
         for m in project.memberships.all()
@@ -668,4 +668,6 @@ async def _create_accepted_project_invitations(project: Project) -> None:
     ]
 
     # create invitations in bulk
-    await pj_invitations_repositories.create_project_invitations(objs=invitations)
+    await pj_invitations_repositories.create_invitations(
+        ProjectInvitation, objs=invitations
+    )

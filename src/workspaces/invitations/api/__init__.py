@@ -27,17 +27,17 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_422,
 )
 from commons.validators import B64UUID
+from memberships.api.validators import InvitationsValidator
+from memberships.services.exceptions import BadInvitationTokenError
 from permissions import check_permissions
 from workspaces.invitations import services as workspaces_invitations_services
-from workspaces.invitations.api.validators import WorkspaceInvitationsValidator
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.invitations.permissions import InvitationPermissionsCheck
 from workspaces.invitations.serializers import (
-    CreateWorkspaceInvitationsSerializer,
+    CreateInvitationsSerializer,
     PublicWorkspaceInvitationSerializer,
     WorkspaceInvitationSerializer,
 )
-from workspaces.invitations.services.exceptions import BadInvitationTokenError
 from workspaces.workspaces.api import get_workspace_or_404
 
 workspace_invit_router = Router()
@@ -53,7 +53,7 @@ workspace_invit_router = Router()
     url_name="workspace.invitations.create",
     summary="Create workspace invitations",
     response={
-        200: CreateWorkspaceInvitationsSerializer,
+        200: CreateInvitationsSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -64,10 +64,12 @@ workspace_invit_router = Router()
 async def create_workspace_invitations(
     request,
     id: Path[B64UUID],
-    form: WorkspaceInvitationsValidator,
-) -> CreateWorkspaceInvitationsSerializer:
+    form: InvitationsValidator,
+) -> CreateInvitationsSerializer:
     """
-    Create invitations to a workspace for a list of users (identified either by their username or their email).
+    Create invitations to a workspace for a list of users (identified either by their username or their email), and the
+    role they'll take in the workspace). In case of receiving several invitations for the same user, just the first
+    role will be considered.
     """
     workspace = await get_workspace_or_404(id=id)
     await check_permissions(
@@ -151,8 +153,8 @@ async def get_public_workspace_invitation(
         )
     except BadInvitationTokenError as e:
         raise ex.BadRequest(str(e))
-    if not invitation:
-        raise ex.NotFoundError("Invitation not found")
+    except WorkspaceInvitation.DoesNotExist as e:
+        raise ex.NotFoundError("Invitation not found") from e
 
     return invitation
 
@@ -202,10 +204,11 @@ async def accept_workspace_invitation_by_token(
 
 
 async def get_workspace_invitation_by_token_or_404(token: str) -> WorkspaceInvitation:
-    invitation = await workspaces_invitations_services.get_workspace_invitation(
-        token=token
-    )
-    if not invitation:
-        raise ex.NotFoundError("Invitation does not exist")
+    try:
+        invitation = await workspaces_invitations_services.get_workspace_invitation(
+            token=token
+        )
+    except WorkspaceInvitation.DoesNotExist as e:
+        raise ex.NotFoundError("Invitation does not exist") from e
 
     return invitation

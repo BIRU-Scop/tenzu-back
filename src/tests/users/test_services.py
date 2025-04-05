@@ -23,19 +23,19 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.conf import settings
 
+from memberships.choices import InvitationStatus
+from memberships.services.exceptions import (
+    BadInvitationTokenError,
+)
 from ninja_jwt.exceptions import TokenError
 from ninja_jwt.schema import TokenObtainPairOutputSchema
-from projects.invitations.choices import ProjectInvitationStatus
-from projects.invitations.services.exceptions import (
-    BadInvitationTokenError,
-    InvitationDoesNotExistError,
-)
+from projects.invitations.models import ProjectInvitation
 from tests.utils import factories as f
 from tests.utils.utils import preserve_real_attrs
 from users import services
 from users.services import exceptions as ex
 from users.tokens import ResetPasswordToken, VerifyUserToken
-from workspaces.invitations.choices import WorkspaceInvitationStatus
+from workspaces.invitations.models import WorkspaceInvitation
 
 ##########################################################
 # create_user
@@ -241,13 +241,26 @@ async def test_verify_user():
 
     with (
         patch("users.services.users_repositories", autospec=True) as fake_users_repo,
+        patch(
+            "users.services.project_invitations_services", autospec=True
+        ) as fake_project_invitations_services,
+        patch(
+            "users.services.workspace_invitations_services", autospec=True
+        ) as fake_workspace_invitations_services,
         patch("users.services.aware_utcnow") as fake_aware_utcnow,
+        patch("django.db.transaction.atomic", autospec=True),
     ):
         fake_aware_utcnow.return_value = now
         await services.verify_user(user=user)
         fake_users_repo.update_user.assert_awaited_with(
             user=user,
             values={"is_active": True, "date_verification": now},
+        )
+        fake_project_invitations_services.update_user_projects_invitations.assert_awaited_once_with(
+            user=user,
+        )
+        fake_workspace_invitations_services.update_user_workspaces_invitations.assert_awaited_once_with(
+            user=user,
         )
 
 
@@ -264,7 +277,6 @@ async def test_verify_user_ok_no_invitation_tokens_to_accept():
     )
 
     with (
-        patch("users.services.verify_user", autospec=True) as fake_verify_user,
         patch("users.services.VerifyUserToken", autospec=True) as FakeVerifyUserToken,
         patch("users.services.users_repositories", autospec=True) as fake_users_repo,
         patch("users.services.auth_services", autospec=True) as fake_auth_services,
@@ -274,6 +286,7 @@ async def test_verify_user_ok_no_invitation_tokens_to_accept():
         patch(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
+        patch("django.db.transaction.atomic", autospec=True),
     ):
         FakeVerifyUserToken.return_value.payload = token_data
         preserve_real_attrs(FakeVerifyUserToken.return_value, VerifyUserToken, ["get"])
@@ -309,7 +322,7 @@ async def test_verify_user_ok_no_invitation_tokens_to_accept():
 
         fake_auth_services.create_auth_credentials.assert_awaited_once_with(user=user)
 
-        fake_verify_user.assert_awaited_once()
+        fake_users_repo.update_user.assert_awaited_once()
 
 
 @pytest.mark.parametrize(
@@ -336,6 +349,7 @@ async def test_verify_user_ok_accepting_or_not_a_project_invitation_token(
         patch(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
+        patch("django.db.transaction.atomic", autospec=True),
     ):
         FakeVerifyUserToken.return_value.get.side_effect = [
             1,
@@ -410,6 +424,7 @@ async def test_verify_user_ok_accepting_or_not_a_workspace_invitation_token(
         patch(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
+        patch("django.db.transaction.atomic", autospec=True),
     ):
         # Second call will be `verify_token.get("project_invitation_token", None)` and should return None
         FakeVerifyUserToken.return_value.get.side_effect = [
@@ -472,6 +487,7 @@ async def test_verify_user_error_with_invalid_data():
     with (
         patch("users.services.VerifyUserToken", autospec=True) as FakeVerifyUserToken,
         patch("users.services.users_repositories", autospec=True) as fake_users_repo,
+        patch("django.db.transaction.atomic", autospec=True),
         pytest.raises(ex.BadVerifyUserTokenError),
     ):
         preserve_real_attrs(
@@ -488,7 +504,7 @@ async def test_verify_user_error_with_invalid_data():
     "exception",
     [
         BadInvitationTokenError,
-        InvitationDoesNotExistError,
+        ProjectInvitation.DoesNotExist,
     ],
 )
 async def test_verify_user_error_project_invitation_token(exception):
@@ -508,6 +524,7 @@ async def test_verify_user_error_project_invitation_token(exception):
         ) as fake_invitations_services,
         patch("users.services.workspace_invitations_services", autospec=True),
         patch("users.services.auth_services", autospec=True) as fake_auth_services,
+        patch("django.db.transaction.atomic", autospec=True),
     ):
         FakeVerifyUserToken.return_value.get.side_effect = [
             1,
@@ -729,7 +746,7 @@ async def test_delete_user_success():
         project=pj1_ws2,
         role=general_role_pj1_ws2,
         invited_by=user,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     f.build_project_membership(user=user2, project=pj1_ws2, role=general_role_pj1_ws2)
     workflow = f.build_workflow()
@@ -753,7 +770,7 @@ async def test_delete_user_success():
         user=user,
         workspace=ws3,
         invited_by=user2,
-        status=WorkspaceInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     ws_member1_ws3 = f.build_workspace_membership(user=user, workspace=ws3)
 
@@ -778,7 +795,7 @@ async def test_delete_user_success():
         user=user,
         workspace=ws4,
         invited_by=user3,
-        status=WorkspaceInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     ws_member1_ws4 = f.build_workspace_membership(user=user, workspace=ws4)
 
@@ -798,14 +815,14 @@ async def test_delete_user_success():
         user=user,
         workspace=ws5,
         invited_by=user3,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     f.build_workspace_invitation(
         email=user4.email,
         user=user4,
         workspace=ws5,
         invited_by=user3,
-        status=WorkspaceInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     f.build_workspace_membership(user=user4, workspace=ws5)
 
@@ -821,7 +838,7 @@ async def test_delete_user_success():
         project=pj1_ws5,
         role=general_role_pj1_ws5,
         invited_by=user,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     f.build_project_membership(user=user2, project=pj1_ws5, role=general_role_pj1_ws5)
     f.build_project_invitation(
@@ -830,7 +847,7 @@ async def test_delete_user_success():
         project=pj1_ws5,
         role=general_role_pj1_ws5,
         invited_by=user,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     pj_member3_pj1_ws5 = f.build_project_membership(
         user=user3, project=pj1_ws5, role=general_role_pj1_ws5
@@ -842,7 +859,7 @@ async def test_delete_user_success():
         user=user,
         workspace=ws6,
         invited_by=user2,
-        status=WorkspaceInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     ws_member1_ws6 = f.build_workspace_membership(user=user, workspace=ws6)
     f.build_workspace_invitation(
@@ -850,7 +867,7 @@ async def test_delete_user_success():
         user=user3,
         workspace=ws6,
         invited_by=user2,
-        status=WorkspaceInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     f.build_workspace_membership(user=user3, workspace=ws6)
 
@@ -866,7 +883,7 @@ async def test_delete_user_success():
         project=pj1_ws6,
         role=general_role_pj1_ws6,
         invited_by=user,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     f.build_project_membership(user=user4, project=pj1_ws6, role=general_role_pj1_ws6)
 
@@ -879,7 +896,7 @@ async def test_delete_user_success():
         project=pj2_ws6,
         role=general_role_pj2_ws6,
         invited_by=user2,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     pj_member1_pj2_ws6 = f.build_project_membership(
         user=user, project=pj2_ws6, role=general_role_pj2_ws6
@@ -900,7 +917,7 @@ async def test_delete_user_success():
         project=pj2_ws6,
         role=general_role_pj3_ws6,
         invited_by=user2,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
 
     with (
@@ -963,13 +980,13 @@ async def test_delete_user_success():
         # result projects updated with a new pj admin
         ws_members_ws5_excluding_user = [user4, user3]
         ws_members_ws6_excluding_user = [user3, user2]
-        fake_ws_memberships_repo.list_workspace_members.side_effect = [
+        fake_ws_memberships_repo.list_members.side_effect = [
             ws_members_ws5_excluding_user,
             ws_members_ws6_excluding_user,
         ]
         pj_members_pj1_ws5_excluding_user = [user3, user2]
         pj_members_pj1_ws6_excluding_user = [user4]
-        fake_pj_memberships_repo.list_project_members.side_effect = [
+        fake_pj_memberships_repo.list_members.side_effect = [
             pj_members_pj1_ws5_excluding_user,
             pj_members_pj1_ws6_excluding_user,
         ]
@@ -992,13 +1009,13 @@ async def test_delete_user_success():
         fake_ws_memberships_repo.delete_membership.side_effect = [1, 1, 1]
 
         # result workspaces invitations deleted
-        fake_ws_invitations_repo.list_workspace_invitations.return_value = [
+        fake_ws_invitations_repo.list_invitations.return_value = [
             inv1_ws6,
             inv1_ws5,
             inv1_ws4,
             inv1_ws3,
         ]
-        fake_ws_invitations_repo.delete_workspace_invitation.side_effect = [1, 1, 1, 1]
+        fake_ws_invitations_repo.delete_invitation.side_effect = [1, 1, 1, 1]
 
         # result projects memberships deleted
         fake_pj_memberships_repo.list_memberships.return_value = [
@@ -1009,11 +1026,11 @@ async def test_delete_user_success():
         fake_pj_memberships_repo.delete_membership.side_effect = [1, 1, 1]
 
         # result projects invitations deleted
-        fake_pj_invitations_repo.list_project_invitations.return_value = [
+        fake_pj_invitations_repo.list_invitations.return_value = [
             inv1_pj3_ws6,
             inv1_pj2_ws6,
         ]
-        fake_pj_invitations_repo.delete_project_invitation.side_effect = [1, 1]
+        fake_pj_invitations_repo.delete_invitation.side_effect = [1, 1]
 
         # result user deleted
         fake_users_repo.delete_user.return_value = 1
@@ -1069,17 +1086,17 @@ async def test_delete_user_success():
         )
 
         # workspaces invitations deleted
-        fake_ws_invitations_repo.delete_workspace_invitation.assert_any_await(
-            filters={"id": inv1_ws6.id}
+        fake_ws_invitations_repo.delete_invitation.assert_any_await(
+            WorkspaceInvitation, filters={"id": inv1_ws6.id}
         )
-        fake_ws_invitations_repo.delete_workspace_invitation.assert_any_await(
-            filters={"id": inv1_ws5.id}
+        fake_ws_invitations_repo.delete_invitation.assert_any_await(
+            WorkspaceInvitation, filters={"id": inv1_ws5.id}
         )
-        fake_ws_invitations_repo.delete_workspace_invitation.assert_any_await(
-            filters={"id": inv1_ws4.id}
+        fake_ws_invitations_repo.delete_invitation.assert_any_await(
+            WorkspaceInvitation, filters={"id": inv1_ws4.id}
         )
-        fake_ws_invitations_repo.delete_workspace_invitation.assert_any_await(
-            filters={"id": inv1_ws3.id}
+        fake_ws_invitations_repo.delete_invitation.assert_any_await(
+            WorkspaceInvitation, filters={"id": inv1_ws3.id}
         )
         fake_ws_invitations_events.emit_event_when_workspace_invitation_is_deleted.assert_awaited_with(
             invitation=inv1_ws5
@@ -1100,11 +1117,11 @@ async def test_delete_user_success():
         )
 
         # projects invitations deleted
-        fake_pj_invitations_repo.delete_project_invitation.assert_any_await(
-            filters={"id": inv1_pj3_ws6.id}
+        fake_pj_invitations_repo.delete_invitation.assert_any_await(
+            ProjectInvitation, filters={"id": inv1_pj3_ws6.id}
         )
-        fake_pj_invitations_repo.delete_project_invitation.assert_any_await(
-            filters={"id": inv1_pj2_ws6.id}
+        fake_pj_invitations_repo.delete_invitation.assert_any_await(
+            ProjectInvitation, filters={"id": inv1_pj2_ws6.id}
         )
         fake_pj_invitations_events.emit_event_when_project_invitation_is_deleted.assert_awaited_with(
             invitation=inv1_pj3_ws6

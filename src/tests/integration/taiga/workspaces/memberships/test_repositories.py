@@ -149,7 +149,7 @@ async def test_list_workspace_members():
         user=user2, workspace=workspace, role=role
     )
 
-    list_ws_members = await repositories.list_workspace_members(
-        workspace=workspace, exclude_user=admin
+    list_ws_members = await repositories.list_members(
+        reference_object=workspace, exclude_user=admin
     )
     assert len(list_ws_members) == 2

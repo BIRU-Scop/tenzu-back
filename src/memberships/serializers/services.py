@@ -16,41 +16,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from base.services.exceptions import TenzuServiceException
-
-
-class NonExistingUsernameError(TenzuServiceException):
-    pass
+from memberships.models import Invitation
+from memberships.serializers import CreateInvitationsSerializer
 
 
-class BadInvitationTokenError(TenzuServiceException):
-    pass
-
-
-class InvitationDoesNotExistError(TenzuServiceException):
-    pass
-
-
-class InvitationAlreadyAcceptedError(TenzuServiceException):
-    pass
-
-
-class InvitationRevokedError(TenzuServiceException):
-    pass
-
-
-class InvitationDeniedError(TenzuServiceException):
-    pass
-
-
-class InvitationIsNotForThisUserError(TenzuServiceException):
-    pass
-
-
-class InvitationHasNoUserYetError(TenzuServiceException):
-    pass
-
-
-class NonExistingRoleError(TenzuServiceException):
-    pass
+def serialize_create_invitations(
+    invitations: list[Invitation],
+    already_members: int,
+) -> CreateInvitationsSerializer:
+    return CreateInvitationsSerializer(
+        invitations=invitations, already_members=already_members
+    )

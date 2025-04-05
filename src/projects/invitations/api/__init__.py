@@ -30,24 +30,24 @@ from commons.exceptions.api.errors import (
 )
 from commons.utils import transaction_atomic_async
 from commons.validators import B64UUID
+from memberships.api.validators import (
+    InvitationsValidator,
+    ResendInvitationValidator,
+    RevokeInvitationValidator,
+    UpdateInvitationValidator,
+)
+from memberships.services.exceptions import (
+    BadInvitationTokenError,
+    InvitationNonExistingUsernameError,
+)
 from permissions import check_permissions
 from projects.invitations import services as invitations_services
-from projects.invitations.api.validators import (
-    ProjectInvitationsValidator,
-    ResendProjectInvitationValidator,
-    RevokeProjectInvitationValidator,
-    UpdateProjectInvitationValidator,
-)
 from projects.invitations.models import ProjectInvitation
 from projects.invitations.permissions import InvitationPermissionsCheck
 from projects.invitations.serializers import (
-    CreateProjectInvitationsSerializer,
+    CreateInvitationsSerializer,
     ProjectInvitationSerializer,
     PublicProjectInvitationSerializer,
-)
-from projects.invitations.services.exceptions import (
-    BadInvitationTokenError,
-    NonExistingUsernameError,
 )
 from projects.projects.api import get_project_or_404
 
@@ -64,7 +64,7 @@ invitations_router = Router()
     url_name="project.invitations.create",
     summary="Create project invitations",
     response={
-        200: CreateProjectInvitationsSerializer,
+        200: CreateInvitationsSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -76,8 +76,8 @@ invitations_router = Router()
 async def create_project_invitations(
     request,
     id: Path[B64UUID],
-    form: ProjectInvitationsValidator,
-) -> CreateProjectInvitationsSerializer:
+    form: InvitationsValidator,
+) -> CreateInvitationsSerializer:
     """
     Create invitations to a project for a list of users (identified either by their username or their email, and the
     role they'll take in the project). In case of receiving several invitations for the same user, just the first
@@ -96,7 +96,7 @@ async def create_project_invitations(
             invitations=form.model_dump()["invitations"],
             invited_by=request.user,
         )
-    except NonExistingUsernameError as e:
+    except InvitationNonExistingUsernameError as e:
         raise ex.BadRequest(str(e))
 
 
@@ -163,8 +163,8 @@ async def get_public_project_invitation(
     except BadInvitationTokenError as e:
         raise ex.BadRequest(str(e))
 
-    if not invitation:
-        raise ex.NotFoundError("Invitation not found")
+    except ProjectInvitation.DoesNotExist as e:
+        raise ex.NotFoundError("Invitation not found") from e
 
     return invitation
 
@@ -189,7 +189,7 @@ async def get_public_project_invitation(
 async def resend_project_invitation(
     request,
     id: Path[B64UUID],
-    form: ResendProjectInvitationValidator,
+    form: ResendInvitationValidator,
 ) -> tuple[int, None]:
     """
     Resend invitation to a project
@@ -228,7 +228,7 @@ async def resend_project_invitation(
 async def revoke_project_invitation(
     request,
     id: Path[B64UUID],
-    form: RevokeProjectInvitationValidator,
+    form: RevokeInvitationValidator,
 ) -> tuple[int, None]:
     """
     Revoke invitation in a project.
@@ -272,9 +272,7 @@ async def deny_project_invitation(request, id: Path[B64UUID]) -> ProjectInvitati
         project_id=id, username_or_email=request.user.username
     )
 
-    return await invitations_services.deny_project_invitation(
-        invitation=invitation, denied_by=request.user
-    )
+    return await invitations_services.deny_project_invitation(invitation=invitation)
 
 
 ##########################################################
@@ -345,21 +343,6 @@ async def accept_project_invitation_by_project(
 ##########################################################
 
 
-@transaction_atomic_async
-async def apply_update_and_check_permission(
-    request, invitation: ProjectInvitation, role_slug: str
-):
-    invitation = await invitations_services.update_project_invitation(
-        invitation=invitation, role_slug=role_slug
-    )
-    await check_permissions(
-        permissions=InvitationPermissionsCheck.MODIFY.value,
-        user=request.user,
-        obj=invitation,
-    )
-    return invitation
-
-
 @invitations_router.patch(
     "/projects/{project_id}/invitations/{id}",
     url_name="project.invitations.update",
@@ -376,7 +359,7 @@ async def update_project_invitation(
     request,
     id: Path[UUID],
     project_id: Path[B64UUID],
-    form: UpdateProjectInvitationValidator,
+    form: UpdateInvitationValidator,
 ) -> ProjectInvitation:
     """
     Update project invitation
@@ -388,8 +371,8 @@ async def update_project_invitation(
         obj=invitation,
     )
 
-    return await apply_update_and_check_permission(
-        request=request, invitation=invitation, role_slug=form.role_slug
+    return await invitations_services.update_project_invitation(
+        invitation=invitation, role_slug=form.role_slug
     )
 
 
@@ -401,11 +384,14 @@ async def update_project_invitation(
 async def get_project_invitation_by_username_or_email_or_404(
     project_id: UUID, username_or_email: str
 ) -> ProjectInvitation:
-    invitation = await invitations_services.get_project_invitation_by_username_or_email(
-        project_id=project_id, username_or_email=username_or_email
-    )
-    if not invitation:
-        raise ex.NotFoundError("Invitation not found")
+    try:
+        invitation = (
+            await invitations_services.get_project_invitation_by_username_or_email(
+                project_id=project_id, username_or_email=username_or_email
+            )
+        )
+    except ProjectInvitation.DoesNotExist as e:
+        raise ex.NotFoundError("Invitation not found") from e
 
     return invitation
 
@@ -413,11 +399,12 @@ async def get_project_invitation_by_username_or_email_or_404(
 async def get_project_invitation_by_id_or_404(
     project_id: UUID, id: UUID
 ) -> ProjectInvitation:
-    invitation = await invitations_services.get_project_invitation_by_id(
-        project_id=project_id, id=id
-    )
-    if not invitation:
-        raise ex.NotFoundError("Invitation not found")
+    try:
+        invitation = await invitations_services.get_project_invitation_by_id(
+            project_id=project_id, id=id
+        )
+    except ProjectInvitation.DoesNotExist as e:
+        raise ex.NotFoundError("Invitation not found") from e
 
     return invitation
 
@@ -425,8 +412,9 @@ async def get_project_invitation_by_id_or_404(
 async def get_project_invitation_by_token_or_404(
     token: str,
 ) -> ProjectInvitation:
-    invitation = await invitations_services.get_project_invitation(token=token)
-    if not invitation:
-        raise ex.NotFoundError("Invitation does not exist")
+    try:
+        invitation = await invitations_services.get_project_invitation(token=token)
+    except ProjectInvitation.DoesNotExist as e:
+        raise ex.NotFoundError("Invitation does not exist") from e
 
     return invitation

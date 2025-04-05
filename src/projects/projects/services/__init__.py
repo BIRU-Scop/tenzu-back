@@ -28,8 +28,8 @@ from ninja import UploadedFile
 from base.utils.files import uploadfile_to_file
 from base.utils.images import get_thumbnail_url
 from commons.utils import transaction_atomic_async
+from memberships.choices import InvitationStatus
 from projects.invitations import services as pj_invitations_services
-from projects.invitations.choices import ProjectInvitationStatus
 from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectRole
 from projects.projects import events as projects_events
@@ -159,7 +159,7 @@ async def list_workspace_invited_projects_for_user(
         filters={
             "workspace_id": workspace.id,
             "invitations__user_id": user.id,
-            "invitations__status": ProjectInvitationStatus.PENDING,
+            "invitations__status": InvitationStatus.PENDING,
         }
     )
 
@@ -206,8 +206,8 @@ async def get_project_detail(
     user_has_pending_invitation = (
         False
         if user.is_anonymous
-        else await pj_invitations_services.has_pending_project_invitation(
-            user=user, project=project
+        else await pj_invitations_services.has_pending_invitation(
+            user=user, reference_object=project
         )
     )
 

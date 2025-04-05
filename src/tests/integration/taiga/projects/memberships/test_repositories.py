@@ -137,21 +137,21 @@ async def test_list_project_members():
     project = await f.create_project()
     role = await f.create_project_role(project=project)
 
-    project_member = await repositories.list_project_members(project=project)
+    project_member = await repositories.list_members(reference_object=project)
     assert len(project_member) == 1
 
     await repositories.create_project_membership(user=user, project=project, role=role)
 
-    project_member = await repositories.list_project_members(project=project)
+    project_member = await repositories.list_members(reference_object=project)
     assert len(project_member) == 2
 
 
 ##########################################################
-# misc - list_project_members_excluding_user
+# misc - list_members_excluding_user
 ##########################################################
 
 
-async def test_list_project_members_excluding_user():
+async def test_list_members_excluding_user():
     admin = await f.create_user()
     user1 = await f.create_user()
     user2 = await f.create_user()
@@ -160,8 +160,8 @@ async def test_list_project_members_excluding_user():
     await repositories.create_project_membership(user=user1, project=project, role=role)
     await repositories.create_project_membership(user=user2, project=project, role=role)
 
-    list_pj_members = await repositories.list_project_members(
-        project=project, exclude_user=admin
+    list_pj_members = await repositories.list_members(
+        reference_object=project, exclude_user=admin
     )
     assert len(list_pj_members) == 2
 

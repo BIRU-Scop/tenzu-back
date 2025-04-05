@@ -32,8 +32,8 @@ from base.sampledata import constants
 from comments.models import Comment
 from commons.colors import NUM_COLORS
 from commons.ordering import DEFAULT_ORDER_OFFSET
+from memberships.choices import InvitationStatus
 from projects.invitations import repositories as pj_invitations_repositories
-from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectRole
@@ -186,7 +186,7 @@ async def create_project_invitations(project: Project, users: list[User]) -> Non
             project=project,
             role=m.role,
             email=m.user.email,
-            status=ProjectInvitationStatus.ACCEPTED,
+            status=InvitationStatus.ACCEPTED,
             invited_by=project.created_by,
         )
         for m in project.memberships.all()
@@ -210,7 +210,7 @@ async def create_project_invitations(project: Project, users: list[User]) -> Non
                 project=project,
                 role=random.choice(roles),
                 email=user.email,
-                status=ProjectInvitationStatus.PENDING,
+                status=InvitationStatus.PENDING,
                 invited_by=project.created_by,
             )
         )
@@ -224,13 +224,15 @@ async def create_project_invitations(project: Project, users: list[User]) -> Non
                 project=project,
                 role=random.choice(roles),
                 email=f"email-{i}@email.com",
-                status=ProjectInvitationStatus.PENDING,
+                status=InvitationStatus.PENDING,
                 invited_by=project.created_by,
             )
         )
 
     # create invitations in bulk
-    await pj_invitations_repositories.create_project_invitations(objs=invitations)
+    await pj_invitations_repositories.create_invitations(
+        ProjectInvitation, objs=invitations
+    )
 
 
 #################################

@@ -22,6 +22,7 @@ from uuid import UUID
 from memberships import services as memberships_services
 from memberships.services import exceptions as ex
 from workspaces.invitations import repositories as workspace_invitations_repositories
+from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import events as memberships_events
 from workspaces.memberships import repositories as memberships_repositories
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
@@ -103,7 +104,8 @@ async def delete_workspace_membership(
     deleted = await memberships_repositories.delete_membership(membership)
     if deleted > 0:
         # Delete workspace invitations
-        await workspace_invitations_repositories.delete_workspace_invitation(
+        await workspace_invitations_repositories.delete_invitation(
+            WorkspaceInvitation,
             filters={
                 "workspace_id": membership.workspace_id,
             },

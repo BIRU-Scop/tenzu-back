@@ -33,7 +33,7 @@ class IsWorkspaceInvitationRecipient(PermissionComponent):
         if not obj:
             return False
 
-        return invitations_services.is_workspace_invitation_for_this_user(
+        return invitations_services.is_invitation_for_this_user(
             invitation=obj, user=user
         )
 
@@ -45,8 +45,8 @@ class HasPendingWorkspaceInvitation(PermissionComponent):
         if not obj:
             return False
 
-        return await invitations_services.has_pending_workspace_invitation(
-            user=user, workspace=obj
+        return await invitations_services.has_pending_invitation(
+            user=user, reference_object=obj
         )
 
 

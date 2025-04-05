@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 from django.core.validators import MaxValueValidator
 from django.db import models
+from django_stubs_ext.db.models.manager import ManyRelatedManager
 from slugify import slugify
 
 from base.db.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
@@ -42,6 +43,8 @@ class Workspace(BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
         through_fields=("workspace", "user"),
         verbose_name="members",
     )
+    roles: ManyRelatedManager
+    invitations: ManyRelatedManager
 
     class Meta:
         verbose_name = "workspace"

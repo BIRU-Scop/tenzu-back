@@ -21,9 +21,10 @@ import uuid
 
 import pytest
 
+from memberships.choices import InvitationStatus
 from tests.utils import factories as f
 from workspaces.invitations import repositories
-from workspaces.invitations.choices import WorkspaceInvitationStatus
+from workspaces.invitations.models import WorkspaceInvitation
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -37,22 +38,25 @@ async def test_create_workspace_invitations():
     user = await f.create_user()
     user2 = await f.create_user()
     workspace = await f.create_workspace()
+    role = await f.create_workspace_role(workspace=workspace)
     objs = [
         f.build_workspace_invitation(
             user=user2,
             workspace=workspace,
             email=user2.email,
             invited_by=user,
+            role=role,
         ),
         f.build_workspace_invitation(
             user=None,
             workspace=workspace,
             email="test@email.com",
             invited_by=user,
+            role=role,
         ),
     ]
 
-    response = await repositories.create_workspace_invitations(objs=objs)
+    response = await repositories.create_invitations(WorkspaceInvitation, objs=objs)
 
     assert len(response) == 2
 
@@ -76,45 +80,46 @@ async def test_list_workspace_invitations_all_pending_users():
         email=email_a,
         user=user_a,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_workspace_invitation(
         email=email_b,
         user=user_b,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_workspace_invitation(
         email=email_z,
         user=None,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_workspace_invitation(
         email=email_x,
         user=None,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_workspace_invitation(
         email=email_y,
         user=None,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     user = await f.create_user()
     await f.create_workspace_invitation(
         email=user.email,
         user=user,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
 
-    response = await repositories.list_workspace_invitations(
+    response = await repositories.list_invitations(
+        WorkspaceInvitation,
         filters={
             "workspace_id": workspace.id,
-            "status": WorkspaceInvitationStatus.PENDING,
-        }
+            "status": InvitationStatus.PENDING,
+        },
     )
     assert len(response) == 5
     assert response[0].email == user_a.email
@@ -132,20 +137,21 @@ async def test_list_workspace_invitations_single_pending_user():
         email=user1.email,
         user=user1,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_workspace_invitation(
         email="non-existing@email.com",
         user=None,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
 
-    response = await repositories.list_workspace_invitations(
+    response = await repositories.list_invitations(
+        WorkspaceInvitation,
         filters={
             "workspace_id": workspace.id,
             "user": user1,
-            "status": WorkspaceInvitationStatus.PENDING,
+            "status": InvitationStatus.PENDING,
         },
     )
     assert len(response) == 1
@@ -160,14 +166,15 @@ async def test_list_workspace_invitations_single_pending_non_existing_user():
         email=non_existing_email,
         user=None,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
 
-    invitations = await repositories.list_workspace_invitations(
+    invitations = await repositories.list_invitations(
+        WorkspaceInvitation,
         filters={
             "workspace_id": workspace.id,
             "email": non_existing_email,
-            "status": WorkspaceInvitationStatus.PENDING,
+            "status": InvitationStatus.PENDING,
         },
     )
     assert len(invitations) == 1
@@ -182,14 +189,15 @@ async def test_list_workspace_invitations_all_accepted_users():
         email=user1.email,
         user=user1,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
 
-    response = await repositories.list_workspace_invitations(
+    response = await repositories.list_invitations(
+        WorkspaceInvitation,
         filters={
             "workspace_id": workspace.id,
-            "status": WorkspaceInvitationStatus.ACCEPTED,
-        }
+            "status": InvitationStatus.ACCEPTED,
+        },
     )
     assert len(response) == 1
     assert response[0].email == user1.email
@@ -203,8 +211,8 @@ async def test_list_workspace_invitations_all_accepted_users():
 async def test_get_workspace_invitation_ok() -> None:
     invitation = await f.create_workspace_invitation()
 
-    new_invitation = await repositories.get_workspace_invitation(
-        filters={"id": invitation.id}
+    new_invitation = await repositories.get_invitation(
+        WorkspaceInvitation, filters={"id": invitation.id}
     )
 
     assert new_invitation is not None
@@ -212,18 +220,18 @@ async def test_get_workspace_invitation_ok() -> None:
 
 
 async def test_get_workspace_invitation_not_found() -> None:
-    new_invitation = await repositories.get_workspace_invitation(filters={"id": 1001})
-
-    assert new_invitation is None
+    with pytest.raises(WorkspaceInvitation.DoesNotExist):
+        await repositories.get_invitation(WorkspaceInvitation, filters={"id": 1001})
 
 
 async def test_get_workspace_invitation_by_user_username() -> None:
     invitation = await f.create_workspace_invitation()
 
-    new_invitation = await repositories.get_workspace_invitation(
+    new_invitation = await repositories.get_invitation(
+        WorkspaceInvitation,
         filters={
             "workspace_id": invitation.workspace.id,
-            "status__in": [WorkspaceInvitationStatus.PENDING],
+            "status__in": [InvitationStatus.PENDING],
         },
         q_filter=repositories.username_or_email_query(invitation.user.username),
     )
@@ -235,10 +243,11 @@ async def test_get_workspace_invitation_by_user_username() -> None:
 async def test_get_workspace_invitation_by_user_email() -> None:
     invitation = await f.create_workspace_invitation()
 
-    new_invitation = await repositories.get_workspace_invitation(
+    new_invitation = await repositories.get_invitation(
+        WorkspaceInvitation,
         filters={
             "workspace_id": invitation.workspace.id,
-            "status__in": [WorkspaceInvitationStatus.PENDING],
+            "status__in": [InvitationStatus.PENDING],
         },
         q_filter=repositories.username_or_email_query(invitation.user.email),
     )
@@ -250,10 +259,11 @@ async def test_get_workspace_invitation_by_user_email() -> None:
 async def test_get_workspace_invitation_by_email() -> None:
     invitation = await f.create_workspace_invitation(user=None)
 
-    new_invitation = await repositories.get_workspace_invitation(
+    new_invitation = await repositories.get_invitation(
+        WorkspaceInvitation,
         filters={
             "workspace_id": invitation.workspace.id,
-            "status__in": [WorkspaceInvitationStatus.PENDING],
+            "status__in": [InvitationStatus.PENDING],
         },
         q_filter=repositories.username_or_email_query(invitation.email),
     )
@@ -265,7 +275,8 @@ async def test_get_workspace_invitation_by_email() -> None:
 async def test_get_workspace_invitation_by_email_no_user() -> None:
     invitation = await f.create_workspace_invitation(user=None)
 
-    new_invitation = await repositories.get_workspace_invitation(
+    new_invitation = await repositories.get_invitation(
+        WorkspaceInvitation,
         filters={
             "workspace_id": invitation.workspace.id,
         },
@@ -279,8 +290,8 @@ async def test_get_workspace_invitation_by_email_no_user() -> None:
 async def test_get_workspace_invitation_by_id() -> None:
     invitation = await f.create_workspace_invitation()
 
-    new_invitation = await repositories.get_workspace_invitation(
-        filters={"id": invitation.id}
+    new_invitation = await repositories.get_invitation(
+        WorkspaceInvitation, filters={"id": invitation.id}
     )
 
     assert new_invitation is not None
@@ -288,30 +299,31 @@ async def test_get_workspace_invitation_by_id() -> None:
 
 
 async def get_workspace_invitation_by_id_not_found() -> None:
-    new_invitation = await repositories.get_workspace_invitation(
-        filters={"id": uuid.uuid1()}
-    )
-
-    assert new_invitation is None
+    with pytest.raises(WorkspaceInvitation.DoesNotExist):
+        await repositories.get_invitation(
+            WorkspaceInvitation, filters={"id": uuid.uuid1()}
+        )
 
 
 async def test_exist_workspace_invitation() -> None:
     user = await f.create_user()
 
-    assert not await repositories.exist_workspace_invitation(
+    assert not await repositories.exist_invitation(
+        WorkspaceInvitation,
         {
             "user": user,
-        }
+        },
     )
     invitation = await f.create_workspace_invitation(
         email=user.email,
         user=user,
     )
 
-    assert await repositories.exist_workspace_invitation(
+    assert await repositories.exist_invitation(
+        WorkspaceInvitation,
         {
             "user": user,
-        }
+        },
     )
 
 
@@ -323,13 +335,13 @@ async def test_exist_workspace_invitation() -> None:
 async def test_update_workspace_invitation():
     workspace = await f.create_workspace()
     user = await f.create_user()
-    old_status = WorkspaceInvitationStatus.PENDING
-    new_status = WorkspaceInvitationStatus.ACCEPTED
+    old_status = InvitationStatus.PENDING
+    new_status = InvitationStatus.ACCEPTED
 
     invitation = await f.create_workspace_invitation(
         user=user, email=user.email, workspace=workspace, status=old_status
     )
-    updated_invitation = await repositories.update_workspace_invitation(
+    updated_invitation = await repositories.update_invitation(
         invitation=invitation,
         values={"status": new_status},
     )
@@ -350,17 +362,17 @@ async def test_bulk_update_workspace_invitations():
     objs = [invitation1, invitation2]
     fields_to_update = ["num_emails_sent"]
 
-    await repositories.bulk_update_workspace_invitations(
-        objs_to_update=objs, fields_to_update=fields_to_update
+    await repositories.bulk_update_invitations(
+        WorkspaceInvitation, objs_to_update=objs, fields_to_update=fields_to_update
     )
 
-    updated_invitation1 = await repositories.get_workspace_invitation(
-        filters={"id": invitation1.id}
+    updated_invitation1 = await repositories.get_invitation(
+        WorkspaceInvitation, filters={"id": invitation1.id}
     )
     assert updated_invitation1.num_emails_sent == 2
 
-    updated_invitation2 = await repositories.get_workspace_invitation(
-        filters={"id": invitation2.id}
+    updated_invitation2 = await repositories.get_invitation(
+        WorkspaceInvitation, filters={"id": invitation2.id}
     )
     assert updated_invitation2.num_emails_sent == 3
 
@@ -373,10 +385,10 @@ async def test_update_user_workspaces_invitations():
     )
     assert not invitation.user
 
-    await repositories.update_user_workspaces_invitations(user=user)
+    await repositories.update_user_invitations(WorkspaceInvitation, user=user)
 
-    invitation = await repositories.get_workspace_invitation(
-        filters={"id": invitation.id}, select_related=["user"]
+    invitation = await repositories.get_invitation(
+        WorkspaceInvitation, filters={"id": invitation.id}, select_related=["user"]
     )
     assert invitation.user == user
 
@@ -393,10 +405,11 @@ async def test_delete_workspace_invitation():
         user=user,
         email=user.email,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
 
-    deleted_invitation = await repositories.delete_workspace_invitation(
+    deleted_invitation = await repositories.delete_invitation(
+        WorkspaceInvitation,
         filters={"workspace_id": workspace.id},
         q_filter=repositories.username_or_email_query(user.email),
     )

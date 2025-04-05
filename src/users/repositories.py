@@ -43,13 +43,12 @@ from django.db.models.functions import (
     StrIndex,
 )
 
+from memberships.choices import InvitationStatus
 from ninja_jwt.token_blacklist.models import OutstandingToken
-from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
 from projects.projects.models import Project
 from users.models import AuthData, User
-from workspaces.invitations.choices import WorkspaceInvitationStatus
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships.models import WorkspaceMembership
 from workspaces.workspaces.models import Workspace
@@ -101,7 +100,7 @@ def _apply_filters_to_queryset(
         pj_members = Q(projects=project)
         pj_invitees = Q(
             project_invitations__project=project,
-            project_invitations__status=ProjectInvitationStatus.PENDING,
+            project_invitations__status=InvitationStatus.PENDING,
         )
         qs = qs.filter(pj_members | pj_invitees)
         qs = qs.exclude(workspaces=project.workspace).distinct()  # type: ignore[attr-defined]
@@ -113,7 +112,7 @@ def _apply_filters_to_queryset(
         # exclude workspace invitees
         ws_invitees = Q(
             workspace_invitations__workspace=workspace,
-            workspace_invitations__status=WorkspaceInvitationStatus.PENDING,
+            workspace_invitations__status=InvitationStatus.PENDING,
         )
         qs = qs.exclude(ws_invitees)
         # filter members of any project in the workspace
@@ -278,7 +277,7 @@ def _list_project_users_by_text_qs(
         pending_invitations = ProjectInvitation.objects.filter(
             user__id=OuterRef("pk"),
             project__id=project_id,
-            status=ProjectInvitationStatus.PENDING,
+            status=InvitationStatus.PENDING,
         )
         project_users_qs = (
             users_qs.filter(projects__id=project_id)
@@ -349,7 +348,7 @@ def _list_workspace_users_by_text_qs(
         pending_invitations = WorkspaceInvitation.objects.filter(
             user__id=OuterRef("pk"),
             workspace__id=workspace_id,
-            status=WorkspaceInvitationStatus.PENDING,
+            status=InvitationStatus.PENDING,
         )
         workspace_users_qs = (
             users_qs.filter(workspaces__id=workspace_id)

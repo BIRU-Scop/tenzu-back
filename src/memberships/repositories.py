@@ -19,7 +19,17 @@
 from typing import Any, Literal, TypedDict, TypeVar
 from uuid import UUID
 
-from memberships.models import Membership, Role
+from django.db.models import Q
+
+from memberships.choices import InvitationStatus
+from memberships.models import Invitation, Membership, Role
+from projects.projects.models import Project
+from users.models import User
+from workspaces.workspaces.models import Workspace
+
+##########################################################
+# membership type
+##########################################################
 
 
 class _MembershipFilters(TypedDict, total=False):
@@ -28,11 +38,11 @@ class _MembershipFilters(TypedDict, total=False):
     role__permissions__contains: list[str]
 
 
-class ProjectMembershipFilters(_MembershipFilters):
+class ProjectMembershipFilters(_MembershipFilters, total=False):
     project_id: UUID
 
 
-class WorkspaceMembershipFilters(_MembershipFilters):
+class WorkspaceMembershipFilters(_MembershipFilters, total=False):
     workspace_id: UUID
 
 
@@ -60,16 +70,21 @@ MembershipOrderBy = list[Literal["user__full_name",]]
 TM = TypeVar("TM", bound=Membership)
 
 
+##########################################################
+# role type
+##########################################################
+
+
 class _RoleFilters(TypedDict, total=False):
     slug: str
     memberships__user_id: UUID
 
 
-class ProjectRoleFilters(_RoleFilters):
+class ProjectRoleFilters(_RoleFilters, total=False):
     project_id: UUID
 
 
-class WorkspaceRoleFilters(_RoleFilters):
+class WorkspaceRoleFilters(_RoleFilters, total=False):
     workspace_id: UUID
 
 
@@ -79,6 +94,59 @@ ProjectRoleSelectRelated = list[Literal["project",]]
 WorkspaceRoleSelectRelated = list[Literal["workspace",]]
 RoleSelectRelated = ProjectRoleSelectRelated | WorkspaceRoleSelectRelated
 TR = TypeVar("TR", bound=Role)
+
+##########################################################
+# invitation type
+##########################################################
+
+
+class _InvitationFilters(TypedDict, total=False):
+    id: UUID
+    user: User
+    email: str
+    status: InvitationStatus
+    status__in: list[InvitationStatus]
+
+
+class ProjectInvitationFilters(_InvitationFilters, total=False):
+    project_id: UUID
+
+
+class WorkspaceInvitationFilters(_InvitationFilters, total=False):
+    workspace_id: UUID
+
+
+InvitationFilters = WorkspaceInvitationFilters | WorkspaceInvitationFilters
+
+
+ProjectInvitationSelectRelated = list[
+    Literal[
+        "user",
+        "project",
+        "role",
+        "project__workspace",
+        "invited_by",
+    ]
+]
+WorkspaceInvitationSelectRelated = list[
+    Literal[
+        "user",
+        "role",
+        "workspace",
+        "invited_by",
+    ]
+]
+InvitationSelectRelated = (
+    ProjectInvitationSelectRelated | WorkspaceInvitationSelectRelated
+)
+
+InvitationOrderBy = list[
+    Literal[
+        "user__full_name",
+        "email",
+    ]
+]
+TI = TypeVar("TI", bound=Invitation)
 
 ##########################################################
 # list memberships
@@ -157,6 +225,15 @@ async def has_other_owner_memberships(model: type[TM], exclude_id: UUID):
     )
 
 
+async def list_members(
+    reference_object: Project | Workspace, exclude_user=None
+) -> list[User]:
+    qs = reference_object.members.all()
+    if exclude_user is not None:
+        qs = qs.exclude(id=exclude_user.id)
+    return [a async for a in qs]
+
+
 ##########################################################
 # list roles
 ##########################################################
@@ -201,3 +278,119 @@ async def update_role(role: TR, values: dict[str, Any] = {}) -> TR:
 
     await role.asave()
     return role
+
+
+##########################################################
+# create invitations
+##########################################################
+
+
+async def create_invitations(
+    model: type[TI],
+    objs: list[TI],
+) -> list[TI]:
+    return await model.objects.abulk_create(objs=objs)
+
+
+##########################################################
+# list invitations
+##########################################################
+
+
+async def list_invitations(
+    model: type[TI],
+    filters: InvitationFilters = {},
+    offset: int | None = None,
+    limit: int | None = None,
+    select_related: InvitationSelectRelated = [],
+    order_by: InvitationOrderBy = ["user__full_name", "email"],
+) -> list[TI]:
+    qs = (
+        model.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+        .order_by(*order_by)
+    )
+
+    if limit is not None and offset is not None:
+        limit += offset
+
+    return [a async for a in qs[offset:limit]]
+
+
+##########################################################
+# get invitation
+##########################################################
+
+
+async def get_invitation(
+    model: type[TI],
+    filters: InvitationFilters = {},
+    q_filter: Q | None = None,
+    select_related: InvitationSelectRelated = [],
+) -> TI:
+    qs = model.objects.all().filter(**filters).select_related(*select_related)
+    if q_filter:
+        qs = qs.filter(q_filter)
+    return await qs.aget()
+
+
+async def exist_invitation(
+    model: type[TI],
+    filters: InvitationFilters = {},
+) -> bool:
+    qs = model.objects.all().filter(**filters)
+    return await qs.aexists()
+
+
+##########################################################
+# update invitations
+##########################################################
+
+
+async def update_invitation(invitation: TI, values: dict[str, Any]) -> TI:
+    for attr, value in values.items():
+        setattr(invitation, attr, value)
+
+    await invitation.asave()
+    return invitation
+
+
+async def bulk_update_invitations(
+    model: type[TI], objs_to_update: list[TI], fields_to_update: list[str]
+) -> None:
+    await model.objects.abulk_update(objs_to_update, fields_to_update)
+
+
+async def update_user_invitations(model: type[TI], user: User) -> None:
+    await model.objects.filter(email=user.email).aupdate(user=user)
+
+
+##########################################################
+# delete invitation
+##########################################################
+
+
+async def delete_invitation(
+    model: type[TI],
+    filters: InvitationFilters = {},
+    q_filter: Q | None = None,
+) -> int:
+    qs = model.objects.all().filter(**filters)
+    if q_filter:
+        qs = qs.filter(q_filter)
+    count, _ = await qs.adelete()
+    return count
+
+
+##########################################################
+# misc invitation
+##########################################################
+
+
+def username_or_email_query(username_or_email: str) -> Q:
+    by_user = Q(user__username__iexact=username_or_email) | Q(
+        user__email__iexact=username_or_email
+    )
+    by_email = Q(user__isnull=True, email__iexact=username_or_email)
+    return by_user | by_email

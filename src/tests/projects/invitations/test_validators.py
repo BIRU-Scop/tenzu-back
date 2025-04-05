@@ -20,9 +20,9 @@
 import pytest
 from pydantic import ValidationError
 
-from projects.invitations.api.validators import (
-    ProjectInvitationsValidator,
-    ProjectInvitationValidator,
+from memberships.api.validators import (
+    InvitationsValidator,
+    InvitationValidator,
 )
 from tests.utils.utils import check_validation_errors
 
@@ -49,7 +49,7 @@ from tests.utils.utils import check_validation_errors
 )
 def test_email_role_slug(email, username, role_slug, error_fields, expected_errors):
     with pytest.raises(ValidationError) as validation_errors:
-        ProjectInvitationValidator(email=email, username=username, role_slug=role_slug)
+        InvitationValidator(email=email, username=username, role_slug=role_slug)
 
     expected_error_fields = error_fields
     expected_error_messages = expected_errors
@@ -66,7 +66,7 @@ def test_validate_invitations_more_than_50():
     with pytest.raises(
         ValidationError, match=r"type=too_long.+input_type=list"
     ) as validation_errors:
-        ProjectInvitationsValidator(invitations=invitations)
+        InvitationsValidator(invitations=invitations)
 
     expected_error_fields = ["invitations"]
     expected_error_messages = [

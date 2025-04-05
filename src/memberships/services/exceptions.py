@@ -38,3 +38,38 @@ class NotValidPermissionsSetError(TenzuServiceException):
 
 class IncompatiblePermissionsSetError(TenzuServiceException):
     pass
+
+
+# --- Invitations
+
+
+class BadInvitationTokenError(TenzuServiceException):
+    pass
+
+
+class InvitationAlreadyAcceptedError(TenzuServiceException):
+    pass
+
+
+class InvitationDoesNotExistError(TenzuServiceException):
+    pass
+
+
+class InvitationIsNotForThisUserError(TenzuServiceException):
+    pass
+
+
+class InvitationRevokedError(TenzuServiceException):
+    pass
+
+
+class InvitationDeniedError(TenzuServiceException):
+    pass
+
+
+class InvitationHasNoUserYetError(TenzuServiceException):
+    pass
+
+
+class InvitationNonExistingUsernameError(TenzuServiceException):
+    pass

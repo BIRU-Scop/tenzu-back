@@ -19,6 +19,7 @@
 
 from asgiref.sync import async_to_sync, sync_to_async
 
+from memberships.choices import InvitationStatus
 from permissions import choices
 from projects.projects import repositories as projects_repositories
 
@@ -71,6 +72,7 @@ def build_project_membership(**kwargs):
 
 
 class ProjectInvitationFactory(Factory):
+    status = InvitationStatus.PENDING
     email = factory.Sequence(lambda n: f"user{n}@email.com")
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     project = factory.SubFactory("tests.utils.factories.ProjectFactory")

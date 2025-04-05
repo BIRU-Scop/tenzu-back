@@ -23,7 +23,7 @@ import pytest
 from asgiref.sync import sync_to_async
 
 from base.db.exceptions import IntegrityError
-from projects.invitations.choices import ProjectInvitationStatus
+from memberships.choices import InvitationStatus
 from projects.projects.models import ProjectTemplate
 from tests.utils import factories as f
 from users import repositories as users_repositories
@@ -137,7 +137,7 @@ async def test_list_guests_in_ws_for_project(project_template):
         user=invitee,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
         invited_by=project.created_by,
     )
 
@@ -227,7 +227,7 @@ class ListUserByText(IsolatedAsyncioTestCase):
             user=self.danvers,
             project=self.project,
             role=self.general_role,
-            status=ProjectInvitationStatus.PENDING,
+            status=InvitationStatus.PENDING,
             invited_by=self.ws_pj_admin,
         )
 

@@ -136,7 +136,7 @@ class Migration(migrations.Migration):
                 (
                     "role",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
+                        on_delete=django.db.models.deletion.RESTRICT,
                         related_name="invitations",
                         to="projects_memberships.projectrole",
                         verbose_name="role",
@@ -160,10 +160,6 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "project invitations",
                 "ordering": ["project", "user", "email"],
             },
-        ),
-        migrations.AddIndex(
-            model_name="projectinvitation",
-            index=models.Index(fields=["email"], name="projects_in_email_07fdb9_idx"),
         ),
         migrations.AddIndex(
             model_name="projectinvitation",

@@ -22,7 +22,7 @@ from unittest.mock import patch
 
 import pytest
 
-from projects.invitations.choices import ProjectInvitationStatus
+from memberships.choices import InvitationStatus
 from projects.memberships.models import ProjectRole
 from projects.projects import services
 from projects.projects.services import exceptions as ex
@@ -220,7 +220,7 @@ async def test_list_workspace_invited_projects_for_user():
             filters={
                 "workspace_id": workspace.id,
                 "invitations__user_id": workspace.created_by.id,
-                "invitations__status": ProjectInvitationStatus.PENDING,
+                "invitations__status": InvitationStatus.PENDING,
             }
         )
 
@@ -251,7 +251,7 @@ async def test_get_project_detail():
     ):
         fake_workflows_repositories.list_workflows.return_value = []
         fake_pj_memberships_repositories.get_role.return_value = role
-        fake_pj_invitations_services.has_pending_project_invitation.return_value = True
+        fake_pj_invitations_services.has_pending_invitation.return_value = True
         fake_workspaces_services.get_workspace_nested.return_value = (
             WorkspaceNestedSerializer(
                 id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="owner"
@@ -267,8 +267,8 @@ async def test_get_project_detail():
             },
             select_related=[],
         )
-        fake_pj_invitations_services.has_pending_project_invitation.assert_awaited_once_with(
-            user=workspace.created_by, project=project
+        fake_pj_invitations_services.has_pending_invitation.assert_awaited_once_with(
+            user=workspace.created_by, reference_object=project
         )
         fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(
             workspace_id=workspace.id, user_id=workspace.created_by.id
@@ -297,7 +297,7 @@ async def test_get_project_detail_anonymous():
     ):
         fake_workflows_repositories.list_workflows.return_value = []
         fake_pj_memberships_repositories.get_role.return_value = role
-        fake_pj_invitations_services.has_pending_project_invitation.return_value = False
+        fake_pj_invitations_services.has_pending_invitation.return_value = False
         fake_workspaces_services.get_workspace_nested.return_value = (
             WorkspaceNestedSerializer(
                 id=uuid.uuid1(), name="ws 1", slug="ws-1", user_role="owner"
@@ -306,7 +306,7 @@ async def test_get_project_detail_anonymous():
         await services.get_project_detail(project=project, user=user)
 
         fake_pj_memberships_repositories.get_role.assert_not_awaited()
-        fake_pj_invitations_services.has_pending_project_invitation.assert_not_awaited()
+        fake_pj_invitations_services.has_pending_invitation.assert_not_awaited()
         fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(
             workspace_id=workspace.id, user_id=user.id
         )

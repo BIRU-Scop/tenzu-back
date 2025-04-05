@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from commons.invitations import InvitationToken
+from memberships.tokens import InvitationToken
 
 
 class ProjectInvitationToken(InvitationToken):

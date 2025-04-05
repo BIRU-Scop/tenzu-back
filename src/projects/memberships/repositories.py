@@ -23,6 +23,7 @@ from memberships.repositories import (  # noqa
     get_membership,
     get_role,
     list_memberships,
+    list_members,
     list_roles,
     update_membership,
     update_role,
@@ -67,15 +68,3 @@ async def create_project_role(
         project=project,
         order=order,
     )
-
-
-##########################################################
-# misc
-##########################################################
-
-
-async def list_project_members(project: Project, exclude_user=None) -> list[User]:
-    qs = project.members.all()
-    if exclude_user is not None:
-        qs = qs.exclude(id=exclude_user.id)
-    return [a async for a in qs]

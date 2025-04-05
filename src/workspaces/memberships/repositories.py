@@ -22,6 +22,7 @@ from memberships.repositories import (  # noqa
     get_membership,
     get_role,
     list_memberships,
+    list_members,
     list_roles,
     update_membership,
     update_role,
@@ -44,15 +45,3 @@ async def create_workspace_membership(
     return await WorkspaceMembership.objects.acreate(
         user=user, workspace=workspace, role=role
     )
-
-
-##########################################################
-# misc
-##########################################################
-
-
-async def list_workspace_members(workspace: Workspace, exclude_user=None) -> list[User]:
-    qs = workspace.members.all()
-    if exclude_user is not None:
-        qs = qs.exclude(id=exclude_user.id)
-    return [a async for a in qs]

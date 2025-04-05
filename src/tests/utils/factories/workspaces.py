@@ -19,8 +19,8 @@
 
 from asgiref.sync import sync_to_async
 
+from memberships.choices import InvitationStatus
 from permissions import choices
-from workspaces.invitations.choices import WorkspaceInvitationStatus
 
 from .base import Factory, factory
 
@@ -71,10 +71,11 @@ def build_workspace_membership(**kwargs):
 
 
 class WorkspaceInvitationFactory(Factory):
-    status = WorkspaceInvitationStatus.PENDING
+    status = InvitationStatus.PENDING
     email = factory.Sequence(lambda n: f"user{n}@email.com")
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
+    role = factory.SubFactory("tests.utils.factories.WorkspaceRoleFactory")
     invited_by = factory.SubFactory("tests.utils.factories.UserFactory")
 
     class Meta:
@@ -106,7 +107,9 @@ def create_workspace(**kwargs):
     """Create workspace and its dependencies"""
     workspace = WorkspaceFactory.create(**kwargs)
 
-    owner_role = WorkspaceRoleFactory.create(workspace=workspace, is_owner=True)
+    owner_role = WorkspaceRoleFactory.create(
+        workspace=workspace, is_owner=True, slug="owner"
+    )
     WorkspaceMembershipFactory.create(
         user=workspace.created_by, workspace=workspace, role=owner_role
     )

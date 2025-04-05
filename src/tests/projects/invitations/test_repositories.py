@@ -22,8 +22,9 @@ import uuid
 import pytest
 from asgiref.sync import sync_to_async
 
+from memberships.choices import InvitationStatus
 from projects.invitations import repositories
-from projects.invitations.choices import ProjectInvitationStatus
+from projects.invitations.models import ProjectInvitation
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -57,7 +58,7 @@ async def test_create_project_invitations(project_template):
         ),
     ]
 
-    response = await repositories.create_project_invitations(objs=objs)
+    response = await repositories.create_invitations(ProjectInvitation, objs=objs)
 
     assert len(response) == 2
 
@@ -70,8 +71,8 @@ async def test_create_project_invitations(project_template):
 async def test_get_project_invitation_ok() -> None:
     invitation = await f.create_project_invitation()
 
-    new_invitation = await repositories.get_project_invitation(
-        filters={"id": invitation.id}
+    new_invitation = await repositories.get_invitation(
+        ProjectInvitation, filters={"id": invitation.id}
     )
 
     assert new_invitation is not None
@@ -79,18 +80,18 @@ async def test_get_project_invitation_ok() -> None:
 
 
 async def test_get_project_invitation_not_found() -> None:
-    new_invitation = await repositories.get_project_invitation(filters={"id": 1001})
-
-    assert new_invitation is None
+    with pytest.raises(ProjectInvitation.DoesNotExist):
+        await repositories.get_invitation(ProjectInvitation, filters={"id": 1001})
 
 
 async def test_get_project_invitation_by_user_username() -> None:
     invitation = await f.create_project_invitation()
 
-    new_invitation = await repositories.get_project_invitation(
+    new_invitation = await repositories.get_invitation(
+        ProjectInvitation,
         filters={
             "project_id": invitation.project.id,
-            "status__in": [ProjectInvitationStatus.PENDING],
+            "status__in": [InvitationStatus.PENDING],
         },
         q_filter=repositories.username_or_email_query(invitation.user.username),
     )
@@ -102,10 +103,11 @@ async def test_get_project_invitation_by_user_username() -> None:
 async def test_get_project_invitation_by_user_email() -> None:
     invitation = await f.create_project_invitation()
 
-    new_invitation = await repositories.get_project_invitation(
+    new_invitation = await repositories.get_invitation(
+        ProjectInvitation,
         filters={
             "project_id": invitation.project.id,
-            "status__in": [ProjectInvitationStatus.PENDING],
+            "status__in": [InvitationStatus.PENDING],
         },
         q_filter=repositories.username_or_email_query(invitation.user.email),
     )
@@ -117,10 +119,11 @@ async def test_get_project_invitation_by_user_email() -> None:
 async def test_get_project_invitation_by_email() -> None:
     invitation = await f.create_project_invitation(user=None)
 
-    new_invitation = await repositories.get_project_invitation(
+    new_invitation = await repositories.get_invitation(
+        ProjectInvitation,
         filters={
             "project_id": invitation.project.id,
-            "status__in": [ProjectInvitationStatus.PENDING],
+            "status__in": [InvitationStatus.PENDING],
         },
         q_filter=repositories.username_or_email_query(invitation.email),
     )
@@ -132,7 +135,8 @@ async def test_get_project_invitation_by_email() -> None:
 async def test_get_project_invitation_by_email_no_status() -> None:
     invitation = await f.create_project_invitation(user=None)
 
-    new_invitation = await repositories.get_project_invitation(
+    new_invitation = await repositories.get_invitation(
+        ProjectInvitation,
         filters={
             "project_id": invitation.project.id,
         },
@@ -146,8 +150,8 @@ async def test_get_project_invitation_by_email_no_status() -> None:
 async def test_get_project_invitation_by_id() -> None:
     invitation = await f.create_project_invitation()
 
-    new_invitation = await repositories.get_project_invitation(
-        filters={"id": invitation.id}
+    new_invitation = await repositories.get_invitation(
+        ProjectInvitation, filters={"id": invitation.id}
     )
 
     assert new_invitation is not None
@@ -155,30 +159,31 @@ async def test_get_project_invitation_by_id() -> None:
 
 
 async def get_project_invitation_by_id_not_found() -> None:
-    new_invitation = await repositories.get_project_invitation(
-        filters={"id": uuid.uuid1()}
-    )
-
-    assert new_invitation is None
+    with pytest.raises(ProjectInvitation.DoesNotExist):
+        await repositories.get_invitation(
+            ProjectInvitation, filters={"id": uuid.uuid1()}
+        )
 
 
 async def test_exist_project_invitation() -> None:
     user = await f.create_user()
 
-    assert not await repositories.exist_project_invitation(
+    assert not await repositories.exist_invitation(
+        ProjectInvitation,
         {
             "user": user,
-        }
+        },
     )
     invitation = await f.create_project_invitation(
         email=user.email,
         user=user,
     )
 
-    assert await repositories.exist_project_invitation(
+    assert await repositories.exist_invitation(
+        ProjectInvitation,
         {
             "user": user,
-        }
+        },
     )
 
 
@@ -202,7 +207,7 @@ async def test_list_project_invitations_all_pending_users(project_template):
         user=user_a,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     user_b = await f.create_user(full_name="B", email=email_a)
     await f.create_project_invitation(
@@ -210,28 +215,28 @@ async def test_list_project_invitations_all_pending_users(project_template):
         user=user_b,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_project_invitation(
         email=email_z,
         user=None,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_project_invitation(
         email=email_x,
         user=None,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_project_invitation(
         email=email_y,
         user=None,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     user = await f.create_user()
     await f.create_project_invitation(
@@ -239,11 +244,12 @@ async def test_list_project_invitations_all_pending_users(project_template):
         user=user,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
 
-    response = await repositories.list_project_invitations(
-        filters={"project_id": project.id, "status": ProjectInvitationStatus.PENDING}
+    response = await repositories.list_invitations(
+        ProjectInvitation,
+        filters={"project_id": project.id, "status": InvitationStatus.PENDING},
     )
     assert len(response) == 5
     assert response[0].email == user_a.email
@@ -263,21 +269,22 @@ async def test_list_project_invitations_single_pending_user(project_template):
         user=user1,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_project_invitation(
         email="non-existing@email.com",
         user=None,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
 
-    response = await repositories.list_project_invitations(
+    response = await repositories.list_invitations(
+        ProjectInvitation,
         filters={
             "project_id": project.id,
             "user": user1,
-            "status": ProjectInvitationStatus.PENDING,
+            "status": InvitationStatus.PENDING,
         },
     )
     assert len(response) == 1
@@ -296,14 +303,15 @@ async def test_list_project_invitations_single_pending_non_existing_user(
         user=None,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
 
-    invitations = await repositories.list_project_invitations(
+    invitations = await repositories.list_invitations(
+        ProjectInvitation,
         filters={
             "project_id": project.id,
             "email": non_existing_email,
-            "status": ProjectInvitationStatus.PENDING,
+            "status": InvitationStatus.PENDING,
         },
     )
     assert len(invitations) == 1
@@ -320,7 +328,7 @@ async def test_list_project_invitations_all_accepted_users(project_template):
         user=user1,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
     user2 = await f.create_user(full_name="BBB")
     await f.create_project_invitation(
@@ -328,11 +336,12 @@ async def test_list_project_invitations_all_accepted_users(project_template):
         user=user2,
         project=project,
         role=general_role,
-        status=ProjectInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
 
-    response = await repositories.list_project_invitations(
-        filters={"project_id": project.id, "status": ProjectInvitationStatus.ACCEPTED},
+    response = await repositories.list_invitations(
+        ProjectInvitation,
+        filters={"project_id": project.id, "status": InvitationStatus.ACCEPTED},
     )
     assert len(response) == 2
     assert response[0].email == user1.email
@@ -352,13 +361,13 @@ async def test_update_project_invitation(project_template):
         user=user,
         email=user.email,
         project=project,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
         role=old_role,
     )
     assert invitation.role == old_role
 
     new_role = await f.create_project_role(project=project)
-    updated_invitation = await repositories.update_project_invitation(
+    updated_invitation = await repositories.update_invitation(
         invitation=invitation,
         values={"role": new_role},
     )
@@ -379,16 +388,16 @@ async def test_bulk_update_project_invitations(project_template):
     objs = [invitation1, invitation2]
     fields_to_update = ["role"]
 
-    await repositories.bulk_update_project_invitations(
-        objs_to_update=objs, fields_to_update=fields_to_update
+    await repositories.bulk_update_invitations(
+        ProjectInvitation, objs_to_update=objs, fields_to_update=fields_to_update
     )
-    updated_invitation1 = await repositories.get_project_invitation(
-        filters={"id": invitation1.id}
+    updated_invitation1 = await repositories.get_invitation(
+        ProjectInvitation, filters={"id": invitation1.id}
     )
     assert updated_invitation1.role == role2
 
-    updated_invitation2 = await repositories.get_project_invitation(
-        filters={"id": invitation2.id}
+    updated_invitation2 = await repositories.get_invitation(
+        ProjectInvitation, filters={"id": invitation2.id}
     )
     assert updated_invitation2.role == role2
 
@@ -406,11 +415,12 @@ async def test_delete_project_invitation(project_template):
         user=user,
         email=user.email,
         project=project,
-        status=ProjectInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
         role=role,
     )
 
-    deleted_invitation = await repositories.delete_project_invitation(
+    deleted_invitation = await repositories.delete_invitation(
+        ProjectInvitation,
         filters={"project_id": project.id},
         q_filter=repositories.username_or_email_query(user.email),
     )

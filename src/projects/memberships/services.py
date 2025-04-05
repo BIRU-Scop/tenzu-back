@@ -22,6 +22,7 @@ from memberships import services as memberships_services
 from memberships.services import exceptions as ex
 from permissions.choices import ProjectPermissions
 from projects.invitations import repositories as project_invitations_repositories
+from projects.invitations.models import ProjectInvitation
 from projects.memberships import events as memberships_events
 from projects.memberships import repositories as memberships_repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
@@ -123,7 +124,8 @@ async def delete_project_membership(
             }
         )
         # Delete project invitations
-        await project_invitations_repositories.delete_project_invitation(
+        await project_invitations_repositories.delete_invitation(
+            ProjectInvitation,
             filters={
                 "project_id": membership.project_id,
             },

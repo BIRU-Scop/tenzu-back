@@ -20,11 +20,11 @@
 import pytest
 from pydantic import ValidationError
 
-from tests.utils.utils import check_validation_errors
-from workspaces.invitations.api.validators import (
-    WorkspaceInvitationsValidator,
-    WorkspaceInvitationValidator,
+from memberships.api.validators import (
+    InvitationsValidator,
+    InvitationValidator,
 )
+from tests.utils.utils import check_validation_errors
 
 
 @pytest.mark.parametrize(
@@ -36,7 +36,7 @@ from workspaces.invitations.api.validators import (
 )
 def test_email(username_or_email, error_fields, expected_errors):
     with pytest.raises(ValidationError) as validation_errors:
-        WorkspaceInvitationValidator(username_or_email=username_or_email)
+        InvitationValidator(username_or_email=username_or_email)
 
     expected_error_fields = error_fields
     expected_error_messages = expected_errors
@@ -53,7 +53,7 @@ def test_validate_invitations_more_than_50():
     with pytest.raises(
         ValidationError, match=r"type=too_long.+input_type=list"
     ) as validation_errors:
-        WorkspaceInvitationsValidator(invitations=invitations)
+        InvitationsValidator(invitations=invitations)
 
     expected_error_fields = ["invitations"]
     expected_error_messages = [

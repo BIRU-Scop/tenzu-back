@@ -436,7 +436,7 @@ async def test_delete_workspaces_without_ws_members():
     workspace = await f.create_workspace()
 
     num_deleted_wss = await repositories.delete_workspace(workspace_id=workspace.id)
-    assert num_deleted_wss == 2  # 1 workspace, 1 ws_memberships (member-ws.created_by)
+    assert num_deleted_wss == 3  # 1 workspace, 1 ws_memberships, 1 ws_role
 
 
 async def test_delete_workspaces_with_ws_members():
@@ -446,9 +446,7 @@ async def test_delete_workspaces_with_ws_members():
     await f.create_workspace_membership(user=ws_member, workspace=workspace)
 
     num_deleted_wss = await repositories.delete_workspace(workspace_id=workspace.id)
-    assert (
-        num_deleted_wss == 3
-    )  # 1 workspace, 2 ws_memberships (ws.created_by, ws_member)
+    assert num_deleted_wss == 4  # 1 workspace, 2 ws_memberships, 1 ws_role
 
 
 ##########################################################

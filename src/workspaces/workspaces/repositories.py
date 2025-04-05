@@ -36,7 +36,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 
 from base.utils.datetime import aware_utcnow
-from projects.invitations.choices import ProjectInvitationStatus
+from memberships.choices import InvitationStatus
 from projects.projects.models import Project
 from users.models import User
 from workspaces.workspaces.models import Workspace
@@ -117,7 +117,7 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
                 Q(invitations__user__isnull=True)
                 & Q(invitations__email__iexact=user.email)
             ),
-            invitations__status=ProjectInvitationStatus.PENDING,
+            invitations__status=InvitationStatus.PENDING,
             workspace_id=ws_id,
         )
         qs = (
@@ -137,7 +137,7 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
     # workspaces where the user is ws-guest with all its visible projects
     # or is not even a guest and only have invited projects
     user_pj_member = Q(memberships__user__id=user.id)
-    user_invited_pj = Q(invitations__status=ProjectInvitationStatus.PENDING) & (
+    user_invited_pj = Q(invitations__status=InvitationStatus.PENDING) & (
         Q(invitations__user_id=user.id)
         | (Q(invitations__user__isnull=True) & Q(invitations__email__iexact=user.email))
     )
@@ -169,7 +169,7 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
                 Q(invitations__user__isnull=True)
                 & Q(invitations__email__iexact=user.email)
             ),
-            invitations__status=ProjectInvitationStatus.PENDING,
+            invitations__status=InvitationStatus.PENDING,
             workspace_id=ws_id,
         )
         qs = (
@@ -229,7 +229,7 @@ async def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
     # Generic prefetch
     invited_projects_qs = Project.objects.filter(
         invitations__user_id=user.id,
-        invitations__status=ProjectInvitationStatus.PENDING,
+        invitations__status=InvitationStatus.PENDING,
     )
 
     # workspaces where the user is member
@@ -270,7 +270,7 @@ async def get_user_workspace_overview(user: User, id: UUID) -> Workspace | None:
         user_not_ws_member = ~Q(members__id=user.id)
         user_pj_member = Q(projects__members__id=user.id)
         user_invited_pj = Q(
-            projects__invitations__status=ProjectInvitationStatus.PENDING,
+            projects__invitations__status=InvitationStatus.PENDING,
             projects__invitations__user_id=user.id,
         )
         total_projects = Subquery(

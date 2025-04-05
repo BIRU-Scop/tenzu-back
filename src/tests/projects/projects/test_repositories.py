@@ -24,8 +24,8 @@ from django.core.files import File
 from django.db import models
 
 from base.db import sequences as seq
+from memberships.choices import InvitationStatus
 from projects import references
-from projects.invitations.choices import ProjectInvitationStatus
 from projects.memberships.models import ProjectRole
 from projects.projects import repositories
 from projects.projects.models import Project
@@ -214,7 +214,7 @@ async def test_list_workspace_invited_projects_for_user(project_template):
         filters={
             "workspace_id": workspace.id,
             "invitations__user_id": user9.id,
-            "invitations__status": ProjectInvitationStatus.PENDING,
+            "invitations__status": InvitationStatus.PENDING,
         },
     )
     assert len(res) == 2

@@ -24,6 +24,8 @@ from workspaces.workspaces.serializers import (
 )
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
+# TODO refactor this with new role info and reduce number of different endpoints
+
 
 def serialize_workspace(
     workspace: Workspace, user_role: str, total_projects: int

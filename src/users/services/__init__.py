@@ -28,13 +28,13 @@ from commons.colors import generate_random_color
 from commons.utils import transaction_atomic_async
 from emails.emails import Emails
 from emails.tasks import send_email
+from memberships.choices import InvitationStatus
+from memberships.services import exceptions as invitations_ex
 from ninja_jwt.exceptions import TokenError
 from projects.invitations import events as pj_invitations_events
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations import services as project_invitations_services
-from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
-from projects.invitations.services import exceptions as invitations_ex
 from projects.memberships import events as pj_memberships_events
 from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
@@ -51,7 +51,6 @@ from users.tokens import ResetPasswordToken, VerifyUserToken
 from workspaces.invitations import events as ws_invitations_events
 from workspaces.invitations import repositories as ws_invitations_repositories
 from workspaces.invitations import services as workspace_invitations_services
-from workspaces.invitations.choices import WorkspaceInvitationStatus
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import events as ws_memberships_events
 from workspaces.memberships import repositories as ws_memberships_repositories
@@ -160,12 +159,16 @@ async def _generate_verify_user_token(
     return str(verify_user_token)
 
 
+@transaction_atomic_async
 async def verify_user(user: User) -> None:
     await users_repositories.update_user(
         user=user, values={"is_active": True, "date_verification": aware_utcnow()}
     )
+    await project_invitations_services.update_user_projects_invitations(user=user)
+    await workspace_invitations_services.update_user_workspaces_invitations(user=user)
 
 
+@transaction_atomic_async
 async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
     # Get token and deny it
     try:
@@ -187,8 +190,6 @@ async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
         raise ex.BadVerifyUserTokenError("The user doesn't exist.")
 
     await verify_user(user=user)
-    await project_invitations_services.update_user_projects_invitations(user=user)
-    await workspace_invitations_services.update_user_workspaces_invitations(user=user)
 
     # The user may have a pending invitation to join a project or a workspace
     project_invitation, workspace_invitation = await _accept_invitations_from_token(
@@ -325,11 +326,11 @@ async def delete_user(user: User) -> bool:
         select_related=["workspace"],
     )
     for pj in projects:
-        workspace_members = await ws_memberships_repositories.list_workspace_members(
-            workspace=pj.workspace, exclude_user=user
+        workspace_members = await ws_memberships_repositories.list_members(
+            reference_object=pj.workspace, exclude_user=user
         )
-        project_members = await pj_memberships_repositories.list_project_members(
-            project=pj, exclude_user=user
+        project_members = await pj_memberships_repositories.list_members(
+            reference_object=pj, exclude_user=user
         )
 
         project_owner_role = await pj_memberships_repositories.get_role(
@@ -381,16 +382,15 @@ async def delete_user(user: User) -> bool:
             )
 
     # delete ws invitations
-    ws_invitations = await ws_invitations_repositories.list_workspace_invitations(
+    ws_invitations = await ws_invitations_repositories.list_invitations(
+        WorkspaceInvitation,
         filters={"user": user},
         select_related=["workspace"],
     )
     for ws_invitation in ws_invitations:
-        is_pending = (
-            True if ws_invitation.status == WorkspaceInvitationStatus.PENDING else False
-        )
-        deleted = await ws_invitations_repositories.delete_workspace_invitation(
-            filters={"id": ws_invitation.id}
+        is_pending = True if ws_invitation.status == InvitationStatus.PENDING else False
+        deleted = await ws_invitations_repositories.delete_invitation(
+            WorkspaceInvitation, filters={"id": ws_invitation.id}
         )
         if deleted > 0 and is_pending:
             await ws_invitations_events.emit_event_when_workspace_invitation_is_deleted(
@@ -411,16 +411,15 @@ async def delete_user(user: User) -> bool:
             )
 
     # delete pj invitations
-    pj_invitations = await pj_invitations_repositories.list_project_invitations(
+    pj_invitations = await pj_invitations_repositories.list_invitations(
+        ProjectInvitation,
         filters={"user": user},
         select_related=["project"],
     )
     for pj_invitation in pj_invitations:
-        is_pending = (
-            True if pj_invitation.status == ProjectInvitationStatus.PENDING else False
-        )
-        deleted = await pj_invitations_repositories.delete_project_invitation(
-            filters={"id": pj_invitation.id}
+        is_pending = True if pj_invitation.status == InvitationStatus.PENDING else False
+        deleted = await pj_invitations_repositories.delete_invitation(
+            ProjectInvitation, filters={"id": pj_invitation.id}
         )
         if deleted > 0 and is_pending:
             await pj_invitations_events.emit_event_when_project_invitation_is_deleted(
@@ -586,7 +585,7 @@ async def _accept_project_invitation_from_token(
             )
         except (
             invitations_ex.BadInvitationTokenError,
-            invitations_ex.InvitationDoesNotExistError,
+            ProjectInvitation.DoesNotExist,
         ):
             pass  # TODO: Logging invitation is invalid
     return invitation
@@ -618,7 +617,7 @@ async def _accept_workspace_invitation_from_token(
             )
         except (
             invitations_ex.BadInvitationTokenError,
-            invitations_ex.InvitationDoesNotExistError,
+            WorkspaceInvitation.DoesNotExist,
         ):
             pass  # TODO: Logging invitation is invalid
     return invitation

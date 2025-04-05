@@ -26,8 +26,8 @@ from django.db.models import Case, Count, When
 from base.utils.datetime import aware_utcnow
 from base.utils.files import File
 from commons.utils import transaction_atomic_async
+from memberships.choices import InvitationStatus
 from projects import references
-from projects.invitations.choices import ProjectInvitationStatus
 from projects.memberships import repositories as memberships_repositories
 from projects.projects.models import Project, ProjectTemplate
 from users.models import User
@@ -42,7 +42,7 @@ from workspaces.workspaces.models import Workspace
 class ProjectFilters(TypedDict, total=False):
     workspace_id: UUID
     invitations__user_id: UUID
-    invitations__status: ProjectInvitationStatus
+    invitations__status: InvitationStatus
     memberships__user_id: UUID
     memberships__role__is_owner: bool
 

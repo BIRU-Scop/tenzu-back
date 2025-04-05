@@ -19,9 +19,9 @@
 
 import pytest
 
+from memberships.choices import InvitationStatus
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
-from workspaces.invitations.choices import WorkspaceInvitationStatus
 from workspaces.invitations.tokens import WorkspaceInvitationToken
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -38,9 +38,9 @@ async def test_create_workspace_invitations_200_ok(client):
     workspace = await f.create_workspace()
     data = {
         "invitations": [
-            {"username_or_email": "invitee2@tenzu.demo"},
-            {"username_or_email": "test@email.com"},
-            {"username_or_email": invitee1.username},
+            {"email": "invitee2@tenzu.demo", "role_slug": "owner"},
+            {"email": "test@email.com", "role_slug": "general"},
+            {"username": invitee1.username, "role_slug": "general"},
         ]
     }
     client.login(workspace.created_by)
@@ -54,7 +54,21 @@ async def test_create_workspace_invitations_400_bad_request_not_existing_usernam
     client,
 ):
     workspace = await f.create_workspace()
-    data = {"invitations": [{"username_or_email": "not-a-username"}]}
+    data = {"invitations": [{"username": "not-a-username", "role_slug": "owner"}]}
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/invitations", json=data
+    )
+    assert response.status_code == 400, response.text
+
+
+async def test_create_workspace_invitations_non_existing_role(client):
+    workspace = await f.create_workspace()
+    data = {
+        "invitations": [
+            {"email": "test@email.com", "role_slug": "non_existing_role"},
+        ]
+    }
     client.login(workspace.created_by)
     response = await client.post(
         f"/workspaces/{workspace.b64id}/invitations", json=data
@@ -66,8 +80,8 @@ async def test_create_workspace_invitations_401_not_authorised_anonymous_user(cl
     workspace = await f.create_workspace()
     data = {
         "invitations": [
-            {"username_or_email": "user-test@email.com"},
-            {"username_or_email": "test@email.com"},
+            {"email": "user-test@email.com", "role_slug": "owner"},
+            {"email": "test@email.com", "role_slug": "owner"},
         ]
     }
     response = await client.post(
@@ -82,8 +96,8 @@ async def test_create_workspace_invitations_403_forbidden_user_without_permissio
     workspace = await f.create_workspace()
     data = {
         "invitations": [
-            {"username_or_email": "user-test@email.com"},
-            {"username_or_email": "test@email.com"},
+            {"email": "user-test@email.com", "role_slug": "owner"},
+            {"email": "test@email.com", "role_slug": "owner"},
         ]
     }
     user = await f.create_user()
@@ -98,8 +112,8 @@ async def test_create_workspace_invitations_404_not_found_workspace_b64id(client
     user = await f.create_user()
     data = {
         "invitations": [
-            {"username_or_email": "user-test@email.com"},
-            {"username_or_email": "test@email.com"},
+            {"email": "user-test@email.com", "role_slug": "owner"},
+            {"email": "test@email.com", "role_slug": "owner"},
         ]
     }
     client.login(user)
@@ -113,8 +127,8 @@ async def test_create_workspace_invitations_422_unprocessable_workspace_b64id(cl
     user = await f.create_user()
     data = {
         "invitations": [
-            {"username_or_email": "user-test@email.com"},
-            {"username_or_email": "test@email.com"},
+            {"email": "user-test@email.com", "role_slug": "owner"},
+            {"email": "test@email.com", "role_slug": "owner"},
         ]
     }
     client.login(user)
@@ -135,27 +149,27 @@ async def test_list_workspaces_invitations_200_ok(client):
         email=user1.email,
         user=user1,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     user2 = await f.create_user(full_name="BBB")
     await f.create_workspace_invitation(
         email=user2.email,
         user=user2,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     await f.create_workspace_invitation(
         email="non-existing@email.com",
         user=None,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.PENDING,
+        status=InvitationStatus.PENDING,
     )
     user3 = await f.create_user()
     await f.create_workspace_invitation(
         email=user3.email,
         user=user3,
         workspace=workspace,
-        status=WorkspaceInvitationStatus.ACCEPTED,
+        status=InvitationStatus.ACCEPTED,
     )
 
     client.login(workspace.created_by)
