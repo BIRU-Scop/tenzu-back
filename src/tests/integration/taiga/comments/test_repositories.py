@@ -72,7 +72,7 @@ async def test_list_comments_by_content_object():
 ##########################################################
 
 
-async def tests_get_comment():
+async def test_get_comment():
     story1 = await f.create_story()
     story2 = await f.create_story()
     comment11 = await f.create_comment(content_object=story1)
@@ -102,7 +102,7 @@ async def tests_get_comment():
 ##########################################################
 
 
-async def tests_update_comment():
+async def test_update_comment():
     story = await f.create_story()
     comment = await f.create_comment(content_object=story)
     updated_text = "updated text"
@@ -118,7 +118,7 @@ async def tests_update_comment():
 ##########################################################
 
 
-async def tests_delete_comments():
+async def test_delete_comments():
     story1 = await f.create_story()
     story2 = await f.create_story()
     await f.create_comment(content_object=story2)

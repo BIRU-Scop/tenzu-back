@@ -528,7 +528,7 @@ async def test_update_user_workspaces_invitations() -> None:
 #######################################################
 
 
-async def tests_accept_workspace_invitation() -> None:
+async def test_accept_workspace_invitation() -> None:
     user = f.build_user()
     workspace = f.build_workspace()
     invitation = f.build_workspace_invitation(
@@ -561,7 +561,7 @@ async def tests_accept_workspace_invitation() -> None:
         )
 
 
-async def tests_accept_workspace_invitation_error_invitation_has_already_been_accepted() -> (
+async def test_accept_workspace_invitation_error_invitation_has_already_been_accepted() -> (
     None
 ):
     user = f.build_user()
@@ -588,7 +588,7 @@ async def tests_accept_workspace_invitation_error_invitation_has_already_been_ac
         fake_invitations_events.emit_event_when_workspace_invitation_is_accepted.assert_not_awaited()
 
 
-async def tests_accept_workspace_invitation_error_invitation_has_been_revoked() -> None:
+async def test_accept_workspace_invitation_error_invitation_has_been_revoked() -> None:
     user = f.build_user()
     workspace = f.build_workspace()
     invitation = f.build_workspace_invitation(
@@ -618,7 +618,7 @@ async def tests_accept_workspace_invitation_error_invitation_has_been_revoked() 
 #######################################################
 
 
-async def tests_accept_workspace_invitation_from_token_ok() -> None:
+async def test_accept_workspace_invitation_from_token_ok() -> None:
     user = f.build_user()
     invitation = f.build_workspace_invitation(user=user, email=user.email)
     token = str(await WorkspaceInvitationToken.create_for_object(invitation))
@@ -639,7 +639,7 @@ async def tests_accept_workspace_invitation_from_token_ok() -> None:
         fake_accept_workspace_invitation.assert_awaited_once_with(invitation=invitation)
 
 
-async def tests_accept_workspace_invitation_from_token_error_no_invitation_found() -> (
+async def test_accept_workspace_invitation_from_token_error_no_invitation_found() -> (
     None
 ):
     user = f.build_user()
@@ -663,7 +663,7 @@ async def tests_accept_workspace_invitation_from_token_error_no_invitation_found
         fake_accept_workspace_invitation.assert_not_awaited()
 
 
-async def tests_accept_workspace_invitation_from_token_error_invitation_is_for_other_user() -> (
+async def test_accept_workspace_invitation_from_token_error_invitation_is_for_other_user() -> (
     None
 ):
     user = f.build_user()
@@ -688,7 +688,7 @@ async def tests_accept_workspace_invitation_from_token_error_invitation_is_for_o
         fake_accept_workspace_invitation.assert_not_awaited()
 
 
-async def tests_accept_workspace_invitation_from_token_error_already_accepted() -> None:
+async def test_accept_workspace_invitation_from_token_error_already_accepted() -> None:
     user = f.build_user()
     invitation = f.build_workspace_invitation(
         user=user, email=user.email, status=InvitationStatus.ACCEPTED
@@ -708,7 +708,7 @@ async def tests_accept_workspace_invitation_from_token_error_already_accepted() 
         fake_get_workspace_invitation.assert_awaited_once_with(token=token)
 
 
-async def tests_accept_workspace_invitation_from_token_error_revoked() -> None:
+async def test_accept_workspace_invitation_from_token_error_revoked() -> None:
     user = f.build_user()
     invitation = f.build_workspace_invitation(
         user=user, email=user.email, status=InvitationStatus.REVOKED

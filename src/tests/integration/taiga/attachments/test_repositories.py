@@ -104,7 +104,7 @@ async def test_list_attachments_paginated_by_content_object():
 ##########################################################
 
 
-async def tests_get_attachment():
+async def test_get_attachment():
     story1 = await f.create_story()
     story2 = await f.create_story()
     attachment11 = await f.create_attachment(content_object=story1)
@@ -138,7 +138,7 @@ async def tests_get_attachment():
 ##########################################################
 
 
-async def tests_delete_attachments():
+async def test_delete_attachments():
     story1 = await f.create_story()
     story2 = await f.create_story()
     await f.create_attachment(content_object=story2)

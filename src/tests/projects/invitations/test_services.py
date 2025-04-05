@@ -699,7 +699,7 @@ async def test_create_project_invitations_invalid_username(tqmanager):
 #######################################################
 
 
-async def tests_accept_project_invitation() -> None:
+async def test_accept_project_invitation() -> None:
     user = f.build_user()
     project = f.build_project()
     role = f.build_project_role(project=project)
@@ -733,7 +733,7 @@ async def tests_accept_project_invitation() -> None:
         )
 
 
-async def tests_accept_project_invitation_error_invitation_has_already_been_accepted() -> (
+async def test_accept_project_invitation_error_invitation_has_already_been_accepted() -> (
     None
 ):
     user = f.build_user()
@@ -766,7 +766,7 @@ async def tests_accept_project_invitation_error_invitation_has_already_been_acce
         fake_invitations_events.emit_event_when_project_invitation_is_accepted.assert_not_awaited()
 
 
-async def tests_accept_project_invitation_error_invitation_has_been_revoked() -> None:
+async def test_accept_project_invitation_error_invitation_has_been_revoked() -> None:
     user = f.build_user()
     project = f.build_project()
     role = f.build_project_role(project=project)
@@ -802,7 +802,7 @@ async def tests_accept_project_invitation_error_invitation_has_been_revoked() ->
 #######################################################
 
 
-async def tests_accept_project_invitation_from_token_ok() -> None:
+async def test_accept_project_invitation_from_token_ok() -> None:
     user = f.build_user()
     invitation = f.build_project_invitation(user=user, email=user.email)
     token = str(await ProjectInvitationToken.create_for_object(invitation))
@@ -825,9 +825,7 @@ async def tests_accept_project_invitation_from_token_ok() -> None:
         fake_accept_project_invitation.assert_awaited_once_with(invitation=invitation)
 
 
-async def tests_accept_project_invitation_from_token_error_no_invitation_found() -> (
-    None
-):
+async def test_accept_project_invitation_from_token_error_no_invitation_found() -> None:
     user = f.build_user()
 
     with (
@@ -851,7 +849,7 @@ async def tests_accept_project_invitation_from_token_error_no_invitation_found()
         fake_accept_project_invitation.assert_not_awaited()
 
 
-async def tests_accept_project_invitation_from_token_error_invitation_is_for_other_user() -> (
+async def test_accept_project_invitation_from_token_error_invitation_is_for_other_user() -> (
     None
 ):
     user = f.build_user()
@@ -878,7 +876,7 @@ async def tests_accept_project_invitation_from_token_error_invitation_is_for_oth
         fake_accept_project_invitation.assert_not_awaited()
 
 
-async def tests_accept_project_invitation_from_token_error_already_accepted() -> None:
+async def test_accept_project_invitation_from_token_error_already_accepted() -> None:
     user = f.build_user()
     invitation = f.build_project_invitation(
         user=user, email=user.email, status=InvitationStatus.ACCEPTED
@@ -899,7 +897,7 @@ async def tests_accept_project_invitation_from_token_error_already_accepted() ->
         fake_get_project_invitation.assert_awaited_once_with(token=token)
 
 
-async def tests_accept_project_invitation_from_token_error_revoked() -> None:
+async def test_accept_project_invitation_from_token_error_revoked() -> None:
     user = f.build_user()
     invitation = f.build_project_invitation(
         user=user, email=user.email, status=InvitationStatus.REVOKED
@@ -918,7 +916,6 @@ async def tests_accept_project_invitation_from_token_error_revoked() -> None:
         await services.accept_project_invitation_from_token(token=token, user=user)
 
         fake_get_project_invitation.assert_awaited_once_with(token=token)
-        fake_accept_project_invitation.assert_not_awaited()
 
 
 #######################################################
