@@ -78,12 +78,6 @@ async def update_project_membership(
         if await memberships_services.is_membership_the_only_owner(membership):
             raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
 
-    # Check if new role has view_story permission
-    view_story_is_deleted = (
-        ProjectPermissions.VIEW_STORY.value in membership.role.permissions
-        and ProjectPermissions.VIEW_STORY.value not in project_role.permissions
-    )
-
     updated_membership = await memberships_repositories.update_membership(
         membership=membership,
         values={"role": project_role},
@@ -93,6 +87,11 @@ async def update_project_membership(
         memberships_events.emit_event_when_project_membership_is_updated
     )(membership=updated_membership)
 
+    # Check if new role has view_story permission
+    view_story_is_deleted = (
+        ProjectPermissions.VIEW_STORY.value in membership.role.permissions
+        and ProjectPermissions.VIEW_STORY.value not in project_role.permissions
+    )
     # Unassign stories for user if the new role doesn't have view_story permission
     if view_story_is_deleted:
         await story_assignments_repositories.delete_stories_assignments(
@@ -179,12 +178,6 @@ async def update_project_role_permissions(
     if not role.editable:
         raise ex.NonEditableRoleError(f"Role {role.slug} is not editable")
 
-    # Check if new permissions have view_story
-    view_story_is_deleted = (
-        ProjectPermissions.VIEW_STORY.value in role.permissions
-        and ProjectPermissions.VIEW_STORY.value not in permissions
-    )
-
     project_role_permissions = await memberships_repositories.update_role(
         role=role,
         values={"permissions": permissions},
@@ -194,6 +187,11 @@ async def update_project_role_permissions(
         memberships_events.emit_event_when_project_role_permissions_are_updated
     )(role=role)
 
+    # Check if new permissions have view_story
+    view_story_is_deleted = (
+        ProjectPermissions.VIEW_STORY.value in role.permissions
+        and ProjectPermissions.VIEW_STORY.value not in permissions
+    )
     # Unassign stories for user if the new permissions don't have view_story
     if view_story_is_deleted:
         await story_assignments_repositories.delete_stories_assignments(

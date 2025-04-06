@@ -29,7 +29,7 @@ from .base import Factory, factory
 
 class WorkspaceRoleFactory(Factory):
     name = factory.Sequence(lambda n: f"Role {n}")
-    slug = factory.Sequence(lambda n: f"test-role-{n}")
+    slug = factory.Sequence(lambda n: f"role-{n}")
     permissions = choices.WorkspacePermissions.values
     workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
 
@@ -108,7 +108,7 @@ def create_workspace(**kwargs):
     workspace = WorkspaceFactory.create(**kwargs)
 
     owner_role = WorkspaceRoleFactory.create(
-        workspace=workspace, is_owner=True, slug="owner"
+        workspace=workspace, is_owner=True, name="Owner", editable=False
     )
     WorkspaceMembershipFactory.create(
         user=workspace.created_by, workspace=workspace, role=owner_role
