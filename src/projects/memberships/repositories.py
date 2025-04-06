@@ -28,6 +28,7 @@ from memberships.repositories import (  # noqa
     update_membership,
     update_role,
 )
+from memberships.services import exceptions as ex
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project
 from users.models import User
@@ -40,6 +41,10 @@ from users.models import User
 async def create_project_membership(
     user: User, project: Project, role: ProjectRole
 ) -> ProjectMembership:
+    if project.id != role.project_id:
+        raise ex.MembershipWithRoleThatDoNotBelong(
+            "Can't create membership using a role not belonging to the given project"
+        )
     return await ProjectMembership.objects.acreate(
         user=user, project=project, role=role
     )

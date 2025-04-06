@@ -27,9 +27,10 @@ from memberships.repositories import (  # noqa
     update_membership,
     update_role,
 )
-
+from permissions.choices import WorkspacePermissions
 
 from users.models import User
+from memberships.services import exceptions as ex
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.workspaces.models import Workspace
 
@@ -42,6 +43,10 @@ from workspaces.workspaces.models import Workspace
 async def create_workspace_membership(
     user: User, workspace: Workspace, role: WorkspaceRole
 ) -> WorkspaceMembership:
+    if workspace.id != role.workspace_id:
+        raise ex.MembershipWithRoleThatDoNotBelong(
+            "Can't create membership using a role not belonging to the given workspace"
+        )
     return await WorkspaceMembership.objects.acreate(
         user=user, workspace=workspace, role=role
     )

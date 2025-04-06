@@ -24,6 +24,10 @@ class NonExistingRoleError(TenzuServiceException):
     pass
 
 
+class MembershipWithRoleThatDoNotBelong(TenzuServiceException):
+    pass
+
+
 class MembershipIsTheOnlyOwnerError(TenzuServiceException):
     pass
 
