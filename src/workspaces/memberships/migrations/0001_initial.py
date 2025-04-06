@@ -122,7 +122,13 @@ class Migration(migrations.Migration):
                     "permissions",
                     django.contrib.postgres.fields.ArrayField(
                         base_field=models.CharField(
-                            choices=[("view_workspace", "View workspace")],
+                            choices=[
+                                ("modify_workspace", "Modify info of workspace"),
+                                ("delete_workspace", "Delete the workspace"),
+                                ("create_project", "Create project in workspace"),
+                                ("create_modify_member", "Create or modify a member"),
+                                ("delete_member", "Delete a member"),
+                            ],
                             max_length=40,
                         ),
                         default=list,

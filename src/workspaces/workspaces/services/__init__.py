@@ -48,12 +48,14 @@ async def create_workspace(
 
 
 async def _create_workspace(name: str, color: int, created_by: User) -> Workspace:
-    # TODO create roles
     workspace = await workspaces_repositories.create_workspace(
         name=name, color=color, created_by=created_by
     )
+    owner_role = (
+        await ws_memberships_repositories.bulk_create_workspace_default_roles(workspace)
+    )[0]
     await ws_memberships_repositories.create_workspace_membership(
-        user=created_by, workspace=workspace
+        user=created_by, workspace=workspace, role=owner_role
     )
     return workspace
 

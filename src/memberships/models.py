@@ -134,6 +134,10 @@ class RoleBase(ModelBase):
                 generate_suffix=generate_incremental_int_suffix(),
                 use_always_suffix=False,
             )
+            if (
+                update_fields := kwargs.get("update_fields")
+            ) is not None and "name" in update_fields:
+                kwargs["update_fields"] = {"slug"}.union(update_fields)
 
             Role.save(self, *args, **kwargs)
 

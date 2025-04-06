@@ -50,3 +50,61 @@ async def create_workspace_membership(
     return await WorkspaceMembership.objects.acreate(
         user=user, workspace=workspace, role=role
     )
+
+
+##########################################################
+# create workspace role
+##########################################################
+
+
+async def bulk_create_workspace_default_roles(workspace) -> list[WorkspaceRole]:
+    """
+    Order of returned object is important for calling functions
+    """
+    return await WorkspaceRole.objects.abulk_create(
+        [
+            WorkspaceRole(
+                workspace=workspace,
+                name="Owner",
+                slug="owner",
+                order=1,
+                editable=False,
+                is_owner=True,
+                permissions=list(WorkspacePermissions.values),
+            ),
+            WorkspaceRole(
+                workspace=workspace,
+                name="Admin",
+                slug="admin",
+                order=2,
+                editable=False,
+                is_owner=False,
+                permissions=[
+                    WorkspacePermissions.CREATE_MODIFY_MEMBER.value,
+                    WorkspacePermissions.DELETE_MEMBER.value,
+                    WorkspacePermissions.MODIFY_WORKSPACE.value,
+                    WorkspacePermissions.CREATE_PROJECT.value,
+                ],
+            ),
+            WorkspaceRole(
+                workspace=workspace,
+                name="Member",
+                slug="member",
+                order=3,
+                editable=False,
+                is_owner=False,
+                permissions=[
+                    WorkspacePermissions.CREATE_PROJECT.value,
+                ],
+            ),
+            WorkspaceRole(
+                workspace=workspace,
+                name="Readonly-member",
+                slug="readonly-member",
+                order=4,
+                editable=False,
+                is_owner=False,
+                permissions=[],
+            ),
+        ]
+    )

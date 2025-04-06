@@ -122,11 +122,28 @@ class Migration(migrations.Migration):
                     django.contrib.postgres.fields.ArrayField(
                         base_field=models.CharField(
                             choices=[
-                                ("add_story", "Add story"),
-                                ("comment_story", "Comment story"),
-                                ("delete_story", "Delete story"),
-                                ("modify_story", "Modify story"),
-                                ("view_story", "View story"),
+                                (
+                                    "create_modify_delete_role",
+                                    "Create, modify or delete any editable role",
+                                ),
+                                ("modify_project", "Modify info of project"),
+                                ("delete_project", "Delete the project"),
+                                ("view_story", "View stories in project"),
+                                ("modify_story", "Modify the stories"),
+                                ("create_story", "Create new stories"),
+                                ("delete_story", "Delete existing stories"),
+                                ("view_comment", "View comments in stories"),
+                                (
+                                    "create_modify_delete_comment",
+                                    "Post comment on stories, edit and delete own comments",
+                                ),
+                                ("moderate_comment", "Moderates other's comments"),
+                                ("view_workflow", "View workflows in project"),
+                                ("modify_workflow", "Modify the workflows"),
+                                ("add_workflow", "Create new workflows"),
+                                ("delete_workflow", "Delete existing workflows"),
+                                ("create_modify_member", "Create or modify a member"),
+                                ("delete_member", "Delete a member"),
                             ],
                             max_length=40,
                         ),

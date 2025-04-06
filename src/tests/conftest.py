@@ -21,19 +21,7 @@
 import pytest
 
 # import pytest_asyncio
-from django.core.management import call_command
-
 from .fixtures import *  # noqa
-
-
-#
-# Load initial tenzu fixtures
-#
-@pytest.fixture(scope="function")
-def django_db_setup(django_db_setup, django_db_blocker):
-    with django_db_blocker.unblock():
-        call_command("loaddata", "initial_project_templates.json", verbosity=0)
-
 
 #
 # Start the event manager

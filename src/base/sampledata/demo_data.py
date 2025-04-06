@@ -25,10 +25,12 @@ from base.sampledata import factories
 from memberships.choices import InvitationStatus
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.models import ProjectInvitation
+from projects.memberships.models import ProjectRole
 from projects.projects.models import Project
 from users import repositories as users_repositories
 from users.models import User
 from workspaces.memberships import repositories as ws_memberships_repositories
+from workspaces.memberships.models import WorkspaceRole
 from workspaces.workspaces.models import Workspace
 
 
@@ -67,8 +69,8 @@ async def _create_scenario_freelance_working_for_herself() -> None:
     )
 
     # PROJECTS
-    # it applies a template and creates also admin and general roles
-    # usera0 pj-admin
+    # it applies a template and creates also owner and general roles
+    # usera0 pj-owner
     projects = []
 
     # pj "The ong" userd0 pj-member/role:general
@@ -76,19 +78,25 @@ async def _create_scenario_freelance_working_for_herself() -> None:
         workspace=workspace, name="The ong", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(ong_proj.id))
-    general_role = await ong_proj.roles.aget(slug="general")
+    project_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": ong_proj.id, "slug": "member"},
+    )
     await factories.create_project_membership(
-        project=ong_proj, user=userd0, role=general_role
+        project=ong_proj, user=userd0, role=project_role
     )
 
-    # pj "My next idea" usera1 pj-member/role:general
+    # pj "My next idea" usera1 pj-member/role:member
     next_idea_proj = await factories.create_project(
         workspace=workspace, name="My next idea", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(next_idea_proj.id))
-    general_role = await next_idea_proj.roles.aget(slug="general")
+    project_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": next_idea_proj.id, "slug": "member"},
+    )
     await factories.create_project_membership(
-        project=next_idea_proj, user=usera1, role=general_role
+        project=next_idea_proj, user=usera1, role=project_role
     )
 
     # pj with no other members
@@ -139,8 +147,8 @@ async def _create_scenario_freelance_working_for_others() -> None:
     ws_random_name = await factories.create_workspace(created_by=created_by)
 
     # PROJECTS
-    # it applies a template and creates also admin and general roles
-    # userb0 pj-admin
+    # it applies a template and creates also owner and member roles
+    # userb0 pj-owner
     projects = []
 
     # for ws "My projects"
@@ -153,18 +161,21 @@ async def _create_scenario_freelance_working_for_others() -> None:
         projects.append(await factories.get_project_with_related_info(proj.id))
 
     # for ws "Projects"
-    # pj random-name userb1, userb2, userb3 pj-member/role:general
+    # pj random-name userb1, userb2, userb3 pj-member/role:member
     proj = await factories.create_project(workspace=ws_projects, created_by=created_by)
     projects.append(await factories.get_project_with_related_info(proj.id))
-    general_role = await proj.roles.aget(slug="general")
-    await factories.create_project_membership(
-        project=proj, user=userb1, role=general_role
+    project_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": proj.id, "slug": "member"},
     )
     await factories.create_project_membership(
-        project=proj, user=userb2, role=general_role
+        project=proj, user=userb1, role=project_role
     )
     await factories.create_project_membership(
-        project=proj, user=userb3, role=general_role
+        project=proj, user=userb2, role=project_role
+    )
+    await factories.create_project_membership(
+        project=proj, user=userb3, role=project_role
     )
 
     # 2 pj random-name with no other members
@@ -174,41 +185,53 @@ async def _create_scenario_freelance_working_for_others() -> None:
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
-    # pj random-name userf0 pj-member/role:general
+    # pj random-name userf0 pj-member/role:member
     proj = await factories.create_project(workspace=ws_projects, created_by=created_by)
     projects.append(await factories.get_project_with_related_info(proj.id))
-    general_role = await proj.roles.aget(slug="general")
+    project_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": proj.id, "slug": "member"},
+    )
     await factories.create_project_membership(
-        project=proj, user=userf0, role=general_role
+        project=proj, user=userf0, role=project_role
     )
 
-    # pj random-name userb1, usera1, userd1 pj-member/role:general. userd0 pj-member/role:admin
+    # pj random-name userb1, usera1, userd1 pj-member/role:member. userd0 pj-member/role:owner
     proj = await factories.create_project(workspace=ws_projects, created_by=created_by)
     projects.append(await factories.get_project_with_related_info(proj.id))
-    general_role = await proj.roles.aget(slug="general")
-    await factories.create_project_membership(
-        project=proj, user=userb1, role=general_role
+    project_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": proj.id, "slug": "member"},
     )
     await factories.create_project_membership(
-        project=proj, user=usera1, role=general_role
+        project=proj, user=userb1, role=project_role
     )
     await factories.create_project_membership(
-        project=proj, user=userd1, role=general_role
+        project=proj, user=usera1, role=project_role
     )
-    admin_role = await proj.roles.aget(slug="owner")
     await factories.create_project_membership(
-        project=proj, user=userd0, role=admin_role
+        project=proj, user=userd1, role=project_role
+    )
+    project_owner_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": proj.id, "slug": "owner"},
+    )
+    await factories.create_project_membership(
+        project=proj, user=userd0, role=project_owner_role
     )
 
     # for ws random-name
-    # pj random-name userd0 pj-member/role:general
+    # pj random-name userd0 pj-member/role:member
     proj = await factories.create_project(
         workspace=ws_random_name, created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
-    general_role = await proj.roles.aget(slug="general")
+    project_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": proj.id, "slug": "member"},
+    )
     await factories.create_project_membership(
-        project=proj, user=userd0, role=general_role
+        project=proj, user=userd0, role=project_role
     )
 
     for project in projects:
@@ -231,8 +254,8 @@ async def _create_scenario_user_in_society_working_for_others() -> None:
     workspace = await factories.create_workspace(created_by=created_by, name="Personal")
 
     # PROJECTS
-    # it applies a template and creates also admin and general roles
-    # userc0 pj-admin
+    # it applies a template and creates also owner and member roles
+    # userc0 pj-owner
     projects = []
 
     # pj with no other members
@@ -264,7 +287,7 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
 
     # WORKSPACES
     # member role is created by default
-    # userd0 ws-member
+    # userd0 is owner
     ws_internal = await factories.create_workspace(
         created_by=created_by, name="Internal"
     )
@@ -273,7 +296,7 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
     )
 
     workspaces = [ws_internal, ws_projects]
-    # ws with ws-members between 0-10 of usersdx
+    # ws with members between 0-10 of usersdx
     for ws in workspaces:
         num_ws_members = random.randint(0, 10)
         if num_ws_members > 0:
@@ -285,8 +308,8 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
     ws_personal = await factories.create_workspace(created_by=userd0, name="Personal")
 
     # PROJECTS
-    # it applies a template and creates also admin and general roles
-    # userd0 pj-admin
+    # it applies a template and creates also owner and member roles
+    # userd0 pj-owner
     projects = []
 
     # for ws "Internal"
@@ -298,14 +321,17 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
-    # pj "Innovation week" userc0 pj-member/role:general and others members between 0-150 of usersdx
+    # pj "Innovation week" userc0 pj-member/role:member and others members between 0-150 of usersdx
     proj = await factories.create_project(
         workspace=ws_internal, name="Innovation week", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
-    general_role = await proj.roles.aget(slug="general")
+    project_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": proj.id, "slug": "member"},
+    )
     await factories.create_project_membership(
-        project=proj, user=userc0, role=general_role
+        project=proj, user=userc0, role=project_role
     )
 
     # for ws "Projects"
@@ -313,19 +339,22 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
     proj = await factories.create_project(workspace=ws_projects, created_by=created_by)
     projects.append(await factories.get_project_with_related_info(proj.id))
 
-    # 2 pj random-name userc0 pj-member/role:general and others members between 0-150 of usersdx
+    # 2 pj random-name userc0 pj-member/role:member and others members between 0-150 of usersdx
     for i in range(2):
         proj = await factories.create_project(
             workspace=ws_projects, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
-        general_role = await proj.roles.aget(slug="general")
+        project_role = await ws_memberships_repositories.get_role(
+            ProjectRole,
+            filters={"project_id": proj.id, "slug": "member"},
+        )
         await factories.create_project_membership(
-            project=proj, user=userc0, role=general_role
+            project=proj, user=userc0, role=project_role
         )
 
     # for ws "Personal"
-    # pj "TODO" with no other members
+    # pj for tasklist with no other members
     proj = await factories.create_project(
         workspace=ws_personal, name="TODO", created_by=created_by
     )
@@ -385,31 +414,37 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
     )
 
     # PROJECTS
-    # it applies a template and creates also admin and general roles
-    # usere0 pj-admin
+    # it applies a template and creates also owner and member roles
+    # usere0 pj-owner
     projects = []
 
     # for ws random-name1
-    # 2 pj random-name usere1 pj-member/role:general and others members between 0-50 of usersex
+    # 2 pj random-name usere1 pj-member/role:member and others members between 0-50 of usersex
     for i in range(2):
         proj = await factories.create_project(
             workspace=ws_random_name1, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
-        general_role = await proj.roles.aget(slug="general")
+        project_role = await ws_memberships_repositories.get_role(
+            ProjectRole,
+            filters={"project_id": proj.id, "slug": "member"},
+        )
         await factories.create_project_membership(
-            project=proj, user=usere1, role=general_role
+            project=proj, user=usere1, role=project_role
         )
 
     # for ws random-name2
-    # pj random-name usere1 pj-member/role:general and others members between 0-50 of usersex
+    # pj random-name usere1 pj-member/role:member and others members between 0-50 of usersex
     proj = await factories.create_project(
         workspace=ws_random_name2, created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
-    general_role = await proj.roles.aget(slug="general")
+    project_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": proj.id, "slug": "member"},
+    )
     await factories.create_project_membership(
-        project=proj, user=usere1, role=general_role
+        project=proj, user=usere1, role=project_role
     )
 
     # for ws random-name3
@@ -436,14 +471,17 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
         projects.append(await factories.get_project_with_related_info(proj.id))
 
     # for ws "Personal"
-    # pj "Birthday party" userc0 pj-member/role:general
+    # pj "Birthday party" userc0 pj-member/role:member
     proj = await factories.create_project(
         workspace=ws_personal, name="Birthday party", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
-    general_role = await proj.roles.aget(slug="general")
+    project_role = await ws_memberships_repositories.get_role(
+        ProjectRole,
+        filters={"project_id": proj.id, "slug": "member"},
+    )
     await factories.create_project_membership(
-        project=proj, user=userc0, role=general_role
+        project=proj, user=userc0, role=project_role
     )
 
     # pj "TODO" with no other members
@@ -502,8 +540,8 @@ async def _create_scenario_manager_in_society_with_own_product() -> None:
     )
 
     # PROJECTS
-    # it applies a template and creates also admin and general roles
-    # userf0 pj-admin
+    # it applies a template and creates also owner and member roles
+    # userf0 pj-owner
     projects = []
 
     # for ws "Projects"
@@ -584,8 +622,8 @@ async def _create_scenario_manager_in_big_society_with_own_product() -> None:
         )
 
     # PROJECTS
-    # it applies a template and creates also admin and general roles
-    # userg0 pj-admin
+    # it applies a template and creates also owner and member roles
+    # userg0 pj-owner
     projects = []
 
     # for ws "Inner"
@@ -643,12 +681,15 @@ async def _create_workspace_memberships(
 ) -> None:
     # get users except the creator of the workspace
     users = [u for u in users if u.id != workspace.created_by_id]
+    role = await ws_memberships_repositories.get_role(
+        WorkspaceRole,
+        filters={"workspace_id": workspace.id, "slug": "member"},
+    )
 
     # add ws members
     for user in users:
-        # TODO add role
         await ws_memberships_repositories.create_workspace_membership(
-            user=user, workspace=workspace
+            user=user, workspace=workspace, role=role
         )
 
 
