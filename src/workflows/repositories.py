@@ -71,6 +71,10 @@ async def create_workflow(
     )
 
 
+async def bulk_create_workflows(workflows: list[Workflow]) -> list[Workflow]:
+    return await Workflow.objects.abulk_create(workflows)
+
+
 ##########################################################
 # Workflow - list workflows
 ##########################################################
@@ -175,13 +179,13 @@ WorkflowStatusOrderBy = list[
 ##########################################################
 
 
-def create_workflow_status_sync(
+async def create_workflow_status(
     name: str,
     color: int,
     order: Decimal,
     workflow: Workflow,
 ) -> WorkflowStatus:
-    return WorkflowStatus.objects.create(
+    return await WorkflowStatus.objects.acreate(
         name=name,
         color=color,
         order=order,
@@ -189,7 +193,10 @@ def create_workflow_status_sync(
     )
 
 
-create_workflow_status = sync_to_async(create_workflow_status_sync)
+async def bulk_create_workflow_statuses(
+    workflow_statuses: list[WorkflowStatus],
+) -> list[WorkflowStatus]:
+    return await WorkflowStatus.objects.abulk_create(workflow_statuses)
 
 
 ##########################################################

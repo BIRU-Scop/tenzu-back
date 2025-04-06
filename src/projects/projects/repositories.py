@@ -29,9 +29,11 @@ from commons.utils import transaction_atomic_async
 from memberships.choices import InvitationStatus
 from projects import references
 from projects.memberships import repositories as memberships_repositories
+from projects.memberships.models import ProjectRole
 from projects.projects.models import Project, ProjectTemplate
 from users.models import User
 from workflows import repositories as workflows_repositories
+from workflows.models import Workflow, WorkflowStatus
 from workspaces.workspaces.models import Workspace
 
 ##########################################################
@@ -234,27 +236,41 @@ async def get_project_template(
 async def apply_template_to_project(
     template: ProjectTemplate, project: Project
 ) -> None:
-    for role in template.roles:
-        await memberships_repositories.create_project_role(
-            name=role["name"],
-            slug=role["slug"],
-            order=role["order"],
-            project=project,
-            permissions=role["permissions"],
-            is_owner=role["is_owner"],
-            editable=role["editable"],
-        )
+    await memberships_repositories.bulk_create_project_roles(
+        [
+            ProjectRole(
+                name=role["name"],
+                order=role["order"],
+                slug=role["slug"],
+                project=project,
+                permissions=role["permissions"],
+                is_owner=role["is_owner"],
+                editable=role["editable"],
+            )
+            for role in template.roles
+        ]
+    )
 
-    for workflow in template.workflows:
-        wf = await workflows_repositories.create_workflow(
-            name=workflow["name"],
-            order=workflow["order"],
-            project=project,
-        )
-        for status in template.workflow_statuses:
-            await workflows_repositories.create_workflow_status(
+    workflows = await workflows_repositories.bulk_create_workflows(
+        [
+            Workflow(
+                name=workflow["name"],
+                slug=workflow["slug"],
+                order=workflow["order"],
+                project=project,
+            )
+            for workflow in template.workflows
+        ]
+    )
+    await workflows_repositories.bulk_create_workflow_statuses(
+        [
+            WorkflowStatus(
                 name=status["name"],
                 color=status["color"],
                 order=status["order"],
                 workflow=wf,
             )
+            for status in template.workflow_statuses
+            for wf in workflows
+        ]
+    )

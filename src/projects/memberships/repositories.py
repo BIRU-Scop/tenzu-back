@@ -52,19 +52,19 @@ async def create_project_membership(
 
 async def create_project_role(
     name: str,
-    slug: str,
     permissions: list[str],
-    is_owner: bool,
-    editable: bool,
     project: Project,
     order: int | None = None,
 ) -> ProjectRole:
     return await ProjectRole.objects.acreate(
         name=name,
-        slug=slug,
         permissions=permissions,
-        is_owner=is_owner,
-        editable=editable,
         project=project,
         order=order,
+        is_owner=False,
+        editable=True,
     )
+
+
+async def bulk_create_project_roles(roles: list[ProjectRole]) -> list[ProjectRole]:
+    return await ProjectRole.objects.abulk_create(roles)
