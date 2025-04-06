@@ -216,11 +216,11 @@ async def delete_membership(membership: TM) -> int:
 ##########################################################
 
 
-async def has_other_owner_memberships(model: type[TM], exclude_id: UUID):
+async def has_other_owner_memberships(membership: TM):
     return (
-        await model.objects.all()
-        .filter(role__is_owner=True)
-        .exclude(id=exclude_id)
+        await membership.__class__.objects.all()
+        .filter(role__is_owner=True, **membership.reference_model_filter)
+        .exclude(id=membership.id)
         .aexists()
     )
 
