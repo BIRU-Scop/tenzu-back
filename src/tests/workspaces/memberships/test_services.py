@@ -22,11 +22,12 @@ from unittest.mock import patch
 import pytest
 
 from memberships.services import exceptions as ex
+from permissions.choices import WorkspacePermissions
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_SLUG
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import services
-from workspaces.memberships.models import WorkspaceRole
+from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 
 #######################################################
 # list_workspace_memberships
@@ -245,6 +246,116 @@ async def test_delete_workspace_membership_ok():
         )
         fake_membership_events.emit_event_when_workspace_membership_is_deleted.assert_awaited_once_with(
             membership=membership
+        )
+
+
+#######################################################
+# misc is_membership_the_only_owner
+#######################################################
+
+
+async def test_is_workspace_membership_the_only_owner_not_owner_role():
+    role = f.build_workspace_role(is_owner=False)
+    membership = f.build_workspace_membership(role=role)
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        assert not await services.is_membership_the_only_owner(membership)
+        fake_membership_repository.has_other_owner_memberships.assert_not_called()
+
+
+async def test_is_workspace_membership_the_only_owner_true():
+    role = f.build_workspace_role(is_owner=True)
+    membership = f.build_workspace_membership(role=role)
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.has_other_owner_memberships.return_value = False
+        assert await services.is_membership_the_only_owner(membership)
+        fake_membership_repository.has_other_owner_memberships.assert_awaited_once_with(
+            membership=membership
+        )
+
+
+async def test_is_workspace_membership_the_only_owner_false():
+    role = f.build_workspace_role(is_owner=True)
+    membership = f.build_workspace_membership(role=role)
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.has_other_owner_memberships.return_value = True
+        assert not await services.is_membership_the_only_owner(membership)
+        fake_membership_repository.has_other_owner_memberships.assert_awaited_once_with(
+            membership=membership
+        )
+
+
+#######################################################
+# misc has_permission
+#######################################################
+
+
+async def test_has_workspace_permission_ok():
+    workspace = f.build_workspace()
+    user = f.build_user()
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.get_user_permissions.return_value = (
+            WorkspacePermissions.values
+        )
+        assert await services.has_permission(
+            user, workspace, WorkspacePermissions.DELETE_WORKSPACE
+        )
+        fake_membership_repository.get_user_permissions.assert_awaited_once_with(
+            user, workspace
+        )
+
+
+async def test_has_workspace_permission_forbidden():
+    workspace = f.build_workspace()
+    user = f.build_user()
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.get_user_permissions.return_value = [
+            WorkspacePermissions.MODIFY_WORKSPACE.value,
+            WorkspacePermissions.CREATE_MODIFY_MEMBER.value,
+        ]
+        assert not await services.has_permission(
+            user, workspace, WorkspacePermissions.DELETE_MEMBER
+        )
+        fake_membership_repository.get_user_permissions.assert_awaited_once_with(
+            user, workspace
+        )
+
+
+async def test_has_workspace_permission_not_a_member():
+    workspace = f.build_workspace()
+    user = f.build_user()
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.get_user_permissions.side_effect = (
+            WorkspaceMembership.DoesNotExist
+        )
+        assert not await services.has_permission(
+            user, workspace, WorkspacePermissions.MODIFY_WORKSPACE
+        )
+        fake_membership_repository.get_user_permissions.assert_awaited_once_with(
+            user, workspace
         )
 
 

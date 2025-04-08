@@ -26,6 +26,7 @@ from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus
 from memberships.models import Invitation, Membership
 from memberships.services import exceptions as ex
+from permissions.choices import PermissionsBase
 from projects.projects.models import Project
 from users import services as users_services
 from users.models import AnyUser, User
@@ -45,6 +46,20 @@ async def is_membership_the_only_owner(membership: Membership) -> bool:
     return not await memberships_repositories.has_other_owner_memberships(
         membership=membership
     )
+
+
+async def has_permission(
+    user: User,
+    reference_object: Project | Workspace,
+    required_permission: PermissionsBase,
+):
+    try:
+        user_permissions = await memberships_repositories.get_user_permissions(
+            user, reference_object
+        )
+    except reference_object.memberships.model.DoesNotExist:
+        return False
+    return required_permission in user_permissions
 
 
 ##########################################################

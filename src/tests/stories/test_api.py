@@ -20,6 +20,7 @@
 import pytest
 from asgiref.sync import sync_to_async
 
+from permissions.choices import ProjectPermissions
 from tests.utils import factories as f
 from tests.utils.bad_params import (
     INVALID_B64ID,
@@ -30,15 +31,6 @@ from tests.utils.bad_params import (
 )
 
 pytestmark = pytest.mark.django_db
-
-FULL_PERMISSIONS = {
-    "add_story",
-    "comment_story",
-    "delete_story",
-    "modify_story",
-    "view_story",
-}
-NO_ADD_STORY_PERMISSIONS = FULL_PERMISSIONS - {"add_story"}
 
 
 ##########################################################
@@ -84,7 +76,7 @@ async def test_create_story_200_ok_user_has_valid_perm_ok(client, project_templa
         workspace=workspace,
     )
     pj_role = await f.create_project_role(
-        permissions=list(FULL_PERMISSIONS), is_owner=False, project=project
+        permissions=ProjectPermissions.values, is_owner=False, project=project
     )
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
@@ -145,8 +137,11 @@ async def test_create_story_403_forbidden_user_has_not_valid_perm(
         template=project_template,
         workspace=workspace,
     )
+    NO_ADD_STORY_PERMISSIONS = list(
+        set(ProjectPermissions.values) - {ProjectPermissions.CREATE_STORY.value}
+    )
     pj_role = await f.create_project_role(
-        permissions=list(NO_ADD_STORY_PERMISSIONS), is_owner=False, project=project
+        permissions=NO_ADD_STORY_PERMISSIONS, is_owner=False, project=project
     )
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 

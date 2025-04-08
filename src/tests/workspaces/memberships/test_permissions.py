@@ -19,9 +19,11 @@
 import pytest
 
 from commons.exceptions import api as ex
+from memberships.permissions import HasPermission
 from permissions import (
     check_permissions,
 )
+from permissions.choices import WorkspacePermissions
 from tests.utils import factories as f
 from workspaces.memberships.permissions import IsWorkspaceMember
 
@@ -42,5 +44,45 @@ async def test_check_permission_is_workspace_member():
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user1, obj=None)
     # user2 isn't ws-admin
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user2, obj=workspace)
+
+
+@pytest.mark.django_db()
+async def test_check_permission_has_workspace_permission():
+    user1 = await f.create_user()
+    user2 = await f.create_user()
+    not_member_user = await f.create_user()
+    workspace = await f.create_workspace(name="workspace1", created_by=user1)
+    pj_role = await f.create_workspace_role(
+        permissions=[WorkspacePermissions.MODIFY_WORKSPACE.value],
+        is_owner=False,
+        workspace=workspace,
+    )
+    await f.create_workspace_membership(user=user2, workspace=workspace, role=pj_role)
+
+    permissions = HasPermission(WorkspacePermissions.MODIFY_WORKSPACE)
+
+    # user1 is ws-owner
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=workspace)
+        is None
+    )
+    # user2 isn't ws-owner but has permission
+    assert (
+        await check_permissions(permissions=permissions, user=user2, obj=workspace)
+        is None
+    )
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user1, obj=None)
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(
+            permissions=permissions, user=not_member_user, obj=workspace
+        )
+    permissions = HasPermission(WorkspacePermissions.CREATE_MODIFY_MEMBER)
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=workspace)
+        is None
+    )
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=workspace)

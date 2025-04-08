@@ -25,7 +25,7 @@ from memberships.services import exceptions as ex
 from permissions.choices import ProjectPermissions
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import services
-from projects.memberships.models import ProjectRole
+from projects.memberships.models import ProjectMembership, ProjectRole
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_SLUG
 from tests.utils.utils import patch_db_transaction
@@ -302,6 +302,116 @@ async def test_delete_project_membership_ok():
         )
         fake_membership_events.emit_event_when_project_membership_is_deleted.assert_awaited_once_with(
             membership=membership
+        )
+
+
+#######################################################
+# misc is_membership_the_only_owner
+#######################################################
+
+
+async def test_is_project_membership_the_only_owner_not_owner_role():
+    role = f.build_project_role(is_owner=False)
+    membership = f.build_project_membership(role=role)
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        assert not await services.is_membership_the_only_owner(membership)
+        fake_membership_repository.has_other_owner_memberships.assert_not_called()
+
+
+async def test_is_project_membership_the_only_owner_true():
+    role = f.build_project_role(is_owner=True)
+    membership = f.build_project_membership(role=role)
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.has_other_owner_memberships.return_value = False
+        assert await services.is_membership_the_only_owner(membership)
+        fake_membership_repository.has_other_owner_memberships.assert_awaited_once_with(
+            membership=membership
+        )
+
+
+async def test_is_project_membership_the_only_owner_false():
+    role = f.build_project_role(is_owner=True)
+    membership = f.build_project_membership(role=role)
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.has_other_owner_memberships.return_value = True
+        assert not await services.is_membership_the_only_owner(membership)
+        fake_membership_repository.has_other_owner_memberships.assert_awaited_once_with(
+            membership=membership
+        )
+
+
+#######################################################
+# misc has_permission
+#######################################################
+
+
+async def test_has_project_permission_ok():
+    project = f.build_project()
+    user = f.build_user()
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.get_user_permissions.return_value = (
+            ProjectPermissions.values
+        )
+        assert await services.has_permission(
+            user, project, ProjectPermissions.VIEW_STORY
+        )
+        fake_membership_repository.get_user_permissions.assert_awaited_once_with(
+            user, project
+        )
+
+
+async def test_has_project_permission_forbidden():
+    project = f.build_project()
+    user = f.build_user()
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.get_user_permissions.return_value = [
+            ProjectPermissions.VIEW_STORY.value,
+            ProjectPermissions.CREATE_MODIFY_MEMBER.value,
+        ]
+        assert not await services.has_permission(
+            user, project, ProjectPermissions.CREATE_STORY
+        )
+        fake_membership_repository.get_user_permissions.assert_awaited_once_with(
+            user, project
+        )
+
+
+async def test_has_project_permission_not_a_member():
+    project = f.build_project()
+    user = f.build_user()
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+    ):
+        fake_membership_repository.get_user_permissions.side_effect = (
+            ProjectMembership.DoesNotExist
+        )
+        assert not await services.has_permission(
+            user, project, ProjectPermissions.VIEW_STORY
+        )
+        fake_membership_repository.get_user_permissions.assert_awaited_once_with(
+            user, project
         )
 
 

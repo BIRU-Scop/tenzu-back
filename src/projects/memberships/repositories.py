@@ -25,6 +25,7 @@ from memberships.repositories import (  # noqa
     delete_membership,
     has_other_owner_memberships,
     list_members,
+    get_user_permissions,
     list_roles,
     get_role,
     update_role,

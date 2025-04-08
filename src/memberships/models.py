@@ -33,6 +33,7 @@ from base.utils.slug import (
     slugify_uniquely_for_queryset,
 )
 from memberships.choices import InvitationStatus
+from permissions.choices import PermissionsBase
 
 
 def _get_reference_model_filter(reference_model: type[BaseModel]):
@@ -158,7 +159,7 @@ class Role(BaseModel, metaclass=RoleBase):
       defaults to projects_memberships.ProjectMembership if `reference_model` is Project
     """
 
-    permissions: list[str]
+    permissions: list[PermissionsBase]
     name = models.CharField(
         max_length=200, null=False, blank=False, verbose_name="name"
     )

@@ -23,11 +23,12 @@ from uuid import UUID
 
 from permissions import IsAuthenticated, PermissionComponent
 from projects.invitations.models import ProjectInvitation
+from projects.projects.models import Project
 from users.models import AnyUser
 
 
 class IsProjectInvitationRecipient(PermissionComponent):
-    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+    async def is_authorized(self, user: AnyUser, obj: ProjectInvitation = None) -> bool:
         from projects.invitations import services as invitations_services
 
         if not obj:
@@ -39,7 +40,7 @@ class IsProjectInvitationRecipient(PermissionComponent):
 
 
 class HasPendingProjectInvitation(PermissionComponent):
-    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+    async def is_authorized(self, user: AnyUser, obj: Project = None) -> bool:
         from projects.invitations import services as invitations_services
 
         if not obj:

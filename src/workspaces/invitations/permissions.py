@@ -24,10 +24,13 @@ from uuid import UUID
 from permissions import IsAuthenticated, PermissionComponent
 from users.models import AnyUser
 from workspaces.invitations.models import WorkspaceInvitation
+from workspaces.workspaces.models import Workspace
 
 
 class IsWorkspaceInvitationRecipient(PermissionComponent):
-    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+    async def is_authorized(
+        self, user: AnyUser, obj: WorkspaceInvitation = None
+    ) -> bool:
         from workspaces.invitations import services as invitations_services
 
         if not obj:
@@ -39,7 +42,7 @@ class IsWorkspaceInvitationRecipient(PermissionComponent):
 
 
 class HasPendingWorkspaceInvitation(PermissionComponent):
-    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+    async def is_authorized(self, user: AnyUser, obj: Workspace = None) -> bool:
         from workspaces.invitations import services as invitations_services
 
         if not obj:

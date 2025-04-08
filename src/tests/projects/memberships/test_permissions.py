@@ -19,9 +19,11 @@
 import pytest
 
 from commons.exceptions import api as ex
+from memberships.permissions import HasPermission
 from permissions import (
     check_permissions,
 )
+from permissions.choices import ProjectPermissions
 from projects.memberships.permissions import IsProjectMember
 from tests.utils import factories as f
 
@@ -44,5 +46,47 @@ async def test_check_permission_is_project_member(project_template):
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user1, obj=None)
     # user2 isn't ws-admin
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user2, obj=project)
+
+
+@pytest.mark.django_db()
+async def test_check_permission_has_project_permission(project_template):
+    user1 = await f.create_user()
+    user2 = await f.create_user()
+    not_member_user = await f.create_user()
+    project = await f.create_project(
+        project_template, name="project1", created_by=user1
+    )
+    pj_role = await f.create_project_role(
+        permissions=[ProjectPermissions.VIEW_STORY.value],
+        is_owner=False,
+        project=project,
+    )
+    await f.create_project_membership(user=user2, project=project, role=pj_role)
+
+    permissions = HasPermission(ProjectPermissions.VIEW_STORY)
+
+    # user1 is ws-owner
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=project)
+        is None
+    )
+    # user2 isn't ws-owner but has permission
+    assert (
+        await check_permissions(permissions=permissions, user=user2, obj=project)
+        is None
+    )
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user1, obj=None)
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(
+            permissions=permissions, user=not_member_user, obj=project
+        )
+    permissions = HasPermission(ProjectPermissions.CREATE_STORY)
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=project)
+        is None
+    )
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=project)
