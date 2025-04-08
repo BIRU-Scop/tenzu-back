@@ -52,7 +52,7 @@ schema = SchemaControl(api_settings)
 auth_router = Router()
 
 
-auth_router.add_router("/auth", blacklist_router)
-auth_router.add_router("/auth", obtain_pair_router)
-auth_router.add_router("/auth", sliding_router)
-auth_router.add_router("/auth", verify_router)
+auth_router.add_router("/auth", blacklist_router, tags=["auth"])
+auth_router.add_router("/auth", obtain_pair_router, tags=["auth"])
+auth_router.add_router("/auth", sliding_router, tags=["auth"])
+auth_router.add_router("/auth", verify_router, tags=["auth"])

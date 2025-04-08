@@ -16,7 +16,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 from django.conf import settings
-from ninja import NinjaAPI, Router
+from ninja import NinjaAPI, Router, Swagger
 
 from base.services.exceptions import TenzuServiceException
 from base.utils.strings import to_kebab
@@ -48,6 +48,7 @@ from workspaces.memberships.api import workspace_membership_router
 from workspaces.workspaces.api import workspace_router
 
 api = NinjaAPI(
+    docs=Swagger(settings={"filter": True, "showCommonExtensions": True}),
     parser=ORJSONParser(),
     renderer=ORJSONRenderer(),
     title="Tenzu API",
@@ -86,25 +87,25 @@ def healthcheck(request):
     return HTTP_200_OK
 
 
-api.add_router("", tags=["Projects"], router=projects_router)
-api.add_router("", tags=["Projects", "Memberships"], router=projects_memberships_router)
-api.add_router("", tags=["Projects", "Invitations"], router=projects_invitations_router)
-api.add_router("", system_router)
-api.add_router("", tags=["Stories"], router=stories_router)
-api.add_router("", tags=["Stories", "Assignments"], router=stories_assignments_router)
-api.add_router("", tags=["Stories", "Comments"], router=stories_comments_router)
-api.add_router("", tags=["Stories", "Mediafiles"], router=stories_mediafiles_router)
-api.add_router("", tags=["Stories", "Attachments"], router=stories_attachments_router)
-api.add_router("", tags=["Users"], router=users_router)
-api.add_router("", tags=["Notifications"], router=notifications_router)
-api.add_router("", tags=["Workspaces"], router=workspace_router)
-api.add_router("", tags=["Workspaces", "Invitations"], router=workspace_invit_router)
+api.add_router("", tags=["projects"], router=projects_router)
+api.add_router("", tags=["projects", "memberships"], router=projects_memberships_router)
+api.add_router("", tags=["projects", "Invitations"], router=projects_invitations_router)
+api.add_router("", tags=["system"], router=system_router)
+api.add_router("", tags=["stories"], router=stories_router)
+api.add_router("", tags=["stories", "assignments"], router=stories_assignments_router)
+api.add_router("", tags=["stories", "comments"], router=stories_comments_router)
+api.add_router("", tags=["stories", "mediafiles"], router=stories_mediafiles_router)
+api.add_router("", tags=["stories", "attachments"], router=stories_attachments_router)
+api.add_router("", tags=["users"], router=users_router)
+api.add_router("", tags=["notifications"], router=notifications_router)
+api.add_router("", tags=["workspaces"], router=workspace_router)
+api.add_router("", tags=["workspaces", "invitations"], router=workspace_invit_router)
 api.add_router(
-    "", tags=["Workspaces", "Memberships"], router=workspace_membership_router
+    "", tags=["workspaces", "memberships"], router=workspace_membership_router
 )
-api.add_router("", tags=["Workflows"], router=workflows_router)
-api.add_router("", tags=["Auth"], router=auth_router)
-api.add_router("", tags=["Auth", "Github"], router=github_integration_router)
-api.add_router("", tags=["Auth", "Gitlab"], router=gitlab_integration_router)
-api.add_router("", tags=["Auth", "Google"], router=google_integration_router)
-api.add_router("", tags=["Healthcheck"], router=health_router)
+api.add_router("", tags=["workflows"], router=workflows_router)
+api.add_router("", tags=["auth"], router=auth_router)
+api.add_router("", tags=["auth"], router=github_integration_router)
+api.add_router("", tags=["auth"], router=gitlab_integration_router)
+api.add_router("", tags=["auth"], router=google_integration_router)
+api.add_router("", tags=["system"], router=health_router)
