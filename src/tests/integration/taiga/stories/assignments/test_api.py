@@ -21,6 +21,7 @@ import pytest
 from fastapi import status
 
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_REF
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -40,7 +41,7 @@ async def test_create_story_assignment_invalid_story(client):
 
     client.login(project.created_by)
     response = client.post(
-        f"/projects/{project.b64id}/stories/{WRONG_REF}/assignments", json=data
+        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/assignments", json=data
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
@@ -85,7 +86,7 @@ async def test_delete_story_assignment_invalid_story(client):
 
     client.login(pj_admin)
     response = client.delete(
-        f"/projects/{project.b64id}/stories/{WRONG_REF}/assignments/{pj_admin.username}"
+        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/assignments/{pj_admin.username}"
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 

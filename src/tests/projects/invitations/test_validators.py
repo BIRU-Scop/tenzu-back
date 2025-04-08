@@ -61,7 +61,7 @@ def test_email_role_slug(email, username, role_slug, error_fields, expected_erro
 def test_validate_invitations_more_than_50():
     invitations = []
     for i in range(55):
-        invitations.append({"email": f"test{i}@email.com", "role_slug": "general"})
+        invitations.append({"email": f"test{i}@email.com", "role_slug": "member"})
 
     with pytest.raises(
         ValidationError, match=r"type=too_long.+input_type=list"

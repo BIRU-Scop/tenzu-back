@@ -96,10 +96,9 @@ async def test_my_workspace_success(client):
 
 async def test_my_workspace_not_found_error_because_invalid_id(client):
     user = await f.create_user()
-    non_existent_id = "xxxxxxxxxxxxxxxxxxxxxx"
 
     client.login(user)
-    response = await client.get(f"/my/workspaces/{non_existent_id}")
+    response = await client.get(f"/my/workspaces/{NOT_EXISTING_B64ID}")
     assert response.status_code == 404, response.text
 
 
@@ -143,10 +142,9 @@ async def test_get_workspace_being_anonymous(client):
 
 async def test_get_workspace_not_found_error(client):
     user = await f.create_user()
-    non_existent_id = "xxxxxxxxxxxxxxxxxxxxxx"
 
     client.login(user)
-    response = await client.get(f"/workspaces/{non_existent_id}")
+    response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}")
     assert response.status_code == 404, response.text
 
 
@@ -218,8 +216,7 @@ async def test_delete_workspace_not_being_ws_member(client):
 
 async def test_delete_workspace_not_found(client):
     user = await f.create_user()
-    non_existent_id = "xxxxxxxxxxxxxxxxxxxxxx"
 
     client.login(user)
-    response = await client.delete(f"/workspaces/{non_existent_id}")
+    response = await client.delete(f"/workspaces/{NOT_EXISTING_B64ID}")
     assert response.status_code == 404, response.text

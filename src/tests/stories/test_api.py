@@ -62,13 +62,13 @@ async def test_create_story_200_ok_being_ws_or_pj_admin_ok(client, project_templ
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
     client.login(project.created_by)
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_create_story_200_ok_user_has_valid_perm_ok(client, project_template):
@@ -101,19 +101,19 @@ async def test_create_story_200_ok_user_has_valid_perm_ok(client, project_templa
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
     client.login(pj_member)
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
     client.login(public_user)
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_create_story_400_bad_request_invalid_status(client, project_template):
@@ -128,7 +128,7 @@ async def test_create_story_400_bad_request_invalid_status(client, project_templ
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
 
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_create_story_403_forbidden_user_has_not_valid_perm(
@@ -159,13 +159,13 @@ async def test_create_story_403_forbidden_user_has_not_valid_perm(
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
     client.login(public_user)
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_create_story_404_project_b64_id(client, project_template):
@@ -179,7 +179,7 @@ async def test_create_story_404_project_b64_id(client, project_template):
     response = await client.post(
         f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_create_story_404_not_found_workflow_slug(client, project_template):
@@ -193,7 +193,7 @@ async def test_create_story_404_not_found_workflow_slug(client, project_template
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories", json=data
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_create_story_422_unprocessable_project_b64_id(client, project_template):
@@ -207,7 +207,7 @@ async def test_create_story_422_unprocessable_project_b64_id(client, project_tem
     response = await client.post(
         f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -226,7 +226,7 @@ async def test_list_workflow_stories_200_ok(client, project_template):
     response = await client.get(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories"
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert response.json()
 
 
@@ -244,7 +244,7 @@ async def test_list_workflow_stories_200_ok_with_pagination(client, project_temp
     response = await client.get(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories?offset={offset}&limit={limit}"
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert response.json()
 
     assert len(response.json()) == 1
@@ -260,7 +260,7 @@ async def test_list_workflow_stories_404_not_found_project_b64id(client):
     response = await client.get(
         f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}/stories"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_list_workflow_stories_404_not_found_workflow_slug(
@@ -273,7 +273,7 @@ async def test_list_workflow_stories_404_not_found_workflow_slug(
     response = await client.get(
         f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_list_workflow_stories_422_unprocessable_project_b64id(client):
@@ -284,7 +284,7 @@ async def test_list_workflow_stories_422_unprocessable_project_b64id(client):
     response = await client.get(
         f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}/stories"
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 async def test_list_story_invalid_workflow(client, project_template):
@@ -294,7 +294,7 @@ async def test_list_story_invalid_workflow(client, project_template):
     response = await client.get(
         f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 ##########################################################
@@ -314,7 +314,7 @@ async def test_get_story_200_ok(client, project_template):
     response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
     res = response.json()
 
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert res["ref"] == story.ref
 
 
@@ -325,7 +325,7 @@ async def test_get_story_404_not_found_project_b64id(client, project_template):
     client.login(project.created_by)
     response = await client.get(f"/projects/{NOT_EXISTING_B64ID}/stories/{story.ref}")
 
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_get_story_404_not_found_story_ref(client, project_template):
@@ -334,7 +334,7 @@ async def test_get_story_404_not_found_story_ref(client, project_template):
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}")
 
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_get_story_422_unprocessable_project_b64id(client):
@@ -345,7 +345,7 @@ async def test_get_story_422_unprocessable_project_b64id(client):
         f"/projects/{INVALID_B64ID}/stories/{NOT_EXISTING_B64ID}"
     )
 
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 async def test_get_story_422_unprocessable_story_ref(client, project_template):
@@ -354,7 +354,7 @@ async def test_get_story_422_unprocessable_story_ref(client, project_template):
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/stories/{INVALID_REF}")
 
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -376,7 +376,7 @@ async def test_update_story_200_ok_unprotected_attribute_status_ok(
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_update_story_200_ok_unprotected_attribute_workflow_ok(
@@ -393,7 +393,7 @@ async def test_update_story_200_ok_unprotected_attribute_workflow_ok(
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_update_story_200_ok_protected_attribute_ok(client, project_template):

@@ -29,5 +29,5 @@ pytestmark = pytest.mark.django_db(transaction=True)
 
 async def test_get_system_languages(client):
     response = await client.get("/system/languages")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert len(response.json()) >= 1

@@ -308,7 +308,7 @@ async def get_workspace_invitation_by_id_not_found() -> None:
 async def test_exist_workspace_invitation() -> None:
     user = await f.create_user()
 
-    assert not await repositories.exist_invitation(
+    assert not await repositories.exists_invitation(
         WorkspaceInvitation,
         {
             "user": user,
@@ -319,7 +319,7 @@ async def test_exist_workspace_invitation() -> None:
         user=user,
     )
 
-    assert await repositories.exist_invitation(
+    assert await repositories.exists_invitation(
         WorkspaceInvitation,
         {
             "user": user,

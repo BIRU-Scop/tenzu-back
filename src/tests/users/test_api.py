@@ -48,7 +48,7 @@ async def test_create_user_ok_with_token_project(client):
     }
 
     response = await client.post("/users", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_create_user_ok_with_token_workspace(client):
@@ -64,7 +64,7 @@ async def test_create_user_ok_with_token_workspace(client):
     }
 
     response = await client.post("/users", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_create_user_email_already_exists(client):
@@ -77,7 +77,7 @@ async def test_create_user_email_already_exists(client):
     }
     client.post("/users", json=data)
     response = await client.post("/users", json=data)
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 ##########################################################
@@ -91,7 +91,7 @@ async def test_verify_user_ok(client):
     data = {"token": await _generate_verify_user_token(user)}
 
     response = await client.post("/users/verify", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert response.json()["projectInvitation"] is None
 
 
@@ -113,7 +113,7 @@ async def test_verify_user_ok_accepting_pj_invitation(client, project_template):
     }
 
     response = await client.post("/users/verify", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert response.json()["projectInvitation"] is not None
 
 
@@ -134,7 +134,7 @@ async def test_verify_user_ok_accepting_ws_invitation(client):
     }
 
     response = await client.post("/users/verify", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert response.json()["workspaceInvitation"] is not None
 
 
@@ -145,7 +145,7 @@ async def test_verify_user_ok_with_invalid_pj_invitation(client):
     data = {"token": await _generate_verify_user_token(user, project_invitation_token)}
 
     response = await client.post("/users/verify", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert response.json()["projectInvitation"] is None
 
 
@@ -158,7 +158,7 @@ async def test_verify_user_ok_with_invalid_ws_invitation(client):
     }
 
     response = await client.post("/users/verify", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert response.json()["workspaceInvitation"] is None
 
 
@@ -166,7 +166,7 @@ async def test_verify_user_error_invalid_token(client):
     data = {"token": "invalid token"}
 
     response = await client.post("/users/verify", json=data)
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_verify_user_error_expired_token(client):
@@ -179,7 +179,7 @@ async def test_verify_user_error_expired_token(client):
         data = {"token": await _generate_verify_user_token(user)}
 
         response = await client.post("/users/verify", json=data)
-        assert response.status_code == 400, response.text
+        assert response.status_code == 400, response.data
 
 
 async def test_verify_user_error_used_token(client):
@@ -188,9 +188,9 @@ async def test_verify_user_error_used_token(client):
     data = {"token": await _generate_verify_user_token(user)}
 
     response = await client.post("/users/verify", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     response = await client.post("/users/verify", json=data)
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 ##########################################################
@@ -239,7 +239,7 @@ async def test_update_my_user_success(client):
     client.login(user)
     response = await client.put("/my/user", json=data)
 
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 #####################################################################
@@ -252,7 +252,7 @@ async def test_delete_user_204_no_content(client):
 
     client.login(user)
     response = await client.delete("/my/user")
-    assert response.status_code == 204, response.text
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_user_401_unauthorized_user(client):
@@ -317,7 +317,7 @@ async def test_get_user_delete_info_success(client, project_template):
 
     client.login(user)
     response = await client.get("/my/user/delete-info")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert len(response.json()) == 2
     assert response.json().keys() == {"workspaces", "projects"}
     assert len(response.json()["workspaces"]) == 1
@@ -338,21 +338,21 @@ async def test_resquest_reset_password_ok(client):
     data = {"email": user.email}
 
     response = await client.post("/users/reset-password", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_resquest_reset_password_ok_with_no_registered_email(client):
     data = {"email": "unregistered@email.com"}
 
     response = await client.post("/users/reset-password", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_resquest_reset_password_ok_with_invalid_email(client):
     data = {"email": "invalid@email"}
 
     response = await client.post("/users/reset-password", json=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
     assert response.json()["detail"][0]["type"] == "value_error"
 
 
@@ -360,7 +360,7 @@ async def test_resquest_reset_password_error_with_no_email(client):
     data = {}
 
     response = await client.post("/users/reset-password", json=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
     assert response.json()["detail"][0]["type"] == "missing"
 
 
@@ -374,7 +374,7 @@ async def test_verify_reset_password_token(client):
     token = await _generate_reset_password_token(user)
 
     response = await client.get(f"/users/reset-password/{token}/verify")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert response.json() is True
 
 
@@ -383,14 +383,14 @@ async def test_verify_reset_password_error_inactive_user(client):
     token = await _generate_reset_password_token(user)
 
     response = await client.get(f"/users/reset-password/{token}/verify")
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_verify_reset_password_error_invalid_token(client):
     token = "invalid_token"
 
     response = await client.get(f"/users/reset-password/{token}/verify")
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_verify_reset_password_error_used_token(client):
@@ -399,9 +399,9 @@ async def test_verify_reset_password_error_used_token(client):
     data = {"password": "123123.a"}
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     response = await client.get(f"/users/reset-password/{token}/verify")
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_verify_reset_password_error_expired_token(client):
@@ -413,7 +413,7 @@ async def test_verify_reset_password_error_expired_token(client):
         token = await _generate_reset_password_token(user)
 
         response = await client.get(f"/users/reset-password/{token}/verify")
-        assert response.status_code == 400, response.text
+        assert response.status_code == 400, response.data
 
 
 ##########################################################
@@ -427,7 +427,7 @@ async def test_reset_password_ok(client):
     data = {"password": "123123.a"}
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert "access" in response.json()
     assert "refresh" in response.json()
 
@@ -438,7 +438,7 @@ async def test_reset_password_error_with_no_password(client):
     data = {}
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
     assert response.json()["detail"][0]["type"] == "missing"
 
 
@@ -448,7 +448,7 @@ async def test_reset_password_error_with_invalid_password(client):
     data = {"password": "123123"}
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
     assert response.json()["detail"][0]["type"] == "string_too_short"
 
 
@@ -458,7 +458,7 @@ async def test_reset_password_error_inactive_user(client):
     data = {"password": "123123.a"}
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_reset_password_error_invalid_token(client):
@@ -466,7 +466,7 @@ async def test_reset_password_error_invalid_token(client):
     data = {"password": "123123.a"}
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_reset_password_error_used_token(client):
@@ -475,9 +475,9 @@ async def test_reset_password_error_used_token(client):
     data = {"password": "123123.a"}
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     response = await client.post(f"/users/reset-password/{token}", json=data)
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_reset_password_error_expired_token(client):
@@ -490,4 +490,4 @@ async def test_reset_password_error_expired_token(client):
         data = {"password": "123123.a"}
 
         response = await client.post(f"/users/reset-password/{token}", json=data)
-        assert response.status_code == 400, response.text
+        assert response.status_code == 400, response.data

@@ -26,9 +26,7 @@ from django.db import models
 from base.db import sequences as seq
 from memberships.choices import InvitationStatus
 from projects import references
-from projects.memberships.models import ProjectRole
 from projects.projects import repositories
-from projects.projects.models import Project
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -251,13 +249,13 @@ async def test_list_workspace_projects_for_user_1(project_template):
     pj11 = await f.create_project(
         template=project_template, workspace=workspace, created_by=user6
     )
-    pj_general_role = await _get_pj_member_role(project=pj11)
-    await f.create_project_membership(user=user7, project=pj11, role=pj_general_role)
+    pj_member_role = await pj11.roles.aget(slug="member")
+    await f.create_project_membership(user=user7, project=pj11, role=pj_member_role)
     # user7 is not a pj-member
     pj14 = await f.create_project(
         template=project_template, workspace=workspace, created_by=user6
     )
-    await _save_project(project=pj14)
+    await pj14.asave()
 
     # A ws-member should see every project in her workspaces
     res = await repositories.list_projects(filters={"workspace_id": workspace.id})
@@ -396,8 +394,8 @@ async def test_delete_projects(project_template):
     assert await _seq_exists(seqname)
     deleted = await repositories.delete_projects(project_id=project.id)
     assert (
-        deleted == 10
-    )  # 1 project, 1 workflow, 4 statuses, 1 invitation, 1 membership, 2 roles
+        deleted == 12
+    )  # 1 project, 1 workflow, 4 statuses, 1 invitation, 1 membership, 4 roles
     assert not await _seq_exists(seqname)
 
 
@@ -427,14 +425,14 @@ async def test_get_total_projects_in_ws_for_guest(project_template) -> None:
     pj1 = await f.create_project(
         template=project_template, workspace=ws, created_by=member
     )
-    pj_general_role = await _get_pj_member_role(project=pj1)
-    await f.create_project_membership(user=user1, project=pj1, role=pj_general_role)
+    pj_member_role = await pj1.roles.aget(slug="member")
+    await f.create_project_membership(user=user1, project=pj1, role=pj_member_role)
 
     pj2 = await f.create_project(
         template=project_template, workspace=ws, created_by=member
     )
-    pj_general_role = await _get_pj_member_role(project=pj2)
-    await f.create_project_membership(user=user1, project=pj2, role=pj_general_role)
+    pj_member_role = await pj2.roles.aget(slug="member")
+    await f.create_project_membership(user=user1, project=pj2, role=pj_member_role)
 
     res = await repositories.get_total_projects(
         filters={"memberships__user_id": user1.id}, workspace_id=ws.id
@@ -472,21 +470,6 @@ async def test_get_template_return_template():
 ##########################################################
 # utils
 ##########################################################
-
-
-@sync_to_async
-def _get_pj_member_role(project: Project) -> ProjectRole:
-    return project.roles.get(slug="general")
-
-
-@sync_to_async
-def _save_project(project: Project) -> Project:
-    return project.save()
-
-
-@sync_to_async
-def _save_role(role: ProjectRole) -> ProjectRole:
-    return role.save()
 
 
 _seq_exists = sync_to_async(seq.exists)

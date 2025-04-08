@@ -37,7 +37,7 @@ async def test_create_workflow_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.post(f"/projects/{project.b64id}/workflows", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_create_workflow_403_forbidden_permissions(client, project_template):
@@ -47,7 +47,7 @@ async def test_create_workflow_403_forbidden_permissions(client, project_templat
 
     client.login(user)
     response = await client.post(f"/projects/{project.b64id}/workflows", json=data)
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_create_workflow_404_not_found_project_b64id(client):
@@ -56,7 +56,7 @@ async def test_create_workflow_404_not_found_project_b64id(client):
 
     client.login(user)
     response = await client.post(f"/projects/{NOT_EXISTING_B64ID}/workflows", json=data)
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_create_workflow_422_unprocessable_project_b64id(client):
@@ -65,7 +65,7 @@ async def test_create_workflow_422_unprocessable_project_b64id(client):
 
     client.login(user)
     response = await client.post(f"/projects/{INVALID_B64ID}/workflows", json=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -78,7 +78,7 @@ async def test_get_workflows_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/workflows")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_get_workflows_403_forbidden_permissions(client, project_template):
@@ -87,21 +87,21 @@ async def test_get_workflows_403_forbidden_permissions(client, project_template)
 
     client.login(user)
     response = await client.get(f"/projects/{project.b64id}/workflows")
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_get_workflows_404_not_found_project_b64id(client):
     user = await f.create_user()
     client.login(user)
     response = await client.get(f"/projects/{NOT_EXISTING_B64ID}/workflows")
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_get_workflows_422_unprocessable_project_b64id(client):
     user = await f.create_user()
     client.login(user)
     response = await client.get(f"/projects/{INVALID_B64ID}/workflows")
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 #################################################################
@@ -115,7 +115,7 @@ async def test_get_workflow_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/workflows/{workflow.slug}")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_get_workflow_403_forbidden_permissions(client, project_template):
@@ -125,7 +125,7 @@ async def test_get_workflow_403_forbidden_permissions(client, project_template):
 
     client.login(user)
     response = await client.get(f"/projects/{project.b64id}/workflows/{workflow.slug}")
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_get_workflow_404_not_found_project_b64id(client, project_template):
@@ -136,7 +136,7 @@ async def test_get_workflow_404_not_found_project_b64id(client, project_template
     response = await client.get(
         f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_get_workflow_404_workflow_slug(client, project_template):
@@ -146,7 +146,7 @@ async def test_get_workflow_404_workflow_slug(client, project_template):
     response = await client.get(
         f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_get_workflow_422_unprocessable_project_b64id(client, project_template):
@@ -155,7 +155,7 @@ async def test_get_workflow_422_unprocessable_project_b64id(client, project_temp
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}")
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 #################################################################
@@ -172,7 +172,7 @@ async def test_update_workflow_200_ok(client, project_template):
     response = await client.patch(
         f"/projects/{project.b64id}/workflows/{workflow.slug}", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_update_workflow_403_forbidden_permissions(client, project_template):
@@ -185,7 +185,7 @@ async def test_update_workflow_403_forbidden_permissions(client, project_templat
     response = await client.patch(
         f"/projects/{project.b64id}/workflows/{workflow.slug}", json=data
     )
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_update_workflow_404_not_found_project_b64id(client, project_template):
@@ -197,7 +197,7 @@ async def test_update_workflow_404_not_found_project_b64id(client, project_templ
     response = await client.patch(
         f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}", json=data
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_update_workflow_404_workflow_slug(client, project_template):
@@ -208,7 +208,7 @@ async def test_update_workflow_404_workflow_slug(client, project_template):
     response = await client.patch(
         f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}", json=data
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_update_workflow_422_unprocessable_project_b64id(
@@ -222,7 +222,7 @@ async def test_update_workflow_422_unprocessable_project_b64id(
     response = await client.patch(
         f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}", json=data
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ################################################################################
@@ -240,7 +240,7 @@ async def test_create_workflow_status_invalid_workflow(client, project_template)
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/statuses", json=data
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_create_workflow_status_being_pj_admin_ok(client, project_template):
@@ -253,7 +253,7 @@ async def test_create_workflow_status_being_pj_admin_ok(client, project_template
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/statuses", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_create_workflow_status_forbidden(client, project_template):
@@ -270,7 +270,7 @@ async def test_create_workflow_status_forbidden(client, project_template):
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/statuses", json=data
     )
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 ################################################################################
@@ -290,7 +290,7 @@ async def test_update_status_200_ok(client, project_template):
         f"/projects/{project.b64id}/workflows/{workflow.slug}/statuses/{wf_status.b64id}",
         json=data,
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_update_status_400_bad_request_null_name(client, project_template):
@@ -305,7 +305,7 @@ async def test_update_status_400_bad_request_null_name(client, project_template)
         f"/projects/{project.b64id}/workflows/{workflow.slug}/statuses/{wf_status.b64id}",
         json=data,
     )
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
     assert response.json()["error"]["msg"] == "Name cannot be null"
 
 
@@ -320,7 +320,7 @@ async def test_update_status_404_not_found_wf_status_b64id(client, project_templ
         f"/projects/{project.b64id}/workflows/{workflow.slug}/statuses/{NOT_EXISTING_B64ID}",
         json=data,
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_update_status_422_unprocessable_wf_status_b64id(
@@ -336,7 +336,7 @@ async def test_update_status_422_unprocessable_wf_status_b64id(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/statuses/{INVALID_B64ID}",
         json=data,
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ################################################################################
@@ -357,7 +357,7 @@ async def test_delete_workflow_204_ok(client, project_template):
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/{deleted_workflow.slug}?moveTo={target_workflow.slug}"
     )
-    assert response.status_code == 204, response.text
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_workflow_403_not_project_admin(client, project_template):
@@ -369,7 +369,7 @@ async def test_delete_workflow_403_not_project_admin(client, project_template):
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/{workflow.slug}"
     )
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_delete_workflow_404_not_found_project_b64id(client, project_template):

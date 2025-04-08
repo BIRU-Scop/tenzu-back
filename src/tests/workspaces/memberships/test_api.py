@@ -23,6 +23,7 @@ from fastapi import status
 from memberships.choices import InvitationStatus
 from permissions import choices
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_B64ID
 
 pytestmark = pytest.mark.django_db
 
@@ -63,10 +64,9 @@ async def test_list_workspace_memberships_wrong_id(
     client,
 ):
     workspace = await f.create_workspace()
-    non_existent_id = "xxxxxxxxxxxxxxxxxxxxxx"
 
     client.login(workspace.created_by)
-    response = await client.get(f"/workspaces/{non_existent_id}/memberships")
+    response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}/memberships")
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -397,17 +397,16 @@ async def test_list_workspace_roles(
 
     response = await client.get(f"/workspaces/{workspace.b64id}/roles")
     assert response.status_code == status.HTTP_200_OK, response.text
-    assert len(response.json()) == 2  # 1 factory default + newly created
+    assert len(response.json()) == 3  # 2 factory default + newly created
 
 
 async def test_list_workspace_roles_wrong_id(
     client,
 ):
     workspace = await f.create_workspace()
-    non_existent_id = "xxxxxxxxxxxxxxxxxxxxxx"
 
     client.login(workspace.created_by)
-    response = await client.get(f"/workspaces/{non_existent_id}/roles")
+    response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}/roles")
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 

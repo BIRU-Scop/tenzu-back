@@ -168,7 +168,7 @@ async def get_project_invitation_by_id_not_found() -> None:
 async def test_exist_project_invitation() -> None:
     user = await f.create_user()
 
-    assert not await repositories.exist_invitation(
+    assert not await repositories.exists_invitation(
         ProjectInvitation,
         {
             "user": user,
@@ -179,7 +179,7 @@ async def test_exist_project_invitation() -> None:
         user=user,
     )
 
-    assert await repositories.exist_invitation(
+    assert await repositories.exists_invitation(
         ProjectInvitation,
         {
             "user": user,
@@ -194,7 +194,7 @@ async def test_exist_project_invitation() -> None:
 
 async def test_list_project_invitations_all_pending_users(project_template):
     project = await f.create_project(project_template)
-    general_role = await sync_to_async(project.roles.get)(slug="general")
+    member_role = await sync_to_async(project.roles.get)(slug="member")
     email_a = "a@user.com"
     email_b = "b@user.com"
     email_x = "x@notauser.com"
@@ -206,7 +206,7 @@ async def test_list_project_invitations_all_pending_users(project_template):
         email=email_b,
         user=user_a,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
     user_b = await f.create_user(full_name="B", email=email_a)
@@ -214,28 +214,28 @@ async def test_list_project_invitations_all_pending_users(project_template):
         email=email_a,
         user=user_b,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
     await f.create_project_invitation(
         email=email_z,
         user=None,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
     await f.create_project_invitation(
         email=email_x,
         user=None,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
     await f.create_project_invitation(
         email=email_y,
         user=None,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
     user = await f.create_user()
@@ -243,7 +243,7 @@ async def test_list_project_invitations_all_pending_users(project_template):
         email=user.email,
         user=user,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.ACCEPTED,
     )
 
@@ -261,21 +261,21 @@ async def test_list_project_invitations_all_pending_users(project_template):
 
 async def test_list_project_invitations_single_pending_user(project_template):
     project = await f.create_project(project_template)
-    general_role = await sync_to_async(project.roles.get)(slug="general")
+    member_role = await sync_to_async(project.roles.get)(slug="member")
 
     user1 = await f.create_user(full_name="AAA")
     await f.create_project_invitation(
         email=user1.email,
         user=user1,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
     await f.create_project_invitation(
         email="non-existing@email.com",
         user=None,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
 
@@ -295,14 +295,14 @@ async def test_list_project_invitations_single_pending_non_existing_user(
     project_template,
 ):
     project = await f.create_project(project_template)
-    general_role = await sync_to_async(project.roles.get)(slug="general")
+    member_role = await sync_to_async(project.roles.get)(slug="member")
 
     non_existing_email = "non-existing@email.com"
     await f.create_project_invitation(
         email=non_existing_email,
         user=None,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
 
@@ -320,14 +320,14 @@ async def test_list_project_invitations_single_pending_non_existing_user(
 
 async def test_list_project_invitations_all_accepted_users(project_template):
     project = await f.create_project(project_template)
-    general_role = await sync_to_async(project.roles.get)(slug="general")
+    member_role = await sync_to_async(project.roles.get)(slug="member")
 
     user1 = await f.create_user(full_name="AAA")
     await f.create_project_invitation(
         email=user1.email,
         user=user1,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.ACCEPTED,
     )
     user2 = await f.create_user(full_name="BBB")
@@ -335,7 +335,7 @@ async def test_list_project_invitations_all_accepted_users(project_template):
         email=user2.email,
         user=user2,
         project=project,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.ACCEPTED,
     )
 

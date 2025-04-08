@@ -31,6 +31,7 @@ from projects.invitations.models import ProjectInvitation
 from projects.invitations.tokens import ProjectInvitationToken
 from projects.memberships.models import ProjectRole
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_SLUG
 from tests.utils.utils import patch_db_transaction
 
 #######################################################
@@ -248,7 +249,7 @@ async def test_send_project_invitations_for_existing_user(tqmanager, correlation
 
 async def test_send_project_invitations_for_new_user(tqmanager):
     project = f.build_project()
-    role = f.build_project_role(project=project, slug="general")
+    role = f.build_project_role(project=project, slug="member")
 
     invitation = f.build_project_invitation(
         user=None,
@@ -291,7 +292,7 @@ async def test_send_project_invitations_for_new_user(tqmanager):
 async def test_create_project_invitations_non_existing_role(tqmanager):
     project = f.build_project()
     role = f.build_project_role(project=project, slug="role")
-    invitations = [{"email": "test@email.com", "role_slug": "non_existing_role"}]
+    invitations = [{"email": "test@email.com", "role_slug": NOT_EXISTING_SLUG}]
 
     with (
         patch(
@@ -315,7 +316,7 @@ async def test_create_project_invitations_non_existing_role(tqmanager):
 async def test_create_project_invitations_already_member(tqmanager):
     user = f.build_user()
     project = f.build_project()
-    role = f.build_project_role(project=project, slug="general")
+    role = f.build_project_role(project=project, slug="member")
     invitations = [{"email": user.email, "role_slug": role.slug}]
 
     with (
@@ -349,7 +350,7 @@ async def test_create_project_invitations_already_member(tqmanager):
 async def test_create_project_invitations_with_pending_invitations(tqmanager):
     project = f.build_project()
     role = f.build_project_role(project=project, slug="owner")
-    role2 = f.build_project_role(project=project, slug="general")
+    role2 = f.build_project_role(project=project, slug="member")
     created_at = aware_utcnow() - timedelta(days=1)  # to avoid time spam
     invitation = f.build_project_invitation(
         project=project,
@@ -390,7 +391,7 @@ async def test_create_project_invitations_with_pending_invitations(tqmanager):
 async def test_create_project_invitations_with_pending_invitations_time_spam(tqmanager):
     project = f.build_project()
     role = f.build_project_role(project=project, slug="owner")
-    role2 = f.build_project_role(project=project, slug="general")
+    role2 = f.build_project_role(project=project, slug="member")
     invitation = f.build_project_invitation(
         user=None,
         project=project,
@@ -430,7 +431,7 @@ async def test_create_project_invitations_with_pending_invitations_time_spam(tqm
 async def test_create_project_invitations_with_revoked_invitations(tqmanager):
     project = f.build_project()
     role = f.build_project_role(project=project, slug="owner")
-    role2 = f.build_project_role(project=project, slug="general")
+    role2 = f.build_project_role(project=project, slug="member")
     created_at = aware_utcnow() - timedelta(days=1)  # to avoid time spam
     invitation = f.build_project_invitation(
         project=project,
@@ -472,7 +473,7 @@ async def test_create_project_invitations_with_revoked_invitations(tqmanager):
 async def test_create_project_invitations_with_revoked_invitations_time_spam(tqmanager):
     project = f.build_project()
     role = f.build_project_role(project=project, slug="owner")
-    role2 = f.build_project_role(project=project, slug="general")
+    role2 = f.build_project_role(project=project, slug="member")
     invitation = f.build_project_invitation(
         project=project,
         user=None,
@@ -515,7 +516,7 @@ async def test_create_project_invitations_by_emails(tqmanager):
     user2 = f.build_user(email="user-test@email.com")
     project = f.build_project()
     role1 = f.build_project_role(project=project, slug="owner")
-    role2 = f.build_project_role(project=project, slug="general")
+    role2 = f.build_project_role(project=project, slug="member")
 
     invitations = [
         {"email": user2.email, "role_slug": role1.slug},
@@ -563,7 +564,7 @@ async def test_create_project_invitations_by_usernames(tqmanager):
     user3 = f.build_user()
     project = f.build_project()
     role1 = f.build_project_role(project=project, slug="owner")
-    role2 = f.build_project_role(project=project, slug="general")
+    role2 = f.build_project_role(project=project, slug="member")
 
     invitations = [
         {"username": user2.username, "role_slug": role1.slug},
@@ -611,7 +612,7 @@ async def test_create_project_invitations_duplicated_email_username(tqmanager):
     user4 = f.build_user(email="test4@email.com", username="user4")
     project = f.build_project()
     role1 = f.build_project_role(project=project, slug="owner")
-    role2 = f.build_project_role(project=project, slug="general")
+    role2 = f.build_project_role(project=project, slug="member")
 
     invitations = [
         {
@@ -798,6 +799,37 @@ async def test_accept_project_invitation_error_invitation_has_been_revoked() -> 
         fake_invitations_events.emit_event_when_project_invitation_is_accepted.assert_not_awaited()
 
 
+async def test_accept_project_invitation_error_invitation_has_been_denied() -> None:
+    user = f.build_user()
+    project = f.build_project()
+    role = f.build_project_role(project=project)
+    invitation = f.build_project_invitation(
+        project=project,
+        role=role,
+        user=user,
+        status=InvitationStatus.DENIED,
+        email=user.email,
+    )
+
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.memberships_repositories", autospec=True
+        ) as fake_pj_roles_repo,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        pytest.raises(ex.InvitationDeniedError),
+    ):
+        await services.accept_project_invitation(invitation=invitation)
+
+        fake_memberships_repositories.accept_invitation.assert_not_awaited()
+        fake_pj_roles_repo.create_project_membership.assert_not_awaited()
+        fake_invitations_events.emit_event_when_project_invitation_is_accepted.assert_not_awaited()
+
+
 #######################################################
 # accept_project_invitation_from_token
 #######################################################
@@ -911,6 +943,27 @@ async def test_accept_project_invitation_from_token_error_revoked() -> None:
             autospec=True,
         ) as fake_get_project_invitation,
         pytest.raises(ex.InvitationRevokedError),
+    ):
+        fake_get_project_invitation.return_value = invitation
+
+        await services.accept_project_invitation_from_token(token=token, user=user)
+
+        fake_get_project_invitation.assert_awaited_once_with(token=token)
+
+
+async def test_accept_project_invitation_from_token_error_denied() -> None:
+    user = f.build_user()
+    invitation = f.build_project_invitation(
+        user=user, email=user.email, status=InvitationStatus.DENIED
+    )
+    token = str(await ProjectInvitationToken.create_for_object(invitation))
+
+    with (
+        patch(
+            "projects.invitations.services.get_project_invitation",
+            autospec=True,
+        ) as fake_get_project_invitation,
+        pytest.raises(ex.InvitationDeniedError),
     ):
         fake_get_project_invitation.return_value = invitation
 
@@ -1303,6 +1356,162 @@ async def test_revoke_project_invitation_revoked() -> None:
         fake_invitations_events.emit_event_when_project_invitation_is_revoked.assert_not_awaited()
 
 
+async def test_revoke_project_invitation_denied() -> None:
+    user = f.build_user()
+    project = f.build_project()
+    invitation = f.build_project_invitation(
+        project=project,
+        user=user,
+        email=user.email,
+        status=InvitationStatus.DENIED,
+    )
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        pytest.raises(ex.InvitationDeniedError),
+    ):
+        await services.revoke_project_invitation(
+            invitation=invitation, revoked_by=project.created_by
+        )
+
+        fake_memberships_repositories.update_invitation.assert_not_awaited()
+        fake_invitations_events.emit_event_when_project_invitation_is_revoked.assert_not_awaited()
+
+
+#######################################################
+# deny_project_invitation
+#######################################################
+
+
+async def test_deny_project_invitation_ok() -> None:
+    project = f.build_project()
+    user = f.build_user()
+    invitation = f.build_project_invitation(
+        project=project, user=user, email=user.email
+    )
+
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+    ):
+        fake_memberships_repositories.update_invitation.return_value = invitation
+        await services.deny_project_invitation(
+            invitation=invitation,
+        )
+        fake_memberships_repositories.update_invitation.assert_awaited_once_with(
+            invitation=invitation,
+            values={
+                "status": InvitationStatus.DENIED,
+            },
+        )
+        fake_invitations_events.emit_event_when_project_invitation_is_denied.assert_awaited_once_with(
+            invitation=invitation
+        )
+
+
+async def test_deny_project_invitation_already_accepted() -> None:
+    user = f.build_user()
+    project = f.build_project()
+    invitation = f.build_project_invitation(
+        project=project,
+        user=user,
+        email=user.email,
+        status=InvitationStatus.ACCEPTED,
+    )
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        pytest.raises(ex.InvitationAlreadyAcceptedError),
+    ):
+        await services.deny_project_invitation(invitation=invitation)
+
+        fake_memberships_repositories.update_invitation.assert_not_awaited()
+        fake_invitations_events.emit_event_when_project_invitation_is_denied.assert_not_awaited()
+
+
+async def test_deny_project_invitation_revoked() -> None:
+    user = f.build_user()
+    project = f.build_project()
+    invitation = f.build_project_invitation(
+        project=project,
+        user=user,
+        email=user.email,
+        status=InvitationStatus.REVOKED,
+    )
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        pytest.raises(ex.InvitationRevokedError),
+    ):
+        await services.deny_project_invitation(invitation=invitation)
+
+        fake_memberships_repositories.update_invitation.assert_not_awaited()
+        fake_invitations_events.emit_event_when_project_invitation_is_denied.assert_not_awaited()
+
+
+async def test_deny_project_invitation_denied() -> None:
+    user = f.build_user()
+    project = f.build_project()
+    invitation = f.build_project_invitation(
+        project=project,
+        user=user,
+        email=user.email,
+        status=InvitationStatus.DENIED,
+    )
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        pytest.raises(ex.InvitationDeniedError),
+    ):
+        await services.deny_project_invitation(invitation=invitation)
+
+        fake_memberships_repositories.update_invitation.assert_not_awaited()
+        fake_invitations_events.emit_event_when_project_invitation_is_denied.assert_not_awaited()
+
+
+async def test_deny_project_invitation_no_user() -> None:
+    project = f.build_project()
+    invitation = f.build_project_invitation(
+        project=project,
+        email="test@email.com",
+        status=InvitationStatus.PENDING,
+        user=None,
+    )
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        pytest.raises(ex.InvitationHasNoUserYetError),
+    ):
+        await services.deny_project_invitation(invitation=invitation)
+
+        fake_memberships_repositories.update_invitation.assert_not_awaited()
+        fake_invitations_events.emit_event_when_project_invitation_is_denied.assert_not_awaited()
+
+
 #######################################################
 # update_project_invitation
 #######################################################
@@ -1311,7 +1520,7 @@ async def test_revoke_project_invitation_revoked() -> None:
 async def test_update_project_invitation_role_invitation_accepted() -> None:
     user = f.build_user()
     project = f.build_project()
-    general_role = f.build_project_role(project=project, is_owner=False)
+    member_role = f.build_project_role(project=project, is_owner=False)
     invitation = f.build_project_invitation(
         project=project,
         user=user,
@@ -1328,7 +1537,7 @@ async def test_update_project_invitation_role_invitation_accepted() -> None:
         pytest.raises(ex.InvitationAlreadyAcceptedError),
     ):
         await services.update_project_invitation(
-            invitation=invitation, role_slug=general_role
+            invitation=invitation, role_slug=member_role
         )
 
         fake_memberships_repositories.update_invitation.assert_not_awaited()
@@ -1338,7 +1547,7 @@ async def test_update_project_invitation_role_invitation_accepted() -> None:
 async def test_update_project_invitation_role_invitation_revoked() -> None:
     user = f.build_user()
     project = f.build_project()
-    general_role = f.build_project_role(project=project, is_owner=False)
+    member_role = f.build_project_role(project=project, is_owner=False)
     invitation = f.build_project_invitation(
         project=project,
         user=user,
@@ -1355,7 +1564,34 @@ async def test_update_project_invitation_role_invitation_revoked() -> None:
         pytest.raises(ex.InvitationRevokedError),
     ):
         await services.update_project_invitation(
-            invitation=invitation, role_slug=general_role
+            invitation=invitation, role_slug=member_role
+        )
+
+        fake_memberships_repositories.update_invitation.assert_not_awaited()
+        fake_invitations_events.emit_event_when_project_invitation_is_updated.assert_not_awaited()
+
+
+async def test_update_project_invitation_role_invitation_denied() -> None:
+    user = f.build_user()
+    project = f.build_project()
+    member_role = f.build_project_role(project=project, is_owner=False)
+    invitation = f.build_project_invitation(
+        project=project,
+        user=user,
+        email=user.email,
+        status=InvitationStatus.DENIED,
+    )
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        pytest.raises(ex.InvitationDeniedError),
+    ):
+        await services.update_project_invitation(
+            invitation=invitation, role_slug=member_role
         )
 
         fake_memberships_repositories.update_invitation.assert_not_awaited()
@@ -1365,15 +1601,14 @@ async def test_update_project_invitation_role_invitation_revoked() -> None:
 async def test_update_project_invitation_role_non_existing_role():
     project = f.build_project()
     user = f.build_user()
-    general_role = f.build_project_role(project=project, is_owner=False)
+    member_role = f.build_project_role(project=project, is_owner=False)
     invitation = f.build_project_invitation(
         project=project,
         user=user,
         email=user.email,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
-    non_existing_role_slug = "non_existing_role_slug"
     with (
         patch(
             "memberships.services.memberships_repositories", autospec=True
@@ -1387,11 +1622,11 @@ async def test_update_project_invitation_role_non_existing_role():
         fake_memberships_repositories.get_role.side_effect = ProjectRole.DoesNotExist
 
         await services.update_project_invitation(
-            invitation=invitation, role_slug=non_existing_role_slug
+            invitation=invitation, role_slug=NOT_EXISTING_SLUG
         )
         fake_memberships_repositories.get_role.assert_awaited_once_with(
             ProjectRole,
-            filters={"project_id": project.id, "slug": non_existing_role_slug},
+            filters={"project_id": project.id, "slug": NOT_EXISTING_SLUG},
         )
         fake_memberships_repositories.update_invitation.assert_not_awaited()
         fake_invitations_events.emit_event_when_project_invitation_is_updated.assert_not_awaited()
@@ -1400,12 +1635,12 @@ async def test_update_project_invitation_role_non_existing_role():
 async def test_update_project_invitation_role_ok():
     project = f.build_project()
     user = f.build_user()
-    general_role = f.build_project_role(project=project, is_owner=False)
+    member_role = f.build_project_role(project=project, is_owner=False)
     invitation = f.build_project_invitation(
         project=project,
         user=user,
         email=user.email,
-        role=general_role,
+        role=member_role,
         status=InvitationStatus.PENDING,
     )
     admin_role = f.build_project_role(project=project, is_owner=True)
@@ -1448,10 +1683,10 @@ async def test_has_pending_project_invitation() -> None:
         invitation = f.build_project_invitation(
             email=user.email, user=user, project=project
         )
-        fake_pj_memberships_repositories.exist_invitation.return_value = True
+        fake_pj_memberships_repositories.exists_invitation.return_value = True
         res = await services.has_pending_invitation(reference_object=project, user=user)
         assert res is True
 
-        fake_pj_memberships_repositories.exist_invitation.return_value = False
+        fake_pj_memberships_repositories.exists_invitation.return_value = False
         res = await services.has_pending_invitation(reference_object=project, user=user)
         assert res is False

@@ -23,6 +23,7 @@ import pytest
 
 from memberships.services import exceptions as ex
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_SLUG
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import services
 from workspaces.memberships.models import WorkspaceRole
@@ -80,7 +81,6 @@ async def test_update_workspace_membership_role_non_existing_role():
     membership = f.build_workspace_membership(
         user=user, workspace=workspace, role=general_role
     )
-    non_existing_role_slug = "non_existing_role_slug"
     with (
         patch(
             "workspaces.memberships.services.memberships_repositories", autospec=True
@@ -93,11 +93,11 @@ async def test_update_workspace_membership_role_non_existing_role():
         fake_membership_repository.get_role.side_effect = WorkspaceRole.DoesNotExist
 
         await services.update_workspace_membership(
-            membership=membership, role_slug=non_existing_role_slug
+            membership=membership, role_slug=NOT_EXISTING_SLUG
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
             WorkspaceRole,
-            filters={"workspace_id": workspace.id, "slug": non_existing_role_slug},
+            filters={"workspace_id": workspace.id, "slug": NOT_EXISTING_SLUG},
         )
         fake_membership_repository.update_membership.assert_not_awaited()
         fake_membership_events.emit_event_when_workspace_membership_is_updated.assert_not_awaited()

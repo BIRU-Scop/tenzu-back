@@ -21,10 +21,8 @@ import uuid
 from unittest import IsolatedAsyncioTestCase
 
 import pytest
-from asgiref.sync import sync_to_async
 
-from projects.memberships.models import ProjectRole
-from projects.projects.models import Project, ProjectTemplate
+from projects.projects.models import ProjectTemplate
 from tests.utils import factories as f
 from workspaces.workspaces import repositories
 
@@ -153,16 +151,16 @@ async def test_get_workspace_detail_projects(project_template):
     pj51 = await f.create_project(
         template=project_template, name="pj51", workspace=workspace5, created_by=user13
     )
-    pj_general_role = await _get_pj_member_role(project=pj51)
-    await f.create_project_membership(user=user14, project=pj51, role=pj_general_role)
+    pj_member_role = await pj51.roles.aget(slug="member")
+    await f.create_project_membership(user=user14, project=pj51, role=pj_member_role)
     # user14 is pj-member, ws-members dont have permissions
     pj52 = await f.create_project(
         template=project_template, name="pj52", workspace=workspace5, created_by=user13
     )
-    pj_general_role = await _get_pj_member_role(project=pj52)
-    await f.create_project_membership(user=user14, project=pj52, role=pj_general_role)
-    pj_general_role.permissions = []
-    await _save_role(role=pj_general_role)
+    pj_member_role = await pj52.roles.aget(slug="member")
+    await f.create_project_membership(user=user14, project=pj52, role=pj_member_role)
+    pj_member_role.permissions = []
+    await pj_member_role.asave()
     # user14 is not a pj-member
     await f.create_project(
         template=project_template, name="pj53", workspace=workspace5, created_by=user13
@@ -203,21 +201,6 @@ async def test_update_workspace():
 ##########################################################
 
 
-@sync_to_async
-def _get_pj_member_role(project: Project) -> ProjectRole:
-    return project.roles.get(slug="general")
-
-
-@sync_to_async
-def _save_project(project: Project) -> Project:
-    return project.save()
-
-
-@sync_to_async
-def _save_role(role: ProjectRole) -> ProjectRole:
-    return role.save()
-
-
 async def test_get_user_workspaces_overview_latest_projects(project_template):
     user6 = await f.create_user()
     user7 = await f.create_user()
@@ -232,17 +215,17 @@ async def test_get_user_workspaces_overview_latest_projects(project_template):
     pj11 = await f.create_project(
         template=project_template, name="pj11", workspace=workspace1, created_by=user6
     )
-    pj_general_role = await _get_pj_member_role(project=pj11)
-    await f.create_project_membership(user=user7, project=pj11, role=pj_general_role)
+    pj_member_role = await pj11.roles.aget(slug="member")
+    await f.create_project_membership(user=user7, project=pj11, role=pj_member_role)
     # user7 is pj-member without permissions to her pj-role
     pj12 = await f.create_project(
         template=project_template, name="pj12", workspace=workspace1, created_by=user6
     )
-    pj_general_role = await _get_pj_member_role(project=pj12)
-    await f.create_project_membership(user=user7, project=pj12, role=pj_general_role)
-    pj_general_role.permissions = []
-    await _save_role(role=pj_general_role)
-    await _save_project(project=pj12)
+    pj_member_role = await pj12.roles.aget(slug="member")
+    await f.create_project_membership(user=user7, project=pj12, role=pj_member_role)
+    pj_member_role.permissions = []
+    await pj_member_role.asave()
+    await pj12.asave()
     # user7 is not a pj-member
     await f.create_project(
         template=project_template, name="pj15", workspace=workspace1, created_by=user6
@@ -271,8 +254,8 @@ async def test_get_user_workspaces_overview_latest_projects(project_template):
     pj51 = await f.create_project(
         template=project_template, name="pj51", workspace=workspace5, created_by=user6
     )
-    pj_general_role = await _get_pj_member_role(project=pj51)
-    await f.create_project_membership(user=user7, project=pj51, role=pj_general_role)
+    pj_member_role = await pj51.roles.aget(slug="member")
+    await f.create_project_membership(user=user7, project=pj51, role=pj_member_role)
     # user7 is not a pj-member
     await f.create_project(
         template=project_template, name="pj53", workspace=workspace5, created_by=user6
@@ -347,19 +330,19 @@ async def test_get_user_workspaces_overview_invited_projects(project_template):
     pj = await f.create_project(
         template=project_template, name="pj1", workspace=ws3, created_by=user8
     )
-    pj_general_role = await _get_pj_member_role(project=pj)
-    await f.create_project_membership(user=user9, project=pj, role=pj_general_role)
+    pj_member_role = await pj.roles.aget(slug="member")
+    await f.create_project_membership(user=user9, project=pj, role=pj_member_role)
 
     # user8 invites user9 to a project in ws1
     pj = await f.create_project(
         template=project_template, name="pj2", workspace=ws1, created_by=user8
     )
-    pj_general_role = await _get_pj_member_role(project=pj)
+    pj_member_role = await pj.roles.aget(slug="member")
     await f.create_project_invitation(
         email=user9.email,
         user=user9,
         project=pj,
-        role=pj_general_role,
+        role=pj_member_role,
         invited_by=user8,
     )
 
@@ -367,12 +350,12 @@ async def test_get_user_workspaces_overview_invited_projects(project_template):
     pj = await f.create_project(
         template=project_template, name="pj3", workspace=ws1, created_by=user8
     )
-    pj_general_role = await _get_pj_member_role(project=pj)
+    pj_member_role = await pj.roles.aget(slug="member")
     await f.create_project_invitation(
         email=user10.email,
         user=None,
         project=pj,
-        role=pj_general_role,
+        role=pj_member_role,
         invited_by=user8,
     )
 
@@ -380,19 +363,19 @@ async def test_get_user_workspaces_overview_invited_projects(project_template):
     pj = await f.create_project(
         template=project_template, name="pj4", workspace=ws3, created_by=user8
     )
-    pj_general_role = await _get_pj_member_role(project=pj)
+    pj_member_role = await pj.roles.aget(slug="member")
     await f.create_project_invitation(
         email=user9.email,
         user=user9,
         project=pj,
-        role=pj_general_role,
+        role=pj_member_role,
         invited_by=user8,
     )
     await f.create_project_invitation(
         email=user10.email,
         user=user10,
         project=pj,
-        role=pj_general_role,
+        role=pj_member_role,
         invited_by=user8,
     )
 
@@ -400,15 +383,15 @@ async def test_get_user_workspaces_overview_invited_projects(project_template):
     pj = await f.create_project(
         template=project_template, name="pj5", workspace=ws4, created_by=user8
     )
-    pj_general_role = await _get_pj_member_role(project=pj)
+    pj_member_role = await pj.roles.aget(slug="member")
     await f.create_project_invitation(
-        email=user9.email, user=None, project=pj, role=pj_general_role, invited_by=user8
+        email=user9.email, user=None, project=pj, role=pj_member_role, invited_by=user8
     )
     await f.create_project_invitation(
         email=user10.email,
         user=None,
         project=pj,
-        role=pj_general_role,
+        role=pj_member_role,
         invited_by=user8,
     )
 
@@ -436,7 +419,7 @@ async def test_delete_workspaces_without_ws_members():
     workspace = await f.create_workspace()
 
     num_deleted_wss = await repositories.delete_workspace(workspace_id=workspace.id)
-    assert num_deleted_wss == 3  # 1 workspace, 1 ws_memberships, 1 ws_role
+    assert num_deleted_wss == 4  # 1 workspace, 1 ws_memberships, 2 ws_role
 
 
 async def test_delete_workspaces_with_ws_members():
@@ -446,7 +429,7 @@ async def test_delete_workspaces_with_ws_members():
     await f.create_workspace_membership(user=ws_member, workspace=workspace)
 
     num_deleted_wss = await repositories.delete_workspace(workspace_id=workspace.id)
-    assert num_deleted_wss == 4  # 1 workspace, 2 ws_memberships, 1 ws_role
+    assert num_deleted_wss == 5  # 1 workspace, 2 ws_memberships, 2 ws_role
 
 
 ##########################################################
@@ -478,16 +461,16 @@ class GetUserWorkspaceOverview(IsolatedAsyncioTestCase):
             workspace=workspace1,
             created_by=self.user1,
         )
-        pj_general_role = await _get_pj_member_role(project=pj11)
+        pj_member_role = await pj11.roles.aget(slug="member")
         await f.create_project_membership(
-            user=self.user2, project=pj11, role=pj_general_role
+            user=self.user2, project=pj11, role=pj_member_role
         )
         # self.user3 is pj-invitee
         await f.create_project_invitation(
             email=self.user3.email,
             user=self.user3,
             project=pj11,
-            role=pj_general_role,
+            role=pj_member_role,
             invited_by=self.user1,
         )
 
@@ -498,19 +481,19 @@ class GetUserWorkspaceOverview(IsolatedAsyncioTestCase):
             workspace=workspace1,
             created_by=self.user1,
         )
-        pj_general_role = await _get_pj_member_role(project=pj12)
+        pj_member_role = await pj12.roles.aget(slug="member")
         await f.create_project_membership(
-            user=self.user2, project=pj12, role=pj_general_role
+            user=self.user2, project=pj12, role=pj_member_role
         )
-        pj_general_role.permissions = []
-        await _save_role(role=pj_general_role)
-        await _save_project(project=pj12)
+        pj_member_role.permissions = []
+        await pj_member_role.asave()
+        await pj12.asave()
         # self.user3 is pj-invitee
         await f.create_project_invitation(
             email=self.user3.email,
             user=self.user3,
             project=pj12,
-            role=pj_general_role,
+            role=pj_member_role,
             invited_by=self.user2,
         )
         # self.user2 is pj-member, ws-members dont have permissions
@@ -520,12 +503,12 @@ class GetUserWorkspaceOverview(IsolatedAsyncioTestCase):
             workspace=workspace1,
             created_by=self.user1,
         )
-        pj_general_role = await _get_pj_member_role(project=pj13)
+        pj_member_role = await pj13.roles.aget(slug="member")
         await f.create_project_membership(
-            user=self.user2, project=pj13, role=pj_general_role
+            user=self.user2, project=pj13, role=pj_member_role
         )
-        pj_general_role.permissions = []
-        await _save_role(role=pj_general_role)
+        pj_member_role.permissions = []
+        await pj_member_role.asave()
         # self.user2 is not a pj-member but the project allows 'view_story' to ws-members
         pj14 = await f.create_project(
             template=self.project_template,
@@ -533,7 +516,7 @@ class GetUserWorkspaceOverview(IsolatedAsyncioTestCase):
             workspace=workspace1,
             created_by=self.user1,
         )
-        await _save_project(project=pj14)
+        await pj14.asave()
         # self.user2 is not a pj-member and ws-members are not allowed
         await f.create_project(
             template=self.project_template,
@@ -548,13 +531,13 @@ class GetUserWorkspaceOverview(IsolatedAsyncioTestCase):
             workspace=workspace1,
             created_by=self.user2,
         )
-        pj_general_role = await _get_pj_member_role(project=pj16)
+        pj_member_role = await pj16.roles.aget(slug="member")
         # self.user1 is pj-invitee
         await f.create_project_invitation(
             email=self.user1.email,
             user=self.user1,
             project=pj16,
-            role=pj_general_role,
+            role=pj_member_role,
             invited_by=self.user2,
         )
         # self.user3 is pj-invitee
@@ -562,7 +545,7 @@ class GetUserWorkspaceOverview(IsolatedAsyncioTestCase):
             email=self.user3.email,
             user=self.user3,
             project=pj16,
-            role=pj_general_role,
+            role=pj_member_role,
             invited_by=self.user2,
         )
         await f.create_project(
@@ -645,9 +628,9 @@ class GetUserWorkspaceOverview(IsolatedAsyncioTestCase):
             workspace=workspace5,
             created_by=self.user1,
         )
-        pj_general_role = await _get_pj_member_role(project=pj51)
+        pj_member_role = await pj51.roles.aget(slug="member")
         await f.create_project_membership(
-            user=self.user2, project=pj51, role=pj_general_role
+            user=self.user2, project=pj51, role=pj_member_role
         )
         # self.user2 is pj-member, ws-members dont have permissions
         pj52 = await f.create_project(
@@ -656,12 +639,12 @@ class GetUserWorkspaceOverview(IsolatedAsyncioTestCase):
             workspace=workspace5,
             created_by=self.user1,
         )
-        pj_general_role = await _get_pj_member_role(project=pj52)
+        pj_member_role = await pj52.roles.aget(slug="member")
         await f.create_project_membership(
-            user=self.user2, project=pj52, role=pj_general_role
+            user=self.user2, project=pj52, role=pj_member_role
         )
-        pj_general_role.permissions = []
-        await _save_role(role=pj_general_role)
+        pj_member_role.permissions = []
+        await pj_member_role.asave()
         # self.user2 is not a pj-member
         await f.create_project(
             template=self.project_template,

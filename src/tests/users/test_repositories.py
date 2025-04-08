@@ -21,8 +21,8 @@ from unittest import IsolatedAsyncioTestCase
 
 import pytest
 from asgiref.sync import sync_to_async
+from django.db import IntegrityError
 
-from base.db.exceptions import IntegrityError
 from memberships.choices import InvitationStatus
 from projects.projects.models import ProjectTemplate
 from tests.utils import factories as f

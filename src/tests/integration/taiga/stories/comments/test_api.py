@@ -24,8 +24,7 @@ from fastapi import status
 from base.utils.datetime import aware_utcnow
 from comments import repositories as comments_repositories
 from tests.utils import factories as f
-
-pytestmark = pytest.mark.django_db(transaction=True)
+from tests.utils.bad_params import NOT_EXISTING_B64ID, NOT_EXISTING_REF
 
 
 WRONG_B64ID = "-----wrong_b64id------"
@@ -58,7 +57,7 @@ async def test_create_story_comment_error_nonexistent_project(client):
 
     client.login(user)
     response = client.post(
-        f"/projects/{WRONG_B64ID}/stories/{story.ref}/comments", json=data
+        f"/projects/{NOT_EXISTING_B64ID}/stories/{story.ref}/comments", json=data
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
@@ -70,7 +69,7 @@ async def test_create_story_comment_error_nonexistent_story(client):
 
     client.login(project.created_by)
     response = client.post(
-        f"/projects/{project.b64id}/stories/{WRONG_REF}/comments", json=data
+        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/comments", json=data
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
@@ -82,7 +81,7 @@ async def test_create_story_comment_error_invalid_form(client):
 
     client.login(project.created_by)
     response = client.post(
-        f"/projects/{project.b64id}/stories/{WRONG_REF}/comments", json=data
+        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/comments", json=data
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
 
@@ -154,7 +153,9 @@ async def test_list_story_comments_error_nonexistent_project(client):
     user = await f.create_user()
 
     client.login(user)
-    response = client.get(f"/projects/{WRONG_B64ID}/stories/{WRONG_REF}/comments")
+    response = client.get(
+        f"/projects/{NOT_EXISTING_B64ID}/stories/{NOT_EXISTING_REF}/comments"
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -162,7 +163,9 @@ async def test_list_story_comments_error_nonexistent_story(client):
     project = await f.create_project()
 
     client.login(project.created_by)
-    response = client.get(f"/projects/{project.b64id}/stories/{WRONG_REF}/comments")
+    response = client.get(
+        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/comments"
+    )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -224,7 +227,7 @@ async def test_update_story_comment_error_nonexistent_project(client):
 
     client.login(story.created_by)
     response = client.patch(
-        f"/projects/{WRONG_B64ID}/stories/{story.ref}/comments/{comment.b64id}",
+        f"/projects/{NOT_EXISTING_B64ID}/stories/{story.ref}/comments/{comment.b64id}",
         json=data,
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
@@ -239,7 +242,7 @@ async def test_update_story_comment_error_nonexistent_story(client):
 
     client.login(story.created_by)
     response = client.patch(
-        f"/projects/{story.project.b64id}/stories/{WRONG_REF}/comments/{comment.b64id}",
+        f"/projects/{story.project.b64id}/stories/{NOT_EXISTING_REF}/comments/{comment.b64id}",
         json=data,
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
@@ -254,7 +257,7 @@ async def test_update_story_comment_error_nonexistent_comment(client):
 
     client.login(story.created_by)
     response = client.patch(
-        f"/projects/{story.project.b64id}/stories/{story.ref}/comments/{WRONG_B64ID}",
+        f"/projects/{story.project.b64id}/stories/{story.ref}/comments/{NOT_EXISTING_B64ID}",
         json=data,
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
@@ -428,7 +431,7 @@ async def test_delete_story_comments_404_not_found_nonexistent_project(client):
 
     client.login(user)
     response = client.delete(
-        f"/projects/{WRONG_B64ID}/stories/{WRONG_REF}/comments/{WRONG_B64ID}"
+        f"/projects/{NOT_EXISTING_B64ID}/stories/{NOT_EXISTING_REF}/comments/{NOT_EXISTING_B64ID}"
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
@@ -438,7 +441,7 @@ async def test_delete_story_comments_404_not_found_nonexistent_story(client):
 
     client.login(project.created_by)
     response = client.delete(
-        f"/projects/{project.b64id}/stories/{WRONG_REF}/comments/{WRONG_B64ID}"
+        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/comments/{NOT_EXISTING_B64ID}"
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
@@ -449,6 +452,6 @@ async def test_delete_story_comments_404_not_found_nonexistent_comment(client):
 
     client.login(project.created_by)
     response = client.delete(
-        f"/projects/{project.b64id}/stories/{story.ref}/comments/{WRONG_B64ID}"
+        f"/projects/{project.b64id}/stories/{story.ref}/comments/{NOT_EXISTING_B64ID}"
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text

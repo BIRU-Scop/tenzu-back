@@ -21,7 +21,7 @@ import pytest
 
 from memberships.choices import InvitationStatus
 from tests.utils import factories as f
-from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
+from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID, NOT_EXISTING_SLUG
 from workspaces.invitations.tokens import WorkspaceInvitationToken
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -39,15 +39,15 @@ async def test_create_workspace_invitations_200_ok(client):
     data = {
         "invitations": [
             {"email": "invitee2@tenzu.demo", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "general"},
-            {"username": invitee1.username, "role_slug": "general"},
+            {"email": "test@email.com", "role_slug": "member"},
+            {"username": invitee1.username, "role_slug": "member"},
         ]
     }
     client.login(workspace.created_by)
     response = await client.post(
         f"/workspaces/{workspace.b64id}/invitations", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_create_workspace_invitations_400_bad_request_not_existing_username(
@@ -59,21 +59,21 @@ async def test_create_workspace_invitations_400_bad_request_not_existing_usernam
     response = await client.post(
         f"/workspaces/{workspace.b64id}/invitations", json=data
     )
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_create_workspace_invitations_non_existing_role(client):
     workspace = await f.create_workspace()
     data = {
         "invitations": [
-            {"email": "test@email.com", "role_slug": "non_existing_role"},
+            {"email": "test@email.com", "role_slug": NOT_EXISTING_SLUG},
         ]
     }
     client.login(workspace.created_by)
     response = await client.post(
         f"/workspaces/{workspace.b64id}/invitations", json=data
     )
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_create_workspace_invitations_401_not_authorised_anonymous_user(client):

@@ -84,7 +84,16 @@ class WorkspaceInvitationFactory(Factory):
 
 @sync_to_async
 def create_workspace_invitation(**kwargs):
-    return WorkspaceInvitationFactory.create(**kwargs)
+    role = kwargs.pop("role", None)
+    if role is None:
+        role = (
+            kwargs["workspace"].roles.filter(is_owner=False).first()
+            if "workspace" in kwargs
+            else WorkspaceRoleFactory.create()
+        )
+    return WorkspaceInvitationFactory.create(
+        workspace=kwargs.pop("workspace", role.workspace), role=role, **kwargs
+    )
 
 
 def build_workspace_invitation(**kwargs):
@@ -109,6 +118,9 @@ def create_workspace(**kwargs):
 
     owner_role = WorkspaceRoleFactory.create(
         workspace=workspace, is_owner=True, name="Owner", editable=False
+    )
+    WorkspaceRoleFactory.create(
+        workspace=workspace, is_owner=False, name="Member", editable=False
     )
     WorkspaceMembershipFactory.create(
         user=workspace.created_by, workspace=workspace, role=owner_role

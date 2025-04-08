@@ -23,6 +23,7 @@ from fastapi import status
 from memberships.choices import InvitationStatus
 from permissions import choices
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_B64ID, NOT_EXISTING_SLUG
 
 pytestmark = pytest.mark.django_db
 
@@ -35,7 +36,7 @@ pytestmark = pytest.mark.django_db
 async def test_list_project_memberships(client, project_template):
     project = await f.create_project(project_template)
 
-    general_member_role = await f.create_project_role(
+    member_role = await f.create_project_role(
         project=project,
         permissions=[],
         is_owner=False,
@@ -43,11 +44,9 @@ async def test_list_project_memberships(client, project_template):
 
     pj_member = await f.create_user()
     pj_member2 = await f.create_user()
+    await f.create_project_membership(user=pj_member, project=project, role=member_role)
     await f.create_project_membership(
-        user=pj_member, project=project, role=general_member_role
-    )
-    await f.create_project_membership(
-        user=pj_member2, project=project, role=general_member_role
+        user=pj_member2, project=project, role=member_role
     )
 
     client.login(pj_member)
@@ -59,10 +58,9 @@ async def test_list_project_memberships(client, project_template):
 
 async def test_list_project_memberships_wrong_id(client, project_template):
     project = await f.create_project(project_template)
-    non_existent_id = "xxxxxxxxxxxxxxxxxxxxxx"
 
     client.login(project.created_by)
-    response = await client.get(f"/projects/{non_existent_id}/memberships")
+    response = await client.get(f"/projects/{NOT_EXISTING_B64ID}/memberships")
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -116,17 +114,13 @@ async def test_update_project_membership_role_user_without_permission(
     project = await f.create_project(project_template)
     user1 = await f.create_user()
     user2 = await f.create_user()
-    general_member_role = await f.create_project_role(
+    member_role = await f.create_project_role(
         project=project,
         permissions=[],
         is_owner=False,
     )
-    await f.create_project_membership(
-        user=user1, project=project, role=general_member_role
-    )
-    await f.create_project_membership(
-        user=user2, project=project, role=general_member_role
-    )
+    await f.create_project_membership(user=user1, project=project, role=member_role)
+    await f.create_project_membership(user=user2, project=project, role=member_role)
 
     client.login(user1)
     username = user2.username
@@ -200,14 +194,12 @@ async def test_update_project_membership_role_owner_and_not_owner(
 async def test_update_project_membership_role_owner_and_owner(client, project_template):
     project = await f.create_project(project_template)
     user = await f.create_user()
-    general_member_role = await f.create_project_role(
+    member_role = await f.create_project_role(
         project=project,
         permissions=[],
         is_owner=False,
     )
-    await f.create_project_membership(
-        user=user, project=project, role=general_member_role
-    )
+    await f.create_project_membership(user=user, project=project, role=member_role)
 
     client.login(project.created_by)
     # change role to owner
@@ -243,17 +235,13 @@ async def test_delete_project_membership_without_permissions(client, project_tem
     project = await f.create_project(project_template)
     user1 = await f.create_user()
     user2 = await f.create_user()
-    general_member_role = await f.create_project_role(
+    member_role = await f.create_project_role(
         project=project,
         permissions=[],
         is_owner=False,
     )
-    await f.create_project_membership(
-        user=user1, project=project, role=general_member_role
-    )
-    await f.create_project_membership(
-        user=user2, project=project, role=general_member_role
-    )
+    await f.create_project_membership(user=user1, project=project, role=member_role)
+    await f.create_project_membership(user=user2, project=project, role=member_role)
 
     client.login(user1)
     response = await client.delete(
@@ -332,14 +320,12 @@ async def test_delete_project_membership_role_owner_and_owner(client, project_te
 async def test_delete_project_membership_self_request(client, project_template):
     project = await f.create_project(project_template)
     member = await f.create_user()
-    general_member_role = await f.create_project_role(
+    member_role = await f.create_project_role(
         project=project,
         permissions=[],
         is_owner=False,
     )
-    await f.create_project_membership(
-        user=member, project=project, role=general_member_role
-    )
+    await f.create_project_membership(user=member, project=project, role=member_role)
 
     client.login(member)
     response = await client.delete(
@@ -356,16 +342,14 @@ async def test_delete_project_membership_self_request(client, project_template):
 async def test_list_project_roles(client, project_template):
     project = await f.create_project(project_template)
 
-    general_member_role = await f.create_project_role(
+    member_role = await f.create_project_role(
         project=project,
         permissions=[],
         is_owner=False,
     )
 
     pj_member = await f.create_user()
-    await f.create_project_membership(
-        user=pj_member, project=project, role=general_member_role
-    )
+    await f.create_project_membership(user=pj_member, project=project, role=member_role)
 
     client.login(pj_member)
 
@@ -376,10 +360,9 @@ async def test_list_project_roles(client, project_template):
 
 async def test_list_project_roles_wrong_id(client, project_template):
     project = await f.create_project(project_template)
-    non_existent_id = "xxxxxxxxxxxxxxxxxxxxxx"
 
     client.login(project.created_by)
-    response = await client.get(f"/projects/{non_existent_id}/roles")
+    response = await client.get(f"/projects/{NOT_EXISTING_B64ID}/roles")
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
@@ -428,11 +411,10 @@ async def test_update_project_role_permissions_anonymous_user(client, project_te
 async def test_update_project_role_permissions_project_not_found(client):
     user = await f.create_user()
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
-    non_existent_id = "xxxxxxxxxxxxxxxxxxxxxx"
 
     client.login(user)
     response = await client.put(
-        f"/projects/{non_existent_id}/roles/role-slug", json=data
+        f"/projects/{NOT_EXISTING_B64ID}/roles/role-slug", json=data
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
@@ -440,12 +422,11 @@ async def test_update_project_role_permissions_project_not_found(client):
 
 async def test_update_project_role_permissions_role_not_found(client, project_template):
     project = await f.create_project(project_template)
-    non_existent_role_slug = "role-slug"
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
 
     client.login(project.created_by)
     response = await client.put(
-        f"/projects/{project.b64id}/roles/{non_existent_role_slug}", json=data
+        f"/projects/{project.b64id}/roles/{NOT_EXISTING_SLUG}", json=data
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND, response.text

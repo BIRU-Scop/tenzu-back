@@ -27,6 +27,8 @@ from projects.invitations.models import ProjectInvitation
 from projects.memberships import services
 from projects.memberships.models import ProjectRole
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_SLUG
+from tests.utils.utils import patch_db_transaction
 
 #######################################################
 # list_project_memberships
@@ -73,11 +75,10 @@ async def test_get_project_membership():
 async def test_update_project_membership_role_non_existing_role():
     project = f.build_project()
     user = f.build_user()
-    general_role = f.build_project_role(project=project, is_owner=False)
+    member_role = f.build_project_role(project=project, is_owner=False)
     membership = f.build_project_membership(
-        user=user, project=project, role=general_role
+        user=user, project=project, role=member_role
     )
-    non_existing_role_slug = "non_existing_role_slug"
     with (
         patch(
             "projects.memberships.services.memberships_repositories", autospec=True
@@ -85,16 +86,17 @@ async def test_update_project_membership_role_non_existing_role():
         patch(
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
+        patch_db_transaction(),
         pytest.raises(ex.NonExistingRoleError),
     ):
         fake_membership_repository.get_role.side_effect = ProjectRole.DoesNotExist
 
         await services.update_project_membership(
-            membership=membership, role_slug=non_existing_role_slug
+            membership=membership, role_slug=NOT_EXISTING_SLUG
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
             ProjectRole,
-            filters={"project_id": project.id, "slug": non_existing_role_slug},
+            filters={"project_id": project.id, "slug": NOT_EXISTING_SLUG},
         )
         fake_membership_repository.update_membership.assert_not_awaited()
         fake_membership_events.emit_event_when_project_membership_is_updated.assert_not_awaited()
@@ -117,6 +119,7 @@ async def test_update_project_membership_role_only_one_owner():
         patch(
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
+        patch_db_transaction(),
         pytest.raises(ex.MembershipIsTheOnlyOwnerError),
     ):
         fake_membership_repository.get_role.return_value = general_role
@@ -157,6 +160,7 @@ async def test_update_project_membership_role_ok():
             "projects.memberships.services.story_assignments_repositories",
             autospec=True,
         ) as fake_story_assignments_repository,
+        patch_db_transaction(),
     ):
         fake_membership_repository.get_role.return_value = owner_role
 
@@ -199,6 +203,7 @@ async def test_update_project_membership_role_view_story_deleted():
             "projects.memberships.services.story_assignments_repositories",
             autospec=True,
         ) as fake_story_assignments_repository,
+        patch_db_transaction(),
     ):
         fake_membership_repository.get_role.return_value = role
         fake_membership_service.is_membership_the_only_owner.return_value = False
@@ -361,6 +366,7 @@ async def test_update_project_role_permissions_is_owner():
         patch(
             "projects.memberships.services.memberships_repositories", autospec=True
         ) as fake_memberships_repositories,
+        patch_db_transaction(),
         pytest.raises(ex.NonEditableRoleError),
     ):
         await services.update_project_role_permissions(
@@ -380,6 +386,7 @@ async def test_update_project_role_permissions_ok():
         patch(
             "projects.memberships.services.memberships_repositories", autospec=True
         ) as fake_memberships_repositories,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.update_role.return_value = role
         await services.update_project_role_permissions(
@@ -413,6 +420,7 @@ async def test_update_project_role_permissions_view_story_deleted():
             "projects.memberships.services.story_assignments_repositories",
             autospec=True,
         ) as fake_story_assignments_repository,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.update_role.return_value = role
         await services.update_project_role_permissions(
