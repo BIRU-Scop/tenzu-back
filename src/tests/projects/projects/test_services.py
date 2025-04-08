@@ -331,6 +331,7 @@ async def test_get_project_detail_anonymous():
 
 
 async def test_update_project_ok(tqmanager):
+    user = f.create_user()
     project = f.build_project()
     values = {"name": "new name", "description": ""}
 
@@ -345,7 +346,7 @@ async def test_update_project_ok(tqmanager):
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
     ):
-        await services.update_project(project=project, values=values, user=None)
+        await services.update_project(project=project, updated_by=user, values=values)
         fake_pj_repo.update_project.assert_awaited_once_with(
             project=project, values=values
         )
@@ -360,6 +361,7 @@ async def test_update_project_ok(tqmanager):
 
 
 async def test_update_project_ok_with_new_logo(tqmanager):
+    user = f.create_user()
     new_logo = f.build_image_uploadfile()
     project = f.build_project()
     values = {"name": "new name", "description": "", "logo": new_logo}
@@ -375,7 +377,7 @@ async def test_update_project_ok_with_new_logo(tqmanager):
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
     ):
-        await services.update_project(project=project, values=values, user=None)
+        await services.update_project(project=project, updated_by=user, values=values)
         fake_pj_repo.update_project.assert_awaited_once_with(
             project=project, values=values
         )
@@ -390,6 +392,7 @@ async def test_update_project_ok_with_new_logo(tqmanager):
 
 
 async def test_update_project_ok_with_logo_replacement(tqmanager):
+    user = f.create_user()
     logo = f.build_image_file()
     new_logo = f.build_image_uploadfile(name="new_logo")
     project = f.build_project(logo=logo)
@@ -406,7 +409,7 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
     ):
-        await services.update_project(project=project, values=values, user=None)
+        await services.update_project(project=project, updated_by=user, values=values)
         fake_pj_repo.update_project.assert_awaited_once_with(
             project=project, values=values
         )
@@ -425,6 +428,7 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
 
 
 async def test_update_project_name_empty(tqmanager):
+    user = f.create_user()
     project = f.build_project()
     logo = f.build_image_file()
     values = {"name": "", "description": "", "logo": logo}
@@ -441,7 +445,7 @@ async def test_update_project_name_empty(tqmanager):
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
     ):
-        await services.update_project(project=project, values=values, user=None)
+        await services.update_project(project=project, updated_by=user, values=values)
         fake_pj_repo.update_project.assert_not_awaited()
         assert len(tqmanager.pending_jobs) == 0
         fake_get_project_detail.assert_not_awaited()
@@ -454,6 +458,7 @@ async def test_update_project_name_empty(tqmanager):
 
 
 async def test_update_project_landing_page_ok():
+    user = f.create_user()
     project = f.build_project()
     values = {"landing_page": "kanban/new_slug"}
 
@@ -466,7 +471,9 @@ async def test_update_project_landing_page_ok():
         ) as fake_projects_events,
     ):
         fake_pj_repo.get_first_workflow_slug.return_value = None
-        await services.update_project_landing_page(project=project, new_slug="new_slug")
+        await services.update_project_landing_page(
+            project=project, updated_by=user, new_slug="new_slug"
+        )
 
         fake_pj_repo.get_first_workflow_slug.assert_not_awaited()
         fake_pj_repo.update_project.assert_awaited_once_with(
@@ -481,6 +488,7 @@ async def test_update_project_landing_page_ok():
 
 
 async def test_update_project_landing_page_ok_empty_value():
+    user = f.create_user()
     project = f.build_project()
     values = {"landing_page": ""}
 
@@ -493,7 +501,7 @@ async def test_update_project_landing_page_ok_empty_value():
         ) as fake_projects_events,
     ):
         fake_pj_repo.get_first_workflow_slug.return_value = None
-        await services.update_project_landing_page(project=project)
+        await services.update_project_landing_page(project=project, updated_by=user)
 
         fake_pj_repo.get_first_workflow_slug.assert_awaited_once_with(project=project)
         fake_pj_repo.update_project.assert_awaited_once_with(
@@ -507,6 +515,7 @@ async def test_update_project_landing_page_ok_empty_value():
 
 
 async def test_update_project_landing_page_ok_new_slug():
+    user = f.create_user()
     project = f.build_project()
     values = {"landing_page": "kanban/new-w"}
 
@@ -519,7 +528,7 @@ async def test_update_project_landing_page_ok_new_slug():
         ) as fake_projects_events,
     ):
         fake_pj_repo.get_first_workflow_slug.return_value = "new-w"
-        await services.update_project_landing_page(project=project)
+        await services.update_project_landing_page(project=project, updated_by=user)
 
         fake_pj_repo.get_first_workflow_slug.assert_awaited_once_with(project=project)
         fake_pj_repo.update_project.assert_awaited_once_with(
