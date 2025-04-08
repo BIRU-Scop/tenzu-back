@@ -335,7 +335,7 @@ async def get_invitation(
     return await qs.aget()
 
 
-async def exist_invitation(
+async def exists_invitation(
     model: type[TI],
     filters: InvitationFilters = {},
 ) -> bool:

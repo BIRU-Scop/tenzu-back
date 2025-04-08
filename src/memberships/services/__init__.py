@@ -222,7 +222,7 @@ async def update_invitation(invitation: TI, role_slug: str) -> TI:
         )
 
     if invitation.status == InvitationStatus.DENIED:
-        raise ex.InvitationRevokedError("The invitation has already been denied")
+        raise ex.InvitationDeniedError("The invitation has already been denied")
 
     if invitation.status == InvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation has already been revoked")
@@ -256,7 +256,7 @@ async def accept_invitation(invitation: TI) -> TI:
         )
 
     if invitation.status == InvitationStatus.DENIED:
-        raise ex.InvitationRevokedError("The invitation is denied")
+        raise ex.InvitationDeniedError("The invitation is denied")
 
     if invitation.status == InvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation is revoked")
@@ -282,7 +282,7 @@ async def resend_invitation(invitation: TI, resent_by: User) -> TI | None:
         raise ex.InvitationAlreadyAcceptedError("Cannot resend an accepted invitation")
 
     if invitation.status == InvitationStatus.DENIED:
-        raise ex.InvitationRevokedError("The invitation has already been denied")
+        raise ex.InvitationDeniedError("The invitation has already been denied")
 
     if invitation.status == InvitationStatus.REVOKED:
         raise ex.InvitationRevokedError("The invitation has already been revoked")
@@ -389,7 +389,7 @@ async def has_pending_invitation(
     if user.is_anonymous:
         return False
 
-    return await memberships_repositories.exist_invitation(
+    return await memberships_repositories.exists_invitation(
         reference_object.invitations.model,
         filters={
             "user": user,

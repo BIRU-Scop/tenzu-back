@@ -22,7 +22,7 @@ from memberships.repositories import (  # noqa
     create_invitations,
     list_invitations,
     get_invitation,
-    exist_invitation,
+    exists_invitation,
     update_invitation,
     bulk_update_invitations,
     update_user_invitations,

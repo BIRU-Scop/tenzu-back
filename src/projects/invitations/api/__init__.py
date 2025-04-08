@@ -247,6 +247,11 @@ async def revoke_project_invitation(
     return 204, None
 
 
+##########################################################
+# deny project invitation
+##########################################################
+
+
 @invitations_router.post(
     "/projects/{id}/invitations/deny",
     url_name="project.invitations.deny",
