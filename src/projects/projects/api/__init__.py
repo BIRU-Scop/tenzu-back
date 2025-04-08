@@ -261,7 +261,7 @@ async def update_project(
     if "logo" in request.POST or request.FILES:
         values["logo"] = logo
     return await projects_services.update_project(
-        project=project, user=request.user, values=values
+        project=project, updated_by=request.user, values=values
     )
 
 

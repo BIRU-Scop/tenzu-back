@@ -18,8 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 
 from events import events_manager
-from projects.projects.events.content import DeleteProjectContent
+from projects.projects.events.content import DeleteProjectContent, UpdateProjectContent
 from projects.projects.models import Project
+from projects.projects.serializers import ProjectDetailSerializer
 from users.models import AnyUser, User
 from workspaces.workspaces.models import Workspace
 
@@ -38,13 +39,19 @@ async def emit_event_when_project_permissions_are_updated(project: Project) -> N
     )
 
 
-async def emit_event_when_project_is_updated(project: Project) -> None:
+async def emit_event_when_project_is_updated(
+    project_detail: ProjectDetailSerializer, project_id: str, updated_by: AnyUser
+) -> None:
     """
-    This event is emitted whenever there's a change in the project's direct permissions (public / workspace permissions)
-    :param project: The project affected by the permission change
+    This event is emitted whenever there's a change in the project
+    :param project_detail: the detailed project affected by the changes
+    :param project_id: the project id in b64 since the one stored in project_detail is not well formatted
+    :param updated_by: The user responsible for the changes
     """
     await events_manager.publish_on_project_channel(
-        project=project, type=PROJECT_UPDATE
+        project=project_id,
+        type=PROJECT_UPDATE,
+        content=UpdateProjectContent(project=project_detail, updated_by=updated_by),
     )
 
 
