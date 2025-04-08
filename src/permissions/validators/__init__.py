@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from permissions.validators.fields import (
+from permissions.validators.fields import (  # noqa
     ProjectPermissionsField,
     WorkspacePermissionsField,
-)  # noqa
+)

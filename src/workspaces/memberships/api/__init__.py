@@ -31,10 +31,8 @@ from commons.exceptions.api.errors import (
 from commons.validators import B64UUID
 from memberships.api.validators import MembershipValidator
 from memberships.serializers import RoleSerializer
-from memberships.services.exceptions import NonEditableRoleError
 from permissions import check_permissions
 from workspaces.memberships import services as memberships_services
-from workspaces.memberships.api.validators import RoleValidator
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.memberships.permissions import (
     MembershipPermissionsCheck,

@@ -17,9 +17,20 @@
 # You can contact BIRU at ask@biru.sh
 
 from enum import Enum
+from typing import Any
 
-from permissions import DenyAll, IsRelatedToTheUser
-from workspaces.workspaces.permissions import IsWorkspaceMember
+from permissions import DenyAll, IsRelatedToTheUser, PermissionComponent
+from users.models import AnyUser
+from workspaces.workspaces.models import Workspace
+
+
+class IsWorkspaceMember(PermissionComponent):
+    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+        obj: Workspace
+
+        if not obj:
+            return False
+        return await obj.roles.filter(users=user).aexists()
 
 
 class MembershipPermissionsCheck(Enum):

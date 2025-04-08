@@ -16,10 +16,22 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from enum import Enum
 
-from permissions import DenyAll, IsRelatedToTheUser
-from projects.projects.permissions import IsProjectMember
+from enum import Enum
+from typing import Any
+
+from permissions import DenyAll, IsRelatedToTheUser, PermissionComponent
+from projects.projects.models import Project
+from users.models import AnyUser
+
+
+class IsProjectMember(PermissionComponent):
+    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+        obj: Project
+
+        if not obj:
+            return False
+        return await obj.roles.filter(users=user).aexists()
 
 
 class MembershipPermissionsCheck(Enum):
