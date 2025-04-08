@@ -27,7 +27,7 @@ from tests.utils import factories as f
 from users.services import _generate_reset_password_token, _generate_verify_user_token
 from workspaces.invitations.services import _generate_workspace_invitation_token
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################

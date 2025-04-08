@@ -26,7 +26,7 @@ from tests.utils import factories as f
 from tests.utils import signals as signals_utils
 from workspaces.workspaces import repositories as workspaces_repositories
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 def test_mark_attachment_file_to_delete_is_connected():

@@ -29,7 +29,7 @@ from tests.utils.bad_params import (
     NOT_EXISTING_SLUG,
 )
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 FULL_PERMISSIONS = {
     "add_story",

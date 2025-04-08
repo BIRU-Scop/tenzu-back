@@ -26,9 +26,7 @@ from comments import repositories as comments_repositories
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_B64ID, NOT_EXISTING_REF
 
-
-WRONG_B64ID = "-----wrong_b64id------"
-WRONG_REF = 0
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################

@@ -28,7 +28,7 @@ from tests.utils.bad_params import (
     NOT_EXISTING_REF,
 )
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################

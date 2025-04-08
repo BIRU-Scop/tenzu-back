@@ -23,9 +23,7 @@ from fastapi import status
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_REF
 
-pytestmark = pytest.mark.django_db(transaction=True)
-
-WRONG_REF = 9999
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################

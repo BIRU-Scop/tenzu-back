@@ -28,7 +28,7 @@ from tests.utils import factories as f
 from workspaces.memberships import repositories
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################

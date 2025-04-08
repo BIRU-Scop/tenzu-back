@@ -30,7 +30,7 @@ from users import repositories as users_repositories
 from users.models import User
 from users.tokens import VerifyUserToken
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################
@@ -172,6 +172,7 @@ async def test_list_guests_in_workspace(project_template):
     assert ws_invitee not in guests
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 class ListUserByText(IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.ws_pj_admin = await f.create_user(

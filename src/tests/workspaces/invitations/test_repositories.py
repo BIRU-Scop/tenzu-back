@@ -26,7 +26,7 @@ from tests.utils import factories as f
 from workspaces.invitations import repositories
 from workspaces.invitations.models import WorkspaceInvitation
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################

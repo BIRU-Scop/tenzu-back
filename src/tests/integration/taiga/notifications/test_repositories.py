@@ -25,7 +25,7 @@ from base.utils.datetime import aware_utcnow
 from notifications import repositories
 from tests.utils import factories as f
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################
