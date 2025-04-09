@@ -18,51 +18,35 @@
 
 from enum import Enum
 
-from memberships.permissions import HasPermission
+from memberships.permissions import CanModifyAssociatedRole, HasPermission, IsMember
 from permissions import (
     IsAuthenticated,
     IsRelatedToTheUser,
-    PermissionComponent,
 )
 from permissions.choices import WorkspacePermissions
-from users.models import AnyUser
-from workspaces.invitations.models import WorkspaceInvitation
-from workspaces.memberships.models import WorkspaceMembership
-from workspaces.workspaces.models import Workspace
-
-
-class IsWorkspaceMember(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Workspace = None) -> bool:
-        if not obj:
-            return False
-        return await obj.roles.filter(users=user).aexists()
-
-
-class CanModifyAssociatedRole(PermissionComponent):
-    async def is_authorized(
-        self, user: AnyUser, obj: WorkspaceInvitation | WorkspaceMembership = None
-    ) -> bool:
-        # must always be called after HasPermission to fill this attribute
-        user_role = user.workspace_role
-        # user can only modify invitation of owner if they are owner themselves
-        return user_role.is_owner or (not obj.role.is_owner)
 
 
 class WorkspaceMembershipPermissionsCheck(Enum):
-    VIEW = IsWorkspaceMember()
+    VIEW = IsAuthenticated() & IsMember("workspace")
     MODIFY = (
         IsAuthenticated()
-        & HasPermission(WorkspacePermissions.CREATE_MODIFY_MEMBER, field="workspace")
-        & CanModifyAssociatedRole()
+        & HasPermission(
+            "workspace", WorkspacePermissions.CREATE_MODIFY_MEMBER, field="workspace"
+        )
+        & CanModifyAssociatedRole("workspace")
     )
     DELETE = IsAuthenticated() & (
         (
-            HasPermission(WorkspacePermissions.DELETE_MEMBER, field="workspace")
-            & CanModifyAssociatedRole()
+            HasPermission(
+                "workspace", WorkspacePermissions.DELETE_MEMBER, field="workspace"
+            )
+            & CanModifyAssociatedRole("workspace")
         )
         | IsRelatedToTheUser("user")
     )
 
 
 class WorkspaceRolePermissionsCheck(Enum):
-    VIEW = IsWorkspaceMember()
+    VIEW = IsAuthenticated() & IsMember(
+        "workspace",
+    )

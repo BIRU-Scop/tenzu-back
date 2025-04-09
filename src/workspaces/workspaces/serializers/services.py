@@ -55,10 +55,9 @@ def serialize_workspace_detail(workspace: Workspace) -> WorkspaceDetailSerialize
     )
 
 
-def serialize_nested(workspace: Workspace, user_role: str) -> WorkspaceNestedSerializer:
+def serialize_nested(workspace: Workspace) -> WorkspaceNestedSerializer:
     return WorkspaceNestedSerializer(
         id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
-        user_role=user_role,
     )

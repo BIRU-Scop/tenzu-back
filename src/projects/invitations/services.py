@@ -59,7 +59,7 @@ async def create_project_invitations(
     invitations: list[dict[str, str]],
     invited_by: User,
 ) -> CreateInvitationsSerializer:
-    user_role = getattr(invited_by, "project_role", None)
+    user_role = invited_by.project_role
     invitations_to_send, invitations_to_publish, already_members = cast(
         tuple[list[ProjectInvitation], list[ProjectInvitation], int],
         await memberships_services.create_invitations(
@@ -174,7 +174,7 @@ async def update_user_projects_invitations(user: User) -> None:
 async def update_project_invitation(
     invitation: ProjectInvitation, role_slug: str, user: User
 ) -> ProjectInvitation:
-    user_role = getattr(user, "project_role", None)
+    user_role = user.project_role
     updated_invitation = await memberships_services.update_invitation(
         invitation=invitation,
         role_slug=role_slug,

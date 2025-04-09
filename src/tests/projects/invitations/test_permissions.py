@@ -20,14 +20,14 @@
 import pytest
 
 from commons.exceptions import api as ex
+from memberships.permissions import (
+    CanModifyAssociatedRole,
+    HasPendingInvitation,
+    IsInvitationRecipient,
+)
 from permissions import (
     check_permissions,
 )
-from projects.invitations.permissions import (
-    HasPendingProjectInvitation,
-    IsProjectInvitationRecipient,
-)
-from projects.memberships.permissions import CanModifyAssociatedRole
 from tests.utils import factories as f
 
 ###########################################################################
@@ -40,7 +40,7 @@ async def test_check_permission_is_projects_invitation_recipient():
     user2 = f.build_user()
     invitation1 = f.build_project_invitation(email=user1.email, user=None)
 
-    permissions = IsProjectInvitationRecipient()
+    permissions = IsInvitationRecipient()
 
     # user1 is recipient
     assert (
@@ -58,7 +58,7 @@ async def test_check_permission_has_pending_project_invitation():
     user2 = await f.create_user()
     invitation = await f.create_project_invitation(email=user1.email, user=user1)
 
-    permissions = HasPendingProjectInvitation()
+    permissions = HasPendingInvitation()
 
     # user1 is recipient
     assert (
@@ -92,7 +92,7 @@ async def test_check_permission_can_modify_projects_invitation():
         email="test@demo.test", user=None, role=member_role
     )
 
-    permissions = CanModifyAssociatedRole()
+    permissions = CanModifyAssociatedRole("project")
 
     # user is owner
     user.project_role = owner_role

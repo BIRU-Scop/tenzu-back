@@ -49,7 +49,7 @@ class WorkspacePermissionsValidator(BaseModel):
 )
 def test_project_permissions_are_valid_and_compatible(permissions: list[str]):
     validator = ProjectPermissionsValidator(permissions=permissions)
-    assert validator.permissions == set(permissions)
+    assert validator.permissions == permissions
 
 
 @pytest.mark.parametrize(
@@ -61,7 +61,7 @@ def test_project_permissions_are_valid_and_compatible(permissions: list[str]):
 )
 def test_workspace_permissions_are_valid_and_compatible(permissions: list[str]):
     validator = WorkspacePermissionsValidator(permissions=permissions)
-    assert validator.permissions == set(permissions)
+    assert validator.permissions == permissions
 
 
 @pytest.mark.parametrize(

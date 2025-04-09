@@ -34,6 +34,7 @@ from base.utils.slug import (
 )
 from memberships.choices import InvitationStatus
 from permissions.choices import PermissionsBase
+from users.models import User
 
 
 def _get_reference_model_filter(reference_model: type[BaseModel]):
@@ -275,9 +276,9 @@ class Membership(BaseModel, CreatedAtMetaInfoMixin, metaclass=MembershipBase):
       defaults to projects_memberships.ProjectRole if `reference_model` is Project
     """
 
-    user: models.ForeignKey
+    user: User
     user_id: UUID
-    role: models.ForeignKey
+    role: Role
     role_id: UUID
     reference_model_filter: dict[str, UUID]
 
@@ -382,9 +383,9 @@ class Invitation(BaseModel, CreatedAtMetaInfoMixin, metaclass=InvitationBase):
       defaults to projects_invitations.ProjectRole if `reference_model` is Project
     """
 
-    user: models.ForeignKey
+    user: User | None
     user_id: UUID
-    role = models.ForeignKey
+    role = Role
     role_id: UUID
     reference_model_filter: dict[str, UUID]
 

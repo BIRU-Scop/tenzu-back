@@ -67,7 +67,7 @@ async def get_project_membership(project_id: UUID, username: str) -> ProjectMemb
 async def update_project_membership(
     membership: ProjectMembership, role_slug: str, user: User
 ) -> ProjectMembership:
-    user_role = getattr(user, "project_role", None)
+    user_role = user.project_role
 
     updated_membership = await memberships_services.update_membership(
         membership=membership, role_slug=role_slug, user_role=user_role

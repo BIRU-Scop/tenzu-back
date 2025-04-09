@@ -105,7 +105,10 @@ class ProjectFactory(Factory):
     name = factory.Sequence(lambda n: f"Project {n}")
     description = factory.Sequence(lambda n: f"Description {n}")
     created_by = factory.SubFactory("tests.utils.factories.UserFactory")
-    workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
+    workspace = factory.SubFactory(
+        "tests.utils.factories.WorkspaceFactory",
+        created_by=factory.SelfAttribute("..created_by"),
+    )
 
     class Meta:
         model = "projects.Project"

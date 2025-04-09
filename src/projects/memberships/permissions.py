@@ -19,60 +19,40 @@
 
 from enum import Enum
 
-from memberships.permissions import HasPermission
+from memberships.permissions import CanModifyAssociatedRole, HasPermission, IsMember
 from permissions import (
     IsAuthenticated,
     IsRelatedToTheUser,
-    PermissionComponent,
 )
 from permissions.choices import ProjectPermissions
-from projects.invitations.models import ProjectInvitation
-from projects.memberships.models import ProjectMembership
-from projects.projects.models import Project
-from users.models import AnyUser, User
-
-
-class IsProjectMember(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Project = None) -> bool:
-        if not obj:
-            return False
-        return await obj.roles.filter(users=user).aexists()
-
-
-class CanModifyAssociatedRole(PermissionComponent):
-    async def is_authorized(
-        self, user: User, obj: ProjectInvitation | ProjectMembership = None
-    ) -> bool:
-        # must always be called after HasPermission to fill this attribute
-        user_role = user.project_role
-        # user can only modify invitation of owner if they are owner themselves
-        return user_role.is_owner or (not obj.role.is_owner)
 
 
 class ProjectMembershipPermissionsCheck(Enum):
-    VIEW = IsProjectMember()
+    VIEW = IsAuthenticated() & IsMember("project")
     MODIFY = (
         IsAuthenticated()
-        & HasPermission(ProjectPermissions.CREATE_MODIFY_MEMBER, field="project")
-        & CanModifyAssociatedRole()
+        & HasPermission(
+            "project", ProjectPermissions.CREATE_MODIFY_MEMBER, field="project"
+        )
+        & CanModifyAssociatedRole("project")
     )
     DELETE = IsAuthenticated() & (
         (
-            HasPermission(ProjectPermissions.DELETE_MEMBER, field="project")
-            & CanModifyAssociatedRole()
+            HasPermission("project", ProjectPermissions.DELETE_MEMBER, field="project")
+            & CanModifyAssociatedRole("project")
         )
         | IsRelatedToTheUser("user")
     )
 
 
 class ProjectRolePermissionsCheck(Enum):
-    VIEW = IsProjectMember()
+    VIEW = IsAuthenticated() & IsMember("project")
     CREATE = IsAuthenticated() & HasPermission(
-        ProjectPermissions.CREATE_MODIFY_DELETE_ROLE
+        "project", ProjectPermissions.CREATE_MODIFY_DELETE_ROLE
     )
     MODIFY = IsAuthenticated() & HasPermission(
-        ProjectPermissions.CREATE_MODIFY_DELETE_ROLE, field="project"
+        "project", ProjectPermissions.CREATE_MODIFY_DELETE_ROLE, field="project"
     )
     DELETE = IsAuthenticated() & HasPermission(
-        ProjectPermissions.CREATE_MODIFY_DELETE_ROLE, field="project"
+        "project", ProjectPermissions.CREATE_MODIFY_DELETE_ROLE, field="project"
     )

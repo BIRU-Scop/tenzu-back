@@ -16,9 +16,10 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from __future__ import annotations
 
 import re
-from typing import Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser, UserManager
@@ -28,6 +29,10 @@ from django.db import models
 from base.db.models import BaseModel, LowerCharField, LowerEmailField, LowerSlugField
 from base.utils.slug import generate_int_suffix, slugify_uniquely
 from commons.colors import NUM_COLORS, generate_random_color
+
+if TYPE_CHECKING:
+    from projects.memberships.models import ProjectRole
+    from workspaces.memberships.models import WorkspaceRole
 
 type AnyUser = AnonymousUser | "User" | AbstractBaseUser
 
@@ -98,6 +103,8 @@ class User(BaseModel, AbstractBaseUser):
     date_verification = models.DateTimeField(
         null=True, blank=True, default=None, verbose_name="date verification"
     )
+    project_role: ProjectRole | None = None
+    workspace_role: WorkspaceRole | None = None
 
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "username"

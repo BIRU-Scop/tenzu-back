@@ -43,7 +43,7 @@ from memberships.services.exceptions import (
 from permissions import check_permissions
 from projects.invitations import services as invitations_services
 from projects.invitations.models import ProjectInvitation
-from projects.invitations.permissions import InvitationPermissionsCheck
+from projects.invitations.permissions import ProjectInvitationPermissionsCheck
 from projects.invitations.serializers import (
     CreateInvitationsSerializer,
     ProjectInvitationSerializer,
@@ -84,7 +84,7 @@ async def create_project_invitations(
     """
     project = await get_project_or_404(id=id)
     await check_permissions(
-        permissions=InvitationPermissionsCheck.CREATE.value,
+        permissions=ProjectInvitationPermissionsCheck.CREATE.value,
         user=request.user,
         obj=project,
     )
@@ -126,7 +126,7 @@ async def list_project_invitations(
     """
     project = await get_project_or_404(id=id)
     await check_permissions(
-        permissions=InvitationPermissionsCheck.VIEW.value,
+        permissions=ProjectInvitationPermissionsCheck.VIEW.value,
         user=request.user,
         obj=project,
     )
@@ -199,7 +199,7 @@ async def resend_project_invitation(
         project_id=id, username_or_email=form.username_or_email
     )
     await check_permissions(
-        permissions=InvitationPermissionsCheck.CREATE.value,
+        permissions=ProjectInvitationPermissionsCheck.CREATE.value,
         user=request.user,
         obj=invitation.project,
     )
@@ -238,7 +238,7 @@ async def revoke_project_invitation(
         project_id=id, username_or_email=form.username_or_email
     )
     await check_permissions(
-        permissions=InvitationPermissionsCheck.MODIFY.value,
+        permissions=ProjectInvitationPermissionsCheck.MODIFY.value,
         user=request.user,
         obj=invitation,
     )
@@ -270,7 +270,7 @@ async def deny_project_invitation(request, id: Path[B64UUID]) -> ProjectInvitati
     An authenticated user denies a project invitation for themself.
     """
     await check_permissions(
-        permissions=InvitationPermissionsCheck.ANSWER_SELF.value,
+        permissions=ProjectInvitationPermissionsCheck.ANSWER_SELF.value,
         user=request.user,
         obj=None,
     )
@@ -308,7 +308,7 @@ async def accept_project_invitation_by_token(request, token: str) -> ProjectInvi
     except BadInvitationTokenError as e:
         raise ex.BadRequest(str(e))
     await check_permissions(
-        permissions=InvitationPermissionsCheck.ANSWER.value,
+        permissions=ProjectInvitationPermissionsCheck.ANSWER.value,
         user=request.user,
         obj=invitation,
     )
@@ -334,7 +334,7 @@ async def accept_project_invitation_by_project(
     An authenticated user accepts a project invitation
     """
     await check_permissions(
-        permissions=InvitationPermissionsCheck.ANSWER_SELF.value,
+        permissions=ProjectInvitationPermissionsCheck.ANSWER_SELF.value,
         user=request.user,
         obj=None,
     )
@@ -372,7 +372,7 @@ async def update_project_invitation(
     """
     invitation = await get_project_invitation_by_id_or_404(project_id=project_id, id=id)
     await check_permissions(
-        permissions=InvitationPermissionsCheck.MODIFY.value,
+        permissions=ProjectInvitationPermissionsCheck.MODIFY.value,
         user=request.user,
         obj=invitation,
     )

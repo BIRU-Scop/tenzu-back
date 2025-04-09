@@ -19,12 +19,11 @@
 import pytest
 
 from commons.exceptions import api as ex
-from memberships.permissions import HasPermission
+from memberships.permissions import CanModifyAssociatedRole, HasPermission, IsMember
 from permissions import (
     check_permissions,
 )
 from permissions.choices import ProjectPermissions
-from projects.memberships.permissions import CanModifyAssociatedRole, IsProjectMember
 from tests.utils import factories as f
 
 
@@ -36,7 +35,7 @@ async def test_check_permission_is_project_member(project_template):
         project_template, name="project1", created_by=user1
     )
 
-    permissions = IsProjectMember()
+    permissions = IsMember("project")
 
     # user1 is ws-admin
     assert (
@@ -48,6 +47,10 @@ async def test_check_permission_is_project_member(project_template):
     # user2 isn't ws-admin
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=project)
+    # wrong object
+    permissions = IsMember("workspace")
+    with pytest.raises(ValueError):
+        await check_permissions(permissions=permissions, user=user1, obj=project)
 
 
 @pytest.mark.django_db()
@@ -65,37 +68,50 @@ async def test_check_permission_has_project_permission(project_template):
     )
     await f.create_project_membership(user=user2, project=project, role=pj_role)
 
-    permissions = HasPermission(ProjectPermissions.VIEW_STORY)
+    permissions = HasPermission("project", ProjectPermissions.VIEW_STORY)
 
-    # user1 is ws-owner
+    # user1 is pj-owner
     assert (
         await check_permissions(permissions=permissions, user=user1, obj=project)
         is None
     )
-    assert user1.project_role.slug == "owner"
+    assert user1.project_role.is_owner
     user1.project_role = None
-    # user2 isn't ws-owner but has permission
+    # user2 isn't pj-owner but has permission
     assert (
         await check_permissions(permissions=permissions, user=user2, obj=project)
         is None
     )
     assert user2.project_role == pj_role
+    # error cases
+    # empty obj
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user1, obj=None)
+    # not a member
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(
             permissions=permissions, user=not_member_user, obj=project
         )
-    permissions = HasPermission(ProjectPermissions.CREATE_STORY)
+    # wrong model
+    permissions = HasPermission("workspace", ProjectPermissions.VIEW_STORY)
+    with pytest.raises(ValueError):
+        await check_permissions(permissions=permissions, user=user2, obj=project)
+
+    permissions = HasPermission("project", ProjectPermissions.CREATE_STORY)
+    # user1 is pj-owner
     assert (
         await check_permissions(permissions=permissions, user=user1, obj=project)
         is None
     )
-    assert user1.project_role.slug == "owner"
+    assert user1.project_role.is_owner
+    # user2 isn't pj-owner and doesn't have permission
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=project)
 
-    permissions = HasPermission(ProjectPermissions.VIEW_STORY, field="project")
+    # check on related model
+    permissions = HasPermission(
+        "project", ProjectPermissions.VIEW_STORY, field="project"
+    )
     assert (
         await check_permissions(permissions=permissions, user=user2, obj=pj_role)
         is None
@@ -110,7 +126,7 @@ async def test_check_permission_can_modify_projects_membership():
     membership1 = f.build_project_membership(user=user2, role=owner_role)
     membership2 = f.build_project_membership(user=user2, role=member_role)
 
-    permissions = CanModifyAssociatedRole()
+    permissions = CanModifyAssociatedRole("project")
 
     # user is owner
     user1.project_role = owner_role

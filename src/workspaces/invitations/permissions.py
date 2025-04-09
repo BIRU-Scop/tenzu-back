@@ -19,50 +19,28 @@
 
 from enum import Enum
 
-from memberships.permissions import HasPermission
-from permissions import IsAuthenticated, PermissionComponent
+from memberships.permissions import (
+    CanModifyAssociatedRole,
+    HasPermission,
+    IsInvitationRecipient,
+)
+from permissions import IsAuthenticated
 from permissions.choices import WorkspacePermissions
-from users.models import AnyUser
-from workspaces.invitations.models import WorkspaceInvitation
-from workspaces.memberships.permissions import CanModifyAssociatedRole
-from workspaces.workspaces.models import Workspace
-
-
-class IsWorkspaceInvitationRecipient(PermissionComponent):
-    async def is_authorized(
-        self, user: AnyUser, obj: WorkspaceInvitation = None
-    ) -> bool:
-        from workspaces.invitations import services as invitations_services
-
-        if not obj:
-            return False
-
-        return invitations_services.is_invitation_for_this_user(
-            invitation=obj, user=user
-        )
-
-
-class HasPendingWorkspaceInvitation(PermissionComponent):
-    async def is_authorized(self, user: AnyUser, obj: Workspace = None) -> bool:
-        from workspaces.invitations import services as invitations_services
-
-        if not obj:
-            return False
-
-        return await invitations_services.has_pending_invitation(
-            user=user, reference_object=obj
-        )
 
 
 class InvitationPermissionsCheck(Enum):
-    VIEW = IsAuthenticated() & HasPermission(WorkspacePermissions.CREATE_MODIFY_MEMBER)
+    VIEW = IsAuthenticated() & HasPermission(
+        "workspace", WorkspacePermissions.CREATE_MODIFY_MEMBER
+    )
     ANSWER_SELF = IsAuthenticated()
-    ANSWER = IsAuthenticated() & IsWorkspaceInvitationRecipient()
+    ANSWER = IsAuthenticated() & IsInvitationRecipient()
     CREATE = IsAuthenticated() & HasPermission(
-        WorkspacePermissions.CREATE_MODIFY_MEMBER
+        "workspace", WorkspacePermissions.CREATE_MODIFY_MEMBER
     )
     MODIFY = (
         IsAuthenticated()
-        & HasPermission(WorkspacePermissions.CREATE_MODIFY_MEMBER, field="workspace")
-        & CanModifyAssociatedRole()
+        & HasPermission(
+            "workspace", WorkspacePermissions.CREATE_MODIFY_MEMBER, field="workspace"
+        )
+        & CanModifyAssociatedRole("workspace")
     )

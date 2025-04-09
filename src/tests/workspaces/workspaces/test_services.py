@@ -140,26 +140,16 @@ async def test_get_workspace_detail():
 
 async def get_workspace_nested():
     workspace = f.build_workspace()
-    membership = f.build_workspace_membership(workspace=workspace)
 
     with (
         patch(
             "workspaces.workspaces.services.workspaces_repositories", autospec=True
         ) as fake_workspaces_repo,
-        patch(
-            "workspaces.workspaces.services.ws_memberships_repositories", autospec=True
-        ) as fake_ws_memberships_repositories,
     ):
-        fake_ws_memberships_repositories.get_membership.return_value = membership
         fake_workspaces_repo.get_workspace.return_value = workspace
 
-        await services.get_workspace_nested(
-            workspace_id=workspace.id, user_id=workspace.created_by.id
-        )
+        await services.get_workspace_nested(workspace_id=workspace.id)
 
-        fake_ws_memberships_repositories.get_membership.assert_awaited_with(
-            workspace_id=workspace.id, user_id=workspace.created_by.id
-        )
         fake_workspaces_repo.get_workspace.assert_awaited_with(
             workspace_id=workspace.id,
         )

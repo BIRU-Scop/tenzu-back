@@ -110,25 +110,12 @@ async def get_workspace_detail(id: UUID, user_id: UUID | None) -> WorkspaceSeria
     )
 
 
-async def get_workspace_nested(
-    workspace_id: UUID, user_id: UUID | None
-) -> WorkspaceNestedSerializer:
+async def get_workspace_nested(workspace_id: UUID) -> WorkspaceNestedSerializer:
     workspace = await workspaces_repositories.get_workspace(
         workspace_id=workspace_id,
     )
-    try:
-        user_role = (
-            await ws_memberships_repositories.get_membership(
-                WorkspaceMembership,
-                filters={"workspace_id": workspace_id, "user_id": user_id},
-                select_related=["role"],
-            )
-        ).role.slug
-    except WorkspaceMembership.DoesNotExist:
-        user_role = None
     return serializers_services.serialize_nested(
         workspace=workspace,
-        user_role=user_role,
     )
 
 

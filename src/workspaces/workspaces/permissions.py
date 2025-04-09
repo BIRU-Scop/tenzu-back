@@ -18,13 +18,17 @@
 
 from enum import Enum
 
-from permissions import DenyAll
-from workspaces.invitations.permissions import HasPendingWorkspaceInvitation
-from workspaces.memberships.permissions import IsWorkspaceMember
+from memberships.permissions import HasPendingInvitation, IsMember
+from permissions import DenyAll, IsAuthenticated
 
 
 class WorkspacePermissionsCheck(Enum):
-    VIEW = IsWorkspaceMember() | HasPendingWorkspaceInvitation()
+    VIEW = IsAuthenticated() & (
+        IsMember(
+            "workspace",
+        )
+        | HasPendingInvitation()
+    )
     # TODO
     MODIFY = DenyAll()
     DELETE = DenyAll()

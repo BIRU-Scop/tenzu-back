@@ -18,14 +18,19 @@
 
 from enum import Enum
 
-from permissions import DenyAll
-from projects.invitations.permissions import HasPendingProjectInvitation
-from projects.memberships.permissions import IsProjectMember
+from memberships.permissions import HasPendingInvitation, HasPermission, IsMember
+from permissions import IsAuthenticated
+from permissions.choices import ProjectPermissions, WorkspacePermissions
 
 
 class ProjectPermissionsCheck(Enum):
-    VIEW = IsProjectMember() | HasPendingProjectInvitation()
-    # TODO
-    MODIFY = DenyAll()
-    DELETE = DenyAll()
-    CREATE = DenyAll()
+    VIEW = IsAuthenticated() & (IsMember("project") | HasPendingInvitation())
+    MODIFY = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.MODIFY_PROJECT
+    )
+    DELETE = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.DELETE_PROJECT
+    )
+    CREATE = IsAuthenticated() & HasPermission(
+        "workspace", WorkspacePermissions.CREATE_PROJECT
+    )

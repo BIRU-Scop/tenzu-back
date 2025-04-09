@@ -19,15 +19,15 @@
 import pytest
 
 from commons.exceptions import api as ex
+from memberships.permissions import (
+    CanModifyAssociatedRole,
+    HasPendingInvitation,
+    IsInvitationRecipient,
+)
 from permissions import (
     check_permissions,
 )
 from tests.utils import factories as f
-from workspaces.invitations.permissions import (
-    HasPendingWorkspaceInvitation,
-    IsWorkspaceInvitationRecipient,
-)
-from workspaces.memberships.permissions import CanModifyAssociatedRole
 
 ###########################################################################
 # check_permissions
@@ -39,7 +39,7 @@ async def test_check_permission_is_workspaces_invitation_recipient():
     user2 = f.build_user()
     invitation1 = f.build_workspace_invitation(email=user1.email, user=None)
 
-    permissions = IsWorkspaceInvitationRecipient()
+    permissions = IsInvitationRecipient()
 
     # user1 is recipient
     assert (
@@ -57,7 +57,7 @@ async def test_check_permission_has_pending_workspace_invitation():
     user2 = await f.create_user()
     invitation = await f.create_workspace_invitation(email=user1.email, user=user1)
 
-    permissions = HasPendingWorkspaceInvitation()
+    permissions = HasPendingInvitation()
 
     # user1 is recipient
     assert (
@@ -91,7 +91,7 @@ async def test_check_permission_can_modify_workspaces_invitation():
         email="test@demo.test", user=None, role=member_role
     )
 
-    permissions = CanModifyAssociatedRole()
+    permissions = CanModifyAssociatedRole("workspace")
 
     # user is owner
     user.workspace_role = owner_role

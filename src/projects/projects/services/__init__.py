@@ -29,6 +29,7 @@ from base.utils.files import uploadfile_to_file
 from base.utils.images import get_thumbnail_url
 from commons.utils import transaction_atomic_async
 from memberships.choices import InvitationStatus
+from permissions.choices import ProjectPermissions
 from projects.invitations import services as pj_invitations_services
 from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectRole
@@ -83,6 +84,9 @@ async def _create_project(
     color: int | None,
     logo_file: UploadedFile | None = None,
 ) -> Project:
+    """
+    Create project and set user cache property for role
+    """
     template = await projects_repositories.get_project_template(
         filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
     )
@@ -127,6 +131,7 @@ async def _create_project(
     await pj_memberships_repositories.create_project_membership(
         user=created_by, project=project, role=owner_role
     )
+    created_by.project_role = owner_role
 
     return project
 
@@ -178,44 +183,37 @@ async def get_project(id: UUID) -> Project | None:
 async def get_project_detail(
     project: Project, user: AnyUser
 ) -> ProjectDetailSerializer:
+    user_role = getattr(user, "project_role", None)
     (
         is_project_owner,
         is_project_member,
         project_role_permissions,
-    ) = False, False, []
-    if not user.is_anonymous:
-        try:
-            role = await pj_memberships_repositories.get_role(
-                ProjectRole,
-                filters={"memberships__user_id": user.id, "project_id": project.id},
-                select_related=[],
-            )
-            (
-                is_project_owner,
-                is_project_member,
-                project_role_permissions,
-            ) = role.is_owner, True, role.permissions
-        except ProjectRole.DoesNotExist:
-            pass
+    ) = (
+        (False, False, [])
+        if not user_role
+        else (user_role.is_owner, True, user_role.permissions)
+    )
 
-    user_id = None if user.is_anonymous else user.id
     workspace = await workspaces_services.get_workspace_nested(
-        workspace_id=project.workspace_id, user_id=user_id
+        workspace_id=project.workspace_id
     )
 
     user_has_pending_invitation = (
         False
-        if user.is_anonymous
+        if user_role
         else await pj_invitations_services.has_pending_invitation(
             user=user, reference_object=project
         )
     )
 
-    workflows = await workflows_repositories.list_workflows(
-        filters={
-            "project_id": project.id,
-        }
-    )
+    if ProjectPermissions.VIEW_WORKFLOW in project_role_permissions:
+        workflows = await workflows_repositories.list_workflows(
+            filters={
+                "project_id": project.id,
+            }
+        )
+    else:
+        workflows = []
 
     return serializers_services.serialize_project_detail(
         project=project,
