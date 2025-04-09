@@ -34,6 +34,39 @@ from workspaces.workspaces.models import Workspace
 TI = TypeVar("TI", bound=Invitation)
 
 ##########################################################
+# update membership
+##########################################################
+
+
+async def update_membership(
+    membership: Membership, role_slug: str, user_role: Role
+) -> Membership:
+    try:
+        role = await memberships_repositories.get_role(
+            membership.role.__class__,
+            filters={**membership.reference_model_filter, "slug": role_slug},
+        )
+
+    except membership.role.DoesNotExist as e:
+        raise ex.NonExistingRoleError("Role does not exist") from e
+
+    if not role.is_owner:
+        if await is_membership_the_only_owner(membership):
+            raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
+    elif not user_role or not user_role.is_owner:
+        raise ex.OwnerRoleNotAuthorisedError(
+            "You dont have the permissions to promote a membership to owner"
+        )
+
+    updated_membership = await memberships_repositories.update_membership(
+        membership=membership,
+        values={"role": role},
+    )
+
+    return updated_membership
+
+
+##########################################################
 # misc membership
 ##########################################################
 
@@ -204,7 +237,7 @@ async def create_invitations(
                 f"remove owner role from existing invitations {", ".join(changed_role_owner_invitations)}"
             )
 
-        raise ex.InvitationForOwnerNotAuthorisedError(
+        raise ex.OwnerRoleNotAuthorisedError(
             f"You dont have permissions to: {" / ".join(detail_msg)}"
         )
     if len(invitations_to_update) > 0:
@@ -267,7 +300,7 @@ async def update_invitation(
         raise ex.NonExistingRoleError("Role does not exist") from e
 
     if role.is_owner and (not user_role or not user_role.is_owner):
-        raise ex.InvitationForOwnerNotAuthorisedError(
+        raise ex.OwnerRoleNotAuthorisedError(
             "You dont have the permissions to promote an invitation to owner"
         )
 

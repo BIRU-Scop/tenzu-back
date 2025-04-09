@@ -25,7 +25,10 @@ from permissions import (
 )
 from permissions.choices import WorkspacePermissions
 from tests.utils import factories as f
-from workspaces.memberships.permissions import IsWorkspaceMember
+from workspaces.memberships.permissions import (
+    CanModifyAssociatedRole,
+    IsWorkspaceMember,
+)
 
 
 @pytest.mark.django_db()
@@ -98,3 +101,33 @@ async def test_check_permission_has_workspace_permission():
         await check_permissions(permissions=permissions, user=user2, obj=ws_role)
         is None
     )
+
+
+async def test_check_permission_can_modify_workspaces_membership():
+    user1 = f.build_user()
+    user2 = f.build_user()
+    owner_role = f.build_workspace_role(is_owner=True)
+    member_role = f.build_workspace_role(is_owner=False)
+    membership1 = f.build_workspace_membership(user=user2, role=owner_role)
+    membership2 = f.build_workspace_membership(user=user2, role=member_role)
+
+    permissions = CanModifyAssociatedRole()
+
+    # user is owner
+    user1.workspace_role = owner_role
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=membership1)
+        is None
+    )
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=membership2)
+        is None
+    )
+    # user is not owner
+    user1.workspace_role = member_role
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=membership2)
+        is None
+    )
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user1, obj=membership1)

@@ -81,7 +81,7 @@ async def test_update_project_membership_role_non_existing_role():
     )
     with (
         patch(
-            "projects.memberships.services.memberships_repositories", autospec=True
+            "memberships.services.memberships_repositories", autospec=True
         ) as fake_membership_repository,
         patch(
             "projects.memberships.services.memberships_events", autospec=True
@@ -92,7 +92,7 @@ async def test_update_project_membership_role_non_existing_role():
         fake_membership_repository.get_role.side_effect = ProjectRole.DoesNotExist
 
         await services.update_project_membership(
-            membership=membership, role_slug=NOT_EXISTING_SLUG
+            membership=membership, role_slug=NOT_EXISTING_SLUG, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
             ProjectRole,
@@ -104,55 +104,49 @@ async def test_update_project_membership_role_non_existing_role():
 
 async def test_update_project_membership_role_only_one_owner():
     project = f.build_project()
-    owner_role = f.build_project_role(project=project, is_owner=True)
+    role = f.build_project_role(project=project, is_owner=False)
     membership = f.build_project_membership(
-        user=project.created_by, project=project, role=owner_role
+        user=project.created_by, project=project, role=role
     )
-    general_role = f.build_project_role(project=project, is_owner=False)
+    other_role = f.build_project_role(project=project, is_owner=False)
     with (
         patch(
-            "projects.memberships.services.memberships_repositories", autospec=True
+            "memberships.services.memberships_repositories", autospec=True
         ) as fake_membership_repository,
         patch(
-            "projects.memberships.services.memberships_services", autospec=True
-        ) as fake_membership_service,
+            "memberships.services.is_membership_the_only_owner", autospec=True
+        ) as fake_is_membership_the_only_owner,
         patch(
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
         patch_db_transaction(),
         pytest.raises(ex.MembershipIsTheOnlyOwnerError),
     ):
-        fake_membership_repository.get_role.return_value = general_role
-        fake_membership_service.is_membership_the_only_owner.return_value = True
+        fake_membership_repository.get_role.return_value = other_role
+        fake_is_membership_the_only_owner.return_value = True
 
         await services.update_project_membership(
-            membership=membership, role_slug=general_role.slug
+            membership=membership, role_slug=other_role.slug, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id, "slug": general_role.slug}
+            ProjectRole, filters={"project_id": project.id, "slug": other_role.slug}
         )
-        fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
-            membership
-        )
-        fake_membership_repository.update_project_membership.assert_not_awaited()
+        fake_is_membership_the_only_owner.assert_awaited_once_with(membership)
+        fake_membership_repository.update_membership.assert_not_awaited()
         fake_membership_events.emit_event_when_project_membership_is_updated.assert_not_awaited()
 
 
-async def test_update_project_membership_role_ok():
+async def test_update_project_membership_role_owner():
     project = f.build_project()
-    user = f.build_user()
+    owner_role = f.build_project_role(project=project, is_owner=True)
     general_role = f.build_project_role(project=project, is_owner=False)
     membership = f.build_project_membership(
-        user=user, project=project, role=general_role
+        user=project.created_by, project=project, role=general_role
     )
-    owner_role = f.build_project_role(project=project, is_owner=True)
     with (
         patch(
-            "projects.memberships.services.memberships_repositories", autospec=True
+            "memberships.services.memberships_repositories", autospec=True
         ) as fake_membership_repository,
-        patch(
-            "projects.memberships.services.memberships_services", autospec=True
-        ) as fake_membership_service,
         patch(
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
@@ -163,16 +157,75 @@ async def test_update_project_membership_role_ok():
         patch_db_transaction(),
     ):
         fake_membership_repository.get_role.return_value = owner_role
-
-        updated_membership = await services.update_project_membership(
-            membership=membership, role_slug=owner_role.slug
+        updated_membership = f.build_project_membership(
+            user=project.created_by, project=project, role=owner_role
         )
+        fake_membership_repository.update_membership.return_value = updated_membership
+        with pytest.raises(ex.OwnerRoleNotAuthorisedError):
+            await services.update_project_membership(
+                membership=membership, role_slug=owner_role.slug, user=f.build_user()
+            )
         fake_membership_repository.get_role.assert_awaited_once_with(
             ProjectRole, filters={"project_id": project.id, "slug": owner_role.slug}
         )
-        fake_membership_service.is_membership_the_only_owner.assert_not_awaited()
+        fake_membership_repository.update_membership.assert_not_awaited()
+        fake_membership_events.emit_event_when_project_membership_is_updated.assert_not_awaited()
+        fake_story_assignments_repository.delete_stories_assignments.assert_not_awaited()
+
+        owner_user = f.build_user()
+        owner_user.project_role = owner_role
+        updated_membership = await services.update_project_membership(
+            membership=membership, role_slug=owner_role.slug, user=owner_user
+        )
         fake_membership_repository.update_membership.assert_awaited_once_with(
             membership=membership, values={"role": owner_role}
+        )
+        fake_membership_events.emit_event_when_project_membership_is_updated.assert_awaited_once_with(
+            membership=updated_membership
+        )
+        fake_story_assignments_repository.delete_stories_assignments.assert_not_awaited()
+
+
+async def test_update_project_membership_role_ok():
+    project = f.build_project()
+    user = f.build_user()
+    general_role = f.build_project_role(project=project, is_owner=False)
+    membership = f.build_project_membership(
+        user=user, project=project, role=general_role
+    )
+    other_role = f.build_project_role(project=project, is_owner=False)
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "memberships.services.is_membership_the_only_owner", autospec=True
+        ) as fake_is_membership_the_only_owner,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
+        patch(
+            "projects.memberships.services.story_assignments_repositories",
+            autospec=True,
+        ) as fake_story_assignments_repository,
+        patch_db_transaction(),
+    ):
+        fake_membership_repository.get_role.return_value = other_role
+        fake_is_membership_the_only_owner.return_value = False
+        updated_membership = f.build_project_membership(
+            user=user, project=project, role=other_role
+        )
+        fake_membership_repository.update_membership.return_value = updated_membership
+
+        updated_membership = await services.update_project_membership(
+            membership=membership, role_slug=other_role.slug, user=f.build_user()
+        )
+        fake_membership_repository.get_role.assert_awaited_once_with(
+            ProjectRole, filters={"project_id": project.id, "slug": other_role.slug}
+        )
+        fake_is_membership_the_only_owner.assert_awaited_once_with(membership)
+        fake_membership_repository.update_membership.assert_awaited_once_with(
+            membership=membership, values={"role": other_role}
         )
         fake_membership_events.emit_event_when_project_membership_is_updated.assert_awaited_once_with(
             membership=updated_membership
@@ -184,18 +237,18 @@ async def test_update_project_membership_role_view_story_deleted():
     project = f.build_project()
     user = f.build_user()
     permissions = []
-    owner_role = f.build_project_role(project=project, is_owner=True)
-    role = f.build_project_role(
+    role = f.build_project_role(project=project, is_owner=False)
+    other_role = f.build_project_role(
         project=project, is_owner=False, permissions=permissions
     )
-    membership = f.build_project_membership(user=user, project=project, role=owner_role)
+    membership = f.build_project_membership(user=user, project=project, role=role)
     with (
         patch(
-            "projects.memberships.services.memberships_repositories", autospec=True
+            "memberships.services.memberships_repositories", autospec=True
         ) as fake_membership_repository,
         patch(
-            "projects.memberships.services.memberships_services", autospec=True
-        ) as fake_membership_service,
+            "memberships.services.is_membership_the_only_owner", autospec=True
+        ) as fake_is_membership_the_only_owner,
         patch(
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
@@ -205,17 +258,21 @@ async def test_update_project_membership_role_view_story_deleted():
         ) as fake_story_assignments_repository,
         patch_db_transaction(),
     ):
-        fake_membership_repository.get_role.return_value = role
-        fake_membership_service.is_membership_the_only_owner.return_value = False
+        fake_membership_repository.get_role.return_value = other_role
+        fake_is_membership_the_only_owner.return_value = False
+        updated_membership = f.build_project_membership(
+            user=user, project=project, role=other_role
+        )
+        fake_membership_repository.update_membership.return_value = updated_membership
 
         updated_membership = await services.update_project_membership(
-            membership=membership, role_slug=role.slug
+            membership=membership, role_slug=other_role.slug, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id, "slug": role.slug}
+            ProjectRole, filters={"project_id": project.id, "slug": other_role.slug}
         )
         fake_membership_repository.update_membership.assert_awaited_once_with(
-            membership=membership, values={"role": role}
+            membership=membership, values={"role": other_role}
         )
         fake_membership_events.emit_event_when_project_membership_is_updated.assert_awaited_once_with(
             membership=updated_membership

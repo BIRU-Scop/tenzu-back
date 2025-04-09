@@ -24,10 +24,10 @@ from permissions import (
 )
 from tests.utils import factories as f
 from workspaces.invitations.permissions import (
-    CanModifyInvitation,
     HasPendingWorkspaceInvitation,
     IsWorkspaceInvitationRecipient,
 )
+from workspaces.memberships.permissions import CanModifyAssociatedRole
 
 ###########################################################################
 # check_permissions
@@ -91,7 +91,7 @@ async def test_check_permission_can_modify_workspaces_invitation():
         email="test@demo.test", user=None, role=member_role
     )
 
-    permissions = CanModifyInvitation()
+    permissions = CanModifyAssociatedRole()
 
     # user is owner
     user.workspace_role = owner_role

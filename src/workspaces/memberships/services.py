@@ -22,6 +22,7 @@ from uuid import UUID
 from memberships import services as memberships_services
 from memberships.services import exceptions as ex
 from memberships.services import is_membership_the_only_owner  # noqa
+from users.models import User
 from workspaces.invitations import repositories as workspace_invitations_repositories
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import events as memberships_events
@@ -64,24 +65,12 @@ async def get_workspace_membership(
 
 
 async def update_workspace_membership(
-    membership: WorkspaceMembership, role_slug: str
+    membership: WorkspaceMembership, role_slug: str, user: User
 ) -> WorkspaceMembership:
-    try:
-        workspace_role = await memberships_repositories.get_role(
-            WorkspaceRole,
-            filters={"workspace_id": membership.workspace_id, "slug": role_slug},
-        )
+    user_role = getattr(user, "workspace_role", None)
 
-    except WorkspaceRole.DoesNotExist as e:
-        raise ex.NonExistingRoleError("Role does not exist") from e
-
-    if not workspace_role.is_owner:
-        if await memberships_services.is_membership_the_only_owner(membership):
-            raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
-
-    updated_membership = await memberships_repositories.update_membership(
-        membership=membership,
-        values={"role": workspace_role},
+    updated_membership = await memberships_services.update_membership(
+        membership=membership, role_slug=role_slug, user_role=user_role
     )
 
     await memberships_events.emit_event_when_workspace_membership_is_updated(

@@ -24,7 +24,7 @@ from permissions import (
     check_permissions,
 )
 from permissions.choices import ProjectPermissions
-from projects.memberships.permissions import IsProjectMember
+from projects.memberships.permissions import CanModifyAssociatedRole, IsProjectMember
 from tests.utils import factories as f
 
 
@@ -100,3 +100,33 @@ async def test_check_permission_has_project_permission(project_template):
         await check_permissions(permissions=permissions, user=user2, obj=pj_role)
         is None
     )
+
+
+async def test_check_permission_can_modify_projects_membership():
+    user1 = f.build_user()
+    user2 = f.build_user()
+    owner_role = f.build_project_role(is_owner=True)
+    member_role = f.build_project_role(is_owner=False)
+    membership1 = f.build_project_membership(user=user2, role=owner_role)
+    membership2 = f.build_project_membership(user=user2, role=member_role)
+
+    permissions = CanModifyAssociatedRole()
+
+    # user is owner
+    user1.project_role = owner_role
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=membership1)
+        is None
+    )
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=membership2)
+        is None
+    )
+    # user is not owner
+    user1.project_role = member_role
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=membership2)
+        is None
+    )
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user1, obj=membership1)

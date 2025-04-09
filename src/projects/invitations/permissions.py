@@ -23,8 +23,9 @@ from memberships.permissions import HasPermission
 from permissions import IsAuthenticated, PermissionComponent
 from permissions.choices import ProjectPermissions
 from projects.invitations.models import ProjectInvitation
+from projects.memberships.permissions import CanModifyAssociatedRole
 from projects.projects.models import Project
-from users.models import AnyUser, User
+from users.models import AnyUser
 
 
 class IsProjectInvitationRecipient(PermissionComponent):
@@ -51,14 +52,6 @@ class HasPendingProjectInvitation(PermissionComponent):
         )
 
 
-class CanModifyInvitation(PermissionComponent):
-    async def is_authorized(self, user: User, obj: ProjectInvitation = None) -> bool:
-        # must always be called after HasPermission to fill this attribute
-        user_role = user.project_role
-        # user can only modify invitation of owner if they are owner themselves
-        return user_role.is_owner or (not obj.role.is_owner)
-
-
 class InvitationPermissionsCheck(Enum):
     VIEW = IsAuthenticated() & HasPermission(ProjectPermissions.CREATE_MODIFY_MEMBER)
     ANSWER_SELF = IsAuthenticated()
@@ -67,5 +60,5 @@ class InvitationPermissionsCheck(Enum):
     MODIFY = (
         IsAuthenticated()
         & HasPermission(ProjectPermissions.CREATE_MODIFY_MEMBER, field="project")
-        & CanModifyInvitation()
+        & CanModifyAssociatedRole()
     )

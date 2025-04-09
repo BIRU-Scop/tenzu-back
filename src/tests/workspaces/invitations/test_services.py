@@ -376,7 +376,7 @@ async def test_create_workspace_invitations_owner_no_permission(tqmanager):
         )
 
         user3.workspace_role = member_role
-        with pytest.raises(ex.InvitationForOwnerNotAuthorisedError):
+        with pytest.raises(ex.OwnerRoleNotAuthorisedError):
             await services.create_workspace_invitations(
                 workspace=workspace, invitations=invitations, invited_by=user3
             )

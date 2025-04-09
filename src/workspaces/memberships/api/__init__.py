@@ -31,12 +31,13 @@ from commons.exceptions.api.errors import (
 from commons.validators import B64UUID
 from memberships.api.validators import MembershipValidator
 from memberships.serializers import RoleSerializer
+from memberships.services.exceptions import OwnerRoleNotAuthorisedError
 from permissions import check_permissions
 from workspaces.memberships import services as memberships_services
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.memberships.permissions import (
-    MembershipPermissionsCheck,
-    RolePermissionsCheck,
+    WorkspaceMembershipPermissionsCheck,
+    WorkspaceRolePermissionsCheck,
 )
 from workspaces.memberships.serializers import (
     WorkspaceMembershipSerializer,
@@ -71,7 +72,7 @@ async def list_workspace_memberships(
     """
     workspace = await get_workspace_or_404(id)
     await check_permissions(
-        permissions=MembershipPermissionsCheck.VIEW.value,
+        permissions=WorkspaceMembershipPermissionsCheck.VIEW.value,
         user=request.user,
         obj=workspace,
     )
@@ -110,14 +111,16 @@ async def update_workspace_membership(
     )
 
     await check_permissions(
-        permissions=MembershipPermissionsCheck.MODIFY.value,
+        permissions=WorkspaceMembershipPermissionsCheck.MODIFY.value,
         user=request.user,
         obj=membership,
     )
-
-    return await memberships_services.update_workspace_membership(
-        membership=membership, role_slug=form.role_slug
-    )
+    try:
+        return await memberships_services.update_workspace_membership(
+            membership=membership, role_slug=form.role_slug, user=request.user
+        )
+    except OwnerRoleNotAuthorisedError as e:
+        raise ex.ForbiddenError(str(e))
 
 
 ##########################################################
@@ -150,7 +153,7 @@ async def delete_workspace_membership(
         workspace_id=id, username=username
     )
     await check_permissions(
-        permissions=MembershipPermissionsCheck.DELETE.value,
+        permissions=WorkspaceMembershipPermissionsCheck.DELETE.value,
         user=request.user,
         obj=membership,
     )
@@ -184,7 +187,9 @@ async def list_workspace_roles(request, workspace_id: Path[B64UUID]):
 
     workspace = await get_workspace_or_404(workspace_id)
     await check_permissions(
-        permissions=RolePermissionsCheck.VIEW.value, user=request.user, obj=workspace
+        permissions=WorkspaceRolePermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workspace,
     )
     return await memberships_services.list_workspace_roles(workspace=workspace)
 

@@ -30,6 +30,7 @@ from projects.memberships import repositories as memberships_repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project
 from stories.assignments import repositories as story_assignments_repositories
+from users.models import User
 
 ##########################################################
 # list project memberships
@@ -64,24 +65,12 @@ async def get_project_membership(project_id: UUID, username: str) -> ProjectMemb
 
 @transaction_atomic_async
 async def update_project_membership(
-    membership: ProjectMembership, role_slug: str
+    membership: ProjectMembership, role_slug: str, user: User
 ) -> ProjectMembership:
-    try:
-        project_role = await memberships_repositories.get_role(
-            ProjectRole,
-            filters={"project_id": membership.project_id, "slug": role_slug},
-        )
+    user_role = getattr(user, "project_role", None)
 
-    except ProjectRole.DoesNotExist as e:
-        raise ex.NonExistingRoleError("Role does not exist") from e
-
-    if not project_role.is_owner:
-        if await memberships_services.is_membership_the_only_owner(membership):
-            raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
-
-    updated_membership = await memberships_repositories.update_membership(
-        membership=membership,
-        values={"role": project_role},
+    updated_membership = await memberships_services.update_membership(
+        membership=membership, role_slug=role_slug, user_role=user_role
     )
 
     await transaction_on_commit_async(
@@ -91,7 +80,8 @@ async def update_project_membership(
     # Check if new role has view_story permission
     view_story_is_deleted = (
         ProjectPermissions.VIEW_STORY.value in membership.role.permissions
-        and ProjectPermissions.VIEW_STORY.value not in project_role.permissions
+        and ProjectPermissions.VIEW_STORY.value
+        not in updated_membership.role.permissions
     )
     # Unassign stories for user if the new role doesn't have view_story permission
     if view_story_is_deleted:

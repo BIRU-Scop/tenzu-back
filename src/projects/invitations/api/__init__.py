@@ -37,8 +37,8 @@ from memberships.api.validators import (
 )
 from memberships.services.exceptions import (
     BadInvitationTokenError,
-    InvitationForOwnerNotAuthorisedError,
     InvitationNonExistingUsernameError,
+    OwnerRoleNotAuthorisedError,
 )
 from permissions import check_permissions
 from projects.invitations import services as invitations_services
@@ -97,7 +97,7 @@ async def create_project_invitations(
         )
     except InvitationNonExistingUsernameError as e:
         raise ex.BadRequest(str(e))
-    except InvitationForOwnerNotAuthorisedError as e:
+    except OwnerRoleNotAuthorisedError as e:
         raise ex.ForbiddenError(str(e))
 
 
@@ -383,7 +383,7 @@ async def update_project_invitation(
             role_slug=form.role_slug,
             user=request.user,
         )
-    except InvitationForOwnerNotAuthorisedError as e:
+    except OwnerRoleNotAuthorisedError as e:
         raise ex.ForbiddenError(str(e))
 
 

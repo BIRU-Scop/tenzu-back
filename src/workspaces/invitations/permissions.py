@@ -24,6 +24,7 @@ from permissions import IsAuthenticated, PermissionComponent
 from permissions.choices import WorkspacePermissions
 from users.models import AnyUser
 from workspaces.invitations.models import WorkspaceInvitation
+from workspaces.memberships.permissions import CanModifyAssociatedRole
 from workspaces.workspaces.models import Workspace
 
 
@@ -53,16 +54,6 @@ class HasPendingWorkspaceInvitation(PermissionComponent):
         )
 
 
-class CanModifyInvitation(PermissionComponent):
-    async def is_authorized(
-        self, user: AnyUser, obj: WorkspaceInvitation = None
-    ) -> bool:
-        # must always be called after HasPermission to fill this attribute
-        user_role = user.workspace_role
-        # user can only modify invitation of owner if they are owner themselves
-        return user_role.is_owner or (not obj.role.is_owner)
-
-
 class InvitationPermissionsCheck(Enum):
     VIEW = IsAuthenticated() & HasPermission(WorkspacePermissions.CREATE_MODIFY_MEMBER)
     ANSWER_SELF = IsAuthenticated()
@@ -73,5 +64,5 @@ class InvitationPermissionsCheck(Enum):
     MODIFY = (
         IsAuthenticated()
         & HasPermission(WorkspacePermissions.CREATE_MODIFY_MEMBER, field="workspace")
-        & CanModifyInvitation()
+        & CanModifyAssociatedRole()
     )

@@ -30,8 +30,8 @@ from commons.validators import B64UUID
 from memberships.api.validators import InvitationsValidator
 from memberships.services.exceptions import (
     BadInvitationTokenError,
-    InvitationForOwnerNotAuthorisedError,
     InvitationNonExistingUsernameError,
+    OwnerRoleNotAuthorisedError,
 )
 from permissions import check_permissions
 from workspaces.invitations import services as workspaces_invitations_services
@@ -90,7 +90,7 @@ async def create_workspace_invitations(
         )
     except InvitationNonExistingUsernameError as e:
         raise ex.BadRequest(str(e))
-    except InvitationForOwnerNotAuthorisedError as e:
+    except OwnerRoleNotAuthorisedError as e:
         raise ex.ForbiddenError(str(e))
 
 

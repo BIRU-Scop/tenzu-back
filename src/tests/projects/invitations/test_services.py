@@ -741,7 +741,7 @@ async def test_create_project_invitations_owner_no_permission(tqmanager):
         )
 
         user3.project_role = member_role
-        with pytest.raises(ex.InvitationForOwnerNotAuthorisedError):
+        with pytest.raises(ex.OwnerRoleNotAuthorisedError):
             await services.create_project_invitations(
                 project=project, invitations=invitations, invited_by=user3
             )
@@ -1692,7 +1692,6 @@ async def test_update_project_invitation_role_ok():
     user = f.build_user()
     member_role = f.build_project_role(project=project, is_owner=False)
     member_role2 = f.build_project_role(project=project, is_owner=False)
-    owner_role = f.build_project_role(project=project, is_owner=True)
     invitation = f.build_project_invitation(
         project=project,
         user=user,
@@ -1722,11 +1721,51 @@ async def test_update_project_invitation_role_ok():
         fake_invitations_events.emit_event_when_project_invitation_is_updated.assert_awaited_once_with(
             invitation=updated_invitation
         )
+
+
+async def test_update_project_invitation_role_owner():
+    project = f.build_project()
+    user = f.build_user()
+    member_role = f.build_project_role(project=project, is_owner=False)
+    member_role2 = f.build_project_role(project=project, is_owner=False)
+    owner_role = f.build_project_role(project=project, is_owner=True)
+    invitation = f.build_project_invitation(
+        project=project,
+        user=user,
+        email=user.email,
+        role=member_role,
+        status=InvitationStatus.PENDING,
+    )
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        patch_db_transaction(),
+    ):
         fake_memberships_repositories.get_role.return_value = owner_role
-        with pytest.raises(ex.InvitationForOwnerNotAuthorisedError):
+        with pytest.raises(ex.OwnerRoleNotAuthorisedError):
             await services.update_project_invitation(
                 invitation=invitation, role_slug=owner_role.slug, user=f.build_user()
             )
+        fake_memberships_repositories.get_role.assert_awaited_once_with(
+            ProjectRole, filters={"project_id": project.id, "slug": owner_role.slug}
+        )
+        fake_memberships_repositories.update_invitation.assert_not_awaited()
+        fake_invitations_events.emit_event_when_project_invitation_is_updated.assert_not_awaited()
+        owner_user = f.build_user()
+        owner_user.project_role = owner_role
+        updated_invitation = await services.update_project_invitation(
+            invitation=invitation, role_slug=owner_role.slug, user=owner_user
+        )
+        fake_memberships_repositories.update_invitation.assert_awaited_once_with(
+            invitation=invitation, values={"role": owner_role}
+        )
+        fake_invitations_events.emit_event_when_project_invitation_is_updated.assert_awaited_once_with(
+            invitation=updated_invitation
+        )
 
 
 #######################################################

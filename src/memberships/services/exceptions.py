@@ -44,6 +44,10 @@ class IncompatiblePermissionsSetError(TenzuServiceException):
     pass
 
 
+class OwnerRoleNotAuthorisedError(TenzuServiceException):
+    pass
+
+
 # --- Invitations
 
 
@@ -76,8 +80,4 @@ class InvitationHasNoUserYetError(TenzuServiceException):
 
 
 class InvitationNonExistingUsernameError(TenzuServiceException):
-    pass
-
-
-class InvitationForOwnerNotAuthorisedError(TenzuServiceException):
     pass

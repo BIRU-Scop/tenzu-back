@@ -24,10 +24,10 @@ from permissions import (
     check_permissions,
 )
 from projects.invitations.permissions import (
-    CanModifyInvitation,
     HasPendingProjectInvitation,
     IsProjectInvitationRecipient,
 )
+from projects.memberships.permissions import CanModifyAssociatedRole
 from tests.utils import factories as f
 
 ###########################################################################
@@ -92,7 +92,7 @@ async def test_check_permission_can_modify_projects_invitation():
         email="test@demo.test", user=None, role=member_role
     )
 
-    permissions = CanModifyInvitation()
+    permissions = CanModifyAssociatedRole()
 
     # user is owner
     user.project_role = owner_role

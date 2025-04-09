@@ -31,14 +31,17 @@ from commons.exceptions.api.errors import (
 from commons.validators import B64UUID
 from memberships.api.validators import MembershipValidator
 from memberships.serializers import RoleSerializer
-from memberships.services.exceptions import NonEditableRoleError
+from memberships.services.exceptions import (
+    NonEditableRoleError,
+    OwnerRoleNotAuthorisedError,
+)
 from permissions import check_permissions
 from projects.memberships import services as memberships_services
 from projects.memberships.api.validators import RoleValidator
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.memberships.permissions import (
-    MembershipPermissionsCheck,
-    RolePermissionsCheck,
+    ProjectMembershipPermissionsCheck,
+    ProjectRolePermissionsCheck,
 )
 from projects.memberships.serializers import ProjectMembershipSerializer
 from projects.projects.api import get_project_or_404
@@ -71,7 +74,7 @@ async def list_project_memberships(
     """
     project = await get_project_or_404(id)
     await check_permissions(
-        permissions=MembershipPermissionsCheck.VIEW.value,
+        permissions=ProjectMembershipPermissionsCheck.VIEW.value,
         user=request.user,
         obj=project,
     )
@@ -108,14 +111,17 @@ async def update_project_membership(
     membership = await get_project_membership_or_404(project_id=id, username=username)
 
     await check_permissions(
-        permissions=MembershipPermissionsCheck.MODIFY.value,
+        permissions=ProjectMembershipPermissionsCheck.MODIFY.value,
         user=request.user,
         obj=membership,
     )
 
-    return await memberships_services.update_project_membership(
-        membership=membership, role_slug=form.role_slug
-    )
+    try:
+        return await memberships_services.update_project_membership(
+            membership=membership, role_slug=form.role_slug, user=request.user
+        )
+    except OwnerRoleNotAuthorisedError as e:
+        raise ex.ForbiddenError(str(e))
 
 
 ##########################################################
@@ -145,7 +151,7 @@ async def delete_project_membership(
     membership = await get_project_membership_or_404(project_id=id, username=username)
 
     await check_permissions(
-        permissions=MembershipPermissionsCheck.DELETE.value,
+        permissions=ProjectMembershipPermissionsCheck.DELETE.value,
         user=request.user,
         obj=membership,
     )
@@ -178,7 +184,9 @@ async def list_project_roles(request, project_id: Path[B64UUID]):
 
     project = await get_project_or_404(project_id)
     await check_permissions(
-        permissions=RolePermissionsCheck.VIEW.value, user=request.user, obj=project
+        permissions=ProjectRolePermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=project,
     )
     return await memberships_services.list_project_roles(project=project)
 
@@ -213,7 +221,9 @@ async def update_project_role(
 
     role = await get_project_role_or_404(project_id=project_id, slug=role_slug)
     await check_permissions(
-        permissions=RolePermissionsCheck.MODIFY.value, user=request.user, obj=role
+        permissions=ProjectRolePermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=role,
     )
 
     try:

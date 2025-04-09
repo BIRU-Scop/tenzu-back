@@ -32,10 +32,11 @@ CallableGenerator = Generator[Callable[..., Any], None, None]
 P = TypeVar("P", bound=choices.PermissionsBase)
 
 
-def validate_permissions(permissions_type: type[P], value: list[str]) -> set[P]:
-    value = set(check_not_empty(value))
-    _check_permissions_are_valid(permissions_type, permissions=value)
-    _check_permissions_are_compatible(permissions_type, permissions=value)
+def validate_permissions(permissions_type: type[P], value: list[str]) -> list[P]:
+    value = check_not_empty(value)
+    value_set = set(value)
+    _check_permissions_are_valid(permissions_type, permissions=value_set)
+    _check_permissions_are_compatible(permissions_type, permissions=value_set)
     return value
 
 
