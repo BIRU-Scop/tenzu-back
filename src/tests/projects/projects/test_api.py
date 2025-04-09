@@ -39,7 +39,7 @@ async def test_create_project_200_ok_being_workspace_member(client):
 
     client.login(workspace.created_by)
     response = await client.post("/projects", data=data, files=files)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_create_project_400_bad_request_invalid_workspace_error(client):
@@ -49,7 +49,7 @@ async def test_create_project_400_bad_request_invalid_workspace_error(client):
 
     client.login(workspace.created_by)
     response = await client.post("/projects", data=data)
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_create_project_403_being_no_workspace_member(client):
@@ -60,7 +60,7 @@ async def test_create_project_403_being_no_workspace_member(client):
 
     client.login(user2)
     response = await client.post("/projects", data=data, files=files)
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_create_project_401_being_anonymous(client):
@@ -69,7 +69,7 @@ async def test_create_project_401_being_anonymous(client):
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
     response = await client.post("/projects", data=data, files=files)
-    assert response.status_code == 401, response.text
+    assert response.status_code == 401, response.data
 
 
 async def test_create_project_422_unprocessable_color(client):
@@ -78,7 +78,7 @@ async def test_create_project_422_unprocessable_color(client):
 
     client.login(workspace.created_by)
     response = await client.post("/projects", data=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -91,7 +91,7 @@ async def test_get_project_200_ok_being_project_admin(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_get_project_200_ok_being_project_member(client, project_template):
@@ -109,7 +109,7 @@ async def test_get_project_200_ok_being_project_member(client, project_template)
 
     client.login(user2)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_get_project_200_ok_being_invited_user(client, project_template):
@@ -127,7 +127,7 @@ async def test_get_project_200_ok_being_invited_user(client, project_template):
 
     client.login(user2)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_get_project_403_forbidden_not_project_member(client, project_template):
@@ -136,14 +136,14 @@ async def test_get_project_403_forbidden_not_project_member(client, project_temp
 
     client.login(user2)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_get_project_401_forbidden_being_anonymous(client, project_template):
     project = await f.create_project(project_template)
 
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 401, response.text
+    assert response.status_code == 401, response.data
 
 
 async def test_get_project_404_not_found_project_b64id(
@@ -152,7 +152,7 @@ async def test_get_project_404_not_found_project_b64id(
     user = await f.create_user()
     client.login(user)
     response = await client.get(f"/projects/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_get_project_422_unprocessable_project_b64id(
@@ -161,7 +161,7 @@ async def test_get_project_422_unprocessable_project_b64id(
     user = await f.create_user()
     client.login(user)
     response = await client.get(f"/projects/{INVALID_B64ID}")
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -184,7 +184,7 @@ async def test_update_project_files_200_ok(client, project_template):
         data=data,
         FILES={"logo": logo},
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
@@ -203,7 +203,7 @@ async def test_update_project_files_200_ok_no_logo_change(client, project_templa
         data=data,
         FILES={},
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
@@ -222,7 +222,7 @@ async def test_update_project_files_200_ok_delete_logo(client, project_template)
         data=data,
         FILES={"logo": None},
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
@@ -236,7 +236,7 @@ async def test_update_project_200_ok_delete_description(client, project_template
 
     client.login(project.created_by)
     response = await client.post(f"/projects/{project.b64id}", data=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["name"] == project.name
     assert updated_project["description"] == ""
@@ -249,7 +249,7 @@ async def test_update_project_403_forbidden_no_admin(client, project_template):
     data = {"name": "new name"}
     client.login(other_user)
     response = await client.post(f"/projects/{project.b64id}", data=data)
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_update_project_404_not_found_project_b64id(
@@ -260,7 +260,7 @@ async def test_update_project_404_not_found_project_b64id(
 
     client.login(user)
     response = await client.post(f"/projects/{NOT_EXISTING_B64ID}", data=data)
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_update_project_422_unprocessable_project_b64id(client):
@@ -269,7 +269,7 @@ async def test_update_project_422_unprocessable_project_b64id(client):
 
     client.login(user)
     response = await client.post(f"/projects/{INVALID_B64ID}", data=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -282,7 +282,7 @@ async def test_delete_project_204_no_content_being_proj_admin(client, project_te
 
     client.login(project.created_by)
     response = await client.delete(f"/projects/{project.b64id}")
-    assert response.status_code == 204, response.text
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_project_204_no_content_being_ws_admin(client, project_template):
@@ -291,7 +291,7 @@ async def test_delete_project_204_no_content_being_ws_admin(client, project_temp
 
     client.login(ws.created_by)
     response = await client.delete(f"/projects/{project.b64id}")
-    assert response.status_code == 204, response.text
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_project_403_forbidden_user_without_permissions(
@@ -302,18 +302,18 @@ async def test_delete_project_403_forbidden_user_without_permissions(
 
     client.login(user)
     response = await client.delete(f"/projects/{project.b64id}")
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_delete_project_404_not_found_project_b64id(client):
     pj_admin = await f.create_user()
     client.login(pj_admin)
     response = await client.delete(f"/projects/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_project_422_unprocessable_project_b64id(client):
     pj_admin = await f.create_user()
     client.login(pj_admin)
     response = await client.delete(f"/projects/{INVALID_B64ID}")
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data

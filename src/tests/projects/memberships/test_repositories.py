@@ -203,39 +203,6 @@ async def test_list_project_members(project_template):
 
 
 ##########################################################
-# misc - get_project_user_permissions
-##########################################################
-
-
-async def test_get_project_user_permissions(project_template):
-    user1 = await f.create_user()
-    user2 = await f.create_user()
-    not_member_user = await f.create_user()
-    project = await f.create_project(
-        project_template, name="project1", created_by=user1
-    )
-    pj_role = await f.create_project_role(
-        permissions=[ProjectPermissions.VIEW_STORY.value],
-        is_owner=False,
-        project=project,
-    )
-    await f.create_project_membership(user=user2, project=project, role=pj_role)
-
-    user_permissions = await repositories.get_user_permissions(
-        user=user1, reference_object=project
-    )
-    assert len(user_permissions) == len(ProjectPermissions.values)
-    user_permissions = await repositories.get_user_permissions(
-        user=user2, reference_object=project
-    )
-    assert len(user_permissions) == 1
-    with pytest.raises(ProjectMembership.DoesNotExist):
-        await repositories.get_user_permissions(
-            user=not_member_user, reference_object=project
-        )
-
-
-##########################################################
 # create_project_roles
 ##########################################################
 

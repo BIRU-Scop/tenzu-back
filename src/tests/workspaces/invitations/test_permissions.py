@@ -24,6 +24,7 @@ from permissions import (
 )
 from tests.utils import factories as f
 from workspaces.invitations.permissions import (
+    CanModifyInvitation,
     HasPendingWorkspaceInvitation,
     IsWorkspaceInvitationRecipient,
 )
@@ -77,3 +78,36 @@ async def test_check_permission_has_pending_workspace_invitation():
             user=invitation.workspace.created_by,
             obj=invitation.workspace,
         )
+
+
+async def test_check_permission_can_modify_workspaces_invitation():
+    user = f.build_user()
+    owner_role = f.build_workspace_role(is_owner=True)
+    member_role = f.build_workspace_role(is_owner=False)
+    invitation1 = f.build_workspace_invitation(
+        email="test@demo.test", user=None, role=owner_role
+    )
+    invitation2 = f.build_workspace_invitation(
+        email="test@demo.test", user=None, role=member_role
+    )
+
+    permissions = CanModifyInvitation()
+
+    # user is owner
+    user.workspace_role = owner_role
+    assert (
+        await check_permissions(permissions=permissions, user=user, obj=invitation1)
+        is None
+    )
+    assert (
+        await check_permissions(permissions=permissions, user=user, obj=invitation2)
+        is None
+    )
+    # user is not owner
+    user.workspace_role = member_role
+    assert (
+        await check_permissions(permissions=permissions, user=user, obj=invitation2)
+        is None
+    )
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user, obj=invitation1)

@@ -53,7 +53,10 @@ def build_project_role(**kwargs):
 class ProjectMembershipFactory(Factory):
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     project = factory.SubFactory("tests.utils.factories.ProjectFactory")
-    role = factory.SubFactory("tests.utils.factories.ProjectRoleFactory")
+    role = factory.SubFactory(
+        "tests.utils.factories.ProjectRoleFactory",
+        project=factory.SelfAttribute("..project"),
+    )
 
     class Meta:
         model = "projects_memberships.ProjectMembership"
@@ -76,7 +79,10 @@ class ProjectInvitationFactory(Factory):
     email = factory.Sequence(lambda n: f"user{n}@email.com")
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     project = factory.SubFactory("tests.utils.factories.ProjectFactory")
-    role = factory.SubFactory("tests.utils.factories.ProjectRoleFactory")
+    role = factory.SubFactory(
+        "tests.utils.factories.ProjectRoleFactory",
+        project=factory.SelfAttribute("..project"),
+    )
     invited_by = factory.SubFactory("tests.utils.factories.UserFactory")
 
     class Meta:
@@ -85,16 +91,7 @@ class ProjectInvitationFactory(Factory):
 
 @sync_to_async
 def create_project_invitation(**kwargs):
-    role = kwargs.pop("role", None)
-    if role is None:
-        role = (
-            kwargs["project"].roles.filter(is_owner=False).first()
-            if "project" in kwargs
-            else ProjectRoleFactory.create()
-        )
-    return ProjectInvitationFactory.create(
-        project=kwargs.pop("project", role.project), role=role, **kwargs
-    )
+    return ProjectInvitationFactory.create(**kwargs)
 
 
 def build_project_invitation(**kwargs):

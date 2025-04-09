@@ -18,13 +18,13 @@
 # You can contact BIRU at ask@biru.sh
 
 from enum import Enum
-from typing import Any
-from uuid import UUID
 
+from memberships.permissions import HasPermission
 from permissions import IsAuthenticated, PermissionComponent
+from permissions.choices import ProjectPermissions
 from projects.invitations.models import ProjectInvitation
 from projects.projects.models import Project
-from users.models import AnyUser
+from users.models import AnyUser, User
 
 
 class IsProjectInvitationRecipient(PermissionComponent):
@@ -51,29 +51,21 @@ class HasPendingProjectInvitation(PermissionComponent):
         )
 
 
-class CanAssignMember(PermissionComponent):
-    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
-        # obj is project_id
-        obj: UUID
-        # TODO use role permission
-        return False
-
-
 class CanModifyInvitation(PermissionComponent):
-    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
-        # obj is invitation
-        obj: ProjectInvitation
-        # TODO compare role of user and invitation.user
-        # if user.role.is_owner -> return True
-        # if user.role doesn't have invite permission -> return False
-        # if invitation.user.role.is_owner -> return False
-        # return True
-        return False
+    async def is_authorized(self, user: User, obj: ProjectInvitation = None) -> bool:
+        # must always be called after HasPermission to fill this attribute
+        user_role = user.project_role
+        # user can only modify invitation of owner if they are owner themselves
+        return user_role.is_owner or (not obj.role.is_owner)
 
 
 class InvitationPermissionsCheck(Enum):
-    VIEW = CanAssignMember()
+    VIEW = IsAuthenticated() & HasPermission(ProjectPermissions.CREATE_MODIFY_MEMBER)
     ANSWER_SELF = IsAuthenticated()
     ANSWER = IsAuthenticated() & IsProjectInvitationRecipient()
-    CREATE = CanAssignMember()
-    MODIFY = CanModifyInvitation()
+    CREATE = IsAuthenticated() & HasPermission(ProjectPermissions.CREATE_MODIFY_MEMBER)
+    MODIFY = (
+        IsAuthenticated()
+        & HasPermission(ProjectPermissions.CREATE_MODIFY_MEMBER, field="project")
+        & CanModifyInvitation()
+    )

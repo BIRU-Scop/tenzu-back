@@ -24,9 +24,8 @@ from base.utils import emails
 from base.utils.datetime import aware_utcnow
 from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus
-from memberships.models import Invitation, Membership
+from memberships.models import Invitation, Membership, Role
 from memberships.services import exceptions as ex
-from permissions.choices import PermissionsBase
 from projects.projects.models import Project
 from users import services as users_services
 from users.models import AnyUser, User
@@ -48,20 +47,6 @@ async def is_membership_the_only_owner(membership: Membership) -> bool:
     )
 
 
-async def has_permission(
-    user: User,
-    reference_object: Project | Workspace,
-    required_permission: PermissionsBase,
-):
-    try:
-        user_permissions = await memberships_repositories.get_user_permissions(
-            user, reference_object
-        )
-    except reference_object.memberships.model.DoesNotExist:
-        return False
-    return required_permission in user_permissions
-
-
 ##########################################################
 # create invitations
 ##########################################################
@@ -71,6 +56,7 @@ async def create_invitations(
     reference_object: Project | Workspace,
     invitations: list[dict[str, str]],
     invited_by: User,
+    user_role: Role,
     extra_select_related_for_mail_template: list[str] = [],
 ) -> tuple[list[Invitation], list[Invitation], int]:
     # create two lists with roles_slug and the emails received (either directly by the invitation's email, or by the
@@ -143,6 +129,8 @@ async def create_invitations(
     #         'user3': <User: Elizabeth Woods>,
     #         'user3@tenzu.demo': <User: Elizabeth Woods>,
     # }
+    created_owner_invitations = []
+    changed_role_owner_invitations = []
 
     for key, role_slug in zip(emails + usernames, emails_roles + usernames_roles):
         #                                 key  |  role_slug
@@ -177,17 +165,23 @@ async def create_invitations(
                 ],
             )
         except reference_object.invitations.model.DoesNotExist:
+            role = roles_dict[role_slug]
             new_invitation = reference_object.invitations.model(
                 user=user,
-                role=roles_dict[role_slug],
+                role=role,
                 email=email,
                 invited_by=invited_by,
                 **{reference_object._meta.model_name: reference_object},
             )
             invitations_to_create[email] = new_invitation
             invitations_to_send[email] = new_invitation
+            if role.is_owner:
+                created_owner_invitations.append(key)
         else:
-            invitation.role = roles_dict[role_slug]
+            role = roles_dict[role_slug]
+            if invitation.role.is_owner and invitation.role != role:
+                changed_role_owner_invitations.append(key)
+            invitation.role = role
             invitation.status = InvitationStatus.PENDING
             if not is_spam(invitation):
                 invitation.num_emails_sent += 1
@@ -196,6 +190,23 @@ async def create_invitations(
                 invitations_to_send[email] = invitation
             invitations_to_update[email] = invitation
 
+    if (created_owner_invitations or changed_role_owner_invitations) and (
+        not user_role or not user_role.is_owner
+    ):
+        detail_msg = []
+        if created_owner_invitations:
+            detail_msg.append(
+                f"give owner role to invitations {", ".join(created_owner_invitations)}"
+            )
+
+        if changed_role_owner_invitations:
+            detail_msg.append(
+                f"remove owner role from existing invitations {", ".join(changed_role_owner_invitations)}"
+            )
+
+        raise ex.InvitationForOwnerNotAuthorisedError(
+            f"You dont have permissions to: {" / ".join(detail_msg)}"
+        )
     if len(invitations_to_update) > 0:
         objs = list(invitations_to_update.values())
         await memberships_repositories.bulk_update_invitations(
@@ -230,7 +241,11 @@ async def create_invitations(
 ##########################################################
 
 
-async def update_invitation(invitation: TI, role_slug: str) -> TI:
+async def update_invitation(
+    invitation: TI,
+    role_slug: str,
+    user_role: Role,
+) -> TI:
     if invitation.status == InvitationStatus.ACCEPTED:
         raise ex.InvitationAlreadyAcceptedError(
             "Cannot change role in an accepted invitation"
@@ -250,6 +265,11 @@ async def update_invitation(invitation: TI, role_slug: str) -> TI:
 
     except invitation.role.DoesNotExist as e:
         raise ex.NonExistingRoleError("Role does not exist") from e
+
+    if role.is_owner and (not user_role or not user_role.is_owner):
+        raise ex.InvitationForOwnerNotAuthorisedError(
+            "You dont have the permissions to promote an invitation to owner"
+        )
 
     updated_invitation = await memberships_repositories.update_invitation(
         invitation=invitation,

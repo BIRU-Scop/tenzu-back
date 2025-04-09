@@ -54,12 +54,12 @@ async def test_check_permission_has_workspace_permission():
     user2 = await f.create_user()
     not_member_user = await f.create_user()
     workspace = await f.create_workspace(name="workspace1", created_by=user1)
-    pj_role = await f.create_workspace_role(
+    ws_role = await f.create_workspace_role(
         permissions=[WorkspacePermissions.MODIFY_WORKSPACE.value],
         is_owner=False,
         workspace=workspace,
     )
-    await f.create_workspace_membership(user=user2, workspace=workspace, role=pj_role)
+    await f.create_workspace_membership(user=user2, workspace=workspace, role=ws_role)
 
     permissions = HasPermission(WorkspacePermissions.MODIFY_WORKSPACE)
 
@@ -68,11 +68,14 @@ async def test_check_permission_has_workspace_permission():
         await check_permissions(permissions=permissions, user=user1, obj=workspace)
         is None
     )
+    assert user1.workspace_role.slug == "owner"
+    user1.workspace_role = None
     # user2 isn't ws-owner but has permission
     assert (
         await check_permissions(permissions=permissions, user=user2, obj=workspace)
         is None
     )
+    assert user2.workspace_role == ws_role
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user1, obj=None)
     with pytest.raises(ex.ForbiddenError):
@@ -84,5 +87,14 @@ async def test_check_permission_has_workspace_permission():
         await check_permissions(permissions=permissions, user=user1, obj=workspace)
         is None
     )
+    assert user1.workspace_role.slug == "owner"
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=workspace)
+
+    permissions = HasPermission(
+        WorkspacePermissions.MODIFY_WORKSPACE, field="workspace"
+    )
+    assert (
+        await check_permissions(permissions=permissions, user=user2, obj=ws_role)
+        is None
+    )

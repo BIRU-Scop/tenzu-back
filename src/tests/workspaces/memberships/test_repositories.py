@@ -223,37 +223,6 @@ async def test_list_workspace_members():
 
 
 ##########################################################
-# misc - get_workspace_user_permissions
-##########################################################
-
-
-async def test_get_workspace_user_permissions():
-    user1 = await f.create_user()
-    user2 = await f.create_user()
-    not_member_user = await f.create_user()
-    workspace = await f.create_workspace(name="workspace1", created_by=user1)
-    pj_role = await f.create_workspace_role(
-        permissions=[WorkspacePermissions.MODIFY_WORKSPACE.value],
-        is_owner=False,
-        workspace=workspace,
-    )
-    await f.create_workspace_membership(user=user2, workspace=workspace, role=pj_role)
-
-    user_permissions = await repositories.get_user_permissions(
-        user=user1, reference_object=workspace
-    )
-    assert len(user_permissions) == len(WorkspacePermissions.values)
-    user_permissions = await repositories.get_user_permissions(
-        user=user2, reference_object=workspace
-    )
-    assert len(user_permissions) == 1
-    with pytest.raises(WorkspaceMembership.DoesNotExist):
-        await repositories.get_user_permissions(
-            user=not_member_user, reference_object=workspace
-        )
-
-
-##########################################################
 # create workspace role
 ##########################################################
 

@@ -23,7 +23,6 @@ from django.db.models import Q
 
 from memberships.choices import InvitationStatus
 from memberships.models import Invitation, Membership, Role
-from permissions.choices import PermissionsBase
 from projects.projects.models import Project
 from users.models import User
 from workspaces.workspaces.models import Workspace
@@ -233,14 +232,6 @@ async def list_members(
     if exclude_user is not None:
         qs = qs.exclude(id=exclude_user.id)
     return [a async for a in qs]
-
-
-async def get_user_permissions(
-    user: User, reference_object: Workspace | Project
-) -> list[PermissionsBase]:
-    return (
-        await reference_object.memberships.select_related("role").aget(user=user)
-    ).role.permissions
 
 
 ##########################################################

@@ -21,7 +21,7 @@ from uuid import UUID
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from memberships import services as memberships_services
 from memberships.services import exceptions as ex
-from memberships.services import has_permission, is_membership_the_only_owner  # noqa
+from memberships.services import is_membership_the_only_owner  # noqa
 from permissions.choices import ProjectPermissions
 from projects.invitations import repositories as project_invitations_repositories
 from projects.invitations.models import ProjectInvitation

@@ -356,7 +356,7 @@ async def test_resquest_reset_password_ok_with_invalid_email(client):
     assert response.json()["detail"][0]["type"] == "value_error"
 
 
-async def test_resquest_reset_password_error_with_no_email(client):
+async def test_request_reset_password_error_with_no_email(client):
     data = {}
 
     response = await client.post("/users/reset-password", json=data)

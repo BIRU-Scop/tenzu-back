@@ -406,7 +406,7 @@ async def test_update_story_200_ok_protected_attribute_ok(client, project_templa
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_update_story_protected_400_bad_request_attribute_error_with_invalid_version(
@@ -424,7 +424,7 @@ async def test_update_story_protected_400_bad_request_attribute_error_with_inval
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_update_story_422_unprocessable_project_b64id(client, project_template):
@@ -436,7 +436,7 @@ async def test_update_story_422_unprocessable_project_b64id(client, project_temp
     response = await client.patch(
         f"/projects/{INVALID_B64ID}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 async def test_update_story_422_unprocessable_story_ref(client, project_template):
@@ -447,7 +447,7 @@ async def test_update_story_422_unprocessable_story_ref(client, project_template
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{INVALID_REF}", json=data
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 async def test_update_story_422_unprocessable_both_workflow_and_status(
@@ -461,7 +461,7 @@ async def test_update_story_422_unprocessable_both_workflow_and_status(
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 async def test_update_story_404_not_found_project_b64id(client, project_template):
@@ -473,7 +473,7 @@ async def test_update_story_404_not_found_project_b64id(client, project_template
     response = await client.patch(
         f"/projects/{NOT_EXISTING_B64ID}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_update_story_404_not_found_story_ref(client, project_template):
@@ -484,7 +484,7 @@ async def test_update_story_404_not_found_story_ref(client, project_template):
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}", json=data
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 ##########################################################
@@ -510,7 +510,7 @@ async def test_reorder_stories_with_reorder_ok(client, project_template):
         f"/projects/{project.b64id}/workflows/main/stories/reorder", json=data
     )
 
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     res = response.json()
     assert "statusId" in res
     assert "reorder" in res
@@ -532,7 +532,7 @@ async def test_reorder_stories_without_reorder_ok(client, project_template):
         f"/projects/{project.b64id}/workflows/main/stories/reorder", json=data
     )
 
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     res = response.json()
     assert "statusId" in res
     assert "reorder" in res
@@ -551,7 +551,7 @@ async def test_delete_204_no_content_story(client, project_template):
 
     client.login(project.created_by)
     response = await client.delete(f"/projects/{project.b64id}/stories/{story.ref}")
-    assert response.status_code == 204, response.text
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_story_403_forbidden_user_without_permissions(
@@ -563,7 +563,7 @@ async def test_delete_story_403_forbidden_user_without_permissions(
 
     client.login(user)
     response = await client.delete(f"/projects/{project.b64id}/stories/{story.ref}")
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_delete_story_404_not_found_project_b64id(client, project_template):
@@ -574,7 +574,7 @@ async def test_delete_story_404_not_found_project_b64id(client, project_template
     response = await client.delete(
         f"/projects/{NOT_EXISTING_B64ID}/stories/{story.ref}"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_story_404_not_found_story_ref(client, project_template):
@@ -584,7 +584,7 @@ async def test_delete_story_404_not_found_story_ref(client, project_template):
     response = await client.delete(
         f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_story_422_unprocessable_project_b64id(client, project_template):
@@ -592,7 +592,7 @@ async def test_delete_story_422_unprocessable_project_b64id(client, project_temp
 
     client.login(project.created_by)
     response = await client.delete(f"/projects/{project.b64id}/stories/{INVALID_B64ID}")
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 async def test_delete_story_422_unprocessable_story_ref(client, project_template):
@@ -600,4 +600,4 @@ async def test_delete_story_422_unprocessable_story_ref(client, project_template
 
     client.login(project.created_by)
     response = await client.delete(f"/projects/{project.b64id}/stories/{INVALID_REF}")
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data

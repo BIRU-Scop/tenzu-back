@@ -388,7 +388,9 @@ async def test_delete_projects(project_template):
     project = await f.create_project(
         template=project_template,
     )
-    await f.create_project_invitation(project=project)
+    await f.create_project_invitation(
+        project=project, role=await project.roles.filter(is_owner=False).afirst()
+    )
     seqname = references.get_project_references_seqname(project.id)
 
     assert await _seq_exists(seqname)

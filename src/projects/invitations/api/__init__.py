@@ -28,7 +28,6 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from commons.utils import transaction_atomic_async
 from commons.validators import B64UUID
 from memberships.api.validators import (
     InvitationsValidator,
@@ -38,6 +37,7 @@ from memberships.api.validators import (
 )
 from memberships.services.exceptions import (
     BadInvitationTokenError,
+    InvitationForOwnerNotAuthorisedError,
     InvitationNonExistingUsernameError,
 )
 from permissions import check_permissions
@@ -72,7 +72,6 @@ invitations_router = Router()
     },
     by_alias=True,
 )
-# TODO: remove "Query" from the "id" parameter
 async def create_project_invitations(
     request,
     id: Path[B64UUID],
@@ -87,7 +86,7 @@ async def create_project_invitations(
     await check_permissions(
         permissions=InvitationPermissionsCheck.CREATE.value,
         user=request.user,
-        obj=project.id,
+        obj=project,
     )
 
     try:
@@ -98,6 +97,8 @@ async def create_project_invitations(
         )
     except InvitationNonExistingUsernameError as e:
         raise ex.BadRequest(str(e))
+    except InvitationForOwnerNotAuthorisedError as e:
+        raise ex.ForbiddenError(str(e))
 
 
 ##########################################################
@@ -123,12 +124,12 @@ async def list_project_invitations(
     """
     List all project invitations
     """
+    project = await get_project_or_404(id=id)
     await check_permissions(
         permissions=InvitationPermissionsCheck.VIEW.value,
         user=request.user,
-        obj=id,
+        obj=project,
     )
-
     return await invitations_services.list_project_invitations(project_id=id)
 
 
@@ -198,9 +199,9 @@ async def resend_project_invitation(
         project_id=id, username_or_email=form.username_or_email
     )
     await check_permissions(
-        permissions=InvitationPermissionsCheck.MODIFY.value,
+        permissions=InvitationPermissionsCheck.CREATE.value,
         user=request.user,
-        obj=invitation,
+        obj=invitation.project,
     )
     await invitations_services.resend_project_invitation(
         invitation=invitation, resent_by=request.user
@@ -376,9 +377,14 @@ async def update_project_invitation(
         obj=invitation,
     )
 
-    return await invitations_services.update_project_invitation(
-        invitation=invitation, role_slug=form.role_slug
-    )
+    try:
+        return await invitations_services.update_project_invitation(
+            invitation=invitation,
+            role_slug=form.role_slug,
+            user=request.user,
+        )
+    except InvitationForOwnerNotAuthorisedError as e:
+        raise ex.ForbiddenError(str(e))
 
 
 ##########################################################

@@ -72,11 +72,14 @@ async def test_check_permission_has_project_permission(project_template):
         await check_permissions(permissions=permissions, user=user1, obj=project)
         is None
     )
+    assert user1.project_role.slug == "owner"
+    user1.project_role = None
     # user2 isn't ws-owner but has permission
     assert (
         await check_permissions(permissions=permissions, user=user2, obj=project)
         is None
     )
+    assert user2.project_role == pj_role
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user1, obj=None)
     with pytest.raises(ex.ForbiddenError):
@@ -88,5 +91,12 @@ async def test_check_permission_has_project_permission(project_template):
         await check_permissions(permissions=permissions, user=user1, obj=project)
         is None
     )
+    assert user1.project_role.slug == "owner"
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(permissions=permissions, user=user2, obj=project)
+
+    permissions = HasPermission(ProjectPermissions.VIEW_STORY, field="project")
+    assert (
+        await check_permissions(permissions=permissions, user=user2, obj=pj_role)
+        is None
+    )

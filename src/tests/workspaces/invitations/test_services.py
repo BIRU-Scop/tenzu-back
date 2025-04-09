@@ -331,6 +331,61 @@ async def test_create_workspace_invitations_invalid_username(tqmanager):
         )
 
 
+async def test_create_workspace_invitations_owner_no_permission(tqmanager):
+    user1 = f.build_user(email="test@email.com", username="user1")
+    user2 = f.build_user(email="test@email.com", username="user2")
+    user3 = f.build_user(email="test@email.com", username="user3")
+
+    workspace = f.build_workspace()
+    member_role = f.build_workspace_role(workspace=workspace, is_owner=False)
+    owner_role = f.build_workspace_role(
+        workspace=workspace, slug="owner", is_owner=True
+    )
+    existing_invitation = f.build_workspace_invitation(
+        workspace=workspace, role=owner_role, user=user1
+    )
+
+    invitations = [
+        {"email": user1.email, "role_slug": member_role.slug},
+        {"username": user2.username, "role_slug": owner_role.slug},
+    ]
+
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "memberships.services.users_services", autospec=True
+        ) as fake_users_services,
+    ):
+        fake_memberships_repositories.list_roles.return_value = [
+            member_role,
+            owner_role,
+        ]
+        fake_users_services.list_users_emails_as_dict.return_value = {
+            user2.username: user2,
+        }
+        fake_users_services.list_users_usernames_as_dict.return_value = {
+            user1.email: user1,
+        }
+        fake_memberships_repositories.get_invitation.side_effect = (
+            existing_invitation,
+            WorkspaceInvitation.DoesNotExist,
+            existing_invitation,
+            WorkspaceInvitation.DoesNotExist,
+        )
+
+        user3.workspace_role = member_role
+        with pytest.raises(ex.InvitationForOwnerNotAuthorisedError):
+            await services.create_workspace_invitations(
+                workspace=workspace, invitations=invitations, invited_by=user3
+            )
+        user3.workspace_role = owner_role
+        await services.create_workspace_invitations(
+            workspace=workspace, invitations=invitations, invited_by=user3
+        )
+
+
 #######################################################
 # list_pending_workspace_invitations
 #######################################################
@@ -346,7 +401,7 @@ async def test_list_workspace_invitations():
     ):
         fake_invitations_repo.list_invitations.return_value = [invitation]
 
-        invitations = await services.list_pending_workspace_invitations(
+        invitations = await services.list_workspace_invitations(
             workspace=invitation.workspace
         )
 
@@ -354,9 +409,8 @@ async def test_list_workspace_invitations():
             WorkspaceInvitation,
             filters={
                 "workspace_id": invitation.workspace.id,
-                "status": InvitationStatus.PENDING,
             },
-            select_related=["user", "workspace"],
+            select_related=["user", "workspace", "role"],
         )
         assert invitations == [invitation]
 

@@ -77,3 +77,7 @@ class InvitationHasNoUserYetError(TenzuServiceException):
 
 class InvitationNonExistingUsernameError(TenzuServiceException):
     pass
+
+
+class InvitationForOwnerNotAuthorisedError(TenzuServiceException):
+    pass

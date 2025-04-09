@@ -379,7 +379,7 @@ async def test_delete_workflow_404_not_found_project_b64id(client, project_templ
     response = await client.delete(
         f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_workflow_422_empty_move_to_slug(client, project_template):
@@ -389,7 +389,7 @@ async def test_delete_workflow_422_empty_move_to_slug(client, project_template):
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/slug?moveTo={empty_string}"
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 async def test_delete_workflow_422_long_move_to_slug(client, project_template):
@@ -399,7 +399,7 @@ async def test_delete_workflow_422_long_move_to_slug(client, project_template):
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/slug?moveTo={long_string}"
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -422,7 +422,7 @@ async def test_reorder_statuses_200_ok_with_reorder_ok(client, project_template)
         f"/projects/{pj.b64id}/workflows/main/statuses/reorder", json=data
     )
 
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     res = response.json()
     assert "reorder" in res
     assert "statuses" in res
@@ -444,7 +444,7 @@ async def test_reorder_statuses_404_not_found_pj_b64id(client, project_template)
         f"/projects/{NOT_EXISTING_B64ID}/workflows/main/statuses/reorder", json=data
     )
 
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_reorder_statuses_404_not_found_workflow_slug(client, project_template):
@@ -463,7 +463,7 @@ async def test_reorder_statuses_404_not_found_workflow_slug(client, project_temp
         json=data,
     )
 
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_reorder_statuses_422_unprocessable_pj_b64id(client, project_template):
@@ -481,7 +481,7 @@ async def test_reorder_statuses_422_unprocessable_pj_b64id(client, project_templ
         f"/projects/{INVALID_B64ID}/workflows/main/statuses/reorder", json=data
     )
 
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ################################################################################
@@ -500,7 +500,7 @@ async def test_delete_workflow_status_204_ok(client, project_template):
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status1.b64id}?moveTo={wf_status2.b64id}"
     )
-    assert response.status_code == 204, response.text
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_workflow_status_400_bad_request_move_to_b64id(
@@ -514,7 +514,7 @@ async def test_delete_workflow_status_400_bad_request_move_to_b64id(
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status1.b64id}?moveTo={NOT_EXISTING_B64ID}"
     )
-    assert response.status_code == 400, response.text
+    assert response.status_code == 400, response.data
 
 
 async def test_delete_workflow_status_403_not_project_admin(client, project_template):
@@ -527,7 +527,7 @@ async def test_delete_workflow_status_403_not_project_admin(client, project_temp
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status.b64id}"
     )
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_delete_workflow_status_404_not_found_project_b64id(
@@ -540,7 +540,7 @@ async def test_delete_workflow_status_404_not_found_project_b64id(
     response = await client.delete(
         f"/projects/{NOT_EXISTING_B64ID}/workflows/{wf.slug}/statuses/{wf_status1.b64id}"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_workflow_status_404_not_found_workflow_slug(
@@ -553,7 +553,7 @@ async def test_delete_workflow_status_404_not_found_workflow_slug(
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/statuses/{wf_status1.b64id}"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_workflow_status_404_wf_status_b64id(client, project_template):
@@ -563,7 +563,7 @@ async def test_delete_workflow_status_404_wf_status_b64id(client, project_templa
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{NOT_EXISTING_B64ID}"
     )
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_workflow_status_422_unprocessable_project_b64id(
@@ -576,7 +576,7 @@ async def test_delete_workflow_status_422_unprocessable_project_b64id(
     response = await client.delete(
         f"/projects/{INVALID_B64ID}/workflows/{wf.slug}/statuses/{wf_status1.b64id}"
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 async def test_delete_workflow_status_422_unprocessable_wf_status_b64id(
@@ -588,7 +588,7 @@ async def test_delete_workflow_status_422_unprocessable_wf_status_b64id(
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{INVALID_B64ID}"
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 async def test_delete_wf_status_422_unprocessable_move_to_b64id(
@@ -602,4 +602,4 @@ async def test_delete_wf_status_422_unprocessable_move_to_b64id(
     response = await client.delete(
         f"/projects/{project.b64id}/workflows/{wf.slug}/statuses/{wf_status1.b64id}?moveTo={INVALID_B64ID}"
     )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data

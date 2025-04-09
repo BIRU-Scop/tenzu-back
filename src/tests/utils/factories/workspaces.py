@@ -52,7 +52,10 @@ def build_workspace_role(**kwargs):
 class WorkspaceMembershipFactory(Factory):
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
-    role = factory.SubFactory("tests.utils.factories.WorkspaceRoleFactory")
+    role = factory.SubFactory(
+        "tests.utils.factories.WorkspaceRoleFactory",
+        workspace=factory.SelfAttribute("..workspace"),
+    )
 
     class Meta:
         model = "workspaces_memberships.WorkspaceMembership"
@@ -75,7 +78,10 @@ class WorkspaceInvitationFactory(Factory):
     email = factory.Sequence(lambda n: f"user{n}@email.com")
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
-    role = factory.SubFactory("tests.utils.factories.WorkspaceRoleFactory")
+    role = factory.SubFactory(
+        "tests.utils.factories.WorkspaceRoleFactory",
+        workspace=factory.SelfAttribute("..workspace"),
+    )
     invited_by = factory.SubFactory("tests.utils.factories.UserFactory")
 
     class Meta:
@@ -84,16 +90,7 @@ class WorkspaceInvitationFactory(Factory):
 
 @sync_to_async
 def create_workspace_invitation(**kwargs):
-    role = kwargs.pop("role", None)
-    if role is None:
-        role = (
-            kwargs["workspace"].roles.filter(is_owner=False).first()
-            if "workspace" in kwargs
-            else WorkspaceRoleFactory.create()
-        )
-    return WorkspaceInvitationFactory.create(
-        workspace=kwargs.pop("workspace", role.workspace), role=role, **kwargs
-    )
+    return WorkspaceInvitationFactory.create(**kwargs)
 
 
 def build_workspace_invitation(**kwargs):

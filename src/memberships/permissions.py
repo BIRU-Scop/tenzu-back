@@ -16,7 +16,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from permissions import PermissionComponent
 from permissions.choices import PermissionsBase
@@ -30,25 +30,37 @@ if TYPE_CHECKING:
 class HasPermission(PermissionComponent):
     """
     This permission is used to check if the user has the given permissions on the object.
-    The object must implement the membership+role api
+    The object must implement the membership+role api.
+    As a side-effect, set a *_role property on the user
     """
 
     def __init__(
-        self, permission: PermissionsBase, *components: "PermissionComponent"
+        self,
+        permission: PermissionsBase,
+        field: str = None,
+        *components: "PermissionComponent",
     ) -> None:
         self.required_permission = permission
+        self.field = field
         super().__init__(*components)
 
-    async def is_authorized(
-        self, user: "AnyUser", obj: Workspace | Project = None
-    ) -> bool:
-        from memberships import services as memberships_services
+    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+        from memberships import repositories as memberships_repositories
 
         if not obj:
             return False
 
-        return await memberships_services.has_permission(
-            user=user,
-            reference_object=obj,
-            required_permission=self.required_permission,
+        obj: Workspace | Project = (
+            obj if self.field is None else getattr(obj, self.field)
         )
+
+        model_name = obj._meta.model_name
+        try:
+            user_role = await memberships_repositories.get_role(
+                obj.roles.model,
+                filters={"memberships__user_id": user.id, f"{model_name}_id": obj.id},
+            )
+        except obj.roles.model.DoesNotExist:
+            return False
+        setattr(user, f"{model_name}_role", user_role)
+        return self.required_permission in user_role.permissions

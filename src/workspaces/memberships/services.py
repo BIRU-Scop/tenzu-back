@@ -21,7 +21,7 @@ from uuid import UUID
 
 from memberships import services as memberships_services
 from memberships.services import exceptions as ex
-from memberships.services import has_permission, is_membership_the_only_owner  # noqa
+from memberships.services import is_membership_the_only_owner  # noqa
 from workspaces.invitations import repositories as workspace_invitations_repositories
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import events as memberships_events

@@ -39,7 +39,7 @@ async def test_create_workspace_success(client):
 
     client.login(user)
     response = await client.post("/workspaces", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_create_workspace_validation_error(client):
@@ -51,7 +51,7 @@ async def test_create_workspace_validation_error(client):
 
     client.login(user)
     response = await client.post("/workspaces", json=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 #############################################################
@@ -61,7 +61,7 @@ async def test_create_workspace_validation_error(client):
 
 async def test_my_workspaces_being_anonymous(client):
     response = await client.get("/my/workspaces")
-    assert response.status_code == 401, response.text
+    assert response.status_code == 401, response.data
 
 
 async def test_my_workspaces_success(client):
@@ -69,7 +69,7 @@ async def test_my_workspaces_success(client):
 
     client.login(workspace.created_by)
     response = await client.get("/my/workspaces")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert len(response.json()) == 1
 
 
@@ -82,7 +82,7 @@ async def test_my_workspace_being_anonymous(client):
     workspace = await f.create_workspace()
 
     response = await client.get(f"/my/workspaces/{workspace.b64id}")
-    assert response.status_code == 401, response.text
+    assert response.status_code == 401, response.data
 
 
 async def test_my_workspace_success(client):
@@ -90,7 +90,7 @@ async def test_my_workspace_success(client):
 
     client.login(workspace.created_by)
     response = await client.get(f"/my/workspaces/{workspace.b64id}")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     assert response.json()["name"] == workspace.name
 
 
@@ -99,7 +99,7 @@ async def test_my_workspace_not_found_error_because_invalid_id(client):
 
     client.login(user)
     response = await client.get(f"/my/workspaces/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_my_workspace_not_found_error_because_there_is_no_relation(client):
@@ -108,7 +108,7 @@ async def test_my_workspace_not_found_error_because_there_is_no_relation(client)
 
     client.login(user)
     response = await client.get(f"/my/workspaces/{workspace.b64id}")
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 #############################################################
@@ -121,7 +121,7 @@ async def test_get_workspace_being_workspace_member(client):
 
     client.login(workspace.created_by)
     response = await client.get(f"/workspaces/{workspace.b64id}")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
 
 
 async def test_get_workspace_being_no_workspace_member(client):
@@ -130,14 +130,14 @@ async def test_get_workspace_being_no_workspace_member(client):
     user2 = await f.create_user()
     client.login(user2)
     response = await client.get(f"/workspaces/{workspace.b64id}")
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_get_workspace_being_anonymous(client):
     workspace = await f.create_workspace()
 
     response = await client.get(f"/workspaces/{workspace.b64id}")
-    assert response.status_code == 401, response.text
+    assert response.status_code == 401, response.data
 
 
 async def test_get_workspace_not_found_error(client):
@@ -145,7 +145,7 @@ async def test_get_workspace_not_found_error(client):
 
     client.login(user)
     response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 ##########################################################
@@ -159,7 +159,7 @@ async def test_update_workspace_200_ok(client):
 
     client.login(workspace.created_by)
     response = await client.patch(f"/workspaces/{workspace.b64id}", json=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     updated_workspace = response.json()
     assert updated_workspace["name"] == "New name"
 
@@ -171,7 +171,7 @@ async def test_update_workspace_403_forbidden_no_admin(client):
     data = {"name": "new name"}
     client.login(other_user)
     response = await client.patch(f"/workspaces/{workspace.b64id}", json=data)
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_update_workspace_404_not_found_workspace_b64id(client):
@@ -180,7 +180,7 @@ async def test_update_workspace_404_not_found_workspace_b64id(client):
 
     client.login(user)
     response = await client.patch(f"/workspaces/{NOT_EXISTING_B64ID}", json=data)
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_update_workspace_422_unprocessable_workspace_b64id(client):
@@ -189,7 +189,7 @@ async def test_update_workspace_422_unprocessable_workspace_b64id(client):
 
     client.login(user)
     response = await client.patch(f"/workspaces/{INVALID_B64ID}", json=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 #############################################################
@@ -202,7 +202,7 @@ async def test_delete_workspace_being_ws_member(client):
 
     client.login(workspace.created_by)
     response = await client.delete(f"/workspaces/{workspace.b64id}")
-    assert response.status_code == 204, response.text
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_workspace_not_being_ws_member(client):
@@ -211,7 +211,7 @@ async def test_delete_workspace_not_being_ws_member(client):
 
     client.login(user)
     response = await client.delete(f"/workspaces/{workspace.b64id}")
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_delete_workspace_not_found(client):
@@ -219,4 +219,4 @@ async def test_delete_workspace_not_found(client):
 
     client.login(user)
     response = await client.delete(f"/workspaces/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data

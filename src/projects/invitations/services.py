@@ -59,6 +59,7 @@ async def create_project_invitations(
     invitations: list[dict[str, str]],
     invited_by: User,
 ) -> CreateInvitationsSerializer:
+    user_role = getattr(invited_by, "project_role", None)
     invitations_to_send, invitations_to_publish, already_members = cast(
         tuple[list[ProjectInvitation], list[ProjectInvitation], int],
         await memberships_services.create_invitations(
@@ -68,6 +69,7 @@ async def create_project_invitations(
             extra_select_related_for_mail_template=[
                 "project__workspace",
             ],
+            user_role=user_role,
         ),
     )
     for invitation in invitations_to_send:
@@ -170,11 +172,13 @@ async def update_user_projects_invitations(user: User) -> None:
 
 
 async def update_project_invitation(
-    invitation: ProjectInvitation, role_slug: str
+    invitation: ProjectInvitation, role_slug: str, user: User
 ) -> ProjectInvitation:
+    user_role = getattr(user, "project_role", None)
     updated_invitation = await memberships_services.update_invitation(
         invitation=invitation,
         role_slug=role_slug,
+        user_role=user_role,
     )
     await transaction_on_commit_async(
         invitations_events.emit_event_when_project_invitation_is_updated

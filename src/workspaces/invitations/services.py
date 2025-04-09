@@ -58,15 +58,14 @@ async def create_workspace_invitations(
     invitations: list[dict[str, str]],
     invited_by: User,
 ) -> CreateInvitationsSerializer:
+    user_role = getattr(invited_by, "workspace_role", None)
     invitations_to_send, invitations_to_publish, already_members = cast(
         tuple[list[WorkspaceInvitation], list[WorkspaceInvitation], int],
         await memberships_services.create_invitations(
             reference_object=workspace,
             invitations=invitations,
             invited_by=invited_by,
-            extra_select_related_for_mail_template=[
-                "workspace__workspace",
-            ],
+            user_role=user_role,
         ),
     )
     for invitation in invitations_to_send:
@@ -87,16 +86,15 @@ async def create_workspace_invitations(
 ##########################################################
 
 
-async def list_pending_workspace_invitations(
+async def list_workspace_invitations(
     workspace: Workspace,
 ) -> list[WorkspaceInvitation]:
     return await invitations_repositories.list_invitations(
         WorkspaceInvitation,
         filters={
             "workspace_id": workspace.id,
-            "status": InvitationStatus.PENDING,
         },
-        select_related=["user", "workspace"],
+        select_related=["user", "workspace", "role"],
     )
 
 

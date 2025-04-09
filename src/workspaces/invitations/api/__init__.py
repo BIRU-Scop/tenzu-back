@@ -28,7 +28,11 @@ from commons.exceptions.api.errors import (
 )
 from commons.validators import B64UUID
 from memberships.api.validators import InvitationsValidator
-from memberships.services.exceptions import BadInvitationTokenError
+from memberships.services.exceptions import (
+    BadInvitationTokenError,
+    InvitationForOwnerNotAuthorisedError,
+    InvitationNonExistingUsernameError,
+)
 from permissions import check_permissions
 from workspaces.invitations import services as workspaces_invitations_services
 from workspaces.invitations.models import WorkspaceInvitation
@@ -78,11 +82,16 @@ async def create_workspace_invitations(
         obj=workspace,
     )
 
-    return await workspaces_invitations_services.create_workspace_invitations(
-        workspace=workspace,
-        invitations=form.model_dump()["invitations"],
-        invited_by=request.user,
-    )
+    try:
+        return await workspaces_invitations_services.create_workspace_invitations(
+            workspace=workspace,
+            invitations=form.model_dump()["invitations"],
+            invited_by=request.user,
+        )
+    except InvitationNonExistingUsernameError as e:
+        raise ex.BadRequest(str(e))
+    except InvitationForOwnerNotAuthorisedError as e:
+        raise ex.ForbiddenError(str(e))
 
 
 ##########################################################
@@ -116,7 +125,7 @@ async def list_workspace_invitations(
         obj=workspace,
     )
 
-    return await workspaces_invitations_services.list_pending_workspace_invitations(
+    return await workspaces_invitations_services.list_workspace_invitations(
         workspace=workspace
     )
 

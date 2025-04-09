@@ -23,13 +23,12 @@ from commons.exceptions import api as ex
 from permissions import (
     check_permissions,
 )
-from projects.invitations import permissions
 from projects.invitations.permissions import (
+    CanModifyInvitation,
     HasPendingProjectInvitation,
     IsProjectInvitationRecipient,
 )
 from tests.utils import factories as f
-from users.models import AnonymousUser
 
 ###########################################################################
 # check_permissions
@@ -82,33 +81,34 @@ async def test_check_permission_has_pending_project_invitation():
         )
 
 
-###########################################################################
-# InvitationPermissionsCheck.ANSWER
-###########################################################################
+async def test_check_permission_can_modify_projects_invitation():
+    user = f.build_user()
+    owner_role = f.build_project_role(is_owner=True)
+    member_role = f.build_project_role(is_owner=False)
+    invitation1 = f.build_project_invitation(
+        email="test@demo.test", user=None, role=owner_role
+    )
+    invitation2 = f.build_project_invitation(
+        email="test@demo.test", user=None, role=member_role
+    )
 
+    permissions = CanModifyInvitation()
 
-@pytest.mark.parametrize(
-    "invitation_email, user_email, expected",
-    [
-        # Allowed / True
-        ("test@email.com", "test@email.com", True),
-        # Not allowed / False
-        ("test1@email.com", "test@email.com", False),
-    ],
-)
-async def test_is_project_invitation_recipient_permission_with_different_emails(
-    invitation_email, user_email, expected
-):
-    perm = permissions.InvitationPermissionsCheck.ANSWER.value
-    user = f.build_user(email=invitation_email)
-    invitation = f.build_project_invitation(user=user, email=user_email)
-
-    assert await perm.is_authorized(user, invitation) == expected
-
-
-async def test_is_project_invitation_recipient_permission_with_anonymous_user():
-    perm = permissions.InvitationPermissionsCheck.ANSWER.value
-    user = AnonymousUser()
-    invitation = f.build_project_invitation(user=None, email="some@email.com")
-
-    assert not await perm.is_authorized(user, invitation)
+    # user is owner
+    user.project_role = owner_role
+    assert (
+        await check_permissions(permissions=permissions, user=user, obj=invitation1)
+        is None
+    )
+    assert (
+        await check_permissions(permissions=permissions, user=user, obj=invitation2)
+        is None
+    )
+    # user is not owner
+    user.project_role = member_role
+    assert (
+        await check_permissions(permissions=permissions, user=user, obj=invitation2)
+        is None
+    )
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user, obj=invitation1)
