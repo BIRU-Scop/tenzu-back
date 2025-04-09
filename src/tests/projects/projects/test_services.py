@@ -353,10 +353,13 @@ async def test_update_project_ok(tqmanager):
         fake_updated_project = fake_pj_repo.update_project.return_value
         assert len(tqmanager.pending_jobs) == 0
         fake_get_project_detail.assert_awaited_once_with(
-            project=fake_updated_project, user=None
+            project=fake_updated_project, user=user
         )
+        fake_updated_project_detail = fake_get_project_detail.return_value
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
-            project=fake_updated_project
+            project_detail=fake_updated_project_detail,
+            project_id=fake_updated_project.b64id,
+            updated_by=user,
         )
 
 
@@ -384,10 +387,13 @@ async def test_update_project_ok_with_new_logo(tqmanager):
         fake_updated_project = fake_pj_repo.update_project.return_value
         assert len(tqmanager.pending_jobs) == 0
         fake_get_project_detail.assert_awaited_once_with(
-            project=fake_updated_project, user=None
+            project=fake_updated_project, user=user
         )
+        fake_updated_project_detail = fake_get_project_detail.return_value
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
-            project=fake_updated_project
+            project_detail=fake_updated_project_detail,
+            project_id=fake_updated_project.b64id,
+            updated_by=user,
         )
 
 
@@ -420,10 +426,13 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
         # assert "path" in job["args"]
         # assert job["args"]["path"].endswith(logo.name)
         fake_get_project_detail.assert_awaited_once_with(
-            project=fake_updated_project, user=None
+            project=fake_updated_project, user=user
         )
+        fake_updated_project_detail = fake_get_project_detail.return_value
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
-            project=fake_updated_project
+            project_detail=fake_updated_project_detail,
+            project_id=fake_updated_project.b64id,
+            updated_by=user,
         )
 
 
@@ -458,7 +467,7 @@ async def test_update_project_name_empty(tqmanager):
 
 
 async def test_update_project_landing_page_ok():
-    user = f.create_user()
+    user = f.build_user()
     project = f.build_project()
     values = {"landing_page": "kanban/new_slug"}
 
@@ -466,6 +475,9 @@ async def test_update_project_landing_page_ok():
         patch(
             "projects.projects.services.projects_repositories", autospec=True
         ) as fake_pj_repo,
+        patch(
+            "projects.projects.services.get_project_detail", autospec=True
+        ) as fake_get_project_detail,
         patch(
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
@@ -482,8 +494,13 @@ async def test_update_project_landing_page_ok():
         )
 
         fake_updated_project = fake_pj_repo.update_project.return_value
+
+        fake_updated_project_detail = fake_get_project_detail.return_value
+
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
-            project=fake_updated_project
+            project_detail=fake_updated_project_detail,
+            project_id=fake_updated_project.b64id,
+            updated_by=user,
         )
 
 
@@ -497,6 +514,9 @@ async def test_update_project_landing_page_ok_empty_value():
             "projects.projects.services.projects_repositories", autospec=True
         ) as fake_pj_repo,
         patch(
+            "projects.projects.services.get_project_detail", autospec=True
+        ) as fake_get_project_detail,
+        patch(
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
     ):
@@ -509,8 +529,12 @@ async def test_update_project_landing_page_ok_empty_value():
             values=values,
         )
         fake_updated_project = fake_pj_repo.update_project.return_value
+        fake_updated_project_detail = fake_get_project_detail.return_value
+
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
-            project=fake_updated_project
+            project_detail=fake_updated_project_detail,
+            project_id=fake_updated_project.b64id,
+            updated_by=user,
         )
 
 
@@ -524,6 +548,9 @@ async def test_update_project_landing_page_ok_new_slug():
             "projects.projects.services.projects_repositories", autospec=True
         ) as fake_pj_repo,
         patch(
+            "projects.projects.services.get_project_detail", autospec=True
+        ) as fake_get_project_detail,
+        patch(
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
     ):
@@ -536,8 +563,13 @@ async def test_update_project_landing_page_ok_new_slug():
             values=values,
         )
         fake_updated_project = fake_pj_repo.update_project.return_value
+
+        fake_updated_project_detail = fake_get_project_detail.return_value
+
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
-            project=fake_updated_project
+            project_detail=fake_updated_project_detail,
+            project_id=fake_updated_project.b64id,
+            updated_by=user,
         )
 
 

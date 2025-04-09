@@ -531,7 +531,7 @@ async def test_delete_workflow_update_landing_to_new_slug():
         ret = await services.delete_workflow(workflow=workflow, deleted_by=user)
 
         fake_projects_services.update_project_landing_page.assert_awaited_once_with(
-            project=workflow.project
+            project=workflow.project, updated_by=user
         )
 
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once()
