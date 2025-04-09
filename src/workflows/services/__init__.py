@@ -205,7 +205,7 @@ async def get_delete_workflow_detail(
 
 @transaction_atomic_async
 async def update_workflow(
-    project_id: UUID, workflow: Workflow, values: dict[str, Any] = {}
+    project_id: UUID, workflow: Workflow, updated_by: User, values: dict[str, Any] = {}
 ) -> WorkflowSerializer:
     previous_slug = workflow.slug
     updated_workflow = await workflows_repositories.update_workflow(
@@ -220,7 +220,7 @@ async def update_workflow(
         and workflow.project.landing_page.endswith(f"/{previous_slug}")
     ):
         await projects_services.update_project_landing_page(
-            workflow.project, updated_workflow.slug
+            workflow.project, updated_by, updated_workflow.slug
         )
 
     # Emit event
@@ -239,13 +239,14 @@ async def update_workflow(
 
 @transaction_atomic_async
 async def delete_workflow(
-    workflow: Workflow, target_workflow_slug: str | None = None
+    workflow: Workflow, deleted_by: User, target_workflow_slug: str | None = None
 ) -> bool:
     """
     This method deletes a workflow, providing the option to first migrate its workflow statuses to another workflow
     in the same project.
 
     :param workflow: the workflow to delete
+    :param deleted_by: the user which has deleted this workflow
     :param target_workflow_slug: the workflow slug to which move their statuses from the workflow being deleted
         - if not received, the workflow, statuses and its contained stories will be deleted
         - if received, the workflow will be deleted but its statuses and stories won't (they will be appended to the
@@ -309,7 +310,9 @@ async def delete_workflow(
 
     if deleted > 0:
         if workflow.project.landing_page.endswith(f"/{workflow.slug}"):
-            await projects_services.update_project_landing_page(workflow.project)
+            await projects_services.update_project_landing_page(
+                workflow.project, deleted_by
+            )
 
         target_workflow_detail = None
         # events will render the final statuses in the target_workflow AFTER any reorder process

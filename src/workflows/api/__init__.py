@@ -224,7 +224,7 @@ async def update_workflow(
 
     values = form.dict(exclude_unset=True)
     return await workflows_services.update_workflow(
-        project_id=project_id, workflow=workflow, values=values
+        project_id=project_id, workflow=workflow, updated_by=request.user, values=values
     )
 
 
@@ -270,7 +270,9 @@ async def delete_workflow(
     )
 
     await workflows_services.delete_workflow(
-        workflow=workflow, target_workflow_slug=query_params.move_to
+        workflow=workflow,
+        deleted_by=request.user,
+        target_workflow_slug=query_params.move_to,
     )
     return 204, None
 

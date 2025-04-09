@@ -18,7 +18,13 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.serializers import UUIDB64, BaseModel
+from projects.projects.serializers import ProjectDetailSerializer
 from users.serializers.nested import UserNestedSerializer
+
+
+class UpdateProjectContent(BaseModel):
+    project: ProjectDetailSerializer
+    updated_by: UserNestedSerializer
 
 
 class DeleteProjectContent(BaseModel):
