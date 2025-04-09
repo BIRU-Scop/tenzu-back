@@ -331,7 +331,7 @@ async def test_get_project_detail_anonymous():
 
 
 async def test_update_project_ok(tqmanager):
-    user = f.create_user()
+    user = f.build_user()
     project = f.build_project()
     values = {"name": "new name", "description": ""}
 
@@ -361,7 +361,7 @@ async def test_update_project_ok(tqmanager):
 
 
 async def test_update_project_ok_with_new_logo(tqmanager):
-    user = f.create_user()
+    user = f.build_user()
     new_logo = f.build_image_uploadfile()
     project = f.build_project()
     values = {"name": "new name", "description": "", "logo": new_logo}
@@ -392,7 +392,7 @@ async def test_update_project_ok_with_new_logo(tqmanager):
 
 
 async def test_update_project_ok_with_logo_replacement(tqmanager):
-    user = f.create_user()
+    user = f.build_user()
     logo = f.build_image_file()
     new_logo = f.build_image_uploadfile(name="new_logo")
     project = f.build_project(logo=logo)
@@ -428,7 +428,7 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
 
 
 async def test_update_project_name_empty(tqmanager):
-    user = f.create_user()
+    user = f.build_user()
     project = f.build_project()
     logo = f.build_image_file()
     values = {"name": "", "description": "", "logo": logo}
@@ -488,7 +488,7 @@ async def test_update_project_landing_page_ok():
 
 
 async def test_update_project_landing_page_ok_empty_value():
-    user = f.create_user()
+    user = f.build_user()
     project = f.build_project()
     values = {"landing_page": ""}
 
@@ -515,7 +515,7 @@ async def test_update_project_landing_page_ok_empty_value():
 
 
 async def test_update_project_landing_page_ok_new_slug():
-    user = f.create_user()
+    user = f.build_user()
     project = f.build_project()
     values = {"landing_page": "kanban/new-w"}
 

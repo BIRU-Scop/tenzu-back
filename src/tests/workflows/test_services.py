@@ -273,7 +273,7 @@ async def test_get_delete_workflow_detail_ok():
 
 
 async def test_update_workflow_ok():
-    user = f.create_user()
+    user = f.build_user()
     project = f.build_project()
     workflow = f.build_workflow(project=project)
     values = {"name": "updated name"}
@@ -305,7 +305,7 @@ async def test_update_workflow_ok():
 
 
 async def test_update_workflow_update_landing_to_new_slug():
-    user = f.create_user()
+    user = f.build_user()
     workflow = f.build_workflow(slug="landing-w", project__landing_page="k/landing-w")
     values = {"name": "updated name"}
 
@@ -458,7 +458,7 @@ async def test_delete_workflow_no_target_workflow_ok():
         ) as fake_projects_services,
         patch("django.db.transaction.atomic", autospec=True),
     ):
-        user = f.create_user()
+        user = f.build_user()
         workflow = f.build_workflow()
         status1 = f.build_workflow_status(workflow=workflow, order=1)
         status2 = f.build_workflow_status(workflow=workflow, order=2)
@@ -508,7 +508,7 @@ async def test_delete_workflow_update_landing_to_new_slug():
         ) as fake_projects_services,
         patch("django.db.transaction.atomic", autospec=True),
     ):
-        user = f.create_user()
+        user = f.build_user()
         workflow = f.build_workflow(
             slug="landing-w", project__landing_page="k/landing-w"
         )
@@ -558,7 +558,7 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         ) as fake_workflows_events,
         patch("django.db.transaction.atomic", autospec=True),
     ):
-        user = f.create_user()
+        user = f.build_user()
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
         deleted_workflow_status1 = f.build_workflow_status(
             workflow=deleted_workflow, order=1
@@ -676,7 +676,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         ) as fake_workflows_events,
         patch("django.db.transaction.atomic", autospec=True),
     ):
-        user = f.create_user()
+        user = f.build_user()
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
         deleted_workflow_status1 = f.build_workflow_status(
             workflow=deleted_workflow, order=1
@@ -780,7 +780,7 @@ async def test_delete_workflow_not_existing_target_workflow_exception():
         patch("django.db.transaction.atomic", autospec=True),
         pytest.raises(ex.NonExistingMoveToWorkflow),
     ):
-        user = f.create_user()
+        user = f.build_user()
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
         deleted_workflow_detail = DeleteWorkflowSerializer(
             id=deleted_workflow.id,
@@ -827,7 +827,7 @@ async def test_delete_workflow_same_target_workflow_exception():
         patch("django.db.transaction.atomic", autospec=True),
         pytest.raises(ex.SameMoveToWorkflow),
     ):
-        user = f.create_user()
+        user = f.build_user()
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
         deleted_workflow_detail = DeleteWorkflowSerializer(
             id=deleted_workflow.id,
