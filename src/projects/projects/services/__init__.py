@@ -244,7 +244,7 @@ async def get_project_detail(
 
 
 async def update_project(
-    project: Project, updated_by: AnyUser, values: dict[str, Any] = {}
+    project: Project, updated_by: User, values: dict[str, Any] = {}
 ) -> ProjectDetailSerializer:
     updated_project = await _update_project(project=project, values=values)
     project_detail = await get_project_detail(project=updated_project, user=updated_by)
@@ -256,7 +256,7 @@ async def update_project(
 
 
 async def update_project_landing_page(
-    project: Project, updated_by: AnyUser, new_slug: str | None = None
+    project: Project, updated_by: User, new_slug: str | None = None
 ) -> Project:
     if new_slug is None:
         new_slug = await projects_repositories.get_first_workflow_slug(project)
@@ -331,7 +331,7 @@ async def update_project_public_permissions(
 ##########################################################
 
 
-async def delete_project(project: Project, deleted_by: AnyUser) -> bool:
+async def delete_project(project: Project, deleted_by: User) -> bool:
     # Mark the file to delete
     file_to_delete = None
     if project.logo:

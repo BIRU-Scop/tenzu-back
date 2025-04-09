@@ -40,7 +40,7 @@ async def emit_event_when_project_permissions_are_updated(project: Project) -> N
 
 
 async def emit_event_when_project_is_updated(
-    project_detail: ProjectDetailSerializer, project_id: str, updated_by: AnyUser
+    project_detail: ProjectDetailSerializer, project_id: str, updated_by: User
 ) -> None:
     """
     This event is emitted whenever there's a change in the project
@@ -58,7 +58,7 @@ async def emit_event_when_project_is_updated(
 async def emit_event_when_project_is_deleted(
     workspace: Workspace,
     project: Project,
-    deleted_by: AnyUser,
+    deleted_by: User,
     guests: list[User],
 ) -> None:
     # for ws-members, both in the home page and in the ws-detail
