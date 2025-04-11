@@ -18,7 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
-from asgiref.sync import sync_to_async
 
 from permissions.choices import ProjectPermissions
 from tests.utils import factories as f
@@ -38,7 +37,9 @@ pytestmark = pytest.mark.django_db
 ##########################################################
 
 
-async def test_create_story_200_ok_being_ws_or_pj_admin_ok(client, project_template):
+async def test_create_story_200_ok_being_ws_owner_ko_pj_owner_ok(
+    client, project_template
+):
     workspace = await f.create_workspace()
     project = await f.create_project(template=project_template, workspace=workspace)
     workflow = await f.create_workflow(project=project)
@@ -54,7 +55,7 @@ async def test_create_story_200_ok_being_ws_or_pj_admin_ok(client, project_templ
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 403, response.data
 
     client.login(project.created_by)
     response = await client.post(
@@ -64,19 +65,15 @@ async def test_create_story_200_ok_being_ws_or_pj_admin_ok(client, project_templ
 
 
 async def test_create_story_200_ok_user_has_valid_perm_ok(client, project_template):
-    ws_member = await f.create_user()
     pj_member = await f.create_user()
-    public_user = await f.create_user()
-
-    workspace = await f.create_workspace()
-    await f.create_workspace_membership(user=ws_member, workspace=workspace)
 
     project = await f.create_project(
         template=project_template,
-        workspace=workspace,
     )
     pj_role = await f.create_project_role(
-        permissions=ProjectPermissions.values, is_owner=False, project=project
+        permissions=[ProjectPermissions.CREATE_STORY.value],
+        is_owner=False,
+        project=project,
     )
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
@@ -89,19 +86,7 @@ async def test_create_story_200_ok_user_has_valid_perm_ok(client, project_templa
         "statusId": workflow_status.b64id,
     }
 
-    client.login(ws_member)
-    response = await client.post(
-        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
-    )
-    assert response.status_code == 200, response.data
-
     client.login(pj_member)
-    response = await client.post(
-        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
-    )
-    assert response.status_code == 200, response.data
-
-    client.login(public_user)
     response = await client.post(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories", json=data
     )
@@ -137,11 +122,11 @@ async def test_create_story_403_forbidden_user_has_not_valid_perm(
         template=project_template,
         workspace=workspace,
     )
-    NO_ADD_STORY_PERMISSIONS = list(
+    _PERMISSIONS = list(
         set(ProjectPermissions.values) - {ProjectPermissions.CREATE_STORY.value}
     )
     pj_role = await f.create_project_role(
-        permissions=NO_ADD_STORY_PERMISSIONS, is_owner=False, project=project
+        permissions=_PERMISSIONS, is_owner=False, project=project
     )
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
@@ -222,7 +207,47 @@ async def test_list_workflow_stories_200_ok(client, project_template):
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories"
     )
     assert response.status_code == 200, response.data
-    assert response.json()
+    assert len(response.json()) == 2
+
+    pj_member = await f.create_user()
+    pj_role = await f.create_project_role(
+        permissions=[ProjectPermissions.VIEW_STORY.value],
+        is_owner=False,
+        project=project,
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
+
+    client.login(pj_member)
+    response = await client.get(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories"
+    )
+    assert response.status_code == 200, response.data
+    assert len(response.json()) == 2
+
+
+async def test_list_workflow_stories_403_forbidden_user_has_not_valid_perm(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    workflow = await f.create_workflow(project=project)
+    workflow_status = await f.create_workflow_status(workflow=workflow)
+    await f.create_story(project=project, workflow=workflow, status=workflow_status)
+    await f.create_story(project=project, workflow=workflow, status=workflow_status)
+
+    pj_member = await f.create_user()
+    _PERMISSIONS = list(
+        set(ProjectPermissions.values) - {ProjectPermissions.VIEW_STORY.value}
+    )
+    pj_role = await f.create_project_role(
+        permissions=_PERMISSIONS, is_owner=False, project=project
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
+
+    client.login(pj_member)
+    response = await client.get(
+        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories"
+    )
+    assert response.status_code == 403, response.data
 
 
 async def test_list_workflow_stories_200_ok_with_pagination(client, project_template):
@@ -249,9 +274,9 @@ async def test_list_workflow_stories_200_ok_with_pagination(client, project_temp
 
 async def test_list_workflow_stories_404_not_found_project_b64id(client):
     workflow = await f.create_workflow()
-    pj_admin = await f.create_user()
+    pj_owner = await f.create_user()
 
-    client.login(pj_admin)
+    client.login(pj_owner)
     response = await client.get(
         f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}/stories"
     )
@@ -262,9 +287,9 @@ async def test_list_workflow_stories_404_not_found_workflow_slug(
     client, project_template
 ):
     project = await f.create_project(project_template)
-    pj_admin = await f.create_user()
+    pj_owner = await f.create_user()
 
-    client.login(pj_admin)
+    client.login(pj_owner)
     response = await client.get(
         f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories"
     )
@@ -273,9 +298,9 @@ async def test_list_workflow_stories_404_not_found_workflow_slug(
 
 async def test_list_workflow_stories_422_unprocessable_project_b64id(client):
     workflow = await f.create_workflow()
-    pj_admin = await f.create_user()
+    pj_owner = await f.create_user()
 
-    client.login(pj_admin)
+    client.login(pj_owner)
     response = await client.get(
         f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}/stories"
     )
@@ -299,18 +324,53 @@ async def test_list_story_invalid_workflow(client, project_template):
 
 async def test_get_story_200_ok(client, project_template):
     project = await f.create_project(project_template)
-    workflow = await sync_to_async(project.workflows.first)()
-    story_status = await sync_to_async(workflow.statuses.first)()
+    workflow = await project.workflows.afirst()
+    story_status = await workflow.statuses.afirst()
     story = await f.create_story(
         project=project, workflow=workflow, status=story_status
     )
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
-    res = response.json()
-
     assert response.status_code == 200, response.data
-    assert res["ref"] == story.ref
+    assert response.json()["ref"] == story.ref
+
+    pj_member = await f.create_user()
+    pj_role = await f.create_project_role(
+        permissions=[ProjectPermissions.VIEW_STORY.value],
+        is_owner=False,
+        project=project,
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
+
+    client.login(pj_member)
+    response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
+    assert response.status_code == 200, response.data
+    assert response.json()["ref"] == story.ref
+
+
+async def test_get_story_403_forbidden_user_has_not_valid_perm(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    workflow = await project.workflows.afirst()
+    story_status = await workflow.statuses.afirst()
+    story = await f.create_story(
+        project=project, workflow=workflow, status=story_status
+    )
+
+    pj_member = await f.create_user()
+    _PERMISSIONS = list(
+        set(ProjectPermissions.values) - {ProjectPermissions.VIEW_STORY.value}
+    )
+    pj_role = await f.create_project_role(
+        permissions=_PERMISSIONS, is_owner=False, project=project
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
+
+    client.login(pj_member)
+    response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
+    assert response.status_code == 403, response.data
 
 
 async def test_get_story_404_not_found_project_b64id(client, project_template):
@@ -333,9 +393,9 @@ async def test_get_story_404_not_found_story_ref(client, project_template):
 
 
 async def test_get_story_422_unprocessable_project_b64id(client):
-    pj_admin = await f.create_user()
+    pj_owner = await f.create_user()
 
-    client.login(pj_admin)
+    client.login(pj_owner)
     response = await client.get(
         f"/projects/{INVALID_B64ID}/stories/{NOT_EXISTING_B64ID}"
     )
@@ -372,6 +432,68 @@ async def test_update_story_200_ok_unprotected_attribute_status_ok(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
     assert response.status_code == 200, response.data
+    assert response.json()["ref"] == story.ref
+    version = response.json()["version"]
+    assert version > story.version
+
+    pj_member = await f.create_user()
+    pj_role = await f.create_project_role(
+        permissions=[ProjectPermissions.MODIFY_STORY.value],
+        is_owner=False,
+        project=project,
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
+
+    data = {"version": version, "statusId": status1.b64id}
+    client.login(pj_member)
+    response = await client.patch(
+        f"/projects/{project.b64id}/stories/{story.ref}", json=data
+    )
+    assert response.status_code == 200, response.data
+    assert response.json()["ref"] == story.ref
+
+
+async def test_update_story_400_wrong_version(client, project_template):
+    project = await f.create_project(project_template)
+    workflow = await project.workflows.afirst()
+    status1 = await workflow.statuses.afirst()
+    status2 = await workflow.statuses.alast()
+    story = await f.create_story(project=project, workflow=workflow, status=status1)
+
+    data = {"version": story.version, "statusId": status2.b64id}
+    client.login(project.created_by)
+    await client.patch(f"/projects/{project.b64id}/stories/{story.ref}", json=data)
+    response = await client.patch(
+        f"/projects/{project.b64id}/stories/{story.ref}", json=data
+    )
+    assert response.status_code == 400, response.data
+
+
+async def test_update_story_403_forbidden_user_has_not_valid_perm(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    workflow = await project.workflows.afirst()
+    status1 = await workflow.statuses.afirst()
+    status2 = await workflow.statuses.alast()
+    story = await f.create_story(project=project, workflow=workflow, status=status1)
+
+    data = {"version": story.version, "statusId": status2.b64id}
+
+    pj_member = await f.create_user()
+    _PERMISSIONS = list(
+        set(ProjectPermissions.values) - {ProjectPermissions.MODIFY_STORY.value}
+    )
+    pj_role = await f.create_project_role(
+        permissions=_PERMISSIONS, is_owner=False, project=project
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
+
+    client.login(pj_member)
+    response = await client.patch(
+        f"/projects/{project.b64id}/stories/{story.ref}", json=data
+    )
+    assert response.status_code == 403, response.data
 
 
 async def test_update_story_200_ok_unprotected_attribute_workflow_ok(
@@ -494,8 +616,8 @@ async def test_update_story_404_not_found_story_ref(client, project_template):
 
 async def test_reorder_stories_with_reorder_ok(client, project_template):
     project = await f.create_project(project_template)
-    workflow = await sync_to_async(project.workflows.first)()
-    status_new = await sync_to_async(workflow.statuses.first)()
+    workflow = await project.workflows.afirst()
+    status_new = await workflow.statuses.afirst()
     s1 = await f.create_story(project=project, workflow=workflow, status=status_new)
     await f.create_story(project=project, workflow=workflow, status=status_new)
     s3 = await f.create_story(project=project, workflow=workflow, status=status_new)
@@ -517,11 +639,63 @@ async def test_reorder_stories_with_reorder_ok(client, project_template):
     assert "stories" in res
     assert res["stories"] == [s1.ref]
 
+    pj_member = await f.create_user()
+    pj_role = await f.create_project_role(
+        permissions=[ProjectPermissions.MODIFY_STORY.value],
+        is_owner=False,
+        project=project,
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
+
+    client.login(pj_member)
+    response = await client.post(
+        f"/projects/{project.b64id}/workflows/main/stories/reorder", json=data
+    )
+
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert "statusId" in res
+    assert "reorder" in res
+    assert "stories" in res
+    assert res["stories"] == [s1.ref]
+
+
+async def test_reorder_stories_403_forbidden_user_has_not_valid_perm(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    workflow = await project.workflows.afirst()
+    status_new = await workflow.statuses.afirst()
+    s1 = await f.create_story(project=project, workflow=workflow, status=status_new)
+    await f.create_story(project=project, workflow=workflow, status=status_new)
+    s3 = await f.create_story(project=project, workflow=workflow, status=status_new)
+
+    data = {
+        "statusId": status_new.b64id,
+        "stories": [s1.ref],
+        "reorder": {"place": "before", "ref": s3.ref},
+    }
+
+    pj_member = await f.create_user()
+    _PERMISSIONS = list(
+        set(ProjectPermissions.values) - {ProjectPermissions.MODIFY_STORY.value}
+    )
+    pj_role = await f.create_project_role(
+        permissions=_PERMISSIONS, is_owner=False, project=project
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
+
+    client.login(pj_member)
+    response = await client.post(
+        f"/projects/{project.b64id}/workflows/main/stories/reorder", json=data
+    )
+    assert response.status_code == 403, response.data
+
 
 async def test_reorder_stories_without_reorder_ok(client, project_template):
     project = await f.create_project(project_template)
-    workflow = await sync_to_async(project.workflows.first)()
-    status_new = await sync_to_async(workflow.statuses.first)()
+    workflow = await project.workflows.afirst()
+    status_new = await workflow.statuses.afirst()
     s1 = await f.create_story(project=project, workflow=workflow, status=status_new)
     await f.create_story(project=project, workflow=workflow, status=status_new)
     await f.create_story(project=project, workflow=workflow, status=status_new)
@@ -553,15 +727,35 @@ async def test_delete_204_no_content_story(client, project_template):
     response = await client.delete(f"/projects/{project.b64id}/stories/{story.ref}")
     assert response.status_code == 204, response.data
 
+    story = await f.create_story(project=project)
+    pj_member = await f.create_user()
+    pj_role = await f.create_project_role(
+        permissions=[ProjectPermissions.DELETE_STORY.value],
+        is_owner=False,
+        project=project,
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
+
+    client.login(pj_member)
+    response = await client.delete(f"/projects/{project.b64id}/stories/{story.ref}")
+    assert response.status_code == 204, response.data
+
 
 async def test_delete_story_403_forbidden_user_without_permissions(
     client, project_template
 ):
     project = await f.create_project(project_template)
     story = await f.create_story(project=project)
-    user = await f.create_user()
+    pj_member = await f.create_user()
+    _PERMISSIONS = list(
+        set(ProjectPermissions.values) - {ProjectPermissions.DELETE_STORY.value}
+    )
+    pj_role = await f.create_project_role(
+        permissions=_PERMISSIONS, is_owner=False, project=project
+    )
+    await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
-    client.login(user)
+    client.login(pj_member)
     response = await client.delete(f"/projects/{project.b64id}/stories/{story.ref}")
     assert response.status_code == 403, response.data
 
