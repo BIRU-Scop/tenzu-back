@@ -133,7 +133,7 @@ async def test_get_attachment():
             "attachments.services.attachments_repositories", autospec=True
         ) as fake_attachments_repositories,
     ):
-        await services.get_attachment(id=attachment_id, content_object=story)
+        await services.get_attachment(attachment_id=attachment_id, content_object=story)
         fake_attachments_repositories.get_attachment.assert_awaited_once_with(
             filters={"id": attachment_id, "content_object": story},
             prefetch_related=["content_object", "project"],

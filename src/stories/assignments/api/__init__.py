@@ -79,7 +79,7 @@ async def create_story_assignment(
 
 
 ################################################
-# unassign story (delete assginment)
+# unassign story (delete assignment)
 ################################################
 
 

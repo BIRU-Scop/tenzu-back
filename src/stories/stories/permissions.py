@@ -17,12 +17,21 @@
 # You can contact BIRU at ask@biru.sh
 from enum import Enum
 
-from permissions import DenyAll
+from memberships.permissions import HasPermission
+from permissions import IsAuthenticated
+from permissions.choices import ProjectPermissions
 
 
 class StoryPermissionsCheck(Enum):
-    # TODO
-    VIEW = DenyAll()
-    MODIFY = DenyAll()
-    DELETE = DenyAll()
-    CREATE = DenyAll()
+    VIEW = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.VIEW_STORY, field="project"
+    )
+    MODIFY = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.MODIFY_STORY, field="project"
+    )
+    DELETE = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.DELETE_STORY, field="project"
+    )
+    CREATE = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.CREATE_STORY, field="project"
+    )

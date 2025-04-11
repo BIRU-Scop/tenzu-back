@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from functools import partial
 from uuid import UUID
 
 from django.http import FileResponse, HttpRequest
@@ -34,10 +33,9 @@ from commons.exceptions.api.errors import (
 )
 from commons.validators import B64UUID
 from permissions import check_permissions
-from stories.attachments import events
+from stories.attachments import services as services
 from stories.attachments.serializers import StoryAttachmentSerializer
 from stories.stories.api import get_story_or_404
-from stories.stories.models import Story
 from stories.stories.permissions import StoryPermissionsCheck
 
 attachments_router = Router()
@@ -67,21 +65,17 @@ async def create_story_attachments(
     file: UploadedFile = File(...),
 ) -> Attachment:
     """
-    Create an attachment asociate to a story
+    Create an attachment associated to a story
     """
     story = await get_story_or_404(project_id, ref)
     await check_permissions(
         permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
     )
 
-    event_on_create = partial(
-        events.emit_event_when_story_attachment_is_created, project=story.project
-    )
-    return await attachments_services.create_attachment(
+    return await services.create_attachment(
         file=file,
-        object=story,
+        story=story,
         created_by=request.user,
-        event_on_create=event_on_create,
     )
 
 
@@ -146,19 +140,17 @@ async def delete_story_attachment(
     """
     Delete a story attachment
     """
-    story = await get_story_or_404(project_id=project_id, ref=ref)
     attachment = await get_story_attachment_or_404(
-        attachment_id=attachment_id, story=story
+        attachment_id=attachment_id, project_id=project_id, ref=ref
     )
     await check_permissions(
-        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
+        permissions=StoryPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=attachment.content_object,
     )
 
-    event_on_delete = partial(
-        events.emit_event_when_story_attachment_is_deleted, project=story.project
-    )
-    await attachments_services.delete_attachment(
-        attachment=attachment, event_on_delete=event_on_delete
+    await services.delete_attachment(
+        attachment=attachment, project=attachment.content_object.project
     )
     return 204, None
 
@@ -170,7 +162,6 @@ async def delete_story_attachment(
 
 @attachments_router.get(
     "/projects/{project_id}/stories/{ref}/attachments/{attachment_id}",
-    auth=None,
     url_name="project.story.attachments.file",
     summary="Download the story attachment file",
     response={
@@ -193,11 +184,15 @@ async def get_story_attachment_file(
     """
     Download a story attachment file
     """
-    # TODO add permission check while keeping it usable by the frontend
-    story = await get_story_or_404(project_id=project_id, ref=ref)
     attachment = await get_story_attachment_or_404(
-        attachment_id=attachment_id, story=story
+        attachment_id=attachment_id, project_id=project_id, ref=ref
     )
+    await check_permissions(
+        permissions=StoryPermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=attachment.content_object,
+    )
+
     file = attachment.storaged_object.file
 
     response = FileResponse(
@@ -214,11 +209,21 @@ async def get_story_attachment_file(
 ################################################
 
 
-async def get_story_attachment_or_404(attachment_id: UUID, story: Story) -> Attachment:
+async def get_story_attachment_or_404(
+    attachment_id: UUID,
+    project_id: Path[B64UUID],
+    ref: int,
+) -> Attachment:
     attachment = await attachments_services.get_attachment(
-        id=attachment_id, content_object=story
+        attachment_id=attachment_id,
     )
-    if attachment is None:
-        raise ex.NotFoundError(f"Attachment {attachment_id} does not exist")
+    if (
+        attachment is None
+        or attachment.content_object.ref != ref
+        or attachment.content_object.project_id != project_id
+    ):
+        raise ex.NotFoundError(
+            f"Attachment {attachment_id} does not exist for given story"
+        )
 
     return attachment
