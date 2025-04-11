@@ -42,11 +42,11 @@ class IsMember(PermissionComponent):
     def __init__(
         self,
         model_name: str,
-        field: str = None,
+        access_fields: str | tuple[str, ...] = None,
         *components: "PermissionComponent",
     ) -> None:
         self.model_name = model_name
-        self.field = field
+        self.access_fields = access_fields
         self.role: Role | None = None
         super().__init__(*components)
 
@@ -56,9 +56,13 @@ class IsMember(PermissionComponent):
         if not obj:
             return False
 
-        obj: Workspace | Project = (
-            obj if self.field is None else getattr(obj, self.field)
-        )
+        if self.access_fields is not None:
+            if isinstance(self.access_fields, str):
+                self.access_fields: tuple[str, ...] = (self.access_fields,)
+            for field in self.access_fields:
+                obj = getattr(obj, field)
+
+        obj: Workspace | Project
 
         model_name = obj._meta.model_name
         if model_name != self.model_name:
@@ -87,11 +91,11 @@ class HasPermission(IsMember):
         self,
         model_name: str,
         permission: PermissionsBase,
-        field: str = None,
+        access_fields: str | tuple[str, ...] = None,
         *components: "PermissionComponent",
     ) -> None:
         self.required_permission = permission
-        super().__init__(model_name, field, *components)
+        super().__init__(model_name, access_fields, *components)
 
     async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
         if not await super().is_authorized(user, obj):

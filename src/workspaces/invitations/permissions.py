@@ -40,7 +40,9 @@ class InvitationPermissionsCheck(Enum):
     MODIFY = (
         IsAuthenticated()
         & HasPermission(
-            "workspace", WorkspacePermissions.CREATE_MODIFY_MEMBER, field="workspace"
+            "workspace",
+            WorkspacePermissions.CREATE_MODIFY_MEMBER,
+            access_fields="workspace",
         )
         & CanModifyAssociatedRole("workspace")
     )

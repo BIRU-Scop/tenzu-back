@@ -24,14 +24,14 @@ from permissions.choices import ProjectPermissions
 
 class StoryPermissionsCheck(Enum):
     VIEW = IsAuthenticated() & HasPermission(
-        "project", ProjectPermissions.VIEW_STORY, field="project"
+        "project", ProjectPermissions.VIEW_STORY, access_fields="project"
     )
     MODIFY = IsAuthenticated() & HasPermission(
-        "project", ProjectPermissions.MODIFY_STORY, field="project"
+        "project", ProjectPermissions.MODIFY_STORY, access_fields="project"
     )
     DELETE = IsAuthenticated() & HasPermission(
-        "project", ProjectPermissions.DELETE_STORY, field="project"
+        "project", ProjectPermissions.DELETE_STORY, access_fields="project"
     )
     CREATE = IsAuthenticated() & HasPermission(
-        "project", ProjectPermissions.CREATE_STORY, field="project"
+        "project", ProjectPermissions.CREATE_STORY, access_fields="project"
     )

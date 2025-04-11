@@ -189,7 +189,7 @@ async def test_get_comment():
             "comments.services.comments_repositories", autospec=True
         ) as fake_comments_repositories,
     ):
-        await services.get_comment(id=comment_id, content_object=story)
+        await services.get_comment(id=comment_id)
         fake_comments_repositories.get_comment.assert_awaited_once_with(
             filters={"id": comment_id, "content_object": story},
             select_related=["created_by", "deleted_by"],
@@ -214,9 +214,7 @@ async def test_update_comment():
     ):
         fake_comments_repositories.update_comment.return_value = comment
 
-        await services.update_comment(
-            story=story, comment=comment, values={"text": updated_text}
-        )
+        await services.update_comment(comment=comment, values={"text": updated_text})
 
         fake_comments_repositories.update_comment.assert_awaited_once_with(
             comment=comment, values={"text": updated_text}
@@ -243,7 +241,6 @@ async def test_update_comment_and_emit_event_on_update():
         fake_comments_repositories.update_comment.return_value = comment
 
         await services.update_comment(
-            story=story,
             comment=comment,
             values={"text": updated_text},
             event_on_update=fake_event_on_update,

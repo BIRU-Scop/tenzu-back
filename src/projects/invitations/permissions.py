@@ -40,7 +40,7 @@ class ProjectInvitationPermissionsCheck(Enum):
     MODIFY = (
         IsAuthenticated()
         & HasPermission(
-            "project", ProjectPermissions.CREATE_MODIFY_MEMBER, field="project"
+            "project", ProjectPermissions.CREATE_MODIFY_MEMBER, access_fields="project"
         )
         & CanModifyAssociatedRole("project")
     )

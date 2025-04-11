@@ -66,7 +66,9 @@ async def test_check_permission_has_project_permission(project_template):
         is_owner=False,
         project=project,
     )
-    await f.create_project_membership(user=user2, project=project, role=pj_role)
+    membership = await f.create_project_membership(
+        user=user2, project=project, role=pj_role
+    )
 
     permissions = HasPermission("project", ProjectPermissions.VIEW_STORY)
 
@@ -110,10 +112,17 @@ async def test_check_permission_has_project_permission(project_template):
 
     # check on related model
     permissions = HasPermission(
-        "project", ProjectPermissions.VIEW_STORY, field="project"
+        "project", ProjectPermissions.VIEW_STORY, access_fields="project"
     )
     assert (
         await check_permissions(permissions=permissions, user=user2, obj=pj_role)
+        is None
+    )
+    permissions = HasPermission(
+        "project", ProjectPermissions.VIEW_STORY, access_fields=("role", "project")
+    )
+    assert (
+        await check_permissions(permissions=permissions, user=user2, obj=membership)
         is None
     )
 

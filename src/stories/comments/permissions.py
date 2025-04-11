@@ -18,12 +18,39 @@
 
 from enum import Enum
 
-from permissions import DenyAll, IsRelatedToTheUser
+from memberships.permissions import HasPermission
+from permissions import IsAuthenticated, IsRelatedToTheUser
+from permissions.choices import ProjectPermissions
 
 
 class CommentPermissionsCheck(Enum):
-    # TODO
-    VIEW = DenyAll()
-    MODIFY = DenyAll() & IsRelatedToTheUser("user")
-    DELETE = DenyAll() & IsRelatedToTheUser("user")
-    CREATE = DenyAll()
+    VIEW = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.VIEW_COMMENT, "project"
+    )
+    # can edit only if the user has permission & own the comment or if they can moderate
+    MODIFY = IsAuthenticated() & (
+        (
+            HasPermission(
+                "project",
+                ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT,
+                ("content_object", "project"),
+            )
+            & IsRelatedToTheUser("created_by")
+        )
+        | HasPermission("project", ProjectPermissions.MODERATE_COMMENT, "project")
+    )
+    # can delete only if the user has permission & own the comment or if they can moderate
+    DELETE = IsAuthenticated() & (
+        (
+            HasPermission(
+                "project",
+                ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT,
+                ("content_object", "project"),
+            )
+            & IsRelatedToTheUser("created_by")
+        )
+        | HasPermission("project", ProjectPermissions.MODERATE_COMMENT, "project")
+    )
+    CREATE = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT, "project"
+    )

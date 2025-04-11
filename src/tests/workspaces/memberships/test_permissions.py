@@ -62,7 +62,9 @@ async def test_check_permission_has_workspace_permission():
         is_owner=False,
         workspace=workspace,
     )
-    await f.create_workspace_membership(user=user2, workspace=workspace, role=ws_role)
+    membership = await f.create_workspace_membership(
+        user=user2, workspace=workspace, role=ws_role
+    )
 
     permissions = HasPermission("workspace", WorkspacePermissions.MODIFY_WORKSPACE)
 
@@ -106,10 +108,19 @@ async def test_check_permission_has_workspace_permission():
 
     # check on related model
     permissions = HasPermission(
-        "workspace", WorkspacePermissions.MODIFY_WORKSPACE, field="workspace"
+        "workspace", WorkspacePermissions.MODIFY_WORKSPACE, access_fields="workspace"
     )
     assert (
         await check_permissions(permissions=permissions, user=user2, obj=ws_role)
+        is None
+    )
+    permissions = HasPermission(
+        "workspace",
+        WorkspacePermissions.MODIFY_WORKSPACE,
+        access_fields=("role", "workspace"),
+    )
+    assert (
+        await check_permissions(permissions=permissions, user=user2, obj=membership)
         is None
     )
 

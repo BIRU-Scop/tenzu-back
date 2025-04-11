@@ -33,7 +33,6 @@ from comments.events import (
 from comments.models import Comment
 from comments.notifications import NotificationOnCreateCallable
 from comments.repositories import CommentFilters, CommentOrderBy
-from stories.stories.models import Story
 from users.models import User
 
 ##########################################################
@@ -96,9 +95,9 @@ async def list_paginated_comments(
 ##########################################################
 
 
-async def get_comment(id: UUID, content_object: Model) -> Comment | None:
+async def get_comment(id: UUID) -> Comment | None:
     return await comments_repositories.get_comment(
-        filters={"id": id, "content_object": content_object},
+        filters={"id": id},
         select_related=["created_by", "deleted_by"],
         prefetch_related=["content_object", "project", "workspace"],
         excludes={"deleted": True},
@@ -111,7 +110,6 @@ async def get_comment(id: UUID, content_object: Model) -> Comment | None:
 
 
 async def update_comment(
-    story: Story,
     comment: Comment,
     values: dict[str, Any] = {},
     event_on_update: EventOnUpdateCallable | None = None,

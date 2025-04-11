@@ -32,13 +32,15 @@ class ProjectMembershipPermissionsCheck(Enum):
     MODIFY = (
         IsAuthenticated()
         & HasPermission(
-            "project", ProjectPermissions.CREATE_MODIFY_MEMBER, field="project"
+            "project", ProjectPermissions.CREATE_MODIFY_MEMBER, access_fields="project"
         )
         & CanModifyAssociatedRole("project")
     )
     DELETE = IsAuthenticated() & (
         (
-            HasPermission("project", ProjectPermissions.DELETE_MEMBER, field="project")
+            HasPermission(
+                "project", ProjectPermissions.DELETE_MEMBER, access_fields="project"
+            )
             & CanModifyAssociatedRole("project")
         )
         | IsRelatedToTheUser("user")
@@ -51,8 +53,8 @@ class ProjectRolePermissionsCheck(Enum):
         "project", ProjectPermissions.CREATE_MODIFY_DELETE_ROLE
     )
     MODIFY = IsAuthenticated() & HasPermission(
-        "project", ProjectPermissions.CREATE_MODIFY_DELETE_ROLE, field="project"
+        "project", ProjectPermissions.CREATE_MODIFY_DELETE_ROLE, access_fields="project"
     )
     DELETE = IsAuthenticated() & HasPermission(
-        "project", ProjectPermissions.CREATE_MODIFY_DELETE_ROLE, field="project"
+        "project", ProjectPermissions.CREATE_MODIFY_DELETE_ROLE, access_fields="project"
     )

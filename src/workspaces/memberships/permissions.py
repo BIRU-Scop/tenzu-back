@@ -31,14 +31,18 @@ class WorkspaceMembershipPermissionsCheck(Enum):
     MODIFY = (
         IsAuthenticated()
         & HasPermission(
-            "workspace", WorkspacePermissions.CREATE_MODIFY_MEMBER, field="workspace"
+            "workspace",
+            WorkspacePermissions.CREATE_MODIFY_MEMBER,
+            access_fields="workspace",
         )
         & CanModifyAssociatedRole("workspace")
     )
     DELETE = IsAuthenticated() & (
         (
             HasPermission(
-                "workspace", WorkspacePermissions.DELETE_MEMBER, field="workspace"
+                "workspace",
+                WorkspacePermissions.DELETE_MEMBER,
+                access_fields="workspace",
             )
             & CanModifyAssociatedRole("workspace")
         )
