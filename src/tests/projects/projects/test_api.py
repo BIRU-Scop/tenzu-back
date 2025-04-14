@@ -20,7 +20,6 @@
 import pytest
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
-from permissions import choices
 from permissions.choices import ProjectPermissions
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
@@ -105,12 +104,12 @@ async def test_get_project_200_ok_being_project_member_without_view_workflows(
         project=project,
     )
 
-    user2 = await f.create_user()
+    user = await f.create_user()
     await f.create_project_membership(
-        user=user2, project=project, role=general_member_role
+        user=user, project=project, role=general_member_role
     )
 
-    client.login(user2)
+    client.login(user)
     response = await client.get(f"/projects/{project.b64id}")
     assert response.status_code == 200, response.data
     assert response.json()["workflows"] == []
@@ -124,12 +123,12 @@ async def test_get_project_200_ok_being_project_member(client, project_template)
         project=project,
     )
 
-    user2 = await f.create_user()
+    pj_member = await f.create_user()
     await f.create_project_membership(
-        user=user2, project=project, role=general_member_role
+        user=pj_member, project=project, role=general_member_role
     )
 
-    client.login(user2)
+    client.login(pj_member)
     response = await client.get(f"/projects/{project.b64id}")
     assert response.status_code == 200, response.data
     assert len(response.json()["workflows"]) > 0
@@ -138,26 +137,25 @@ async def test_get_project_200_ok_being_project_member(client, project_template)
 async def test_get_project_200_ok_being_invited_user(client, project_template):
     project = await f.create_project(project_template)
     general_member_role = await f.create_project_role(
-        permissions=choices.ProjectPermissions.values,
         is_owner=False,
         project=project,
     )
 
-    user2 = await f.create_user()
+    user = await f.create_user()
     await f.create_project_invitation(
-        user=user2, project=project, role=general_member_role
+        user=user, project=project, role=general_member_role
     )
 
-    client.login(user2)
+    client.login(user)
     response = await client.get(f"/projects/{project.b64id}")
     assert response.status_code == 200, response.data
 
 
 async def test_get_project_403_forbidden_not_project_member(client, project_template):
     project = await f.create_project(project_template)
-    user2 = await f.create_user()
+    user = await f.create_user()
 
-    client.login(user2)
+    client.login(user)
     response = await client.get(f"/projects/{project.b64id}")
     assert response.status_code == 403, response.data
 
@@ -389,18 +387,6 @@ async def test_delete_project_403_forbidden_member_without_permissions(
 
 
 async def test_delete_project_403_forbidden_not_member(client, project_template):
-    other_user = await f.create_user()
-    project = await f.create_project(project_template)
-
-    data = {"name": "new name"}
-    client.login(other_user)
-    response = await client.post(f"/projects/{project.b64id}", data=data)
-    assert response.status_code == 403, response.data
-
-
-async def test_delete_project_403_forbidden_user_without_permissions(
-    client, project_template
-):
     project = await f.create_project(project_template)
     user = await f.create_user()
 

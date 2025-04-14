@@ -43,5 +43,5 @@ class WorkspaceSerializer(BaseModel):
     color: int
     total_projects: int
     has_projects: bool
-    user_role: str
+    user_role: str | None
     model_config = ConfigDict(from_attributes=True)

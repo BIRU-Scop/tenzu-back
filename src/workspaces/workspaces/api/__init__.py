@@ -66,7 +66,7 @@ async def create_workspace(request, data: WorkspaceValidator) -> WorkspaceSerial
     Create a new workspace for the logged user.
     """
     await check_permissions(
-        permissions=IsAuthenticated(),
+        permissions=WorkspacePermissionsCheck.CREATE.value,
         user=request.user,
     )
     return await workspaces_services.create_workspace(
@@ -90,7 +90,10 @@ async def list_my_workspaces(request) -> list[WorkspaceDetailSerializer]:
     """
     List the workspaces overviews of the logged user.
     """
-    await check_permissions(permissions=IsAuthenticated(), user=request.user)
+    await check_permissions(
+        permissions=WorkspacePermissionsCheck.VIEW_SELF.value,
+        user=request.user,
+    )
     return await workspaces_services.list_user_workspaces(user=request.user)
 
 
@@ -141,7 +144,10 @@ async def get_my_workspace(request, id: Path[B64UUID]) -> WorkspaceDetailSeriali
     Get the workspaces overview for the logged user.
     """
     # TODO only keep one of "get_workspace" api, check membership permission and simplify get_user_workspace_overview
-    await check_permissions(permissions=IsAuthenticated(), user=request.user, obj=None)
+    await check_permissions(
+        permissions=WorkspacePermissionsCheck.VIEW_SELF.value,
+        user=request.user,
+    )
     workspace_overview = await workspaces_services.get_user_workspace(
         user=request.user, workspace_id=id
     )
