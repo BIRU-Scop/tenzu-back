@@ -36,7 +36,6 @@ from notifications.serializers import (
     NotificationSerializer,
 )
 from permissions import check_permissions
-from users.models import User
 
 notifications_router = Router()
 
@@ -59,7 +58,7 @@ async def list_my_notifications(
     List the notifications of the logged user.
     """
     await check_permissions(
-        permissions=NotificationPermissionsCheck.VIEW_SELF.value,
+        permissions=NotificationPermissionsCheck.ACCESS_SELF.value,
         user=request.user,
         obj=None,
     )
@@ -85,7 +84,7 @@ async def count_my_notifications(request) -> dict[str, int]:
     Get user notifications counters
     """
     await check_permissions(
-        permissions=NotificationPermissionsCheck.VIEW_SELF.value,
+        permissions=NotificationPermissionsCheck.ACCESS_SELF.value,
         user=request.user,
         obj=None,
     )
@@ -95,6 +94,32 @@ async def count_my_notifications(request) -> dict[str, int]:
 ##########################################################
 # mark notification as read
 ##########################################################
+
+
+@notifications_router.post(
+    "/my/notifications/read",
+    url_name="my.notifications.all.read",
+    summary="Mark all notifications as read",
+    response={
+        200: list[NotificationSerializer],
+        403: ERROR_RESPONSE_403,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def mark_all_my_notification_as_read(
+    request,
+) -> list[Notification]:
+    """
+    Mark all user notifications as read.
+    """
+    await check_permissions(
+        permissions=NotificationPermissionsCheck.ACCESS_SELF.value,
+        user=request.user,
+    )
+    return await notifications_services.mark_user_notifications_as_read(
+        user=request.user,
+    )
 
 
 @notifications_router.post(
@@ -116,15 +141,15 @@ async def mark_my_notification_as_read(
     """
     Mark a notification as read.
     """
+    notification = await get_notification_or_404(notification_id=id)
     await check_permissions(
-        permissions=NotificationPermissionsCheck.MODIFY_SELF.value,
+        permissions=NotificationPermissionsCheck.MODIFY.value,
         user=request.user,
-        obj=None,
+        obj=notification,
     )
-    await get_notification_or_404(user=request.user, id=id)
     return (
         await notifications_services.mark_user_notifications_as_read(
-            user=request.user, id=id
+            user=request.user, notification_id=id
         )
     )[0]
 
@@ -134,8 +159,10 @@ async def mark_my_notification_as_read(
 ##########################################################
 
 
-async def get_notification_or_404(user: User, id: UUID) -> Notification:
-    notification = await notifications_services.get_user_notification(user=user, id=id)
+async def get_notification_or_404(notification_id: UUID) -> Notification:
+    notification = await notifications_services.get_notification(
+        notification_id=notification_id
+    )
     if notification is None:
         raise ex.NotFoundError("Notification does not exist")
 

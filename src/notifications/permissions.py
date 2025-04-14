@@ -18,9 +18,9 @@
 
 from enum import Enum
 
-from permissions import IsAuthenticated
+from permissions import IsAuthenticated, IsRelatedToTheUser
 
 
 class NotificationPermissionsCheck(Enum):
-    VIEW_SELF = IsAuthenticated()
-    MODIFY_SELF = IsAuthenticated()
+    ACCESS_SELF = IsAuthenticated()
+    MODIFY = IsAuthenticated() & IsRelatedToTheUser("owner")
