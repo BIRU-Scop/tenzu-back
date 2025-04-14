@@ -20,9 +20,9 @@
 from typing import List, Literal
 
 from pydantic import Field, model_serializer
-from pydantic.alias_generators import to_snake
 
 from base.api.ordering import OrderQuery
+from base.utils.strings import orderby_to_snake
 from commons.validators import BaseModel, StrNotEmpty
 
 CommentOrderQuery = OrderQuery(
@@ -43,7 +43,7 @@ class CommentOrderSortQuery(BaseModel):
 
     @model_serializer(return_type=List[str])
     def flat_list_as_result(self):
-        return [to_snake(data) for data in self.order]
+        return [orderby_to_snake(data) for data in self.order]
 
 
 class CreateCommentValidator(BaseModel):
