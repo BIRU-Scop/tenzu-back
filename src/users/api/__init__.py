@@ -28,7 +28,7 @@ from commons.exceptions.api.errors import (
 )
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from ninja_jwt.tokens import RefreshToken
-from permissions import IsAuthenticated, check_permissions
+from permissions import check_permissions
 from users import services as users_services
 from users.api.validators import (
     CreateUserValidator,
@@ -38,6 +38,7 @@ from users.api.validators import (
     VerifyTokenValidator,
 )
 from users.models import User
+from users.permissions import UserPermissionsCheck
 from users.serializers import (
     UserDeleteInfoSerializer,
     UserSerializer,
@@ -119,8 +120,9 @@ async def get_my_user(request) -> User:
     """
     Get the current authenticated user (according to the auth token in the request headers).
     """
-
-    await check_permissions(permissions=IsAuthenticated(), user=request.user)
+    await check_permissions(
+        permissions=UserPermissionsCheck.ACCESS_SELF.value, user=request.user
+    )
 
     return request.user
 
@@ -146,7 +148,9 @@ async def update_my_user(request, form: UpdateUserValidator) -> User:
     """
     Update the current authenticated user (according to the auth token in the request headers).
     """
-    await check_permissions(permissions=IsAuthenticated(), user=request.user)
+    await check_permissions(
+        permissions=UserPermissionsCheck.ACCESS_SELF.value, user=request.user
+    )
 
     return await users_services.update_user(
         user=request.user,
@@ -175,13 +179,15 @@ async def delete_user(request) -> tuple[int, None]:
     In this endpoint:
     - All workspaces where the user is the only workspace member are deleted (cascade)
     - All projects where the user is the only project member are deleted (cascade)
-    - All projects where the user is the only project admin and is not the only workspace member
-    or is not workspace member are updated with a new project admin (a workspace member)
+    - All projects where the user is the only project owner and is not the only workspace member
+      are updated with a new project owner (a workspace member)
     - All memberships related with this user in workspaces and projects are deleted
     - All invitations related with this user in workspaces and projects are deleted
     - User is deleted
     """
-    await check_permissions(permissions=IsAuthenticated(), user=request.user)
+    await check_permissions(
+        permissions=UserPermissionsCheck.ACCESS_SELF.value, user=request.user
+    )
 
     await users_services.delete_user(user=request.user)
     return 204, None
@@ -205,10 +211,12 @@ async def get_user_delete_info(request) -> UserDeleteInfoSerializer:
 
     This endpoint returns:
     - A list of workspaces where the user is the only workspace member and the workspace has projects
-    - A list projects where the user is the only project admin and is not the only workspace member
+    - A list projects where the user is the only project owner and is not the only workspace member
     or is not workspace member
     """
-    await check_permissions(permissions=IsAuthenticated(), user=request.user)
+    await check_permissions(
+        permissions=UserPermissionsCheck.ACCESS_SELF.value, user=request.user
+    )
 
     return await users_services.get_user_delete_info(user=request.user)
 

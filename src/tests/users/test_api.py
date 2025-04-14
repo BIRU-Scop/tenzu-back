@@ -75,7 +75,6 @@ async def test_create_user_email_already_exists(client):
         "password": "correctP4ssword%",
         "acceptTerms": True,
     }
-    client.post("/users", json=data)
     response = await client.post("/users", json=data)
     assert response.status_code == 400, response.data
 
@@ -332,7 +331,7 @@ async def test_get_user_delete_info_success(client, project_template):
 ##########################################################
 
 
-async def test_resquest_reset_password_ok(client):
+async def test_request_reset_password_ok(client):
     user = await f.create_user(is_active=False)
 
     data = {"email": user.email}
@@ -341,14 +340,14 @@ async def test_resquest_reset_password_ok(client):
     assert response.status_code == 200, response.data
 
 
-async def test_resquest_reset_password_ok_with_no_registered_email(client):
+async def test_request_reset_password_ok_with_no_registered_email(client):
     data = {"email": "unregistered@email.com"}
 
     response = await client.post("/users/reset-password", json=data)
     assert response.status_code == 200, response.data
 
 
-async def test_resquest_reset_password_ok_with_invalid_email(client):
+async def test_request_reset_password_ok_with_invalid_email(client):
     data = {"email": "invalid@email"}
 
     response = await client.post("/users/reset-password", json=data)

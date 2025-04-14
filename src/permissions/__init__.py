@@ -120,7 +120,7 @@ async def check_permissions(
     user: "AnyUser",
     obj: object = None,
 ) -> None:
-    if user.is_superuser:
+    if user.is_authenticated and user.is_superuser:
         return
 
     if not await permissions.is_authorized(user=user, obj=obj):
