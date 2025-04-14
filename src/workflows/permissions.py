@@ -18,12 +18,21 @@
 
 from enum import Enum
 
-from permissions import DenyAll
+from memberships.permissions import HasPermission
+from permissions import IsAuthenticated
+from permissions.choices import ProjectPermissions
 
 
 class WorkflowPermissionsCheck(Enum):
-    # TODO
-    VIEW = DenyAll()
-    MODIFY = DenyAll()
-    DELETE = DenyAll()
-    CREATE = DenyAll()
+    VIEW = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.VIEW_WORKFLOW
+    )
+    MODIFY = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.MODIFY_WORKFLOW
+    )
+    DELETE = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.DELETE_WORKFLOW
+    )
+    CREATE = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.CREATE_WORKFLOW
+    )

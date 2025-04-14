@@ -199,7 +199,7 @@ def _create_project_role(project: Project, name: str | None = None) -> ProjectRo
             ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT.value,
             ProjectPermissions.VIEW_WORKFLOW.value,
             ProjectPermissions.MODIFY_WORKFLOW.value,
-            ProjectPermissions.ADD_WORKFLOW.value,
+            ProjectPermissions.CREATE_WORKFLOW.value,
             ProjectPermissions.DELETE_WORKFLOW.value,
         ],
     )

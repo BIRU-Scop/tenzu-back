@@ -140,7 +140,7 @@ class Migration(migrations.Migration):
                                 ("moderate_comment", "Moderates other's comments"),
                                 ("view_workflow", "View workflows in project"),
                                 ("modify_workflow", "Modify the workflows"),
-                                ("add_workflow", "Create new workflows"),
+                                ("create_workflow", "Create new workflows"),
                                 ("delete_workflow", "Delete existing workflows"),
                                 ("create_modify_member", "Create or modify a member"),
                                 ("delete_member", "Delete a member"),

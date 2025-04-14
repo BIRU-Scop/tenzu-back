@@ -44,7 +44,7 @@ class WorkspacePermissionsValidator(BaseModel):
         ["view_story", "modify_story"],
         ["delete_project", "modify_project"],
         ["create_modify_member", "create_modify_delete_role"],
-        ["add_workflow", "modify_workflow", "view_workflow", "view_story"],
+        ["create_workflow", "modify_workflow", "view_workflow", "view_story"],
     ],
 )
 def test_project_permissions_are_valid_and_compatible(permissions: list[str]):

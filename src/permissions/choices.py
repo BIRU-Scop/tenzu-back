@@ -92,7 +92,7 @@ class ProjectPermissions(PermissionsBase):
     # Workflow module permissions
     VIEW_WORKFLOW = "view_workflow", "View workflows in project"
     MODIFY_WORKFLOW = "modify_workflow", "Modify the workflows"
-    ADD_WORKFLOW = "add_workflow", "Create new workflows"
+    CREATE_WORKFLOW = "create_workflow", "Create new workflows"
     DELETE_WORKFLOW = "delete_workflow", "Delete existing workflows"
 
     @classmethod
@@ -139,12 +139,12 @@ class ProjectPermissions(PermissionsBase):
                 cls.VIEW_WORKFLOW,
             ),
             (
-                cls.ADD_WORKFLOW,
+                cls.CREATE_WORKFLOW,
                 cls.MODIFY_WORKFLOW,
             ),
             (
                 cls.DELETE_WORKFLOW,
-                cls.ADD_WORKFLOW,
+                cls.CREATE_WORKFLOW,
             ),
         ]
 

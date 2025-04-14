@@ -148,7 +148,9 @@ async def get_workflow_by_id(
 
     workflow = await get_workflow_by_id_or_404(workflow_id=workflow_id)
     await check_permissions(
-        permissions=WorkflowPermissionsCheck.VIEW.value, user=request.user, obj=workflow
+        permissions=WorkflowPermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workflow.project,
     )
     return await workflows_services.get_workflow_detail(
         project_id=project_id, workflow_slug=workflow.slug
@@ -179,7 +181,9 @@ async def get_workflow(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(
-        permissions=WorkflowPermissionsCheck.VIEW.value, user=request.user, obj=workflow
+        permissions=WorkflowPermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workflow.project,
     )
     return await workflows_services.get_workflow_detail(
         project_id=project_id, workflow_slug=workflow_slug
@@ -218,7 +222,7 @@ async def update_workflow(
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
         user=request.user,
-        obj=workflow,
+        obj=workflow.project,
     )
 
     values = form.dict(exclude_unset=True)
@@ -267,7 +271,7 @@ async def delete_workflow(
     await check_permissions(
         permissions=WorkflowPermissionsCheck.DELETE.value,
         user=request.user,
-        obj=workflow,
+        obj=workflow.project,
     )
 
     await workflows_services.delete_workflow(
@@ -333,7 +337,7 @@ async def create_workflow_status(
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
         user=request.user,
-        obj=workflow,
+        obj=workflow.project,
     )
 
     return await workflows_services.create_workflow_status(
@@ -375,7 +379,7 @@ async def reorder_workflow_statuses(
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
         user=request.user,
-        obj=workflow,
+        obj=workflow.project,
     )
     model_dump = form.model_dump()
 
@@ -419,7 +423,7 @@ async def update_workflow_status(
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
         user=request.user,
-        obj=workflow_status,
+        obj=workflow_status.workflow.project,
     )
 
     return await workflows_services.update_workflow_status(
@@ -468,7 +472,7 @@ async def delete_workflow_status(
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
         user=request.user,
-        obj=workflow_status,
+        obj=workflow_status.workflow.project,
     )
 
     await workflows_services.delete_workflow_status(
