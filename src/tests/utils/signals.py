@@ -19,7 +19,7 @@
 from django.db.models import Model, signals
 
 
-def get_receivers_for_model(listener_name: str, sender: Model):
+def get_receivers_for_model(listener_name: str, sender: type[Model]):
     """
     Returns a list of all receivers functions for a given listener name ("post_save", "post_delete"...)
     and sender (a model class).

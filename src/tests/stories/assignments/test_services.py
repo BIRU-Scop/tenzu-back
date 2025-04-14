@@ -21,46 +21,20 @@ from unittest.mock import patch
 
 import pytest
 
+from projects.memberships.models import ProjectMembership
 from stories.assignments import services
 from stories.assignments.services import exceptions as ex
 from tests.utils import factories as f
-
-pytestmark = pytest.mark.django_db
-
-NO_VIEW_STORY_PERMISSIONS = {}
-
 
 #######################################################
 # create_story_assignment
 #######################################################
 
 
-async def test_create_story_assignment_not_member():
-    user = f.build_user()
-    story = f.build_story()
-    f.build_story_assignment(story=story, user=user)
-
-    with (
-        patch(
-            "stories.assignments.services.story_assignments_repositories", autospec=True
-        ) as fake_story_assignment_repo,
-        pytest.raises(ex.InvalidAssignmentError),
-    ):
-        await services.create_story_assignment(
-            project_id=story.project.id,
-            story=story,
-            username=user.username,
-            created_by=story.created_by,
-        )
-        fake_story_assignment_repo.create_story_assignment.assert_not_awaited()
-
-
-async def test_create_story_assignment_user_without_view_story_permission():
+async def test_create_story_assignment_user_without_permission():
     user = f.build_user()
     project = f.build_project()
-    role = f.build_project_role(
-        project=project, permissions=list(NO_VIEW_STORY_PERMISSIONS), is_owner=False
-    )
+    role = f.build_project_role(project=project, permissions=[], is_owner=False)
     f.build_project_membership(user=user, project=project, role=role)
     story = f.build_story(project=project)
     f.build_story_assignment(story=story, user=user)
@@ -81,8 +55,9 @@ async def test_create_story_assignment_user_without_view_story_permission():
         ) as fake_stories_assignments_notifications,
         pytest.raises(ex.InvalidAssignmentError),
     ):
-        fake_pj_memberships_repo.get_membership.return_value = None
-        fake_story_assignment_repo.create_story_assignment.return_value = None, False
+        fake_pj_memberships_repo.get_membership.side_effect = (
+            ProjectMembership.DoesNotExist
+        )
 
         await services.create_story_assignment(
             project_id=story.project.id,

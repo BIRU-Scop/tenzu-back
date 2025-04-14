@@ -92,7 +92,7 @@ async def test_list_user_notifications_read_only():
         await services.list_user_notifications(user=user, is_read=True)
 
         fake_notifications_repository.list_notifications.assert_called_once_with(
-            filters={"owner": user, "is_read": True}
+            filters={"owner": user, "read_at__isnull": False}
         )
 
 
@@ -105,7 +105,7 @@ async def test_list_user_notifications_unread_only():
         await services.list_user_notifications(user=user, is_read=False)
 
         fake_notifications_repository.list_notifications.assert_called_once_with(
-            filters={"owner": user, "is_read": False}
+            filters={"owner": user, "read_at__isnull": True}
         )
 
 
@@ -131,7 +131,7 @@ async def test_mark_user_notifications_as_read_with_one():
         ]
 
         notifications = await services.mark_user_notifications_as_read(
-            user=user, id=notification.id
+            user=user, notification_id=notification.id
         )
 
         assert notifications == [notification]
@@ -197,8 +197,8 @@ async def test_clean_read_notifications():
 
         fake_notifications_repository.delete_notifications.assert_called_once_with(
             filters={
-                "is_read": True,
-                "read_before": now,
+                "read_at__isnull": False,
+                "read_at__lt": now,
             }
         )
 
@@ -214,7 +214,10 @@ async def test_count_user_notifications():
     with patch(
         "notifications.services.notifications_repositories", autospec=True
     ) as fake_notifications_repository:
-        fake_notifications_repository.count_notifications.side_effect = [10, 2]
+        fake_notifications_repository.count_notifications.return_value = {
+            "read": 2,
+            "unread": 8,
+        }
 
         result = await services.count_user_notifications(user=user)
 
@@ -223,6 +226,5 @@ async def test_count_user_notifications():
         fake_notifications_repository.count_notifications.assert_has_awaits(
             [
                 call(filters={"owner": user}),
-                call(filters={"owner": user, "is_read": True}),
             ]
         )

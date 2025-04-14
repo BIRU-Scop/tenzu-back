@@ -20,14 +20,9 @@
 from unittest.mock import AsyncMock, PropertyMock, patch
 from uuid import uuid1
 
-import pytest
-
 from base.utils.datetime import aware_utcnow
 from comments import services
 from tests.utils import factories as f
-
-pytestmark = pytest.mark.django_db
-
 
 #####################################################
 # create_comment
@@ -172,7 +167,6 @@ async def test_list_comments():
         assert len(comments_list) == 3
         assert pagination.offset == offset
         assert pagination.limit == limit
-        assert pagination.total == total
 
 
 ##########################################################
@@ -191,9 +185,10 @@ async def test_get_comment():
     ):
         await services.get_comment(id=comment_id)
         fake_comments_repositories.get_comment.assert_awaited_once_with(
-            filters={"id": comment_id, "content_object": story},
+            filters={"id": comment_id},
             select_related=["created_by", "deleted_by"],
             prefetch_related=["content_object", "project", "workspace"],
+            excludes={"deleted": True},
         )
 
 

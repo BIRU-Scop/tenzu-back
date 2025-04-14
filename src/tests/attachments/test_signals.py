@@ -30,9 +30,13 @@ pytestmark = pytest.mark.django_db
 
 
 def test_mark_attachment_file_to_delete_is_connected():
-    assert mark_attachment_file_to_delete in signals_utils.get_receivers_for_model(
+    sync_receivers, async_receivers = signals_utils.get_receivers_for_model(
         "post_delete", Attachment
     )
+    # can't test direct equality because of signals_handlers wrapper done by error tracker
+    assert mark_attachment_file_to_delete.__qualname__ in [
+        receiver.__qualname__ for receiver in sync_receivers
+    ]
 
 
 async def test_mark_attachment_file_to_delete_when_delete_first_level_related_model():
@@ -45,15 +49,17 @@ async def test_mark_attachment_file_to_delete_when_delete_first_level_related_mo
     assert await attachments_repositories.delete_attachments(
         filters={"id": attachment.id}
     )
-    await storaged_object.refresh_from_db()
+    await storaged_object.arefresh_from_db()
 
     assert storaged_object.deleted_at
 
 
-async def test_mark_attachment_file_to_delete_when_delete_n_level_related_object():
+async def test_mark_attachment_file_to_delete_when_delete_n_level_related_object(
+    project_template,
+):
     workspace = await f.create_workspace()
-    project1 = await f.create_project(workspace=workspace)
-    project2 = await f.create_project(workspace=workspace)
+    project1 = await f.create_project(project_template, workspace=workspace)
+    project2 = await f.create_project(project_template, workspace=workspace)
     story1 = await f.create_story(project=project1)
     story2 = await f.create_story(project=project2)
     attachment11 = await f.create_attachment(content_object=story1)
@@ -70,9 +76,9 @@ async def test_mark_attachment_file_to_delete_when_delete_n_level_related_object
 
     assert await workspaces_repositories.delete_workspace(workspace_id=workspace.id)
 
-    await storaged_object11.refresh_from_db()
-    await storaged_object12.refresh_from_db()
-    await storaged_object21.refresh_from_db()
+    await storaged_object11.arefresh_from_db()
+    await storaged_object12.arefresh_from_db()
+    await storaged_object21.arefresh_from_db()
 
     assert storaged_object11.deleted_at
     assert storaged_object12.deleted_at

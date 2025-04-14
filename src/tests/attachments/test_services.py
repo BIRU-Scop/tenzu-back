@@ -20,13 +20,8 @@
 import uuid
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 from attachments import services
 from tests.utils import factories as f
-
-pytestmark = pytest.mark.django_db
-
 
 #####################################################
 # create_attachment
@@ -133,9 +128,9 @@ async def test_get_attachment():
             "attachments.services.attachments_repositories", autospec=True
         ) as fake_attachments_repositories,
     ):
-        await services.get_attachment(attachment_id=attachment_id, content_object=story)
+        await services.get_attachment(attachment_id=attachment_id)
         fake_attachments_repositories.get_attachment.assert_awaited_once_with(
-            filters={"id": attachment_id, "content_object": story},
+            filters={"id": attachment_id},
             prefetch_related=["content_object", "project"],
         )
 

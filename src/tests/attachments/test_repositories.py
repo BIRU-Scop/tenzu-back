@@ -43,7 +43,7 @@ async def test_create_attachment(project_template):
     )
 
     assert await story.attachments.acount() == 1
-    assert attachment.name == file.filename
+    assert attachment.name == file.name
     assert attachment.content_type == "image/png"
     assert attachment.size == 145
 
