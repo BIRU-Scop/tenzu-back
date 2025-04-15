@@ -23,9 +23,7 @@ from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from memberships import services as memberships_services
 from memberships.services import exceptions as ex
 from memberships.services import is_membership_the_only_owner  # noqa
-from projects.memberships import services as pj_memberships_services
 from projects.memberships.models import ProjectMembership
-from projects.projects.models import Project
 from users.models import User
 from workspaces.invitations import repositories as workspace_invitations_repositories
 from workspaces.invitations.models import WorkspaceInvitation
@@ -97,6 +95,16 @@ async def delete_workspace_membership(
 ) -> bool:
     if await memberships_services.is_membership_the_only_owner(membership):
         raise ex.MembershipIsTheOnlyOwnerError("Membership is the only workspace owner")
+    if await memberships_repositories.exists_membership(
+        ProjectMembership,
+        filters={
+            "user": membership.user,
+            "project__workspace_id": membership.workspace_id,
+        },
+    ):
+        raise ex.ExistingProjectMembershipsError(
+            "You can't delete this workspace membership while the user is still a member of some projects"
+        )
 
     deleted = await memberships_repositories.delete_membership(membership)
     if deleted > 0:
@@ -110,26 +118,6 @@ async def delete_workspace_membership(
                 membership.user.email
             ),
         )
-        # delete associated projects
-        projects_with_owner_errors: list[Project] = []
-        for project_membership in await memberships_repositories.list_memberships(
-            ProjectMembership,
-            filters={
-                "user": membership.user,
-                "project__workspace_id": membership.workspace_id,
-            },
-            select_related=["project"],
-        ):
-            try:
-                await pj_memberships_services.delete_project_membership(
-                    project_membership
-                )
-            except ex.MembershipIsTheOnlyOwnerError:
-                projects_with_owner_errors.append(project_membership.project)
-        if projects_with_owner_errors:
-            raise ex.MembershipIsTheOnlyOwnerError(
-                f"Membership is the only owner for the following projects {projects_with_owner_errors}"
-            )
         await transaction_on_commit_async(
             memberships_events.emit_event_when_workspace_membership_is_deleted
         )(membership=membership)

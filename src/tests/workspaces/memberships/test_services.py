@@ -22,6 +22,7 @@ from unittest.mock import patch
 import pytest
 
 from memberships.services import exceptions as ex
+from projects.memberships.models import ProjectMembership
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_SLUG
 from tests.utils.utils import patch_db_transaction
@@ -230,34 +231,6 @@ async def test_update_workspace_membership_role_ok():
 ##########################################################
 
 
-async def test_delete_workspace_membership_only_one_owner():
-    workspace = f.build_workspace()
-    owner_role = f.build_workspace_role(workspace=workspace, is_owner=True)
-    membership = f.build_workspace_membership(
-        user=workspace.created_by, workspace=workspace, role=owner_role
-    )
-    with (
-        patch(
-            "workspaces.memberships.services.memberships_repositories", autospec=True
-        ) as fake_membership_repository,
-        patch(
-            "workspaces.memberships.services.memberships_services", autospec=True
-        ) as fake_membership_service,
-        patch(
-            "workspaces.memberships.services.memberships_events", autospec=True
-        ) as fake_membership_events,
-        pytest.raises(ex.MembershipIsTheOnlyOwnerError),
-    ):
-        fake_membership_service.is_membership_the_only_owner.return_value = True
-
-        await services.delete_workspace_membership(membership=membership)
-        fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
-            membership
-        )
-        fake_membership_repository.delete_membership.assert_not_awaited()
-        fake_membership_events.emit_event_when_workspace_membership_is_deleted.assert_not_awaited()
-
-
 async def test_delete_workspace_membership_ok():
     workspace = f.build_workspace()
     user = f.build_user()
@@ -276,7 +249,9 @@ async def test_delete_workspace_membership_ok():
         patch(
             "workspaces.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
+        patch_db_transaction(),
     ):
+        fake_membership_repository.exists_membership.return_value = False
         fake_membership_repository.delete_membership.return_value = 1
         fake_workspace_invitations_repository.username_or_email_query.return_value = (
             None
@@ -295,6 +270,72 @@ async def test_delete_workspace_membership_ok():
         fake_membership_events.emit_event_when_workspace_membership_is_deleted.assert_awaited_once_with(
             membership=membership
         )
+
+
+async def test_delete_workspace_membership_only_one_owner():
+    workspace = f.build_workspace()
+    owner_role = f.build_workspace_role(workspace=workspace, is_owner=True)
+    membership = f.build_workspace_membership(
+        user=workspace.created_by, workspace=workspace, role=owner_role
+    )
+    with (
+        patch(
+            "workspaces.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "workspaces.memberships.services.memberships_services", autospec=True
+        ) as fake_membership_service,
+        patch(
+            "workspaces.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
+        patch_db_transaction(),
+        pytest.raises(ex.MembershipIsTheOnlyOwnerError),
+    ):
+        fake_membership_service.is_membership_the_only_owner.return_value = True
+
+        await services.delete_workspace_membership(membership=membership)
+        fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
+            membership
+        )
+        fake_membership_repository.delete_membership.assert_not_awaited()
+        fake_membership_events.emit_event_when_workspace_membership_is_deleted.assert_not_awaited()
+
+
+async def test_delete_workspace_membership_existing_projects():
+    workspace = f.build_workspace()
+    owner_role = f.build_workspace_role(workspace=workspace, is_owner=True)
+    membership = f.build_workspace_membership(
+        user=workspace.created_by, workspace=workspace, role=owner_role
+    )
+    with (
+        patch(
+            "workspaces.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "workspaces.memberships.services.memberships_services", autospec=True
+        ) as fake_membership_service,
+        patch(
+            "workspaces.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
+        patch_db_transaction(),
+        pytest.raises(ex.ExistingProjectMembershipsError),
+    ):
+        fake_membership_service.is_membership_the_only_owner.return_value = False
+        fake_membership_repository.exists_membership.return_value = True
+
+        await services.delete_workspace_membership(membership=membership)
+        fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
+            membership
+        )
+        fake_membership_repository.exists_membership.assert_awaited_once_with(
+            ProjectMembership,
+            filters={
+                "user": membership.user,
+                "project__workspace_id": membership.workspace_id,
+            },
+        )
+        fake_membership_repository.delete_membership.assert_not_awaited()
+        fake_membership_events.emit_event_when_workspace_membership_is_deleted.assert_not_awaited()
 
 
 #######################################################

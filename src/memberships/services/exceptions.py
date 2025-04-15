@@ -32,6 +32,10 @@ class MembershipIsTheOnlyOwnerError(TenzuServiceException):
     pass
 
 
+class ExistingProjectMembershipsError(TenzuServiceException):
+    pass
+
+
 class NonEditableRoleError(TenzuServiceException):
     pass
 

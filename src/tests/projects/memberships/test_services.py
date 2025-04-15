@@ -303,6 +303,7 @@ async def test_delete_project_membership_only_one_owner():
         patch(
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
+        patch_db_transaction(),
         pytest.raises(ex.MembershipIsTheOnlyOwnerError),
     ):
         fake_membership_service.is_membership_the_only_owner.return_value = True
@@ -337,6 +338,7 @@ async def test_delete_project_membership_ok():
         patch(
             "projects.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
+        patch_db_transaction(),
     ):
         fake_membership_repository.delete_membership.return_value = 1
         fake_project_invitations_repository.username_or_email_query.return_value = None
