@@ -164,8 +164,8 @@ async def verify_user(user: User) -> None:
     await users_repositories.update_user(
         user=user, values={"is_active": True, "date_verification": aware_utcnow()}
     )
-    await project_invitations_services.update_user_projects_invitations(user=user)
     await workspace_invitations_services.update_user_workspaces_invitations(user=user)
+    await project_invitations_services.update_user_projects_invitations(user=user)
 
 
 @transaction_atomic_async
@@ -538,15 +538,6 @@ async def clean_expired_users() -> None:
 async def _accept_invitations_from_token(
     user: User, verify_token: VerifyUserToken
 ) -> tuple[ProjectInvitation | None, WorkspaceInvitation | None]:
-    project_invitation_token = verify_token.get("project_invitation_token", None)
-    if project_invitation_token:
-        project_invitation = await _accept_project_invitation_from_token(
-            invitation_token=project_invitation_token,
-            accept_invitation=verify_token.get("accept_project_invitation", False),
-            user=user,
-        )
-        return project_invitation, None
-
     workspace_invitation_token = verify_token.get("workspace_invitation_token", None)
     if workspace_invitation_token:
         workspace_invitation = await _accept_workspace_invitation_from_token(
@@ -555,6 +546,15 @@ async def _accept_invitations_from_token(
             user=user,
         )
         return None, workspace_invitation
+
+    project_invitation_token = verify_token.get("project_invitation_token", None)
+    if project_invitation_token:
+        project_invitation = await _accept_project_invitation_from_token(
+            invitation_token=project_invitation_token,
+            accept_invitation=verify_token.get("accept_project_invitation", False),
+            user=user,
+        )
+        return project_invitation, None
 
     return None, None
 

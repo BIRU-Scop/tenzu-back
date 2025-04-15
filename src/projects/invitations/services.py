@@ -24,7 +24,7 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 
 from auth import services as auth_services
-from commons.utils import transaction_on_commit_async
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from emails.emails import Emails
 from emails.tasks import send_email
 from memberships import services as memberships_services
@@ -48,6 +48,10 @@ from projects.invitations.tokens import ProjectInvitationToken
 from projects.memberships import repositories as memberships_repositories
 from projects.projects.models import Project
 from users.models import User
+from workspaces.invitations import services as workspaces_invitations_services
+from workspaces.invitations.models import WorkspaceInvitation
+from workspaces.memberships import services as workspaces_memberships_services
+from workspaces.memberships.models import WorkspaceMembership
 
 ##########################################################
 # create project invitations
@@ -192,7 +196,9 @@ async def update_project_invitation(
 ##########################################################
 
 
+@transaction_atomic_async
 async def accept_project_invitation(invitation: ProjectInvitation) -> ProjectInvitation:
+    await _sync_related_workspace_membership(invitation)
     invitation = await memberships_services.accept_invitation(
         invitation=invitation,
     )
@@ -200,9 +206,9 @@ async def accept_project_invitation(invitation: ProjectInvitation) -> ProjectInv
     await memberships_repositories.create_project_membership(
         project=invitation.project, role=invitation.role, user=invitation.user
     )
-    await invitations_events.emit_event_when_project_invitation_is_accepted(
-        invitation=invitation
-    )
+    await transaction_on_commit_async(
+        invitations_events.emit_event_when_project_invitation_is_accepted
+    )(invitation=invitation)
 
     return invitation
 
@@ -314,3 +320,35 @@ async def send_project_invitation_email(
 
 async def _generate_project_invitation_token(invitation: ProjectInvitation) -> str:
     return str(await ProjectInvitationToken.create_for_object(invitation))
+
+
+async def _sync_related_workspace_membership(pj_invitation: ProjectInvitation):
+    # find existing membership first, do nothing then
+    if await memberships_repositories.exists_membership(
+        WorkspaceMembership,
+        filters={
+            "workspace_id": pj_invitation.project.workspace_id,
+            "user_id": pj_invitation.user_id,
+        },
+    ):
+        return
+    # find existing invitation, accept it
+    try:
+        ws_invitation: WorkspaceInvitation = (
+            await invitations_repositories.get_invitation(
+                WorkspaceInvitation,
+                filters={
+                    "workspace_id": pj_invitation.project.workspace_id,
+                    "user_id": pj_invitation.user_id,
+                    "status": InvitationStatus.PENDING,
+                },
+                select_related=["user", "workspace", "role"],
+            )
+        )
+    except WorkspaceInvitation.DoesNotExist:
+        # there is no existing membership nor pending invitation, create workspace default membership
+        await workspaces_memberships_services.create_default_workspace_membership(
+            pj_invitation.project.workspace, pj_invitation.user
+        )
+    else:
+        await workspaces_invitations_services.accept_workspace_invitation(ws_invitation)

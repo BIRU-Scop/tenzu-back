@@ -406,7 +406,7 @@ async def test_list_workspace_roles(
 
     response = await client.get(f"/workspaces/{workspace.b64id}/roles")
     assert response.status_code == status.HTTP_200_OK, response.data
-    assert len(response.json()) == 3  # 2 factory default + newly created
+    assert len(response.json()) == 5  # 4 factory default + newly created
 
 
 async def test_list_workspace_roles_wrong_id(

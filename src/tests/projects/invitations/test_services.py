@@ -33,6 +33,8 @@ from projects.memberships.models import ProjectRole
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_SLUG
 from tests.utils.utils import patch_db_transaction
+from workspaces.invitations.models import WorkspaceInvitation
+from workspaces.memberships.models import WorkspaceMembership
 
 #######################################################
 # get_project_invitation
@@ -756,7 +758,7 @@ async def test_create_project_invitations_owner_no_permission(tqmanager):
 #######################################################
 
 
-async def test_accept_project_invitation() -> None:
+async def test_accept_project_invitation_existing_workspace_membership() -> None:
     user = f.build_user()
     project = f.build_project()
     role = f.build_project_role(project=project)
@@ -774,7 +776,20 @@ async def test_accept_project_invitation() -> None:
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch(
+            "projects.invitations.services.invitations_repositories", autospec=True
+        ) as fake_invitations_repositories,
+        patch(
+            "projects.invitations.services.workspaces_invitations_services",
+            autospec=True,
+        ) as fake_workspaces_invitations_services,
+        patch(
+            "projects.invitations.services.workspaces_memberships_services",
+            autospec=True,
+        ) as fake_workspaces_memberships_services,
+        patch_db_transaction(),
     ):
+        fake_pj_memberships_repo.exists_membership.return_value = True
         fake_memberships_repositories.update_invitation.return_value = invitation
         await services.accept_project_invitation(invitation=invitation)
 
@@ -787,6 +802,160 @@ async def test_accept_project_invitation() -> None:
         )
         fake_invitations_events.emit_event_when_project_invitation_is_accepted.assert_awaited_once_with(
             invitation=invitation
+        )
+        fake_pj_memberships_repo.exists_membership.assert_awaited_once_with(
+            WorkspaceMembership,
+            filters={
+                "workspace_id": project.workspace_id,
+                "user_id": invitation.user_id,
+            },
+        )
+        fake_invitations_repositories.get_invitation.assert_not_awaited()
+        fake_workspaces_invitations_services.accept_workspace_invitation.assert_not_awaited()
+        fake_workspaces_memberships_services.create_default_workspace_membership.assert_not_awaited()
+
+
+async def test_accept_project_invitation_existing_workspace_invitation() -> None:
+    user = f.build_user()
+    project = f.build_project()
+    role = f.build_project_role(project=project)
+    invitation = f.build_project_invitation(
+        project=project, role=role, user=user, email=user.email
+    )
+    ws_role = f.build_workspace_role(workspace=project.workspace)
+    ws_invitation = f.build_workspace_invitation(
+        workspace=project.workspace, role=ws_role, user=user, email=user.email
+    )
+
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repo,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        patch(
+            "projects.invitations.services.invitations_repositories", autospec=True
+        ) as fake_invitations_repositories,
+        patch(
+            "projects.invitations.services.workspaces_invitations_services",
+            autospec=True,
+        ) as fake_workspaces_invitations_services,
+        patch(
+            "projects.invitations.services.workspaces_memberships_services",
+            autospec=True,
+        ) as fake_workspaces_memberships_services,
+        patch_db_transaction(),
+    ):
+        fake_pj_memberships_repo.exists_membership.return_value = False
+        fake_memberships_repositories.update_invitation.return_value = invitation
+        fake_invitations_repositories.get_invitation.return_value = ws_invitation
+        await services.accept_project_invitation(invitation=invitation)
+
+        fake_memberships_repositories.update_invitation.assert_awaited_once_with(
+            invitation=invitation,
+            values={"status": InvitationStatus.ACCEPTED},
+        )
+        fake_pj_memberships_repo.create_project_membership.assert_awaited_once_with(
+            project=project, role=role, user=user
+        )
+        fake_invitations_events.emit_event_when_project_invitation_is_accepted.assert_awaited_once_with(
+            invitation=invitation
+        )
+        fake_pj_memberships_repo.exists_membership.assert_awaited_once_with(
+            WorkspaceMembership,
+            filters={
+                "workspace_id": project.workspace_id,
+                "user_id": invitation.user_id,
+            },
+        )
+        fake_invitations_repositories.get_invitation.assert_awaited_once_with(
+            WorkspaceInvitation,
+            filters={
+                "workspace_id": project.workspace_id,
+                "user_id": user.id,
+                "status": InvitationStatus.PENDING,
+            },
+            select_related=["user", "workspace", "role"],
+        )
+        fake_workspaces_invitations_services.accept_workspace_invitation.assert_awaited_once_with(
+            ws_invitation
+        )
+        fake_workspaces_memberships_services.create_default_workspace_membership.assert_not_awaited()
+
+
+async def test_accept_project_invitation_no_workspace_membership_nor_invitation() -> (
+    None
+):
+    user = f.build_user()
+    project = f.build_project()
+    role = f.build_project_role(project=project)
+    invitation = f.build_project_invitation(
+        project=project, role=role, user=user, email=user.email
+    )
+
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repo,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        patch(
+            "projects.invitations.services.invitations_repositories", autospec=True
+        ) as fake_invitations_repositories,
+        patch(
+            "projects.invitations.services.workspaces_invitations_services",
+            autospec=True,
+        ) as fake_workspaces_invitations_services,
+        patch(
+            "projects.invitations.services.workspaces_memberships_services",
+            autospec=True,
+        ) as fake_workspaces_memberships_services,
+        patch_db_transaction(),
+    ):
+        fake_pj_memberships_repo.exists_membership.return_value = False
+        fake_memberships_repositories.update_invitation.return_value = invitation
+        fake_invitations_repositories.get_invitation.side_effect = (
+            WorkspaceInvitation.DoesNotExist
+        )
+        await services.accept_project_invitation(invitation=invitation)
+
+        fake_memberships_repositories.update_invitation.assert_awaited_once_with(
+            invitation=invitation,
+            values={"status": InvitationStatus.ACCEPTED},
+        )
+        fake_pj_memberships_repo.create_project_membership.assert_awaited_once_with(
+            project=project, role=role, user=user
+        )
+        fake_invitations_events.emit_event_when_project_invitation_is_accepted.assert_awaited_once_with(
+            invitation=invitation
+        )
+        fake_pj_memberships_repo.exists_membership.assert_awaited_once_with(
+            WorkspaceMembership,
+            filters={
+                "workspace_id": project.workspace_id,
+                "user_id": invitation.user_id,
+            },
+        )
+        fake_invitations_repositories.get_invitation.assert_awaited_once_with(
+            WorkspaceInvitation,
+            filters={
+                "workspace_id": project.workspace_id,
+                "user_id": user.id,
+                "status": InvitationStatus.PENDING,
+            },
+            select_related=["user", "workspace", "role"],
+        )
+        fake_workspaces_invitations_services.accept_workspace_invitation.assert_not_awaited()
+        fake_workspaces_memberships_services.create_default_workspace_membership.assert_awaited_once_with(
+            project.workspace, user
         )
 
 
@@ -814,6 +983,7 @@ async def test_accept_project_invitation_error_invitation_has_already_been_accep
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationAlreadyAcceptedError),
     ):
         await services.accept_project_invitation(invitation=invitation)
@@ -845,6 +1015,7 @@ async def test_accept_project_invitation_error_invitation_has_been_revoked() -> 
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationRevokedError),
     ):
         await services.accept_project_invitation(invitation=invitation)
@@ -876,6 +1047,7 @@ async def test_accept_project_invitation_error_invitation_has_been_denied() -> N
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationDeniedError),
     ):
         await services.accept_project_invitation(invitation=invitation)
@@ -976,6 +1148,8 @@ async def test_accept_project_invitation_from_token_error_already_accepted() -> 
             "projects.invitations.services.get_project_invitation",
             autospec=True,
         ) as fake_get_project_invitation,
+        patch("projects.invitations.services._sync_related_workspace_membership"),
+        patch_db_transaction(),
         pytest.raises(ex.InvitationAlreadyAcceptedError),
     ):
         fake_get_project_invitation.return_value = invitation
@@ -997,6 +1171,8 @@ async def test_accept_project_invitation_from_token_error_revoked() -> None:
             "projects.invitations.services.get_project_invitation",
             autospec=True,
         ) as fake_get_project_invitation,
+        patch("projects.invitations.services._sync_related_workspace_membership"),
+        patch_db_transaction(),
         pytest.raises(ex.InvitationRevokedError),
     ):
         fake_get_project_invitation.return_value = invitation
@@ -1018,6 +1194,8 @@ async def test_accept_project_invitation_from_token_error_denied() -> None:
             "projects.invitations.services.get_project_invitation",
             autospec=True,
         ) as fake_get_project_invitation,
+        patch("projects.invitations.services._sync_related_workspace_membership"),
+        patch_db_transaction(),
         pytest.raises(ex.InvitationDeniedError),
     ):
         fake_get_project_invitation.return_value = invitation

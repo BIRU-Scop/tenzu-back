@@ -30,6 +30,8 @@ from workspaces.memberships import repositories as memberships_repositories
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.workspaces.models import Workspace
 
+_DEFAULT_WORKSPACE_MEMBERSHIP_ROLE_SLUG = "readonly-member"
+
 ##########################################################
 # list workspace memberships
 ##########################################################
@@ -109,6 +111,20 @@ async def delete_workspace_membership(
         return True
 
     return False
+
+
+##########################################################
+# misc workspace membership
+##########################################################
+
+
+async def create_default_workspace_membership(workspace: Workspace, user: User):
+    role = await get_workspace_role(
+        workspace.id, _DEFAULT_WORKSPACE_MEMBERSHIP_ROLE_SLUG
+    )
+    await memberships_repositories.create_workspace_membership(
+        workspace=workspace, role=role, user=user
+    )
 
 
 ##########################################################

@@ -252,7 +252,7 @@ async def test_list_workspace_roles():
     res = await repositories.list_roles(
         WorkspaceRole, filters={"workspace_id": workspace.id}
     )
-    assert len(res) == 2
+    assert len(res) == 4  # factory default
     assert res[0].is_owner != res[1].is_owner
 
 

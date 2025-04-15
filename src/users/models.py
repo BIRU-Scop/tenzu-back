@@ -25,6 +25,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser, UserManager
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
+from django_stubs_ext.db.models.manager import ManyRelatedManager
 
 from base.db.models import BaseModel, LowerCharField, LowerEmailField, LowerSlugField
 from base.utils.slug import generate_int_suffix, slugify_uniquely
@@ -105,6 +106,8 @@ class User(BaseModel, AbstractBaseUser):
     )
     project_role: ProjectRole | None = None
     workspace_role: WorkspaceRole | None = None
+    project_memberships: ManyRelatedManager
+    workspace_memberships: ManyRelatedManager
 
     EMAIL_FIELD = "email"
     USERNAME_FIELD = "username"

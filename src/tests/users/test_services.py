@@ -353,6 +353,7 @@ async def test_verify_user_ok_accepting_or_not_a_project_invitation_token(
     ):
         FakeVerifyUserToken.return_value.get.side_effect = [
             1,
+            None,
             project_invitation_token,
             accept_project_invitation,
         ]
@@ -381,6 +382,9 @@ async def test_verify_user_ok_accepting_or_not_a_project_invitation_token(
             user=user
         )
 
+        FakeVerifyUserToken.return_value.get.assert_any_call(
+            "workspace_invitation_token", None
+        )
         FakeVerifyUserToken.return_value.get.assert_any_call(
             "project_invitation_token", None
         )
@@ -429,7 +433,6 @@ async def test_verify_user_ok_accepting_or_not_a_workspace_invitation_token(
         # Second call will be `verify_token.get("project_invitation_token", None)` and should return None
         FakeVerifyUserToken.return_value.get.side_effect = [
             1,
-            None,
             workspace_invitation_token,
             accept_workspace_invitation,
         ]
@@ -461,9 +464,6 @@ async def test_verify_user_ok_accepting_or_not_a_workspace_invitation_token(
             user=user
         )
 
-        FakeVerifyUserToken.return_value.get.assert_any_call(
-            "project_invitation_token", None
-        )
         FakeVerifyUserToken.return_value.get.assert_any_call(
             "workspace_invitation_token", None
         )
@@ -528,6 +528,7 @@ async def test_verify_user_error_project_invitation_token(exception):
     ):
         FakeVerifyUserToken.return_value.get.side_effect = [
             1,
+            None,
             project_invitation_token,
             accept_project_invitation,
         ]
@@ -550,6 +551,58 @@ async def test_verify_user_error_project_invitation_token(exception):
         assert info.auth == auth_credentials
         # the exception is controlled returning no content (pass)
         assert info.project_invitation is None
+
+
+@pytest.mark.parametrize(
+    "exception",
+    [
+        BadInvitationTokenError,
+        WorkspaceInvitation.DoesNotExist,
+    ],
+)
+async def test_verify_user_error_workspace_invitation_token(exception):
+    user = f.build_user(is_active=False)
+    workspace_invitation = f.build_workspace_invitation()
+    workspace_invitation_token = "invitation_token"
+    accept_workspace_invitation = False
+    auth_credentials = TokenObtainPairOutputSchema(
+        access="token", refresh="refresh", username=user.username
+    )
+
+    with (
+        patch("users.services.VerifyUserToken", autospec=True) as FakeVerifyUserToken,
+        patch("users.services.users_repositories", autospec=True) as fake_users_repo,
+        patch("users.services.project_invitations_services", autospec=True),
+        patch(
+            "users.services.workspace_invitations_services", autospec=True
+        ) as fake_invitations_services,
+        patch("users.services.auth_services", autospec=True) as fake_auth_services,
+        patch_db_transaction(),
+    ):
+        FakeVerifyUserToken.return_value.get.side_effect = [
+            1,
+            workspace_invitation_token,
+            accept_workspace_invitation,
+        ]
+        preserve_real_attrs(
+            FakeVerifyUserToken.return_value.blacklist,
+            VerifyUserToken.blacklist,
+            ["__code__"],
+        )
+        fake_auth_services.create_auth_credentials.return_value = auth_credentials
+        fake_invitations_services.get_workspace_invitation.return_value = (
+            workspace_invitation
+        )
+        fake_users_repo.get_user.return_value = user
+
+        #  exception when recovering the workspace invitation
+        fake_invitations_services.get_workspace_invitation.side_effect = exception
+
+        info = await services.verify_user_from_token("some_token")
+
+        assert info.auth == auth_credentials
+        # the exception is controlled returning no content (pass)
+        assert info.workspace_invitation is None
 
 
 ##########################################################

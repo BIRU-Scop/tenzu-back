@@ -23,7 +23,7 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 
 from auth import services as auth_services
-from commons.utils import transaction_on_commit_async
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from emails.emails import Emails
 from emails.tasks import send_email
 from memberships import services as memberships_services
@@ -155,6 +155,7 @@ async def update_user_workspaces_invitations(user: User) -> None:
 ##########################################################
 
 
+@transaction_atomic_async
 async def accept_workspace_invitation(
     invitation: WorkspaceInvitation,
 ) -> WorkspaceInvitation:
@@ -165,9 +166,9 @@ async def accept_workspace_invitation(
     await memberships_repositories.create_workspace_membership(
         workspace=invitation.workspace, role=invitation.role, user=invitation.user
     )
-    await invitations_events.emit_event_when_workspace_invitation_is_accepted(
-        invitation=invitation
-    )
+    await transaction_on_commit_async(
+        invitations_events.emit_event_when_workspace_invitation_is_accepted
+    )(invitation=invitation)
 
     return invitation
 

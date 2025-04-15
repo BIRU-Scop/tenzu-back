@@ -17,10 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from asgiref.sync import sync_to_async
+from asgiref.sync import async_to_sync, sync_to_async
 
 from memberships.choices import InvitationStatus
 from permissions import choices
+from workspaces.memberships.repositories import bulk_create_workspace_default_roles
 
 from .base import Factory, factory
 
@@ -107,22 +108,23 @@ class WorkspaceFactory(Factory):
     class Meta:
         model = "workspaces.Workspace"
 
+    @factory.post_generation
+    def memberships(obj, create, extracted, **kwargs):
+        if not create:
+            return
+        owner, _admin, _member, _readonly = async_to_sync(
+            bulk_create_workspace_default_roles
+        )(obj)
+
+        WorkspaceMembershipFactory.create(
+            user=obj.created_by, workspace=obj, role=owner
+        )
+
 
 @sync_to_async
 def create_workspace(**kwargs):
     """Create workspace and its dependencies"""
     workspace = WorkspaceFactory.create(**kwargs)
-
-    owner_role = WorkspaceRoleFactory.create(
-        workspace=workspace, is_owner=True, name="Owner", editable=False
-    )
-    WorkspaceRoleFactory.create(
-        workspace=workspace, is_owner=False, name="Member", editable=False
-    )
-    WorkspaceMembershipFactory.create(
-        user=workspace.created_by, workspace=workspace, role=owner_role
-    )
-
     return workspace
 
 

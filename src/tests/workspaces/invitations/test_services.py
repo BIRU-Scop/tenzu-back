@@ -600,6 +600,7 @@ async def test_accept_workspace_invitation() -> None:
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repo.update_invitation.return_value = invitation
         await services.accept_workspace_invitation(invitation=invitation)
@@ -635,6 +636,7 @@ async def test_accept_workspace_invitation_error_invitation_has_already_been_acc
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationAlreadyAcceptedError),
     ):
         await services.accept_workspace_invitation(invitation=invitation)
@@ -660,6 +662,7 @@ async def test_accept_workspace_invitation_error_invitation_has_been_revoked() -
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationRevokedError),
     ):
         await services.accept_workspace_invitation(invitation=invitation)
@@ -754,6 +757,7 @@ async def test_accept_workspace_invitation_from_token_error_already_accepted() -
         patch(
             "workspaces.invitations.services.get_workspace_invitation", autospec=True
         ) as fake_get_workspace_invitation,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationAlreadyAcceptedError),
     ):
         fake_get_workspace_invitation.return_value = invitation
@@ -774,6 +778,7 @@ async def test_accept_workspace_invitation_from_token_error_revoked() -> None:
         patch(
             "workspaces.invitations.services.get_workspace_invitation", autospec=True
         ) as fake_get_workspace_invitation,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationRevokedError),
     ):
         fake_get_workspace_invitation.return_value = invitation

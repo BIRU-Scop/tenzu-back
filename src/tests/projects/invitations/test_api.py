@@ -298,12 +298,96 @@ async def test_get_project_invitation_invitation_does_not_exist(client):
 
 async def test_accept_project_invitation_ok(client):
     user = await f.create_user()
-    invitation = await f.create_project_invitation(email=user.email)
+    invitation = await f.create_project_invitation(email=user.email, user=user)
     token = await ProjectInvitationToken.create_for_object(invitation)
+    assert not await user.project_memberships.filter(
+        project=invitation.project
+    ).aexists()
+    assert not await user.workspace_memberships.filter(
+        workspace=invitation.project.workspace
+    ).aexists()
 
     client.login(user)
     response = await client.post(f"/projects/invitations/{str(token)}/accept")
     assert response.status_code == 200, response.data
+    assert (
+        await user.project_memberships.filter(project=invitation.project)
+        .select_related("role")
+        .aget()
+    ).role == invitation.role
+    workspace_membership = (
+        await user.workspace_memberships.filter(workspace=invitation.project.workspace)
+        .select_related("role")
+        .aget()
+    )
+    assert not workspace_membership.role.is_owner
+    assert workspace_membership.role.slug == "readonly-member"
+
+
+async def test_accept_project_invitation_ok_pending_workspace_invitation(client):
+    user = await f.create_user()
+    invitation = await f.create_project_invitation(email=user.email, user=user)
+    ws_invitation = await f.create_workspace_invitation(
+        email=user.email, user=user, workspace=invitation.project.workspace
+    )
+    token = await ProjectInvitationToken.create_for_object(invitation)
+    assert not await user.project_memberships.filter(
+        project=invitation.project
+    ).aexists()
+    assert not await user.workspace_memberships.filter(
+        workspace=invitation.project.workspace
+    ).aexists()
+
+    client.login(user)
+    response = await client.post(f"/projects/invitations/{str(token)}/accept")
+    assert response.status_code == 200, response.data
+    assert (
+        await user.project_memberships.filter(project=invitation.project)
+        .select_related("role")
+        .aget()
+    ).role == invitation.role
+    workspace_membership = (
+        await user.workspace_memberships.filter(workspace=invitation.project.workspace)
+        .select_related("role")
+        .aget()
+    )
+    assert not workspace_membership.role.is_owner
+    assert workspace_membership.role.slug != "readonly-member"
+    assert workspace_membership.role == ws_invitation.role
+
+
+async def test_accept_project_invitation_ok_already_workspace_member(client):
+    user = await f.create_user()
+    invitation = await f.create_project_invitation(email=user.email, user=user)
+    member_role = await f.create_workspace_role(
+        workspace=invitation.project.workspace,
+        permissions=[],
+        is_owner=False,
+    )
+    await f.create_workspace_membership(
+        user=user, workspace=invitation.project.workspace, role=member_role
+    )
+    token = await ProjectInvitationToken.create_for_object(invitation)
+    assert not await user.project_memberships.filter(
+        project=invitation.project
+    ).aexists()
+
+    client.login(user)
+    response = await client.post(f"/projects/invitations/{str(token)}/accept")
+    assert response.status_code == 200, response.data
+    assert (
+        await user.project_memberships.filter(project=invitation.project)
+        .select_related("role")
+        .aget()
+    ).role == invitation.role
+    workspace_membership = (
+        await user.workspace_memberships.filter(workspace=invitation.project.workspace)
+        .select_related("role")
+        .aget()
+    )
+    assert not workspace_membership.role.is_owner
+    assert workspace_membership.role.slug != "readonly-member"
+    assert workspace_membership.role == member_role
 
 
 async def test_accept_project_invitation_error_invitation_invalid_token(client):
@@ -370,22 +454,27 @@ async def test_accept_project_invitations_anonymous_user(client, project_templat
     assert response.status_code == 401, response.data
 
 
-async def test_accept_user_project_invitation(client, project_template):
+async def test_accept_user_project_invitation_ok(client, project_template):
     project = await f.create_project(project_template)
-    invited_user = await f.create_user()
+    user = await f.create_user()
     invitation = await f.create_project_invitation(
-        email=invited_user.email,
-        user=invited_user,
+        email=user.email,
+        user=user,
         status=InvitationStatus.PENDING,
         project=project,
     )
-    await ProjectInvitationToken.create_for_object(invitation)
+    assert not await user.workspace_memberships.filter(
+        workspace=invitation.project.workspace
+    ).aexists()
 
-    client.login(invited_user)
+    client.login(user)
     response = await client.post(f"projects/{project.b64id}/invitations/accept")
     assert response.status_code == 200, response.data
-    assert response.json()["user"]["username"] == invited_user.username
-    assert response.json()["email"] == invited_user.email
+    assert response.json()["user"]["username"] == user.username
+    assert response.json()["email"] == user.email
+    assert await user.workspace_memberships.filter(
+        workspace=invitation.project.workspace
+    ).aexists()
 
 
 async def test_accept_user_project_not_found(client, project_template):

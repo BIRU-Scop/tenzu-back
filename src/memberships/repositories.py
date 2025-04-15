@@ -188,6 +188,14 @@ async def get_membership(
     return await qs.aget()
 
 
+async def exists_membership(
+    model: type[TM],
+    filters: MembershipFilters = {},
+) -> bool:
+    qs = model.objects.all().filter(**filters)
+    return await qs.aexists()
+
+
 ##########################################################
 # update membership
 ##########################################################

@@ -20,6 +20,7 @@
 from memberships.repositories import (  # noqa
     list_memberships,
     get_membership,
+    exists_membership,
     update_membership,
     delete_membership,
     has_other_owner_memberships,
