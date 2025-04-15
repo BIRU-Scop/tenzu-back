@@ -40,6 +40,7 @@ class _MembershipFilters(TypedDict, total=False):
 
 class ProjectMembershipFilters(_MembershipFilters, total=False):
     project_id: UUID
+    project__workspace_id: UUID
 
 
 class WorkspaceMembershipFilters(_MembershipFilters, total=False):

@@ -100,11 +100,12 @@ async def update_project_membership(
 ##########################################################
 
 
+@transaction_atomic_async
 async def delete_project_membership(
     membership: ProjectMembership,
 ) -> bool:
     if await memberships_services.is_membership_the_only_owner(membership):
-        raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
+        raise ex.MembershipIsTheOnlyOwnerError("Membership is the only project owner")
 
     deleted = await memberships_repositories.delete_membership(membership)
     if deleted > 0:
@@ -125,9 +126,9 @@ async def delete_project_membership(
                 membership.user.email
             ),
         )
-        await memberships_events.emit_event_when_project_membership_is_deleted(
-            membership=membership
-        )
+        await transaction_on_commit_async(
+            memberships_events.emit_event_when_project_membership_is_deleted
+        )(membership=membership)
         return True
 
     return False
