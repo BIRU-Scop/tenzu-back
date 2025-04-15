@@ -119,7 +119,7 @@ async def get_project_invitation(token: str) -> ProjectInvitation:
     )
 
 
-async def get_project_invitation_from_token(
+async def get_public_project_invitation(
     token: str,
 ) -> PublicProjectInvitationSerializer | None:
     invitation = await get_project_invitation(token=token)
@@ -140,17 +140,17 @@ async def get_project_invitation_by_username_or_email(
         ProjectInvitation,
         filters={"project_id": project_id},
         q_filter=invitations_repositories.username_or_email_query(username_or_email),
-        select_related=["user", "project", "project__workspace", "role", "invited_by"],
+        select_related=["user", "project", "project__workspace", "role"],
     )
 
 
 async def get_project_invitation_by_id(
-    project_id: UUID, id: UUID
+    project_id: UUID, invitation_id: UUID
 ) -> ProjectInvitation | None:
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
-        filters={"project_id": project_id, "id": id},
-        select_related=["user", "project", "project__workspace", "role", "invited_by"],
+        filters={"project_id": project_id, "id": invitation_id},
+        select_related=["user", "project", "project__workspace", "role"],
     )
 
 

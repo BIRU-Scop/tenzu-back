@@ -31,8 +31,6 @@ from commons.exceptions.api.errors import (
 from commons.validators import B64UUID
 from memberships.api.validators import (
     InvitationsValidator,
-    ResendInvitationValidator,
-    RevokeInvitationValidator,
     UpdateInvitationValidator,
 )
 from memberships.services.exceptions import (
@@ -158,7 +156,7 @@ async def get_public_project_invitation(
     Get public information about a project invitation
     """
     try:
-        invitation = await invitations_services.get_project_invitation_from_token(
+        invitation = await invitations_services.get_public_project_invitation(
             token=token
         )
     except BadInvitationTokenError as e:
@@ -176,7 +174,7 @@ async def get_public_project_invitation(
 
 
 @invitations_router.post(
-    "/projects/{id}/invitations/resend",
+    "/projects/{project_id}/invitations/{invitation_id}/resend",
     url_name="project.invitations.resend",
     summary="Resend project invitation",
     response={
@@ -189,14 +187,14 @@ async def get_public_project_invitation(
 )
 async def resend_project_invitation(
     request,
-    id: Path[B64UUID],
-    form: ResendInvitationValidator,
+    invitation_id: Path[B64UUID],
+    project_id: Path[B64UUID],
 ) -> tuple[int, None]:
     """
     Resend invitation to a project
     """
-    invitation = await get_project_invitation_by_username_or_email_or_404(
-        project_id=id, username_or_email=form.username_or_email
+    invitation = await get_project_invitation_by_id_or_404(
+        project_id=project_id, invitation_id=invitation_id
     )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.CREATE.value,
@@ -215,7 +213,7 @@ async def resend_project_invitation(
 
 
 @invitations_router.post(
-    "/projects/{id}/invitations/revoke",
+    "/projects/{project_id}/invitations/{invitation_id}/revoke",
     url_name="project.invitations.revoke",
     summary="Revoke project invitation",
     response={
@@ -228,14 +226,14 @@ async def resend_project_invitation(
 )
 async def revoke_project_invitation(
     request,
-    id: Path[B64UUID],
-    form: RevokeInvitationValidator,
+    invitation_id: Path[B64UUID],
+    project_id: Path[B64UUID],
 ) -> tuple[int, None]:
     """
     Revoke invitation in a project.
     """
-    invitation = await get_project_invitation_by_username_or_email_or_404(
-        project_id=id, username_or_email=form.username_or_email
+    invitation = await get_project_invitation_by_id_or_404(
+        project_id=project_id, invitation_id=invitation_id
     )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.MODIFY.value,
@@ -265,7 +263,9 @@ async def revoke_project_invitation(
     },
     by_alias=True,
 )
-async def deny_project_invitation(request, id: Path[B64UUID]) -> ProjectInvitation:
+async def deny_project_invitation_by_project(
+    request, id: Path[B64UUID]
+) -> ProjectInvitation:
     """
     An authenticated user denies a project invitation for themself.
     """
@@ -350,7 +350,7 @@ async def accept_project_invitation_by_project(
 
 
 @invitations_router.patch(
-    "/projects/{project_id}/invitations/{id}",
+    "/projects/{project_id}/invitations/{invitation_id}",
     url_name="project.invitations.update",
     summary="Update project invitation",
     response={
@@ -363,14 +363,16 @@ async def accept_project_invitation_by_project(
 )
 async def update_project_invitation(
     request,
-    id: Path[UUID],
+    invitation_id: Path[B64UUID],
     project_id: Path[B64UUID],
     form: UpdateInvitationValidator,
 ) -> ProjectInvitation:
     """
     Update project invitation
     """
-    invitation = await get_project_invitation_by_id_or_404(project_id=project_id, id=id)
+    invitation = await get_project_invitation_by_id_or_404(
+        project_id=project_id, invitation_id=invitation_id
+    )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -408,11 +410,11 @@ async def get_project_invitation_by_username_or_email_or_404(
 
 
 async def get_project_invitation_by_id_or_404(
-    project_id: UUID, id: UUID
+    project_id: UUID, invitation_id: UUID
 ) -> ProjectInvitation:
     try:
         invitation = await invitations_services.get_project_invitation_by_id(
-            project_id=project_id, id=id
+            project_id=project_id, invitation_id=invitation_id
         )
     except ProjectInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation not found") from e

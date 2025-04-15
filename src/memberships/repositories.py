@@ -116,7 +116,7 @@ class WorkspaceInvitationFilters(_InvitationFilters, total=False):
     workspace_id: UUID
 
 
-InvitationFilters = WorkspaceInvitationFilters | WorkspaceInvitationFilters
+InvitationFilters = ProjectInvitationFilters | WorkspaceInvitationFilters
 
 
 ProjectInvitationSelectRelated = list[

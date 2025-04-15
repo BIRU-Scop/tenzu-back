@@ -31,7 +31,6 @@ from pydantic import (
 from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated
 
-from base.utils.emails import is_email
 from commons.validators import BaseModel, check_not_empty
 
 
@@ -77,50 +76,6 @@ class InvitationValidator(BaseModel):
 class InvitationsValidator(BaseModel):
     # Max items 50 and duplicated items not allowed
     invitations: Annotated[List[InvitationValidator], Field(max_length=50)]
-
-
-class RevokeInvitationValidator(BaseModel):
-    username_or_email: str
-
-    @field_validator("username_or_email")
-    @classmethod
-    def check_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        return check_not_empty(v)
-
-    @field_validator("username_or_email")
-    @classmethod
-    def check_email_in_domain(cls, v: str, info: ValidationInfo) -> str:
-        if is_email(value=v):
-            if not settings.USER_EMAIL_ALLOWED_DOMAINS:
-                return v
-
-            domain = v.split("@")[1]
-            assert (
-                domain in settings.USER_EMAIL_ALLOWED_DOMAINS
-            ), "Email domain not allowed"
-        return v
-
-
-class ResendInvitationValidator(BaseModel):
-    username_or_email: str
-
-    @field_validator("username_or_email")
-    @classmethod
-    def check_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        return check_not_empty(v)
-
-    @field_validator("username_or_email")
-    @classmethod
-    def check_email_in_domain(cls, v: str, info: ValidationInfo) -> str:
-        if is_email(value=v):
-            if not settings.USER_EMAIL_ALLOWED_DOMAINS:
-                return v
-
-            domain = v.split("@")[1]
-            assert (
-                domain in settings.USER_EMAIL_ALLOWED_DOMAINS
-            ), "Email domain not allowed"
-        return v
 
 
 class UpdateInvitationValidator(BaseModel):
