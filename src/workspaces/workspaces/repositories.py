@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from itertools import chain
-from typing import Any, Iterable, Literal
+from typing import Any, Iterable, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
@@ -45,8 +45,17 @@ from workspaces.workspaces.models import Workspace
 # filters and querysets
 ##########################################################
 
+PROJECT_PREFETCH = Prefetch(
+    "projects", queryset=Project.objects.order_by("-created_at")
+)
 
-WorkspacePrefetchRelated = list[Literal["projects",]]
+
+class WorkspaceFilters(TypedDict, total=False):
+    memberships__user_id: UUID
+    memberships__role__is_owner: bool
+
+
+WorkspacePrefetchRelated = list[PROJECT_PREFETCH]
 
 
 WorkspaceOrderBy = list[Literal["-created_at",]]
@@ -65,28 +74,6 @@ def create_workspace(name: str, color: int, created_by: User) -> Workspace:
 ##########################################################
 # list
 ##########################################################
-
-
-async def list_workspaces(
-    user: User,
-    prefetch_related: WorkspacePrefetchRelated = [],
-    order_by: WorkspaceOrderBy = ["-created_at"],
-    has_projects: bool | None = None,
-    is_only_user: bool = False,
-) -> list[Workspace]:
-    qs = Workspace.objects.all()
-    if is_only_user:
-        qs = qs.annotate(num_members=Count("members")).filter(num_members=1)
-    if has_projects is not None:
-        qs = qs.filter(~Q(projects=None) if has_projects else Q(projects=None))
-    qs = (
-        qs.filter(memberships__user_id=user.id)
-        .prefetch_related(*prefetch_related)
-        .order_by(*order_by)
-        .distinct()
-    )
-
-    return [workspace async for workspace in qs]
 
 
 @sync_to_async
@@ -341,14 +328,3 @@ async def delete_workspace(workspace_id: UUID) -> int:
     qs = Workspace.objects.all().filter(id=workspace_id)
     count, _ = await qs.adelete()
     return count
-
-
-##########################################################
-# misc
-##########################################################
-
-
-async def list_workspace_projects(workspace: Workspace) -> list[Project]:
-    return [
-        project async for project in workspace.projects.all().order_by("-created_at")
-    ]

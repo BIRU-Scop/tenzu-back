@@ -46,61 +46,100 @@ async def test_create_workspace_with_non_ASCI_chars():
 ##########################################################
 
 
-async def test_list_workspaces_user_only_member_with_projects(project_template):
-    user = await f.create_user()
-    other_user = await f.create_user()
-    # user only ws member with projects
-    ws1 = await f.create_workspace(created_by=user)
-    await f.create_project(template=project_template, created_by=user, workspace=ws1)
-    await f.create_project(template=project_template, created_by=user, workspace=ws1)
-    # user only ws member with projects
-    ws2 = await f.create_workspace(created_by=user)
-    await f.create_project(template=project_template, created_by=user, workspace=ws2)
-    # user only ws member without projects
-    await f.create_workspace(created_by=user)
-    # user not only ws member with projects
-    ws4 = await f.create_workspace(created_by=user)
-    await f.create_workspace_membership(user=other_user, workspace=ws4)
-    await f.create_project(template=project_template, created_by=user, workspace=ws4)
-    # user not only ws member without projects
-    ws5 = await f.create_workspace(created_by=user)
-    await f.create_workspace_membership(user=other_user, workspace=ws5)
+async def test_list_user_workspaces_overview_invited_projects(project_template):
+    user8 = await f.create_user()
+    user9 = await f.create_user()
+    user10 = await f.create_user()
 
-    ws_list = await repositories.list_workspaces(
-        user=user, prefetch_related=["projects"], has_projects=True, is_only_user=True
+    # user8 is member of several workspaces
+    ws1 = await f.create_workspace(name="ws1 for member", created_by=user8)
+    ws3 = await f.create_workspace(name="ws3 for guest", created_by=user8)
+    ws4 = await f.create_workspace(name="ws4 for invited", created_by=user8)
+
+    # user9 is member of ws1 as well
+    await f.create_workspace_membership(user=user9, workspace=ws1)
+    # user9 is guest of ws3
+    pj = await f.create_project(
+        template=project_template, name="pj1", workspace=ws3, created_by=user8
+    )
+    pj_member_role = await pj.roles.aget(slug="member")
+    await f.create_project_membership(user=user9, project=pj, role=pj_member_role)
+
+    # user8 invites user9 to a project in ws1
+    pj = await f.create_project(
+        template=project_template, name="pj2", workspace=ws1, created_by=user8
+    )
+    pj_member_role = await pj.roles.aget(slug="member")
+    await f.create_project_invitation(
+        email=user9.email,
+        user=user9,
+        project=pj,
+        role=pj_member_role,
+        invited_by=user8,
     )
 
-    assert len(ws_list) == 2
-    assert ws_list[0].name == ws2.name
-    assert ws_list[1].name == ws1.name
-
-
-async def test_list_workspaces_user_only_member_without_projects(project_template):
-    user = await f.create_user()
-    other_user = await f.create_user()
-    # user only ws member with projects
-    ws1 = await f.create_workspace(created_by=user)
-    await f.create_project(template=project_template, created_by=user, workspace=ws1)
-    await f.create_project(template=project_template, created_by=user, workspace=ws1)
-    # user only ws member with projects
-    ws2 = await f.create_workspace(created_by=user)
-    await f.create_project(template=project_template, created_by=user, workspace=ws2)
-    # user only ws member without projects
-    ws3 = await f.create_workspace(created_by=user)
-    # user not only ws member with projects
-    ws4 = await f.create_workspace(created_by=user)
-    await f.create_workspace_membership(user=other_user, workspace=ws4)
-    await f.create_project(template=project_template, created_by=user, workspace=ws4)
-    # user not only ws member without projects
-    ws5 = await f.create_workspace(created_by=user)
-    await f.create_workspace_membership(user=other_user, workspace=ws5)
-
-    ws_list = await repositories.list_workspaces(
-        user=user, prefetch_related=["projects"], has_projects=False, is_only_user=True
+    # user8 invites user10 to a project in ws1 (just email)
+    pj = await f.create_project(
+        template=project_template, name="pj3", workspace=ws1, created_by=user8
+    )
+    pj_member_role = await pj.roles.aget(slug="member")
+    await f.create_project_invitation(
+        email=user10.email,
+        user=None,
+        project=pj,
+        role=pj_member_role,
+        invited_by=user8,
     )
 
-    assert len(ws_list) == 1
-    assert ws_list[0].name == ws3.name
+    # user8 invites user9 and user10 to a project in ws3
+    pj = await f.create_project(
+        template=project_template, name="pj4", workspace=ws3, created_by=user8
+    )
+    pj_member_role = await pj.roles.aget(slug="member")
+    await f.create_project_invitation(
+        email=user9.email,
+        user=user9,
+        project=pj,
+        role=pj_member_role,
+        invited_by=user8,
+    )
+    await f.create_project_invitation(
+        email=user10.email,
+        user=user10,
+        project=pj,
+        role=pj_member_role,
+        invited_by=user8,
+    )
+
+    # user8 invites user9 and user10 to a project in ws4 (just email)
+    pj = await f.create_project(
+        template=project_template, name="pj5", workspace=ws4, created_by=user8
+    )
+    pj_member_role = await pj.roles.aget(slug="member")
+    await f.create_project_invitation(
+        email=user9.email, user=None, project=pj, role=pj_member_role, invited_by=user8
+    )
+    await f.create_project_invitation(
+        email=user10.email,
+        user=None,
+        project=pj,
+        role=pj_member_role,
+        invited_by=user8,
+    )
+
+    # user 9
+    res = await repositories.list_user_workspaces_overview(user9)
+
+    assert len(res) == 3  # workspaces
+    for ws in res:
+        assert len(ws.invited_projects) == 1
+
+    # user 10
+    res = await repositories.list_user_workspaces_overview(user10)
+
+    assert len(res) == 3  # workspaces
+    for ws in res:
+        assert len(ws.invited_projects) == 1
 
 
 ##########################################################
@@ -312,102 +351,6 @@ async def test_get_user_workspaces_overview_latest_projects(project_template):
             assert ws.total_projects == 0
         elif ws.name == workspace5.name:
             assert ws.total_projects == 2
-
-
-async def test_get_user_workspaces_overview_invited_projects(project_template):
-    user8 = await f.create_user()
-    user9 = await f.create_user()
-    user10 = await f.create_user()
-
-    # user8 is member of several workspaces
-    ws1 = await f.create_workspace(name="ws1 for member", created_by=user8)
-    ws3 = await f.create_workspace(name="ws3 for guest", created_by=user8)
-    ws4 = await f.create_workspace(name="ws4 for invited", created_by=user8)
-
-    # user9 is member of ws1 as well
-    await f.create_workspace_membership(user=user9, workspace=ws1)
-    # user9 is guest of ws3
-    pj = await f.create_project(
-        template=project_template, name="pj1", workspace=ws3, created_by=user8
-    )
-    pj_member_role = await pj.roles.aget(slug="member")
-    await f.create_project_membership(user=user9, project=pj, role=pj_member_role)
-
-    # user8 invites user9 to a project in ws1
-    pj = await f.create_project(
-        template=project_template, name="pj2", workspace=ws1, created_by=user8
-    )
-    pj_member_role = await pj.roles.aget(slug="member")
-    await f.create_project_invitation(
-        email=user9.email,
-        user=user9,
-        project=pj,
-        role=pj_member_role,
-        invited_by=user8,
-    )
-
-    # user8 invites user10 to a project in ws1 (just email)
-    pj = await f.create_project(
-        template=project_template, name="pj3", workspace=ws1, created_by=user8
-    )
-    pj_member_role = await pj.roles.aget(slug="member")
-    await f.create_project_invitation(
-        email=user10.email,
-        user=None,
-        project=pj,
-        role=pj_member_role,
-        invited_by=user8,
-    )
-
-    # user8 invites user9 and user10 to a project in ws3
-    pj = await f.create_project(
-        template=project_template, name="pj4", workspace=ws3, created_by=user8
-    )
-    pj_member_role = await pj.roles.aget(slug="member")
-    await f.create_project_invitation(
-        email=user9.email,
-        user=user9,
-        project=pj,
-        role=pj_member_role,
-        invited_by=user8,
-    )
-    await f.create_project_invitation(
-        email=user10.email,
-        user=user10,
-        project=pj,
-        role=pj_member_role,
-        invited_by=user8,
-    )
-
-    # user8 invites user9 and user10 to a project in ws4 (just email)
-    pj = await f.create_project(
-        template=project_template, name="pj5", workspace=ws4, created_by=user8
-    )
-    pj_member_role = await pj.roles.aget(slug="member")
-    await f.create_project_invitation(
-        email=user9.email, user=None, project=pj, role=pj_member_role, invited_by=user8
-    )
-    await f.create_project_invitation(
-        email=user10.email,
-        user=None,
-        project=pj,
-        role=pj_member_role,
-        invited_by=user8,
-    )
-
-    # user 9
-    res = await repositories.list_user_workspaces_overview(user9)
-
-    assert len(res) == 3  # workspaces
-    for ws in res:
-        assert len(ws.invited_projects) == 1
-
-    # user 10
-    res = await repositories.list_user_workspaces_overview(user10)
-
-    assert len(res) == 3  # workspaces
-    for ws in res:
-        assert len(ws.invited_projects) == 1
 
 
 ##########################################################
@@ -844,18 +787,3 @@ class GetUserWorkspaceOverview(IsolatedAsyncioTestCase):
             user=self.user3, id=self.workspace7.id
         )
         self.assertIsNone(ws)
-
-
-##########################################################
-# list_workspace_projects
-##########################################################
-
-
-async def test_list_workspace_projects(project_template):
-    workspace = await f.create_workspace()
-    await f.create_project(template=project_template, workspace=workspace)
-    await f.create_project(template=project_template, workspace=workspace)
-
-    projects = await repositories.list_workspace_projects(workspace=workspace)
-
-    assert len(projects) == 2

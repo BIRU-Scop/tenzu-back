@@ -169,7 +169,7 @@ async def update_my_user(request, form: UpdateUserValidator) -> User:
     "/my/user",
     url_name="my.user.delete",
     summary="Delete user",
-    response={204: None, 401: ERROR_RESPONSE_401},
+    response={204: None, 400: ERROR_RESPONSE_400, 401: ERROR_RESPONSE_401},
     by_alias=True,
 )
 async def delete_user(request) -> tuple[int, None]:
@@ -179,8 +179,8 @@ async def delete_user(request) -> tuple[int, None]:
     In this endpoint:
     - All workspaces where the user is the only workspace member are deleted (cascade)
     - All projects where the user is the only project member are deleted (cascade)
-    - All projects where the user is the only project owner and is not the only workspace member
-      are updated with a new project owner (a workspace member)
+    - If there are any workspace or project with other members where user is the only owner
+      an error is raised and the deletion is canceled
     - All memberships related with this user in workspaces and projects are deleted
     - All invitations related with this user in workspaces and projects are deleted
     - User is deleted

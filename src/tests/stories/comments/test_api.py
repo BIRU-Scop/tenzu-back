@@ -317,22 +317,22 @@ async def test_list_story_comments_error_invalid_order(client, project_template)
 ##########################################################
 
 
-async def test_update_story_comment_ok_self(client, project_template):
-    project = await f.create_project(project_template)
-    story = await f.create_story(project=project, created_by=project.created_by)
-    comment = await f.create_comment(content_object=story)
+async def test_update_story_comment_ok_self(client):
+    user = await f.create_user()
+    story = await f.create_story()
+    comment = await f.create_comment(content_object=story, created_by=user)
     general_member_role = await f.create_project_role(
         permissions=[ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT.value],
         is_owner=False,
-        project=project,
+        project=story.project,
     )
     await f.create_project_membership(
-        user=comment.created_by, project=project, role=general_member_role
+        user=user, project=story.project, role=general_member_role
     )
 
     data = {"text": "Updated comment"}
 
-    client.login(comment.created_by)
+    client.login(user)
     response = await client.patch(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments/{comment.b64id}",
         json=data,
@@ -348,13 +348,13 @@ async def test_update_story_comment_ok_moderator(client, project_template):
     data = {"text": "Updated comment"}
 
     user = await f.create_user()
-    general_member_role = await f.create_project_role(
+    moderator_member_role = await f.create_project_role(
         permissions=[ProjectPermissions.MODERATE_COMMENT.value],
         is_owner=False,
         project=project,
     )
     await f.create_project_membership(
-        user=user, project=project, role=general_member_role
+        user=user, project=project, role=moderator_member_role
     )
 
     client.login(user)
@@ -424,25 +424,23 @@ async def test_update_story_comment_error_forbidden_no_permission(
     assert response.status_code == 403, response.data
 
 
-async def test_update_story_comment_error_forbidden_no_permission_self(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    story = await f.create_story(project=project, created_by=project.created_by)
-    comment = await f.create_comment(content_object=story)
+async def test_update_story_comment_error_forbidden_no_permission_self(client):
+    user = await f.create_user()
+    story = await f.create_story()
+    comment = await f.create_comment(content_object=story, created_by=user)
 
     general_member_role = await f.create_project_role(
         permissions=[],
         is_owner=False,
-        project=project,
+        project=story.project,
     )
     await f.create_project_membership(
-        user=comment.created_by, project=project, role=general_member_role
+        user=user, project=story.project, role=general_member_role
     )
 
     data = {"text": "Updated comment"}
 
-    client.login(comment.created_by)
+    client.login(user)
     response = await client.patch(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments/{comment.b64id}",
         json=data,
@@ -523,20 +521,20 @@ async def test_update_story_comment_error_deleted_comment(client, project_templa
 ##########################################################
 
 
-async def test_delete_story_comment_ok_self(client, project_template):
-    project = await f.create_project(project_template)
-    story = await f.create_story(project=project, created_by=project.created_by)
-    comment = await f.create_comment(content_object=story)
+async def test_delete_story_comment_ok_self(client):
+    user = await f.create_user()
+    story = await f.create_story()
+    comment = await f.create_comment(content_object=story, created_by=user)
     general_member_role = await f.create_project_role(
         permissions=[ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT.value],
         is_owner=False,
-        project=project,
+        project=story.project,
     )
     await f.create_project_membership(
-        user=comment.created_by, project=project, role=general_member_role
+        user=user, project=story.project, role=general_member_role
     )
 
-    client.login(comment.created_by)
+    client.login(user)
     response = await client.delete(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments/{comment.b64id}"
     )
@@ -617,23 +615,21 @@ async def test_delete_story_comment_error_forbidden_no_permission(
     assert response.status_code == 403, response.data
 
 
-async def test_delete_story_comment_error_forbidden_no_permission_self(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    story = await f.create_story(project=project, created_by=project.created_by)
-    comment = await f.create_comment(content_object=story)
+async def test_delete_story_comment_error_forbidden_no_permission_self(client):
+    user = await f.create_user()
+    story = await f.create_story()
+    comment = await f.create_comment(content_object=story, created_by=user)
 
     general_member_role = await f.create_project_role(
         permissions=[],
         is_owner=False,
-        project=project,
+        project=story.project,
     )
     await f.create_project_membership(
-        user=comment.created_by, project=project, role=general_member_role
+        user=user, project=story.project, role=general_member_role
     )
 
-    client.login(comment.created_by)
+    client.login(user)
     response = await client.delete(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments/{comment.b64id}"
     )

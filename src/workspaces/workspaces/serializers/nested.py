@@ -26,4 +26,5 @@ class WorkspaceNestedSerializer(BaseModel):
     id: UUIDB64
     name: str
     slug: str
+    color: int
     model_config = ConfigDict(from_attributes=True)

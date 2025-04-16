@@ -16,26 +16,30 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from django.db.models import QuerySet
 
 from memberships.repositories import (  # noqa
-    list_memberships,
-    get_membership,
-    exists_membership,
-    update_membership,
     delete_membership,
+    exists_membership,
+    get_membership,
+    get_role,
     has_other_owner_memberships,
     list_members,
+    list_memberships,
     list_roles,
-    get_role,
+    only_owner_collective_queryset,
+    update_membership,
     update_role,
+)
+from memberships.repositories import (
+    only_member_queryset as _only_member_queryset,
 )
 from memberships.services import exceptions as ex
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project
+from projects.projects.repositories import ProjectFilters
 from users.models import User
 from workspaces.memberships.models import WorkspaceMembership
-
 
 ##########################################################
 # create project membership
@@ -62,6 +66,18 @@ async def create_project_membership(
     return await ProjectMembership.objects.acreate(
         user=user, project=project, role=role
     )
+
+
+##########################################################
+# misc membership
+##########################################################
+
+
+def only_project_member_queryset(
+    user: User,
+    excludes: ProjectFilters = {},
+) -> QuerySet[Project]:
+    return _only_member_queryset(Project, user).exclude(**excludes)
 
 
 ##########################################################

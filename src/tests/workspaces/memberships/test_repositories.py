@@ -27,6 +27,8 @@ from permissions.choices import WorkspacePermissions
 from tests.utils import factories as f
 from workspaces.memberships import repositories
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
+from workspaces.workspaces.models import Workspace
+from workspaces.workspaces.repositories import PROJECT_PREFETCH
 
 pytestmark = pytest.mark.django_db
 
@@ -216,10 +218,87 @@ async def test_list_workspace_members():
     list_ws_members = await repositories.list_members(reference_object=workspace)
     assert len(list_ws_members) == 3
 
-    list_ws_members = await repositories.list_members(
-        reference_object=workspace, exclude_user=owner
+
+##########################################################
+# misc - only_workspace_member_queryset
+##########################################################
+
+
+async def test_list_workspaces_user_only_member(project_template):
+    user = await f.create_user()
+    other_user = await f.create_user()
+    # user only ws member with projects
+    ws1 = await f.create_workspace(created_by=user)
+    pj1_ws1 = await f.create_project(
+        template=project_template, created_by=user, workspace=ws1
     )
-    assert len(list_ws_members) == 2
+    pj2_ws1 = await f.create_project(
+        template=project_template, created_by=user, workspace=ws1
+    )
+    # user only ws member with projects
+    ws2 = await f.create_workspace(created_by=user)
+    pj1_ws2 = await f.create_project(
+        template=project_template, created_by=user, workspace=ws2
+    )
+    # user only ws member without projects
+    ws3 = await f.create_workspace(created_by=user)
+    # user owner not only ws member
+    ws4 = await f.create_workspace(created_by=user)
+    await f.create_workspace_membership(user=other_user, workspace=ws4)
+    # user not owner not only ws member
+    ws5 = await f.create_workspace(created_by=other_user)
+    await f.create_workspace_membership(user=user, workspace=ws5)
+    # user not member
+    ws6 = await f.create_workspace(created_by=other_user)
+
+    ws_list = [
+        ws
+        async for ws in repositories.only_workspace_member_queryset(
+            user, prefetch_related=[PROJECT_PREFETCH]
+        )
+    ]
+
+    assert len(ws_list) == 3
+    assert ws_list[0].name == ws1.name
+    assert ws_list[1].name == ws2.name
+    assert ws_list[2].name == ws3.name
+    # assert prefetch order
+    assert [pj.name for pj in ws_list[0].projects.all()] == [pj2_ws1.name, pj1_ws1.name]
+    assert [pj.name for pj in ws_list[1].projects.all()] == [pj1_ws2.name]
+
+
+##########################################################
+# misc - only_owner_collective_queryset
+##########################################################
+
+
+async def test_list_projects_user_only_owner_but_not_only_member(project_template):
+    user = await f.create_user()
+    other_user = await f.create_user()
+    # user only ws member
+    await f.create_workspace(created_by=user)
+    await f.create_workspace(created_by=user)
+
+    # user only ws owner but not only member
+    ws1 = await f.create_workspace(created_by=user)
+    await f.create_workspace_membership(user=other_user, workspace=ws1)
+    # user not only ws owner
+    ws2 = await f.create_workspace(created_by=user)
+    owner_role = await ws2.roles.aget(is_owner=True)
+    await f.create_workspace_membership(user=other_user, workspace=ws2, role=owner_role)
+
+    # user not member
+    await f.create_workspace(created_by=other_user)
+    # user not owner
+    ws3 = await f.create_workspace(created_by=other_user)
+    await f.create_workspace_membership(user=user, workspace=ws3)
+
+    ws_list = [
+        ws async for ws in repositories.only_owner_collective_queryset(Workspace, user)
+    ]
+
+    assert len(ws_list) == 1
+    assert ws_list[0].name == ws1.name
 
 
 ##########################################################

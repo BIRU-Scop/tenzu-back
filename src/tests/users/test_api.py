@@ -22,10 +22,20 @@ from unittest import mock
 
 import pytest
 
+from comments.models import Comment
+from projects.invitations.models import ProjectInvitation
 from projects.invitations.services import _generate_project_invitation_token
+from projects.memberships.models import ProjectMembership
+from projects.projects.models import Project
+from stories.assignments.models import StoryAssignment
+from stories.stories.models import Story
 from tests.utils import factories as f
+from users.models import User
 from users.services import _generate_reset_password_token, _generate_verify_user_token
+from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.invitations.services import _generate_workspace_invitation_token
+from workspaces.memberships.models import WorkspaceMembership
+from workspaces.workspaces.models import Workspace
 
 pytestmark = pytest.mark.django_db
 
@@ -246,12 +256,110 @@ async def test_update_my_user_success(client):
 #####################################################################
 
 
-async def test_delete_user_204_no_content(client):
+async def test_delete_user_204_ok(client):
     user = await f.create_user(username="user", is_active=True)
 
     client.login(user)
     response = await client.delete("/my/user")
     assert response.status_code == 204, response.data
+    assert not await User.objects.aexists()
+
+
+async def test_delete_user_204_complex_data(client, project_template):
+    user = await f.create_user(username="user", is_active=True)
+    other_user = await f.create_user(username="other_user", is_active=True)
+    # user only ws and pj member
+    ws1 = await f.create_workspace(created_by=user)
+    pj1_ws1 = await f.create_project(project_template, created_by=user, workspace=ws1)
+    pj1_ws1_story1 = await f.create_story(project=pj1_ws1, created_by=user)
+    await f.create_story_assignment(story=pj1_ws1_story1, user=user)
+    await f.create_comment(content_object=pj1_ws1_story1)
+
+    # user not only ws owner
+    ws2 = await f.create_workspace(created_by=user)
+    owner_role = await ws2.roles.aget(is_owner=True)
+    await f.create_workspace_membership(user=other_user, workspace=ws2, role=owner_role)
+    # user not only pj owner
+    pj1_ws2 = await f.create_project(project_template, created_by=user, workspace=ws2)
+    owner_role = await pj1_ws2.roles.aget(is_owner=True)
+    await f.create_project_membership(user=other_user, project=pj1_ws2, role=owner_role)
+    pj1_ws2_story1 = await f.create_story(project=pj1_ws2, created_by=user)
+    await f.create_story_assignment(story=pj1_ws2_story1, user=user)
+    await f.create_comment(content_object=pj1_ws2_story1)
+    await f.create_comment(content_object=pj1_ws2_story1, created_by=other_user)
+    pj1_ws2_story2 = await f.create_story(project=pj1_ws2, created_by=other_user)
+    await f.create_story_assignment(story=pj1_ws2_story2, user=user)
+    await f.create_comment(content_object=pj1_ws2_story2)
+
+    # user not member
+    ws3 = await f.create_workspace(created_by=other_user)
+    await f.create_project(project_template, created_by=other_user, workspace=ws3)
+
+    # user ws member but not ws owner
+    ws4 = await f.create_workspace(created_by=other_user)
+    await f.create_workspace_membership(user=user, workspace=ws4)
+    # user pj member but not pj owner
+    pj1_ws4 = await f.create_project(
+        project_template, created_by=other_user, workspace=ws4
+    )
+    await f.create_project_membership(user=user, project=pj1_ws4)
+    pj1_ws4_story1 = await f.create_story(project=pj1_ws4, created_by=other_user)
+    await f.create_story_assignment(story=pj1_ws4_story1, user=other_user)
+    await f.create_story(project=pj1_ws4, created_by=user)
+    # user only pj member
+    await f.create_project(project_template, created_by=user, workspace=ws4)
+
+    # user only ws member, without project
+    ws5 = await f.create_workspace(created_by=user)
+
+    # ws invitations
+    ws6 = await f.create_workspace(created_by=other_user)
+    await f.create_workspace_invitation(user=user, workspace=ws6)
+    # pj invitations
+    ws7 = await f.create_workspace(created_by=other_user)
+    pj1_ws7 = await f.create_project(
+        project_template, created_by=other_user, workspace=ws7
+    )
+    await f.create_project_invitation(user=user, project=pj1_ws7)
+
+    client.login(user)
+    response = await client.delete("/my/user")
+    assert response.status_code == 204, response.data
+
+    with pytest.raises(User.DoesNotExist):
+        await user.arefresh_from_db()
+
+    assert await Workspace.objects.acount() == 5
+    assert await Project.objects.acount() == 4
+    assert await WorkspaceMembership.objects.acount() == 5
+    assert await ProjectMembership.objects.acount() == 4
+    assert not await WorkspaceInvitation.objects.aexists()
+    assert not await ProjectInvitation.objects.aexists()
+
+    assert await Story.objects.acount() == 4
+    assert await Story.objects.filter(created_by__isnull=True).acount() == 2
+    assert await StoryAssignment.objects.acount() == 1
+    assert await Comment.objects.acount() == 3
+    assert await Comment.objects.filter(created_by__isnull=True).acount() == 1
+
+
+async def test_delete_user_400_only_owner(client, project_template):
+    user = await f.create_user(username="user", is_active=True)
+    # only ws owner
+    ws1 = await f.create_workspace(created_by=user)
+    await f.create_workspace_membership(workspace=ws1)
+
+    client.login(user)
+    response = await client.delete("/my/user")
+    assert response.status_code == 400, response.data
+
+    # not only ws owner but only pj owner
+    owner_role = await ws1.roles.aget(is_owner=True)
+    await f.create_workspace_membership(workspace=ws1, role=owner_role)
+    pj1_ws1 = await f.create_project(project_template, created_by=user, workspace=ws1)
+    await f.create_project_membership(project=pj1_ws1)
+    response = await client.delete("/my/user")
+    assert response.status_code == 400, response.data
 
 
 async def test_delete_user_401_unauthorized_user(client):
@@ -274,56 +382,100 @@ async def test_get_user_delete_info_no_authenticated_user(client):
 async def test_get_user_delete_info_success(client, project_template):
     user = await f.create_user(username="user", is_active=True)
     other_user = await f.create_user(username="other_user", is_active=True)
+    # user only ws and pj member
     ws1 = await f.create_workspace(name="ws1", created_by=user)
-    # user only pj admin but only pj member and only ws member
-    await f.create_project(
+    pj1_ws1 = await f.create_project(
         project_template, name="pj1_ws1", created_by=user, workspace=ws1
     )
-    # user only pj admin and not only pj member but only ws member
-    pj2_ws1 = await f.create_project(
-        project_template, name="pj2_ws1", created_by=user, workspace=ws1
-    )
-    await f.create_project_membership(user=other_user, project=pj2_ws1)
+
+    # user not only ws owner
     ws2 = await f.create_workspace(name="ws2", created_by=user)
-    await f.create_workspace_membership(user=other_user, workspace=ws2)
-    # user not only ws member but not only pj admin
+    owner_role = await ws2.roles.aget(is_owner=True)
+    await f.create_workspace_membership(user=other_user, workspace=ws2, role=owner_role)
+    # user not only pj owner
     pj1_ws2 = await f.create_project(
         project_template, name="pj1_ws2", created_by=user, workspace=ws2
     )
-    admin_role = await pj1_ws2.roles.aget(is_owner=True)
-    await f.create_project_membership(user=other_user, project=pj1_ws2, role=admin_role)
+    owner_role = await pj1_ws2.roles.aget(is_owner=True)
+    await f.create_project_membership(user=other_user, project=pj1_ws2, role=owner_role)
+
+    # user not member
     ws3 = await f.create_workspace(name="ws3", created_by=other_user)
-    # user not ws member and only pj admin
-    pj1_ws3 = await f.create_project(
-        project_template, name="pj1_ws3", created_by=user, workspace=ws3
+    await f.create_project(
+        project_template, name="pj1_ws3", created_by=other_user, workspace=ws3
     )
-    await f.create_project_membership(user=other_user, project=pj1_ws3)
-    ws4 = await f.create_workspace(name="ws4", created_by=user)
-    await f.create_workspace_membership(user=other_user, workspace=ws4)
-    # user not only ws member and not only pj admin
+
+    # user ws member but not ws owner
+    ws4 = await f.create_workspace(name="ws4", created_by=other_user)
+    await f.create_workspace_membership(user=user, workspace=ws4)
+    # user pj member but not pj owner
     pj1_ws4 = await f.create_project(
-        project_template, name="pj1_ws4", created_by=user, workspace=ws4
+        project_template, name="pj1_ws4", created_by=other_user, workspace=ws4
     )
-    admin_role = await pj1_ws4.roles.aget(is_owner=True)
-    await f.create_project_membership(user=other_user, project=pj1_ws4, role=admin_role)
-    # user not only ws member and only pj admin
+    await f.create_project_membership(user=user, project=pj1_ws4)
+    # user only pj member
     pj2_ws4 = await f.create_project(
         project_template, name="pj2_ws4", created_by=user, workspace=ws4
     )
-    await f.create_project_membership(user=other_user, project=pj2_ws4)
-    # user only ws member without projects
-    await f.create_workspace(name="ws5", created_by=user)
+
+    # user only ws member, without project
+    ws5 = await f.create_workspace(name="ws5", created_by=user)
+
+    # only ws owner without project
+    ws6 = await f.create_workspace(name="ws6", created_by=user)
+    await f.create_workspace_membership(workspace=ws6, user=other_user)
+
+    # only ws owner with projects
+    ws7 = await f.create_workspace(name="ws7", created_by=user)
+    await f.create_workspace_membership(workspace=ws7, user=other_user)
+    # only pj owner
+    pj1_ws7 = await f.create_project(
+        project_template, name="pj1_ws7", created_by=user, workspace=ws7
+    )
+    await f.create_project_membership(project=pj1_ws7, user=other_user)
+    # not only pj owner
+    pj2_ws7 = await f.create_project(
+        project_template, name="pj2_ws7", created_by=user, workspace=ws7
+    )
+    owner_role = await pj2_ws7.roles.aget(is_owner=True)
+    await f.create_project_membership(project=pj2_ws7, user=other_user, role=owner_role)
+    # not member
+    await f.create_project(project_template, created_by=other_user, workspace=ws7)
+
+    # not only ws owner but only pj owner
+    ws8 = await f.create_workspace(name="ws8", created_by=user)
+    owner_role = await ws8.roles.aget(is_owner=True)
+    await f.create_workspace_membership(workspace=ws8, role=owner_role, user=other_user)
+    pj1_ws8 = await f.create_project(
+        project_template, name="pj1_ws8", created_by=user, workspace=ws8
+    )
+    await f.create_project_membership(project=pj1_ws8, user=other_user)
 
     client.login(user)
     response = await client.get("/my/user/delete-info")
     assert response.status_code == 200, response.data
-    assert len(response.json()) == 2
-    assert response.json().keys() == {"workspaces", "projects"}
-    assert len(response.json()["workspaces"]) == 1
-    assert response.json()["workspaces"][0]["name"] == "ws1"
-    assert len(response.json()["projects"]) == 2
-    assert response.json()["projects"][0]["name"] == "pj2_ws4"
-    assert response.json()["projects"][1]["name"] == "pj1_ws3"
+    res = response.json()
+    assert len(res) == 4
+    assert res.keys() == {
+        "onlyOwnerCollectiveWorkspaces",
+        "onlyOwnerCollectiveProjects",
+        "onlyMemberWorkspaces",
+        "onlyMemberProjects",
+    }
+
+    assert [ws["name"] for ws in res["onlyOwnerCollectiveWorkspaces"]] == [
+        ws6.name,
+        ws7.name,
+    ]
+    assert [ws["name"] for ws in res["onlyOwnerCollectiveProjects"]] == [
+        pj1_ws7.name,
+        pj1_ws8.name,
+    ]
+    assert [ws["name"] for ws in res["onlyMemberWorkspaces"]] == [ws1.name, ws5.name]
+    assert [pj["name"] for pj in res["onlyMemberWorkspaces"][0]["projects"]] == [
+        pj1_ws1.name
+    ]
+    assert [ws["name"] for ws in res["onlyMemberProjects"]] == [pj2_ws4.name]
 
 
 ##########################################################

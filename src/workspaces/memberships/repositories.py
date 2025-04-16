@@ -16,26 +16,30 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.db.models import QuerySet
 
 from memberships.repositories import (  # noqa
-    list_memberships,
-    get_membership,
-    exists_membership,
-    update_membership,
     delete_membership,
+    exists_membership,
+    get_membership,
+    get_role,
     has_other_owner_memberships,
     list_members,
+    list_memberships,
     list_roles,
-    get_role,
+    only_owner_collective_queryset,
+    update_membership,
     update_role,
 )
-from permissions.choices import WorkspacePermissions
-
-from users.models import User
+from memberships.repositories import (
+    only_member_queryset as _only_member_queryset,
+)
 from memberships.services import exceptions as ex
+from permissions.choices import WorkspacePermissions
+from users.models import User
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.workspaces.models import Workspace
-
+from workspaces.workspaces.repositories import WorkspacePrefetchRelated
 
 ##########################################################
 # create workspace membership
@@ -52,6 +56,18 @@ async def create_workspace_membership(
     return await WorkspaceMembership.objects.acreate(
         user=user, workspace=workspace, role=role
     )
+
+
+##########################################################
+# misc membership
+##########################################################
+
+
+def only_workspace_member_queryset(
+    user: User,
+    prefetch_related: WorkspacePrefetchRelated = [],
+) -> QuerySet[Workspace]:
+    return _only_member_queryset(Workspace, user).prefetch_related(*prefetch_related)
 
 
 ##########################################################

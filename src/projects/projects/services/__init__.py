@@ -27,7 +27,7 @@ from ninja import UploadedFile
 
 from base.utils.files import uploadfile_to_file
 from base.utils.images import get_thumbnail_url
-from commons.utils import transaction_atomic_async
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from memberships.choices import InvitationStatus
 from permissions.choices import ProjectPermissions
 from projects.invitations import services as pj_invitations_services
@@ -317,7 +317,9 @@ async def delete_project(project: Project, deleted_by: User) -> bool:
             )
 
         # Emit event
-        await projects_events.emit_event_when_project_is_deleted(
+        await transaction_on_commit_async(
+            projects_events.emit_event_when_project_is_deleted
+        )(
             workspace=project.workspace,
             project=project,
             deleted_by=deleted_by,

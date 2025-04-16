@@ -593,6 +593,7 @@ async def test_delete_project_ok(tqmanager):
         patch(
             "projects.projects.services.users_services", autospec=True
         ) as fake_users_services,
+        patch_db_transaction(),
     ):
         fake_projects_repo.delete_projects.return_value = 1
         fake_users_services.list_guests_in_workspace_for_project.return_value = []

@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from django.conf import settings
@@ -26,16 +26,21 @@ from django.conf import settings
 from memberships.choices import InvitationStatus
 from memberships.services.exceptions import (
     BadInvitationTokenError,
+    MembershipIsTheOnlyOwnerError,
 )
 from ninja_jwt.exceptions import TokenError
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from projects.invitations.models import ProjectInvitation
+from projects.memberships.models import ProjectMembership
+from projects.projects.models import Project
 from tests.utils import factories as f
 from tests.utils.utils import patch_db_transaction, preserve_real_attrs
 from users import services
 from users.services import exceptions as ex
 from users.tokens import ResetPasswordToken, VerifyUserToken
 from workspaces.invitations.models import WorkspaceInvitation
+from workspaces.memberships.models import WorkspaceMembership
+from workspaces.workspaces.models import Workspace
 
 ##########################################################
 # create_user
@@ -784,315 +789,157 @@ async def test_update_user_ok(tqmanager):
 async def test_delete_user_success():
     user = f.build_user(username="user", is_active=True)
     user2 = f.build_user(username="user2", is_active=True)
-    user3 = f.build_user(username="user3", is_active=True)
-    user4 = f.build_user(username="user4", is_active=True)
 
-    # workspaces where user is the only member with or without projects
-    ws1 = f.build_workspace(name="ws1", created_by=user)
+    ws1 = f.build_workspace(created_by=user)
+    ws2 = f.build_workspace(created_by=user)
+    ws3 = f.build_workspace(created_by=user2)
 
-    ws2 = f.build_workspace(name="ws2", created_by=user)
-    pj1_ws2 = f.build_project(name="pj1_ws2", created_by=user, workspace=ws2)
-    general_role_pj1_ws2 = f.build_project_role(is_owner=False)
-    f.build_project_invitation(
-        email=user2.email,
-        user=user2,
-        project=pj1_ws2,
-        role=general_role_pj1_ws2,
-        invited_by=user,
-        status=InvitationStatus.ACCEPTED,
-    )
-    f.build_project_membership(user=user2, project=pj1_ws2, role=general_role_pj1_ws2)
-    workflow = f.build_workflow()
-    status_workflow = f.build_workflow_status()
-    story1_pj1_ws2 = f.build_story(
-        project=pj1_ws2, created_by=user, workflow=workflow, status=status_workflow
-    )
-    f.build_story_assignment(story=story1_pj1_ws2, user=user2)
-    story2_pj1_ws2 = f.build_story(
-        project=pj1_ws2, created_by=user2, workflow=workflow, status=status_workflow
-    )
-    f.build_story_assignment(story=story2_pj1_ws2, user=user)
-    f.build_comment(created_by=user2)
-    f.build_comment(created_by=user)
-    f.build_project(name="pj2_ws2", created_by=user, workspace=ws2)
+    pj1_ws1 = f.build_project(workspace=ws1, created_by=user)
+    pj2_ws1 = f.build_project(workspace=ws1, created_by=user)
+    pj1_ws3 = f.build_project(workspace=ws3, created_by=user2)
 
-    # projects where user is the only pj member and not only ws member
-    ws3 = f.build_workspace(name="ws3", created_by=user2)
+    ws_member1_ws1 = f.build_workspace_membership(
+        user=user, role__is_owner=True, workspace=ws1
+    )
+    ws_member1_ws2 = f.build_workspace_membership(
+        user=user, role__is_owner=True, workspace=ws2
+    )
+    ws_member1_ws3 = f.build_workspace_membership(
+        user=user, role__is_owner=False, workspace=ws3
+    )
+
     inv1_ws3 = f.build_workspace_invitation(
-        email=user.email,
+        user=user, role__is_owner=False, workspace=ws3
+    )
+
+    pj_member1_pj1_ws1 = f.build_project_membership(
+        user=user, role__is_owner=True, project=pj1_ws1
+    )
+    pj_member1_pj2_ws1 = f.build_project_membership(
+        user=user, role__is_owner=True, project=pj2_ws1
+    )
+    pj_member1_pj1_ws3 = f.build_project_membership(
+        user=user, role__is_owner=False, project=pj1_ws3
+    )
+
+    inv1_pj1_ws3 = f.build_project_invitation(
         user=user,
-        workspace=ws3,
-        invited_by=user2,
+        role__is_owner=False,
+        project=pj1_ws3,
         status=InvitationStatus.ACCEPTED,
-    )
-    ws_member1_ws3 = f.build_workspace_membership(user=user, workspace=ws3)
-
-    pj1_ws3 = f.build_project(name="pj1_ws3", created_by=user, workspace=ws3)
-    workflow = f.build_workflow()
-    status_workflow = f.build_workflow_status()
-    story1_pj1_ws3 = f.build_story(
-        project=pj1_ws3, created_by=user, workflow=workflow, status=status_workflow
-    )
-    f.build_story_assignment(story=story1_pj1_ws3, user=user)
-    story2_pj1_ws3 = f.build_story(
-        project=pj1_ws3, created_by=user, workflow=workflow, status=status_workflow
-    )
-    f.build_story_assignment(story=story2_pj1_ws3, user=user)
-    f.build_comment(created_by=user)
-
-    pj2_ws3 = f.build_project(name="pj2_ws3", created_by=user, workspace=ws3)
-
-    ws4 = f.build_workspace(name="ws4", created_by=user3)
-    inv1_ws4 = f.build_workspace_invitation(
-        email=user.email,
-        user=user,
-        workspace=ws4,
-        invited_by=user3,
-        status=InvitationStatus.ACCEPTED,
-    )
-    ws_member1_ws4 = f.build_workspace_membership(user=user, workspace=ws4)
-
-    pj1_ws4 = f.build_project(name="pj1_ws4", created_by=user, workspace=ws4)
-    workflow = f.build_workflow()
-    status_workflow = f.build_workflow_status()
-    story1_pj1_ws4 = f.build_story(
-        project=pj1_ws4, created_by=user, workflow=workflow, status=status_workflow
-    )
-    f.build_story_assignment(story=story1_pj1_ws4, user=user)
-    f.build_comment(created_by=user)
-
-    # projects where user is the only pj admin and not ws member or not the only ws member
-    ws5 = f.build_workspace(name="ws5", created_by=user3)
-    inv1_ws5 = f.build_workspace_invitation(
-        email=user.email,
-        user=user,
-        workspace=ws5,
-        invited_by=user3,
-        status=InvitationStatus.PENDING,
-    )
-    f.build_workspace_invitation(
-        email=user4.email,
-        user=user4,
-        workspace=ws5,
-        invited_by=user3,
-        status=InvitationStatus.ACCEPTED,
-    )
-    f.build_workspace_membership(user=user4, workspace=ws5)
-
-    admin_role_pj1_ws5 = f.build_project_role(is_owner=True)
-    pj1_ws5 = admin_role_pj1_ws5.project
-    pj_member1_pj1_ws5 = f.build_project_membership(
-        user=user, project=pj1_ws5, role=admin_role_pj1_ws5
-    )
-    general_role_pj1_ws5 = f.build_project_role(project=pj1_ws5, is_owner=False)
-    f.build_project_invitation(
-        email=user2.email,
-        user=user2,
-        project=pj1_ws5,
-        role=general_role_pj1_ws5,
-        invited_by=user,
-        status=InvitationStatus.ACCEPTED,
-    )
-    f.build_project_membership(user=user2, project=pj1_ws5, role=general_role_pj1_ws5)
-    f.build_project_invitation(
-        email=user3.email,
-        user=user3,
-        project=pj1_ws5,
-        role=general_role_pj1_ws5,
-        invited_by=user,
-        status=InvitationStatus.ACCEPTED,
-    )
-    pj_member3_pj1_ws5 = f.build_project_membership(
-        user=user3, project=pj1_ws5, role=general_role_pj1_ws5
-    )
-
-    ws6 = f.build_workspace(name="ws6", created_by=user2)
-    inv1_ws6 = f.build_workspace_invitation(
-        email=user.email,
-        user=user,
-        workspace=ws6,
-        invited_by=user2,
-        status=InvitationStatus.ACCEPTED,
-    )
-    ws_member1_ws6 = f.build_workspace_membership(user=user, workspace=ws6)
-    f.build_workspace_invitation(
-        email=user3.email,
-        user=user3,
-        workspace=ws6,
-        invited_by=user2,
-        status=InvitationStatus.ACCEPTED,
-    )
-    f.build_workspace_membership(user=user3, workspace=ws6)
-
-    admin_role_pj1_ws6 = f.build_project_role(is_owner=True)
-    pj1_ws6 = admin_role_pj1_ws6.project
-    pj_member1_pj1_ws6 = f.build_project_membership(
-        user=user, project=pj1_ws6, role=admin_role_pj1_ws6
-    )
-    general_role_pj1_ws6 = f.build_project_role(project=pj1_ws6, is_owner=False)
-    f.build_project_invitation(
-        email=user4.email,
-        user=user4,
-        project=pj1_ws6,
-        role=general_role_pj1_ws6,
-        invited_by=user,
-        status=InvitationStatus.ACCEPTED,
-    )
-    f.build_project_membership(user=user4, project=pj1_ws6, role=general_role_pj1_ws6)
-
-    # projects where the user is pj member
-    pj2_ws6 = f.build_project(name="pj2_ws6", created_by=user2, workspace=ws6)
-    general_role_pj2_ws6 = f.build_project_role(is_owner=False)
-    inv1_pj2_ws6 = f.build_project_invitation(
-        email=user.email,
-        user=user,
-        project=pj2_ws6,
-        role=general_role_pj2_ws6,
-        invited_by=user2,
-        status=InvitationStatus.ACCEPTED,
-    )
-    pj_member1_pj2_ws6 = f.build_project_membership(
-        user=user, project=pj2_ws6, role=general_role_pj2_ws6
-    )
-    workflow = f.build_workflow()
-    status_workflow = f.build_workflow_status()
-    story1_pj2_ws6 = f.build_story(
-        project=pj2_ws6, created_by=user, workflow=workflow, status=status_workflow
-    )
-    f.build_story_assignment(story=story1_pj2_ws6, user=user)
-    f.build_comment(created_by=user)
-
-    f.build_project(name="pj3_ws6", created_by=user2, workspace=ws6)
-    general_role_pj3_ws6 = f.build_project_role(is_owner=False)
-    inv1_pj3_ws6 = f.build_project_invitation(
-        email=user.email,
-        user=user,
-        project=pj2_ws6,
-        role=general_role_pj3_ws6,
-        invited_by=user2,
-        status=InvitationStatus.PENDING,
     )
 
     with (
         patch(
+            "users.services.ws_memberships_repositories", autospec=True
+        ) as fake_ws_memberships_repositories,
+        patch(
+            "users.services.pj_memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repositories,
+        patch(
+            "users.services.projects_services", autospec=True
+        ) as fake_projects_services,
+        patch(
             "users.services.workspaces_repositories", autospec=True
-        ) as fake_workspaces_repo,
+        ) as fake_workspaces_repositories,
+        patch(
+            "users.services.ws_invitations_repositories", autospec=True
+        ) as fake_ws_invitations_repositories,
+        patch(
+            "users.services.pj_invitations_repositories", autospec=True
+        ) as fake_pj_invitations_repositories,
+        patch(
+            "users.services.users_repositories", autospec=True
+        ) as fake_users_repositories,
         patch(
             "users.services.workspaces_events", autospec=True
         ) as fake_workspaces_events,
         patch(
-            "users.services.projects_repositories", autospec=True
-        ) as fake_projects_repo,
-        patch(
-            "users.services.projects_services", autospec=True
-        ) as fake_projects_service,
-        patch(
-            "users.services.ws_memberships_repositories", autospec=True
-        ) as fake_ws_memberships_repo,
-        patch(
-            "users.services.pj_memberships_repositories", autospec=True
-        ) as fake_pj_memberships_repo,
-        patch(
-            "users.services.pj_memberships_events", autospec=True
-        ) as fake_pj_memberships_events,
-        patch(
             "users.services.ws_memberships_events", autospec=True
         ) as fake_ws_memberships_events,
-        patch(
-            "users.services.ws_invitations_repositories", autospec=True
-        ) as fake_ws_invitations_repo,
         patch(
             "users.services.ws_invitations_events", autospec=True
         ) as fake_ws_invitations_events,
         patch(
-            "users.services.pj_invitations_repositories", autospec=True
-        ) as fake_pj_invitations_repo,
+            "users.services.pj_memberships_events", autospec=True
+        ) as fake_pj_memberships_events,
         patch(
             "users.services.pj_invitations_events", autospec=True
         ) as fake_pj_invitations_events,
-        patch("users.services.users_repositories", autospec=True) as fake_users_repo,
         patch("users.services.users_events", autospec=True) as fake_users_events,
-        patch("commons.utils.transaction", autospec=True),
+        patch_db_transaction(),
     ):
-        # workspaces where user is the only member
-        fake_workspaces_repo.list_workspaces.return_value = [ws2, ws1]
-        fake_workspaces_repo.delete_workspace.side_effect = [4, 4]
-
-        # projects where user is the only pj member and not only ws member
-        pj_list_user_only_member = [pj1_ws4, pj2_ws3, pj1_ws3]
-        # projects where user is the only pj admin and not ws member or not the only ws member
-        pj_list_user_only_admin = [pj1_ws5, pj1_ws6]
-        fake_projects_repo.list_projects.side_effect = [
-            pj_list_user_only_member,
-            pj_list_user_only_admin,
-        ]
-
-        # result projects deleted where user is the only pj member and not only ws member
-        fake_projects_service.delete_project.side_effect = [True, True, True]
-
-        # result projects updated with a new pj admin
-        ws_members_ws5_excluding_user = [user4, user3]
-        ws_members_ws6_excluding_user = [user3, user2]
-        fake_ws_memberships_repo.list_members.side_effect = [
-            ws_members_ws5_excluding_user,
-            ws_members_ws6_excluding_user,
-        ]
-        pj_members_pj1_ws5_excluding_user = [user3, user2]
-        pj_members_pj1_ws6_excluding_user = [user4]
-        fake_pj_memberships_repo.list_members.side_effect = [
-            pj_members_pj1_ws5_excluding_user,
-            pj_members_pj1_ws6_excluding_user,
-        ]
-        fake_pj_memberships_repo.get_role.side_effect = [
-            admin_role_pj1_ws5,
-            admin_role_pj1_ws6,
-        ]
-        fake_pj_memberships_repo.get_membership.return_value = pj_member3_pj1_ws5
-        fake_pj_memberships_repo.update_membership.return_value = pj_member3_pj1_ws5
-        fake_pj_memberships_repo.create_project_membership.return_value = MagicMock(
-            project=pj1_ws6, role=admin_role_pj1_ws6, user=user2
+        fake_ws_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
+            return_value=False
+        )
+        fake_pj_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
+            return_value=False
         )
 
-        # result workspaces memberships deleted
-        fake_ws_memberships_repo.list_memberships.return_value = [
-            ws_member1_ws6,
-            ws_member1_ws4,
+        # projects where user is the only pj member
+        fake_pj_memberships_repositories.only_project_member_queryset.return_value.__aiter__.return_value = [
+            pj1_ws1,
+            pj2_ws1,
+            pj1_ws3,
+        ]
+        fake_projects_services.delete_project.return_value = True
+
+        # workspaces where user is the only ws member
+        fake_ws_memberships_repositories.only_workspace_member_queryset.return_value.__aiter__.return_value = [
+            ws1,
+            ws2,
+        ]
+        fake_workspaces_repositories.delete_workspace.return_value = 4
+
+        fake_ws_memberships_repositories.list_memberships.return_value = [
+            ws_member1_ws1,
+            ws_member1_ws2,
             ws_member1_ws3,
         ]
-        fake_ws_memberships_repo.delete_membership.side_effect = [1, 1, 1]
-
-        # result workspaces invitations deleted
-        fake_ws_invitations_repo.list_invitations.return_value = [
-            inv1_ws6,
-            inv1_ws5,
-            inv1_ws4,
-            inv1_ws3,
+        fake_ws_invitations_repositories.list_invitations.return_value = [inv1_ws3]
+        fake_pj_memberships_repositories.list_memberships.return_value = [
+            pj_member1_pj1_ws1,
+            pj_member1_pj2_ws1,
+            pj_member1_pj1_ws3,
         ]
-        fake_ws_invitations_repo.delete_invitation.side_effect = [1, 1, 1, 1]
+        fake_pj_invitations_repositories.list_invitations.return_value = [inv1_pj1_ws3]
 
-        # result projects memberships deleted
-        fake_pj_memberships_repo.list_memberships.return_value = [
-            pj_member1_pj2_ws6,
-            pj_member1_pj1_ws6,
-            pj_member1_pj1_ws5,
-        ]
-        fake_pj_memberships_repo.delete_membership.side_effect = [1, 1, 1]
+        fake_users_repositories.delete_user.return_value = 1
 
-        # result projects invitations deleted
-        fake_pj_invitations_repo.list_invitations.return_value = [
-            inv1_pj3_ws6,
-            inv1_pj2_ws6,
-        ]
-        fake_pj_invitations_repo.delete_invitation.side_effect = [1, 1]
-
-        # result user deleted
-        fake_users_repo.delete_user.return_value = 1
         deleted_user = await services.delete_user(user=user)
 
-        # asserts
-        # workspaces deleted where user is the only member
-        fake_workspaces_repo.delete_workspace.assert_any_await(workspace_id=ws2.id)
-        fake_workspaces_repo.delete_workspace.assert_any_await(workspace_id=ws1.id)
+        # owner checks
+        fake_ws_memberships_repositories.only_owner_collective_queryset.assert_called_once_with(
+            Workspace, user
+        )
+        fake_pj_memberships_repositories.only_owner_collective_queryset.assert_called_once_with(
+            Project, user
+        )
+
+        # projects deletion
+        fake_pj_memberships_repositories.only_project_member_queryset.assert_called_once_with(
+            user
+        )
+        fake_projects_services.delete_project.assert_any_await(
+            project=pj1_ws1, deleted_by=user
+        )
+        fake_projects_services.delete_project.assert_any_await(
+            project=pj2_ws1, deleted_by=user
+        )
+        fake_projects_services.delete_project.assert_any_await(
+            project=pj1_ws3, deleted_by=user
+        )
+
+        # workspaces deletion
+        fake_ws_memberships_repositories.only_workspace_member_queryset.assert_called_once_with(
+            user
+        )
+        fake_workspaces_repositories.delete_workspace.assert_any_await(
+            workspace_id=ws1.id
+        )
+        fake_workspaces_repositories.delete_workspace.assert_any_await(
+            workspace_id=ws2.id
+        )
         fake_workspaces_events.emit_event_when_workspace_is_deleted.assert_any_await(
             workspace=ws2, deleted_by=user
         )
@@ -1100,93 +947,96 @@ async def test_delete_user_success():
             workspace=ws1, deleted_by=user
         )
 
-        # projects deleted where user is the only pj member and not only ws member
-        fake_projects_service.delete_project.assert_any_await(
-            project=pj1_ws4, deleted_by=user
-        )
-        fake_projects_service.delete_project.assert_any_await(
-            project=pj2_ws3, deleted_by=user
-        )
-        fake_projects_service.delete_project.assert_any_await(
-            project=pj1_ws3, deleted_by=user
-        )
-
-        # projects updated with a new pj admin
-        fake_pj_memberships_repo.update_membership.assert_any_await(
-            membership=pj_member3_pj1_ws5,
-            values={"role": admin_role_pj1_ws5},
-        )
-        fake_pj_memberships_repo.create_project_membership.assert_any_await(
-            project=pj1_ws6, role=admin_role_pj1_ws6, user=user3
-        )
-        fake_pj_memberships_events.emit_event_when_project_membership_is_updated.assert_any_await(
-            membership=pj_member3_pj1_ws5
-        )
-        fake_pj_memberships_events.emit_event_when_project_membership_is_created.assert_awaited()
-
-        # workspaces memberships deleted
-        fake_ws_memberships_repo.delete_membership.assert_any_await(ws_member1_ws6)
-        fake_ws_memberships_repo.delete_membership.assert_any_await(ws_member1_ws4)
-        fake_ws_memberships_repo.delete_membership.assert_any_await(ws_member1_ws3)
-        fake_ws_memberships_events.emit_event_when_workspace_membership_is_deleted.assert_any_await(
-            membership=ws_member1_ws6
+        # ws memberships
+        fake_ws_memberships_repositories.list_memberships.assert_awaited_once_with(
+            WorkspaceMembership,
+            filters={"user_id": user.id},
+            select_related=["user", "workspace"],
         )
         fake_ws_memberships_events.emit_event_when_workspace_membership_is_deleted.assert_any_await(
-            membership=ws_member1_ws4
+            membership=ws_member1_ws1
+        )
+        fake_ws_memberships_events.emit_event_when_workspace_membership_is_deleted.assert_any_await(
+            membership=ws_member1_ws2
         )
         fake_ws_memberships_events.emit_event_when_workspace_membership_is_deleted.assert_any_await(
             membership=ws_member1_ws3
         )
 
-        # workspaces invitations deleted
-        fake_ws_invitations_repo.delete_invitation.assert_any_await(
-            WorkspaceInvitation, filters={"id": inv1_ws6.id}
+        # ws invitations
+        fake_ws_invitations_repositories.list_invitations.assert_awaited_once_with(
+            WorkspaceInvitation,
+            filters={"user": user},
+            select_related=["workspace"],
         )
-        fake_ws_invitations_repo.delete_invitation.assert_any_await(
-            WorkspaceInvitation, filters={"id": inv1_ws5.id}
-        )
-        fake_ws_invitations_repo.delete_invitation.assert_any_await(
-            WorkspaceInvitation, filters={"id": inv1_ws4.id}
-        )
-        fake_ws_invitations_repo.delete_invitation.assert_any_await(
-            WorkspaceInvitation, filters={"id": inv1_ws3.id}
-        )
-        fake_ws_invitations_events.emit_event_when_workspace_invitation_is_deleted.assert_awaited_with(
-            invitation=inv1_ws5
+        fake_ws_invitations_events.emit_event_when_workspace_invitation_is_deleted.assert_awaited_once_with(
+            invitation=inv1_ws3
         )
 
-        # projects memberships deleted
-        fake_pj_memberships_repo.delete_membership.assert_any_await(pj_member1_pj2_ws6)
-        fake_pj_memberships_repo.delete_membership.assert_any_await(pj_member1_pj1_ws6)
-        fake_pj_memberships_repo.delete_membership.assert_any_await(pj_member1_pj1_ws5)
-        fake_pj_memberships_events.emit_event_when_project_membership_is_deleted.assert_any_await(
-            membership=pj_member1_pj2_ws6
+        # pj memberships
+        fake_pj_memberships_repositories.list_memberships.assert_awaited_once_with(
+            ProjectMembership,
+            filters={"user_id": user.id},
+            select_related=["user", "project"],
         )
         fake_pj_memberships_events.emit_event_when_project_membership_is_deleted.assert_any_await(
-            membership=pj_member1_pj1_ws6
+            membership=pj_member1_pj1_ws1
         )
         fake_pj_memberships_events.emit_event_when_project_membership_is_deleted.assert_any_await(
-            membership=pj_member1_pj1_ws5
+            membership=pj_member1_pj2_ws1
+        )
+        fake_pj_memberships_events.emit_event_when_project_membership_is_deleted.assert_any_await(
+            membership=pj_member1_pj1_ws3
         )
 
-        # projects invitations deleted
-        fake_pj_invitations_repo.delete_invitation.assert_any_await(
-            ProjectInvitation, filters={"id": inv1_pj3_ws6.id}
+        # pj invitations
+        fake_pj_invitations_repositories.list_invitations.assert_awaited_once_with(
+            ProjectInvitation,
+            filters={"user": user},
+            select_related=["project"],
         )
-        fake_pj_invitations_repo.delete_invitation.assert_any_await(
-            ProjectInvitation, filters={"id": inv1_pj2_ws6.id}
-        )
-        fake_pj_invitations_events.emit_event_when_project_invitation_is_deleted.assert_awaited_with(
-            invitation=inv1_pj3_ws6
+        fake_pj_invitations_events.emit_event_when_project_invitation_is_deleted.assert_awaited_once_with(
+            invitation=inv1_pj1_ws3
         )
 
         # user deleted
-        fake_users_repo.delete_user.assert_awaited_once_with(user)
+        fake_users_repositories.delete_user.assert_awaited_once_with(user)
         fake_users_events.emit_event_when_user_is_deleted.assert_awaited_once_with(
             user=user
         )
-
         assert deleted_user == 1
+
+
+async def test_delete_user_error_only_owner():
+    user = f.build_user(username="user", is_active=True)
+
+    with (
+        patch(
+            "users.services.ws_memberships_repositories", autospec=True
+        ) as fake_ws_memberships_repositories,
+        patch(
+            "users.services.pj_memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repositories,
+        patch(
+            "users.services.users_repositories", autospec=True
+        ) as fake_users_repositories,
+        patch_db_transaction(),
+    ):
+        with pytest.raises(MembershipIsTheOnlyOwnerError):
+            fake_ws_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
+                return_value=True
+            )
+            await services.delete_user(user=user)
+        with pytest.raises(MembershipIsTheOnlyOwnerError):
+            fake_ws_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
+                return_value=False
+            )
+            fake_pj_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
+                return_value=True
+            )
+            await services.delete_user(user=user)
+
+        fake_users_repositories.delete_user.assert_not_awaited()
 
 
 #####################################################################
@@ -1440,90 +1290,3 @@ async def test_clean_expired_users():
     with patch("users.services.users_repositories", autospec=True) as fake_users_repo:
         await services.clean_expired_users()
         fake_users_repo.clean_expired_users.assert_awaited_once()
-
-
-async def test_list_workspaces_delete_info():
-    user = f.build_user(is_active=True)
-    other_user = f.build_user(is_active=True)
-    # user only ws member with projects
-    ws1 = f.build_workspace(created_by=user)
-    f.build_project(created_by=user, workspace=ws1)
-    f.build_project(created_by=user, workspace=ws1)
-    # user only ws member with projects
-    ws2 = f.build_workspace(created_by=user)
-    f.build_project(created_by=user, workspace=ws2)
-    # user only ws member without projects
-    f.build_workspace(created_by=user)
-    # user not only ws member with projects
-    ws4 = f.build_workspace(created_by=user)
-    f.build_workspace_membership(user=other_user, workspace=ws4)
-    f.build_project(created_by=user, workspace=ws4)
-    # user not only ws member without projects
-    ws5 = f.build_workspace(created_by=user)
-    f.build_workspace_membership(user=other_user, workspace=ws5)
-
-    with patch(
-        "users.services.workspaces_repositories", autospec=True
-    ) as fake_workspaces_repo:
-        fake_workspaces_repo.list_workspaces.return_value = [ws2, ws1]
-        workspaces = await services._list_workspaces_delete_info(user=user)
-
-        fake_workspaces_repo.list_workspaces.assert_called_once_with(
-            user=user,
-            has_projects=True,
-            is_only_user=True,
-            prefetch_related=["projects"],
-        )
-        assert workspaces == [ws2, ws1]
-
-
-async def test_list_projects_delete_info():
-    user = f.build_user(is_active=True)
-    other_user = f.build_user(is_active=True)
-    ws1 = f.build_workspace(created_by=user)
-    # user only pj admin but only pj member and only ws member
-    f.build_project(created_by=user, workspace=ws1)
-    # user only pj admin and not only pj member but only ws member
-    pj2_ws1 = f.build_project(created_by=user, workspace=ws1)
-    f.build_project_membership(user=other_user, project=pj2_ws1)
-    ws2 = f.build_workspace(created_by=user)
-    f.build_workspace_membership(user=other_user, workspace=ws2)
-    # user not only ws member but not only pj admin
-    pj1_ws2 = f.build_project(created_by=user, workspace=ws2)
-    admin_role = f.build_project_role(project=pj1_ws2, is_owner=True)
-    f.build_project_membership(user=other_user, project=pj1_ws2, role=admin_role)
-    ws3 = f.build_workspace(created_by=other_user)
-    # user not ws member and only pj admin
-    pj1_ws3 = f.build_project(created_by=user, workspace=ws3)
-    f.build_project_membership(user=other_user, project=pj1_ws3)
-    ws4 = f.build_workspace(created_by=user)
-    f.build_workspace_membership(user=other_user, workspace=ws4)
-    # user not only ws member and only pj admin
-    pj1_ws4 = f.build_project(created_by=user, workspace=ws4)
-    admin_role = f.build_project_role(project=pj1_ws4, is_owner=True)
-    f.build_project_membership(user=other_user, project=pj1_ws4, role=admin_role)
-
-    with (
-        patch(
-            "users.services.workspaces_repositories", autospec=True
-        ) as fake_workspaces_repo,
-        patch(
-            "users.services.projects_repositories", autospec=True
-        ) as fake_projects_repo,
-    ):
-        fake_projects_repo.list_projects.return_value = [pj1_ws4, pj1_ws3]
-        projects = await services._list_projects_delete_info(
-            user=user, ws_list=[ws2, ws1]
-        )
-
-        fake_workspaces_repo.list_workspace_projects.assert_awaited()
-        fake_projects_repo.list_projects.assert_called_once_with(
-            filters={
-                "memberships__user_id": user.id,
-                "memberships__role__is_owner": True,
-            },
-            is_individual_project=False,
-            num_owners=1,
-            select_related=["workspace"],
-        )
-        assert projects == [pj1_ws4, pj1_ws3]

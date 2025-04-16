@@ -21,7 +21,6 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
-from django.db.models import Case, Count, When
 
 from base.utils.datetime import aware_utcnow
 from base.utils.files import File
@@ -43,6 +42,7 @@ from workspaces.workspaces.models import Workspace
 
 class ProjectFilters(TypedDict, total=False):
     workspace_id: UUID
+    workspace__in: list[Workspace]
     invitations__user_id: UUID
     invitations__status: InvitationStatus
     memberships__user_id: UUID
@@ -99,23 +99,8 @@ async def list_projects(
     order_by: ProjectOrderBy = ["-created_at"],
     offset: int | None = None,
     limit: int | None = None,
-    num_owners: int | None = None,
-    is_individual_project: bool | None = None,
 ) -> list[Project]:
     qs = Project.objects.all()
-    if num_owners is not None:
-        qs = qs.annotate(
-            num_owners=Count(Case(When(memberships__role__is_owner=True, then=1)))
-        ).filter(num_owners=num_owners)
-
-    # filters for those projects where the user is the only project member
-    if is_individual_project is not None:
-        qs = qs.annotate(num_members=Count("members"))
-        qs = (
-            qs.filter(num_members=1)
-            if is_individual_project
-            else qs.filter(num_members__gt=1)
-        )
     qs = (
         qs.filter(**filters)
         .select_related(*select_related)

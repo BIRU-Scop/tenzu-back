@@ -19,7 +19,7 @@
 from typing import Any, Literal, TypedDict, TypeVar
 from uuid import UUID
 
-from django.db.models import Q
+from django.db.models import Case, Count, Q, QuerySet, When
 
 from memberships.choices import InvitationStatus
 from memberships.models import Invitation, Membership, Role
@@ -234,13 +234,46 @@ async def has_other_owner_memberships(membership: TM):
     )
 
 
-async def list_members(
-    reference_object: Project | Workspace, exclude_user=None
-) -> list[User]:
+async def list_members(reference_object: Project | Workspace) -> list[User]:
     qs = reference_object.members.all()
-    if exclude_user is not None:
-        qs = qs.exclude(id=exclude_user.id)
     return [a async for a in qs]
+
+
+def only_member_queryset(
+    model: type[Project | Workspace],
+    user: User,
+) -> QuerySet[Project | Workspace]:
+    """
+    returns a queryset for all object where user is the only member
+    """
+    qs = model.objects.all()
+    qs = qs.annotate(num_members=Count("members")).filter(num_members=1)
+    qs = qs.filter(
+        **{
+            "memberships__user_id": user.id,
+        }
+    )
+    return qs.distinct()
+
+
+def only_owner_collective_queryset(
+    model: type[Project | Workspace], user: User
+) -> QuerySet[Project | Workspace]:
+    """
+    returns a queryset for all projects where user is the only owner and other members exists
+    """
+    qs = model.objects.all()
+    qs = qs.annotate(
+        num_owners=Count(Case(When(memberships__role__is_owner=True, then=1)))
+    ).filter(num_owners=1)
+    qs = qs.annotate(num_members=Count("members")).filter(num_members__gt=1)
+    qs = qs.filter(
+        **{
+            "memberships__user_id": user.id,
+            "memberships__role__is_owner": True,
+        }
+    )
+    return qs.distinct()
 
 
 ##########################################################

@@ -23,7 +23,6 @@ from projects.projects.models import Project
 from users.serializers import (
     UserDeleteInfoSerializer,
     VerificationInfoSerializer,
-    _WorkspaceWithProjectsNestedSerializer,
 )
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.workspaces.models import Workspace
@@ -41,23 +40,15 @@ def serialize_verification_info(
     )
 
 
-def serialize_workspace_with_projects_nested(
-    workspace: Workspace, projects: list[Project] = []
-) -> _WorkspaceWithProjectsNestedSerializer:
-    return _WorkspaceWithProjectsNestedSerializer(
-        id=workspace.id,
-        name=workspace.name,
-        slug=workspace.slug,
-        color=workspace.color,
-        projects=projects,
-    )
-
-
 def serialize_user_delete_info(
-    workspaces: list[_WorkspaceWithProjectsNestedSerializer],
-    projects: list[Project] = [],
+    only_owner_collective_workspaces: list[Workspace],
+    only_owner_collective_projects: list[Project],
+    only_member_workspaces: list[Workspace],
+    only_member_projects: list[Project],
 ) -> UserDeleteInfoSerializer:
     return UserDeleteInfoSerializer(
-        workspaces=workspaces,
-        projects=projects,
+        only_owner_collective_workspaces=only_owner_collective_workspaces,
+        only_owner_collective_projects=only_owner_collective_projects,
+        only_member_workspaces=only_member_workspaces,
+        only_member_projects=only_member_projects,
     )
