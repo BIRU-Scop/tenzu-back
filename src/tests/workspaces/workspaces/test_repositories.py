@@ -58,12 +58,6 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
 
     # user9 is member of ws1 as well
     await f.create_workspace_membership(user=user9, workspace=ws1)
-    # user9 is guest of ws3
-    pj = await f.create_project(
-        template=project_template, name="pj1", workspace=ws3, created_by=user8
-    )
-    pj_member_role = await pj.roles.aget(slug="member")
-    await f.create_project_membership(user=user9, project=pj, role=pj_member_role)
 
     # user8 invites user9 to a project in ws1
     pj = await f.create_project(

@@ -51,7 +51,6 @@ from projects.projects.models import Project
 from users.models import AuthData, User
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships.models import WorkspaceMembership
-from workspaces.workspaces.models import Workspace
 
 ##########################################################
 # USER - filters and querysets
@@ -68,8 +67,7 @@ class UserFilters(TypedDict, total=False):
     usernames: list[str]
     username_or_email: str
     is_active: bool
-    guest_in_ws_for_project: Project
-    guests_in_workspace: Workspace
+    invitees_in_ws_via_project: Project
 
 
 def _apply_filters_to_queryset(
@@ -95,28 +93,14 @@ def _apply_filters_to_queryset(
             Q(username__iexact=username_or_email) | Q(email__iexact=username_or_email)
         )
 
-    if "guest_in_ws_for_project" in filter_data:
-        project = filter_data.pop("guest_in_ws_for_project")
-        pj_members = Q(projects=project)
+    if "invitees_in_ws_via_project" in filter_data:
+        project = filter_data.pop("invitees_in_ws_via_project")
         pj_invitees = Q(
             project_invitations__project=project,
             project_invitations__status=InvitationStatus.PENDING,
         )
-        qs = qs.filter(pj_members | pj_invitees)
+        qs = qs.filter(pj_invitees)
         qs = qs.exclude(workspaces=project.workspace).distinct()  # type: ignore[attr-defined]
-
-    if "guests_in_workspace" in filter_data:
-        workspace = filter_data.pop("guests_in_workspace")
-        # exclude workspace members
-        qs = qs.exclude(workspaces=workspace)
-        # exclude workspace invitees
-        ws_invitees = Q(
-            workspace_invitations__workspace=workspace,
-            workspace_invitations__status=InvitationStatus.PENDING,
-        )
-        qs = qs.exclude(ws_invitees)
-        # filter members of any project in the workspace
-        qs = qs.filter(projects__workspace=workspace).distinct()
 
     return qs.filter(**filter_data)
 

@@ -324,7 +324,7 @@ async def test_delete_projects(project_template):
 ##########################################################
 
 
-async def test_get_total_projects_in_ws_for_member(project_template) -> None:
+async def test_get_total_projects_in_ws(project_template) -> None:
     user1 = await f.create_user()
     other_user = await f.create_user()
     ws = await f.create_workspace(created_by=user1)
@@ -333,31 +333,10 @@ async def test_get_total_projects_in_ws_for_member(project_template) -> None:
     )
     await f.create_project(template=project_template, workspace=ws, created_by=user1)
 
-    res = await repositories.get_total_projects(workspace_id=ws.id)
-    assert res == 2
-
-
-async def test_get_total_projects_in_ws_for_guest(project_template) -> None:
-    member = await f.create_user()
-    user1 = await f.create_user()
-    ws = await f.create_workspace(created_by=member)
-
-    pj1 = await f.create_project(
-        template=project_template, workspace=ws, created_by=member
-    )
-    pj_member_role = await pj1.roles.aget(slug="member")
-    await f.create_project_membership(user=user1, project=pj1, role=pj_member_role)
-
-    pj2 = await f.create_project(
-        template=project_template, workspace=ws, created_by=member
-    )
-    pj_member_role = await pj2.roles.aget(slug="member")
-    await f.create_project_membership(user=user1, project=pj2, role=pj_member_role)
-
     res = await repositories.get_total_projects(
         filters={"memberships__user_id": user1.id}, workspace_id=ws.id
     )
-    assert res == 2
+    assert res == 1
 
 
 ##########################################################

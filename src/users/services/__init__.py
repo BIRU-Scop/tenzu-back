@@ -230,11 +230,11 @@ async def list_users_usernames_as_dict(
     return {u.username: u for u in users}
 
 
-async def list_guests_in_workspace_for_project(
+async def list_invitees_in_ws_via_project(
     project: Project,
 ) -> list[User]:
     return await users_repositories.list_users(
-        filters={"guest_in_ws_for_project": project}
+        filters={"invitees_in_ws_via_project": project}
     )
 
 

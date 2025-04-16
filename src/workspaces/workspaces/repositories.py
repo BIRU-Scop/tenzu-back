@@ -123,13 +123,12 @@ def list_user_workspaces_overview(user: User) -> list[Workspace]:
 
     # workspaces where the user is ws-guest with all its visible projects
     # or is not even a guest and only have invited projects
-    user_pj_member = Q(memberships__user__id=user.id)
     user_invited_pj = Q(invitations__status=InvitationStatus.PENDING) & (
         Q(invitations__user_id=user.id)
         | (Q(invitations__user__isnull=True) & Q(invitations__email__iexact=user.email))
     )
     guest_ws_ids = (
-        Project.objects.filter(user_pj_member | user_invited_pj)
+        Project.objects.filter(user_invited_pj)
         .exclude(workspace__memberships__user__id=user.id)  # user_not_ws_member
         .order_by("workspace_id")
         .distinct("workspace_id")

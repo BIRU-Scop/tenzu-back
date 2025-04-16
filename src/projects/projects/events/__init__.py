@@ -85,7 +85,7 @@ async def emit_event_when_project_is_deleted(
         ),
     )
 
-    # for ws-guests (pj-members or pj-invitees) in the home page,
+    # for ws-guests (pj-invitees) in the home page,
     # this is the only way we can notify the change
     for guest in guests:
         await events_manager.publish_on_user_channel(

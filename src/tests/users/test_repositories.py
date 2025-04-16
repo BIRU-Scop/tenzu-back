@@ -122,7 +122,7 @@ async def test_list_users_by_emails():
     assert user3 not in users
 
 
-async def test_list_guests_in_ws_for_project(project_template):
+async def test_list_invitees_in_ws_via_project(project_template):
     member = await f.create_user()
     invitee = await f.create_user()
     workspace = await f.create_workspace()
@@ -141,34 +141,11 @@ async def test_list_guests_in_ws_for_project(project_template):
     )
 
     users = await users_repositories.list_users(
-        filters={"guest_in_ws_for_project": project}
+        filters={"invitees_in_ws_via_project": project}
     )
 
-    assert len(users) == 2
+    assert len(users) == 1
     assert invitee in users
-    assert member in users
-
-
-async def test_list_guests_in_workspace(project_template):
-    workspace = await f.create_workspace()
-    pj_member = await f.create_user()
-    project = await f.create_project(
-        project_template, created_by=workspace.created_by, workspace=workspace
-    )
-    general_role = await f.create_project_role(project=project, is_owner=False)
-    await f.create_project_membership(
-        user=pj_member, project=project, role=general_role
-    )
-    ws_invitee = await f.create_user()
-    await f.create_workspace_invitation(user=ws_invitee, workspace=workspace)
-
-    guests = await users_repositories.list_users(
-        filters={"guests_in_workspace": workspace}
-    )
-
-    assert len(guests) == 1
-    assert pj_member in guests
-    assert ws_invitee not in guests
 
     ##########################################################
     # list_project_users_by_text

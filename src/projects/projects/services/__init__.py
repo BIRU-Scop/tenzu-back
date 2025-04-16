@@ -306,7 +306,7 @@ async def delete_project(project: Project, deleted_by: User) -> bool:
     if project.logo:
         file_to_delete = project.logo.path
 
-    guests = await users_services.list_guests_in_workspace_for_project(project=project)
+    guests = await users_services.list_invitees_in_ws_via_project(project=project)
     deleted = await projects_repositories.delete_projects(project_id=project.id)
 
     if deleted > 0:
