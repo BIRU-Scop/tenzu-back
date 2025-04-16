@@ -155,18 +155,24 @@ async def test_get_workspace_200_ok_being_ws_member(client):
 async def test_get_workspace_200_ok_being_invited_user(
     client,
 ):
-    workspace = await f.create_workspace()
     user = await f.create_user()
-    general_member_role = await f.create_workspace_role(
-        is_owner=False,
-        workspace=workspace,
-    )
-    await f.create_workspace_invitation(
-        user=user, workspace=workspace, role=general_member_role
-    )
+    workspace = await f.create_workspace()
+    await f.create_workspace_invitation(user=user, workspace=workspace)
 
     client.login(user)
     response = await client.get(f"/workspaces/{workspace.b64id}")
+    assert response.status_code == 200, response.data
+
+
+async def test_get_workspace_200_ok_being_inner_project_invited_user(
+    client, project_template
+):
+    user = await f.create_user()
+    project = await f.create_project(project_template)
+    await f.create_project_invitation(user=user, project=project)
+
+    client.login(user)
+    response = await client.get(f"/workspaces/{project.workspace.b64id}")
     assert response.status_code == 200, response.data
 
 

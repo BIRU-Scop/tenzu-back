@@ -28,14 +28,15 @@ from emails.emails import Emails
 from emails.tasks import send_email
 from memberships import services as memberships_services
 from memberships.choices import InvitationStatus
-from memberships.repositories import WorkspaceInvitationFilters
+from memberships.repositories import WorkspaceInvitationFilters, exists_invitation
 from memberships.services import exceptions as ex
 from memberships.services import (  # noqa
     has_pending_invitation,
     is_invitation_for_this_user,
 )
 from ninja_jwt.exceptions import TokenError
-from users.models import User
+from projects.invitations.models import ProjectInvitation
+from users.models import AnyUser, User
 from workspaces.invitations import events as invitations_events
 from workspaces.invitations import repositories as invitations_repositories
 from workspaces.invitations.models import WorkspaceInvitation
@@ -227,3 +228,19 @@ async def send_workspace_invitation_email(
 
 async def _generate_workspace_invitation_token(invitation: WorkspaceInvitation) -> str:
     return str(await WorkspaceInvitationToken.create_for_object(invitation))
+
+
+async def has_pending_inner_projects_invitation(
+    user: AnyUser, workspace: Workspace
+) -> bool:
+    if user.is_anonymous:
+        return False
+
+    return await exists_invitation(
+        ProjectInvitation,
+        filters={
+            "user": user,
+            "status": InvitationStatus.PENDING,
+            "project__workspace_id": workspace.id,
+        },
+    )

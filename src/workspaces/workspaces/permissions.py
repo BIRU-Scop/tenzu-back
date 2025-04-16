@@ -21,6 +21,7 @@ from enum import Enum
 from memberships.permissions import HasPendingInvitation, HasPermission, IsMember
 from permissions import IsAuthenticated
 from permissions.choices import WorkspacePermissions
+from workspaces.invitations.permissions import HasPendingInnerProjectsInvitation
 
 
 class WorkspacePermissionsCheck(Enum):
@@ -30,6 +31,7 @@ class WorkspacePermissionsCheck(Enum):
             "workspace",
         )
         | HasPendingInvitation()
+        | HasPendingInnerProjectsInvitation()
     )
     MODIFY = IsAuthenticated() & HasPermission(
         "workspace", WorkspacePermissions.MODIFY_WORKSPACE

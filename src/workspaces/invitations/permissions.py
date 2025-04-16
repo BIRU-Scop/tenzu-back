@@ -18,14 +18,31 @@
 # You can contact BIRU at ask@biru.sh
 
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from memberships.permissions import (
     CanModifyAssociatedRole,
     HasPermission,
     IsInvitationRecipient,
 )
-from permissions import IsAuthenticated
+from permissions import IsAuthenticated, PermissionComponent
 from permissions.choices import WorkspacePermissions
+from workspaces.workspaces.models import Workspace
+
+if TYPE_CHECKING:
+    from users.models import AnyUser
+
+
+class HasPendingInnerProjectsInvitation(PermissionComponent):
+    async def is_authorized(self, user: "AnyUser", obj: Workspace = None) -> bool:
+        from workspaces.invitations import services as invitations_services
+
+        if not obj:
+            return False
+
+        return await invitations_services.has_pending_inner_projects_invitation(
+            user=user, workspace=obj
+        )
 
 
 class InvitationPermissionsCheck(Enum):

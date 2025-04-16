@@ -111,6 +111,7 @@ class _InvitationFilters(TypedDict, total=False):
 
 class ProjectInvitationFilters(_InvitationFilters, total=False):
     project_id: UUID
+    project__workspace_id: UUID
 
 
 class WorkspaceInvitationFilters(_InvitationFilters, total=False):

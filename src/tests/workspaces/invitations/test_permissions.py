@@ -28,6 +28,7 @@ from permissions import (
     check_permissions,
 )
 from tests.utils import factories as f
+from workspaces.invitations.permissions import HasPendingInnerProjectsInvitation
 
 ###########################################################################
 # check_permissions
@@ -77,6 +78,42 @@ async def test_check_permission_has_pending_workspace_invitation():
             permissions=permissions,
             user=invitation.workspace.created_by,
             obj=invitation.workspace,
+        )
+
+
+@pytest.mark.django_db()
+async def test_check_permission_has_pending_workspace_inner_project_invitation():
+    user1 = await f.create_user()
+    user2 = await f.create_user()
+    user3 = await f.create_user()
+    pj_invitation = await f.create_project_invitation(
+        email=user1.email,
+        user=user1,
+    )
+    workspace = pj_invitation.project.workspace
+    await f.create_workspace_invitation(
+        email=user3.email, user=user1, workspace=workspace
+    )
+
+    permissions = HasPendingInnerProjectsInvitation()
+
+    # user1 is recipient
+    assert (
+        await check_permissions(permissions=permissions, user=user1, obj=workspace)
+        is None
+    )
+    # user2 isn't recipient
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user2, obj=workspace)
+    # user3 is workspace invitee but isn't recipient
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(permissions=permissions, user=user3, obj=workspace)
+    # workspace member isn't recipient
+    with pytest.raises(ex.ForbiddenError):
+        await check_permissions(
+            permissions=permissions,
+            user=workspace.created_by,
+            obj=workspace,
         )
 
 
