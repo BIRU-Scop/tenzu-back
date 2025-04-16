@@ -34,6 +34,8 @@ from memberships.services import exceptions as ex
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project
 from users.models import User
+from workspaces.memberships.models import WorkspaceMembership
+
 
 ##########################################################
 # create project membership
@@ -46,6 +48,16 @@ async def create_project_membership(
     if project.id != role.project_id:
         raise ex.MembershipWithRoleThatDoNotBelong(
             "Can't create membership using a role not belonging to the given project"
+        )
+    if not await exists_membership(
+        WorkspaceMembership,
+        filters={
+            "workspace_id": project.workspace_id,
+            "user_id": user.id,
+        },
+    ):
+        raise ex.NoRelativeWorkspaceMembershipsError(
+            "Can't create project membership when user is not member of the relative workspace"
         )
     return await ProjectMembership.objects.acreate(
         user=user, project=project, role=role

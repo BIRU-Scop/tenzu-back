@@ -36,6 +36,10 @@ class ExistingProjectMembershipsError(TenzuServiceException):
     pass
 
 
+class NoRelativeWorkspaceMembershipsError(TenzuServiceException):
+    pass
+
+
 class NonEditableRoleError(TenzuServiceException):
     pass
 

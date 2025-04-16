@@ -38,12 +38,23 @@ pytestmark = pytest.mark.django_db
 async def test_create_project_membership(project_template):
     user = await f.create_user()
     project = await f.create_project(project_template)
+    await f.create_workspace_membership(user=user, workspace=project.workspace)
     role = await f.create_project_role(project=project)
     membership = await repositories.create_project_membership(
         user=user, project=project, role=role
     )
     memberships = [m async for m in project.memberships.all()]
     assert membership in memberships
+
+
+async def test_create_project_membership_error_not_workspace_member(project_template):
+    user = await f.create_user()
+    project = await f.create_project(project_template)
+    role = await f.create_project_role(project=project)
+    with pytest.raises(ex.NoRelativeWorkspaceMembershipsError):
+        await repositories.create_project_membership(
+            user=user, project=project, role=role
+        )
 
 
 async def test_create_project_membership_error_not_belong(project_template):
@@ -68,8 +79,8 @@ async def test_list_project_memberships(project_template):
     user2 = await f.create_user()
     project = await f.create_project(project_template, created_by=owner)
     role = await f.create_project_role(project=project)
-    await repositories.create_project_membership(user=user1, project=project, role=role)
-    await repositories.create_project_membership(user=user2, project=project, role=role)
+    await f.create_project_membership(user=user1, project=project, role=role)
+    await f.create_project_membership(user=user2, project=project, role=role)
 
     memberships = await repositories.list_memberships(
         ProjectMembership, filters={"project_id": project.id}
@@ -86,7 +97,7 @@ async def test_get_project_membership(project_template):
     user = await f.create_user()
     project = await f.create_project(project_template)
     role = await f.create_project_role(project=project)
-    membership = await repositories.create_project_membership(
+    membership = await f.create_project_membership(
         user=user, project=project, role=role
     )
 
@@ -125,7 +136,7 @@ async def test_update_project_membership(project_template):
     user = await f.create_user()
     project = await f.create_project(project_template)
     role = await f.create_project_role(project=project)
-    membership = await repositories.create_project_membership(
+    membership = await f.create_project_membership(
         user=user, project=project, role=role
     )
 
@@ -142,10 +153,10 @@ async def test_update_project_membership(project_template):
 
 
 async def test_delete_project_membership(project_template) -> None:
-    project = await f.create_project(project_template)
     user = await f.create_user()
+    project = await f.create_project(project_template)
     role = await f.create_project_role(project=project)
-    membership = await repositories.create_project_membership(
+    membership = await f.create_project_membership(
         user=user, project=project, role=role
     )
     deleted = await repositories.delete_membership(membership)
@@ -169,10 +180,10 @@ async def test_has_other_owner_project_memberships(project_template):
 
     assert not await repositories.has_other_owner_memberships(owner_membership)
 
-    await repositories.create_project_membership(user=user, project=project, role=role)
+    await f.create_project_membership(user=user, project=project, role=role)
     assert not await repositories.has_other_owner_memberships(owner_membership)
 
-    await repositories.create_project_membership(
+    await f.create_project_membership(
         user=user2, project=project, role=owner_membership.role
     )
     assert await repositories.has_other_owner_memberships(owner_membership)
@@ -191,7 +202,7 @@ async def test_list_project_members(project_template):
     project_member = await repositories.list_members(reference_object=project)
     assert len(project_member) == 1
 
-    await repositories.create_project_membership(user=user, project=project, role=role)
+    await f.create_project_membership(user=user, project=project, role=role)
 
     project_member = await repositories.list_members(reference_object=project)
     assert len(project_member) == 2
@@ -302,7 +313,7 @@ async def test_get_project_role_for_user_member(project_template):
     user = await f.create_user()
     project = await f.create_project(project_template)
     role = await project.roles.aget(slug="member")
-    await repositories.create_project_membership(user=user, project=project, role=role)
+    await f.create_project_membership(user=user, project=project, role=role)
 
     assert (
         await repositories.get_role(
