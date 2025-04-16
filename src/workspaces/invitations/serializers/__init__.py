@@ -25,14 +25,14 @@ from memberships.serializers import (
     InvitationSerializer,
     PublicInvitationSerializer,
 )
-from workspaces.workspaces.serializers.nested import WorkspaceSmallNestedSerializer
+from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
 class PublicWorkspaceInvitationSerializer(PublicInvitationSerializer):
-    workspace: WorkspaceSmallNestedSerializer
+    workspace: WorkspaceNestedSerializer
     model_config = ConfigDict(from_attributes=True)
 
 
 class WorkspaceInvitationSerializer(InvitationSerializer):
-    workspace: WorkspaceSmallNestedSerializer
+    workspace: WorkspaceNestedSerializer
     model_config = ConfigDict(from_attributes=True)

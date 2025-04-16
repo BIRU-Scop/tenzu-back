@@ -26,16 +26,16 @@ from memberships.serializers import (
     InvitationSerializer,
     PublicInvitationSerializer,
 )
-from projects.projects.serializers.nested import ProjectSmallNestedSerializer
+from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 
 
 class PublicProjectInvitationSerializer(PublicInvitationSerializer):
-    project: ProjectSmallNestedSerializer
+    project: ProjectLinkNestedSerializer
     model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectInvitationSerializer(InvitationSerializer):
-    project: ProjectSmallNestedSerializer
+    project: ProjectLinkNestedSerializer
     workspace_id: UUIDB64
 
     @staticmethod

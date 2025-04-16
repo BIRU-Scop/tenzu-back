@@ -21,12 +21,10 @@ from pydantic import ConfigDict
 
 from base.serializers import UUIDB64, BaseModel
 from projects.projects.serializers.nested import ProjectNestedSerializer
+from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class WorkspaceDetailSerializer(BaseModel):
-    id: UUIDB64
-    name: str
-    slug: str
+class WorkspaceDetailSerializer(WorkspaceNestedSerializer):
     color: int
     latest_projects: list[ProjectNestedSerializer]
     invited_projects: list[ProjectNestedSerializer]
@@ -36,10 +34,7 @@ class WorkspaceDetailSerializer(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class WorkspaceSerializer(BaseModel):
-    id: UUIDB64
-    name: str
-    slug: str
+class WorkspaceSerializer(WorkspaceNestedSerializer):
     color: int
     total_projects: int
     has_projects: bool

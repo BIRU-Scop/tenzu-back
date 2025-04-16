@@ -27,7 +27,7 @@ from projects.projects.serializers.nested import ProjectNestedSerializer
 from workspaces.invitations.serializers.nested import (
     WorkspaceInvitationNestedSerializer,
 )
-from workspaces.workspaces.serializers.nested import WorkspaceSmallNestedSerializer
+from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
 class UserBaseSerializer(BaseModel):

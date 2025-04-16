@@ -22,17 +22,17 @@ from pydantic import ConfigDict
 from base.serializers import BaseModel
 from memberships.serializers import RoleSerializer
 from users.serializers.nested import UserNestedSerializer
-from workspaces.workspaces.serializers.nested import WorkspaceSmallNestedSerializer
+from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
 class WorkspaceMembershipSerializer(BaseModel):
     user: UserNestedSerializer
-    workspace: WorkspaceSmallNestedSerializer
+    workspace: WorkspaceNestedSerializer
     role: RoleSerializer
     model_config = ConfigDict(from_attributes=True)
 
 
 class WorkspaceMembershipDeletedSerializer(BaseModel):
     user: UserNestedSerializer
-    workspace: WorkspaceSmallNestedSerializer
+    workspace: WorkspaceNestedSerializer
     model_config = ConfigDict(from_attributes=True)

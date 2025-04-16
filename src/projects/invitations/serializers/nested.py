@@ -21,10 +21,10 @@ from pydantic import ConfigDict
 
 from base.serializers import BaseModel
 from memberships.choices import InvitationStatus
-from projects.projects.serializers.nested import ProjectSmallNestedSerializer
+from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 
 
 class ProjectInvitationNestedSerializer(BaseModel):
     status: InvitationStatus
-    project: ProjectSmallNestedSerializer
+    project: ProjectLinkNestedSerializer
     model_config = ConfigDict(from_attributes=True)

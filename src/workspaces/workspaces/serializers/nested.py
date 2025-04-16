@@ -22,13 +22,6 @@ from pydantic import ConfigDict
 from base.serializers import UUIDB64, BaseModel
 
 
-class WorkspaceSmallNestedSerializer(BaseModel):
-    id: UUIDB64
-    name: str
-    slug: str
-    model_config = ConfigDict(from_attributes=True)
-
-
 class WorkspaceNestedSerializer(BaseModel):
     id: UUIDB64
     name: str
