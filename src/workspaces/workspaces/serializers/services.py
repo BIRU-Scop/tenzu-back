@@ -60,4 +60,5 @@ def serialize_nested(workspace: Workspace) -> WorkspaceNestedSerializer:
         id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
+        color=workspace.color,
     )

@@ -249,7 +249,9 @@ async def test_get_project_detail():
         fake_workflows_repositories.list_workflows.return_value = []
         fake_pj_invitations_services.has_pending_invitation.return_value = True
         fake_workspaces_services.get_workspace_nested.return_value = (
-            WorkspaceNestedSerializer(id=uuid.uuid1(), name="ws 1", slug="ws-1")
+            WorkspaceNestedSerializer(
+                id=uuid.uuid1(), name="ws 1", slug="ws-1", color=1
+            )
         )
         fake_pj_invitations_services.has_pending_invitation.return_value = False
         await services.get_project_detail(project=project, user=project.created_by)
@@ -287,7 +289,9 @@ async def test_get_project_detail_anonymous():
         fake_workflows_repositories.list_workflows.return_value = []
         fake_pj_invitations_services.has_pending_invitation.return_value = False
         fake_workspaces_services.get_workspace_nested.return_value = (
-            WorkspaceNestedSerializer(id=uuid.uuid1(), name="ws 1", slug="ws-1")
+            WorkspaceNestedSerializer(
+                id=uuid.uuid1(), name="ws 1", slug="ws-1", color=1
+            )
         )
         await services.get_project_detail(project=project, user=user)
 

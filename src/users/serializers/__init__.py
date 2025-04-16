@@ -23,6 +23,7 @@ from base.serializers import BaseModel
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from projects.invitations.serializers.nested import ProjectInvitationNestedSerializer
 from projects.projects.serializers.nested import (
+    ProjectLinkNestedSerializer,
     ProjectNestedSerializer,
 )
 from workspaces.invitations.serializers.nested import (
@@ -57,7 +58,7 @@ class VerificationInfoSerializer(BaseModel):
 
 
 class _WorkspaceForDeleteWithProjectsNestedSerializer(WorkspaceNestedSerializer):
-    projects: list[ProjectNestedSerializer]
+    projects: list[ProjectLinkNestedSerializer]
     model_config = ConfigDict(from_attributes=True)
 
 
