@@ -52,7 +52,7 @@ async def test_create_project_membership_error_not_workspace_member(project_temp
     user = await f.create_user()
     project = await f.create_project(project_template)
     role = await f.create_project_role(project=project)
-    with pytest.raises(ex.NoRelativeWorkspaceMembershipsError):
+    with pytest.raises(ex.NoRelatedWorkspaceMembershipsError):
         await repositories.create_project_membership(
             user=user, project=project, role=role
         )

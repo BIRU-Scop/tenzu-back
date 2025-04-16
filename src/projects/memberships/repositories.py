@@ -60,8 +60,8 @@ async def create_project_membership(
             "user_id": user.id,
         },
     ):
-        raise ex.NoRelativeWorkspaceMembershipsError(
-            "Can't create project membership when user is not member of the relative workspace"
+        raise ex.NoRelatedWorkspaceMembershipsError(
+            "Can't create project membership when user is not member of the related workspace"
         )
     return await ProjectMembership.objects.acreate(
         user=user, project=project, role=role
