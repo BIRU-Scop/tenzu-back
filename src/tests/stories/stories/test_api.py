@@ -40,8 +40,11 @@ pytestmark = pytest.mark.django_db
 async def test_create_story_200_ok_being_ws_owner_ko_pj_owner_ok(
     client, project_template
 ):
+    other_user = await f.create_user()
     workspace = await f.create_workspace()
-    project = await f.create_project(template=project_template, workspace=workspace)
+    project = await f.create_project(
+        template=project_template, workspace=workspace, created_by=other_user
+    )
     workflow = await f.create_workflow(project=project)
     workflow_status = await f.create_workflow_status(workflow=workflow)
 

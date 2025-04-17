@@ -16,7 +16,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from ninja import Schema
 from pydantic import ConfigDict, EmailStr, field_validator, validator
 from pydantic_core.core_schema import ValidationInfo
 
@@ -25,7 +24,7 @@ from memberships.choices import InvitationStatus
 from users.serializers.nested import UserNestedSerializer
 
 
-class RoleSerializer(Schema):
+class RoleSerializer(BaseModel):
     name: str
     slug: str
     is_owner: bool

@@ -59,6 +59,9 @@ async def test_check_permission_has_pending_workspace_invitation():
     invitation = await f.create_workspace_invitation(email=user1.email, user=user1)
 
     permissions = HasPendingInvitation()
+    assert user1.is_invited is None
+    assert user2.is_invited is None
+    assert invitation.workspace.created_by.is_invited is None
 
     # user1 is recipient
     assert (
@@ -67,11 +70,13 @@ async def test_check_permission_has_pending_workspace_invitation():
         )
         is None
     )
+    assert user1.is_invited is True
     # user2 isn't recipient
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(
             permissions=permissions, user=user2, obj=invitation.workspace
         )
+    assert user2.is_invited is False
     # workspace member isn't recipient
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(
@@ -79,6 +84,7 @@ async def test_check_permission_has_pending_workspace_invitation():
             user=invitation.workspace.created_by,
             obj=invitation.workspace,
         )
+    assert invitation.workspace.created_by.is_invited is False
 
 
 @pytest.mark.django_db()

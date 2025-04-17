@@ -23,7 +23,7 @@ from base.serializers import UUIDB64, BaseModel
 from projects.projects.serializers.mixins import ProjectLogoBaseSerializer
 
 
-class ProjectBaseSerializer(BaseModel):
+class _ProjectBaseNestedSerializer(BaseModel):
     id: UUIDB64
     workspace_id: UUIDB64
     name: str
@@ -31,11 +31,17 @@ class ProjectBaseSerializer(BaseModel):
     landing_page: str
 
 
-class ProjectNestedSerializer(ProjectLogoBaseSerializer, ProjectBaseSerializer):
+class ProjectNestedSerializer(ProjectLogoBaseSerializer, _ProjectBaseNestedSerializer):
     description: str
     color: int
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjectLinkNestedSerializer(ProjectBaseSerializer):
+class ProjectLinkNestedSerializer(_ProjectBaseNestedSerializer):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class InnerNestedProjectsSerializer(BaseModel):
+    user_member_projects: list[ProjectNestedSerializer]
+    user_invited_projects: list[ProjectNestedSerializer]
     model_config = ConfigDict(from_attributes=True)

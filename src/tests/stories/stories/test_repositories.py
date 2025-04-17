@@ -69,7 +69,7 @@ async def test_list_stories(project_template) -> None:
 
     stories = [
         story
-        async for story in repositories.list_stories(
+        async for story in repositories.list_stories_qs(
             filters={"project_id": project.id}, select_related=["status"]
         )
     ]
@@ -77,7 +77,7 @@ async def test_list_stories(project_template) -> None:
     assert stories[0].title and stories[0].ref and stories[0].status
     stories = [
         story
-        async for story in repositories.list_stories(
+        async for story in repositories.list_stories_qs(
             filters={"workflow_id": workflow_1.id}
         )
     ]
@@ -86,7 +86,7 @@ async def test_list_stories(project_template) -> None:
     stories = [
         # will fail in async context with "SynchronousOnlyOperation" if prefetch did not work
         (story, list(story.assignees.all()))
-        async for story in repositories.list_stories(
+        async for story in repositories.list_stories_qs(
             filters={"workflow_id": workflow_2.id},
             prefetch_related=[repositories.ASSIGNEES_PREFETCH],
         )
@@ -309,7 +309,7 @@ async def test_bulk_update_workflow_to_stories(project_template) -> None:
     )
     stories = [
         story
-        async for story in repositories.list_stories(
+        async for story in repositories.list_stories_qs(
             filters={"workflow_id": old_workflow}, select_related=["workflow"]
         )
     ]

@@ -19,6 +19,7 @@
 
 
 from memberships.repositories import (  # noqa
+    pending_user_invitation_query,
     username_or_email_query,
     create_invitations,
     list_invitations,

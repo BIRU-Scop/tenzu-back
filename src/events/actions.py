@@ -226,30 +226,33 @@ class SubscribeToWorkspaceEventsAction(PydanticBaseModel):
         from workspaces.workspaces import services as workspaces_services
 
         workspace_id = decode_b64str_to_uuid(self.workspace)
-        workspace = await workspaces_services.get_workspace(workspace_id=workspace_id)
-
-        if workspace:
-            if await can_user_subscribe_to_workspace_channel(
-                user=consumer.scope["user"], workspace=workspace
-            ):
-                channel = channels.workspace_channel(self.workspace)
-                content = {"channel": channel}
-                await consumer.subscribe(channel=channel)
-                await consumer.broadcast_action_response(
-                    channel=channel, action=ActionResponse(action=self, content=content)
-                )
-            else:
-                # Not enough permissions
-                await consumer.send_without_broadcast_action_response(
-                    ActionResponse(
-                        action=self, status="error", content={"detail": "not-allowed"}
-                    ).model_dump()
-                )
-        else:
+        try:
+            workspace = await workspaces_services.get_workspace(
+                workspace_id=workspace_id
+            )
+        except Workspace.DoesNotExist:
             # Workspace does not exist
             await consumer.send_without_broadcast_action_response(
                 ActionResponse(
                     action=self, status="error", content={"detail": "not-found"}
+                ).model_dump()
+            )
+            return
+
+        if await can_user_subscribe_to_workspace_channel(
+            user=consumer.scope["user"], workspace=workspace
+        ):
+            channel = channels.workspace_channel(self.workspace)
+            content = {"channel": channel}
+            await consumer.subscribe(channel=channel)
+            await consumer.broadcast_action_response(
+                channel=channel, action=ActionResponse(action=self, content=content)
+            )
+        else:
+            # Not enough permissions
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "not-allowed"}
                 ).model_dump()
             )
 
@@ -299,9 +302,14 @@ class CheckWorkspaceEventsSubscriptionAction(PydanticBaseModel):
         from workspaces.workspaces import services as workspaces_services
 
         workspace_id = decode_b64str_to_uuid(self.workspace)
-        workspace = await workspaces_services.get_workspace(workspace_id=workspace_id)
+        try:
+            workspace = await workspaces_services.get_workspace(
+                workspace_id=workspace_id
+            )
+        except Workspace.DoesNotExist:
+            return
 
-        if workspace and not await can_user_subscribe_to_workspace_channel(
+        if not await can_user_subscribe_to_workspace_channel(
             user=consumer.scope["user"], workspace=workspace
         ):
             channel = channels.workspace_channel(self.workspace)

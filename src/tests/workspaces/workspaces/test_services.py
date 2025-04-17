@@ -31,7 +31,7 @@ from workspaces.workspaces.services import exceptions as ex
 ##########################################################
 
 
-async def test_create_workspace():
+async def test_create_workspace_ok():
     user = f.build_user()
     name = "workspace1"
     color = 5
@@ -42,39 +42,19 @@ async def test_create_workspace():
         patch(
             "workspaces.workspaces.services.ws_memberships_repositories", autospec=True
         ) as fake_ws_memberships_repo,
+        patch("workspaces.workspaces.services.WorkspaceSerializer"),
     ):
-        await services._create_workspace(name=name, color=color, created_by=user)
+        await services.create_workspace(name=name, color=color, created_by=user)
         fake_workspaces_repo.create_workspace.assert_awaited_once()
         fake_ws_memberships_repo.create_workspace_membership.assert_awaited_once()
 
 
-async def test_create_workspace_detail():
-    workspace = f.build_workspace()
-    user = f.build_user()
-    name = "workspace1"
-    color = 5
-    with (
-        patch(
-            "workspaces.workspaces.services._create_workspace",
-            return_value=workspace,
-            autospec=True,
-        ) as fake_create_method,
-        patch(
-            "workspaces.workspaces.services.get_workspace_detail", autospec=True
-        ) as fake_serializer_method,
-    ):
-        fake_create_method.return_value = workspace
-        await services.create_workspace(name=name, color=color, created_by=user)
-        fake_create_method.assert_awaited_with(name=name, color=color, created_by=user)
-        fake_serializer_method.assert_awaited_with(id=workspace.id, user_id=user.id)
-
-
 ##########################################################
-# get_user_workspaces_overview
+# list_user_workspaces
 ##########################################################
 
 
-async def test_get_my_workspaces_projects():
+async def test_list_user_workspaces():
     user = f.build_user()
 
     with patch(
@@ -101,57 +81,29 @@ async def test_get_workspace():
 
 
 ##########################################################
-# get_workspace_detail
+# get_user_workspace
 ##########################################################
 
 
-async def test_get_workspace_detail():
+async def test_get_user_workspace():
     workspace = f.build_workspace(name="test")
-    workspace.has_projects = True
-    membership = f.build_workspace_membership(workspace=workspace)
+    user = f.build_user()
+    role = f.build_workspace_role(workspace=workspace)
+    user.workspace_role = role
 
     with (
         patch(
-            "workspaces.workspaces.services.workspaces_repositories", autospec=True
-        ) as fake_workspaces_repo,
-        patch(
-            "workspaces.workspaces.services.projects_repositories", autospec=True
-        ) as fake_projects_repo,
-        patch(
-            "workspaces.workspaces.services.ws_memberships_repositories", autospec=True
-        ) as fake_ws_memberships_repositories,
+            "workspaces.workspaces.services.WorkspaceSerializer", autospec=True
+        ) as fake_WorkspaceSerializer,
     ):
-        fake_ws_memberships_repositories.get_membership.return_value = membership
-        fake_projects_repo.get_total_projects.return_value = 1
-        fake_workspaces_repo.get_workspace_detail.return_value = workspace
-        await services.get_workspace_detail(
-            id=workspace.id, user_id=workspace.created_by.id
-        )
-        fake_workspaces_repo.get_workspace_detail.assert_awaited_with(
-            user_id=workspace.created_by.id,
-            workspace_id=workspace.id,
-        )
-
-
-##########################################################
-# get_workspace_nested
-##########################################################
-
-
-async def get_workspace_nested():
-    workspace = f.build_workspace()
-
-    with (
-        patch(
-            "workspaces.workspaces.services.workspaces_repositories", autospec=True
-        ) as fake_workspaces_repo,
-    ):
-        fake_workspaces_repo.get_workspace.return_value = workspace
-
-        await services.get_workspace_nested(workspace_id=workspace.id)
-
-        fake_workspaces_repo.get_workspace.assert_awaited_with(
-            workspace_id=workspace.id,
+        await services.get_user_workspace(workspace=workspace, user=user)
+        fake_WorkspaceSerializer.assert_called_with(
+            id=workspace.id,
+            name=workspace.name,
+            slug=workspace.slug,
+            color=workspace.color,
+            user_role=role,
+            is_invited=False,
         )
 
 
@@ -162,12 +114,16 @@ async def get_workspace_nested():
 
 async def test_update_workspace_ok(tqmanager):
     workspace = f.build_workspace()
+    user = f.build_user()
     values = {"name": "new name"}
 
-    with patch(
-        "workspaces.workspaces.services.workspaces_repositories", autospec=True
-    ) as fake_workspaces_repo:
-        await services._update_workspace(workspace=workspace, values=values)
+    with (
+        patch(
+            "workspaces.workspaces.services.workspaces_repositories", autospec=True
+        ) as fake_workspaces_repo,
+        patch("workspaces.workspaces.services.WorkspaceSerializer"),
+    ):
+        await services.update_workspace(workspace=workspace, user=user, values=values)
         fake_workspaces_repo.update_workspace.assert_awaited_once_with(
             workspace=workspace, values=values
         )

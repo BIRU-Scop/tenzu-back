@@ -601,7 +601,7 @@ async def delete_workflow_status(
         stories_to_move = [
             story_ref
             async for story_ref in (
-                stories_repositories.list_stories(
+                stories_repositories.list_stories_qs(
                     filters={
                         "status_id": workflow_status.id,
                     },

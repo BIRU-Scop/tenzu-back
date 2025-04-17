@@ -101,7 +101,7 @@ async def list_stories(
 ) -> list[StorySummarySerializer]:
     if order_by is None:
         order_by = ["order"]
-    qs = stories_repositories.list_stories(
+    qs = stories_repositories.list_stories_qs(
         filters={"project_id": project_id, "workflow__slug": workflow_slug},
         offset=offset,
         limit=limit,
@@ -164,7 +164,7 @@ async def get_story_detail(
 
 async def get_latest_story_order(status_id: UUID) -> int:
     return (
-        await stories_repositories.list_stories(
+        await stories_repositories.list_stories_qs(
             filters={"status_id": status_id}, order_by=["-order"]
         )
         .values_list("order", flat=True)
@@ -399,7 +399,7 @@ async def reorder_stories(
     if offset == 0:
         # There is not enough space left between the stories where stories_to_reorder need to be inserted
         # We need to move more stories, this should happen very infrequently thanks to the offset
-        after_stories = stories_repositories.list_stories(
+        after_stories = stories_repositories.list_stories_qs(
             filters={
                 "status_id": reorder_reference_story.status_id,
                 "order__gt": pre_order,

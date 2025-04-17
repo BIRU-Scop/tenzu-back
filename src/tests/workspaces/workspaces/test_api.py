@@ -75,51 +75,63 @@ async def test_my_workspaces_being_anonymous(client):
     assert response.status_code == 401, response.data
 
 
-async def test_my_workspaces_success(client):
+async def test_my_workspaces_success_owner_no_project(client):
     workspace = await f.create_workspace()
 
     client.login(workspace.created_by)
     response = await client.get("/my/workspaces")
     assert response.status_code == 200, response.data
-    assert len(response.json()) == 1
+    res = response.json()
+    assert len(res) == 1
+    assert res[0]["name"] == workspace.name
+    assert res[0]["isInvited"] is False
+    assert res[0]["userMemberProjects"] == []
+    assert res[0]["userInvitedProjects"] == []
 
 
-#############################################################
-#  GET /my/workspaces/<id>
-#############################################################
-
-
-async def test_my_workspace_being_anonymous(client):
+async def test_my_workspaces_success_owner_one_project(client, project_template):
     workspace = await f.create_workspace()
-
-    response = await client.get(f"/my/workspaces/{workspace.b64id}")
-    assert response.status_code == 401, response.data
-
-
-async def test_my_workspace_success(client):
-    workspace = await f.create_workspace()
+    project = await f.create_project(project_template, workspace=workspace)
 
     client.login(workspace.created_by)
-    response = await client.get(f"/my/workspaces/{workspace.b64id}")
+    response = await client.get("/my/workspaces")
     assert response.status_code == 200, response.data
-    assert response.json()["name"] == workspace.name
+    res = response.json()
+    assert len(res) == 1
+    assert res[0]["name"] == workspace.name
+    assert res[0]["isInvited"] is False
+    assert len(res[0]["userMemberProjects"]) == 1
+    assert res[0]["userMemberProjects"][0]["name"] == project.name
+    assert res[0]["userInvitedProjects"] == []
 
 
-async def test_my_workspace_not_found_error_because_invalid_id(client):
-    user = await f.create_user()
+async def test_my_workspaces_success_ws_invitee(client):
+    ws_invitation = await f.create_workspace_invitation()
 
-    client.login(user)
-    response = await client.get(f"/my/workspaces/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.data
+    client.login(ws_invitation.user)
+    response = await client.get("/my/workspaces")
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert len(res) == 1
+    assert res[0]["name"] == ws_invitation.workspace.name
+    assert res[0]["isInvited"] is True
+    assert res[0]["userMemberProjects"] == []
+    assert res[0]["userInvitedProjects"] == []
 
 
-async def test_my_workspace_not_found_error_because_there_is_no_relation(client):
-    user = await f.create_user()
-    workspace = await f.create_workspace()
+async def test_my_workspaces_success_pj_invitee(client):
+    pj_invitation = await f.create_project_invitation()
 
-    client.login(user)
-    response = await client.get(f"/my/workspaces/{workspace.b64id}")
-    assert response.status_code == 404, response.data
+    client.login(pj_invitation.user)
+    response = await client.get("/my/workspaces")
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert len(res) == 1
+    assert res[0]["name"] == pj_invitation.project.workspace.name
+    assert res[0]["isInvited"] is False
+    assert res[0]["userMemberProjects"] == []
+    assert len(res[0]["userInvitedProjects"]) == 1
+    assert res[0]["userInvitedProjects"][0]["name"] == pj_invitation.project.name
 
 
 #############################################################
@@ -127,77 +139,104 @@ async def test_my_workspace_not_found_error_because_there_is_no_relation(client)
 #############################################################
 
 
-async def test_get_workspace_being_workspace_owner(client):
+async def test_get_workspace_success_owner(client):
     workspace = await f.create_workspace()
 
     client.login(workspace.created_by)
     response = await client.get(f"/workspaces/{workspace.b64id}")
     assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["name"] == workspace.name
+    assert res["userRole"]["isOwner"]
+    assert not res["isInvited"]
 
 
-async def test_get_workspace_200_ok_being_ws_member(client):
+async def test_get_workspace_success_member(client):
     workspace = await f.create_workspace()
     ws_member = await f.create_user()
-    general_member_role = await f.create_workspace_role(
-        permissions=[],
-        is_owner=False,
-        workspace=workspace,
-    )
-    await f.create_workspace_membership(
-        user=ws_member, workspace=workspace, role=general_member_role
-    )
+    await f.create_workspace_membership(user=ws_member, workspace=workspace)
 
     client.login(ws_member)
     response = await client.get(f"/workspaces/{workspace.b64id}")
     assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["name"] == workspace.name
+    assert not res["userRole"]["isOwner"]
+    assert not res["isInvited"]
 
 
-async def test_get_workspace_200_ok_being_invited_user(
-    client,
-):
-    user = await f.create_user()
-    workspace = await f.create_workspace()
-    await f.create_workspace_invitation(user=user, workspace=workspace)
+async def test_get_workspace_success_ws_invited(client):
+    ws_invitation = await f.create_workspace_invitation()
 
-    client.login(user)
-    response = await client.get(f"/workspaces/{workspace.b64id}")
+    client.login(ws_invitation.user)
+    response = await client.get(f"/workspaces/{ws_invitation.workspace.b64id}")
     assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["name"] == ws_invitation.workspace.name
+    assert res["userRole"] is None
+    assert res["isInvited"]
 
 
-async def test_get_workspace_200_ok_being_inner_project_invited_user(
-    client, project_template
-):
+async def test_get_workspace_success_ws_invited_only_email(client):
     user = await f.create_user()
-    project = await f.create_project(project_template)
-    await f.create_project_invitation(user=user, project=project)
+    ws_invitation = await f.create_workspace_invitation(user=None, email=user.email)
 
     client.login(user)
-    response = await client.get(f"/workspaces/{project.workspace.b64id}")
+    response = await client.get(f"/workspaces/{ws_invitation.workspace.b64id}")
     assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["name"] == ws_invitation.workspace.name
+    assert res["userRole"] is None
+    assert res["isInvited"]
 
 
-async def test_get_workspace_403_forbidden_not_workspace_member(client):
-    workspace = await f.create_workspace()
+async def test_get_workspace_success_pj_invited(client):
+    pj_invitation = await f.create_project_invitation()
 
+    client.login(pj_invitation.user)
+    response = await client.get(f"/workspaces/{pj_invitation.project.workspace.b64id}")
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["name"] == pj_invitation.project.workspace.name
+    assert res["userRole"] is None
+    assert not res["isInvited"]
+
+
+async def test_get_workspace_success_pj_invited_only_email(client):
     user = await f.create_user()
+    pj_invitation = await f.create_project_invitation(user=None, email=user.email)
+
     client.login(user)
-    response = await client.get(f"/workspaces/{workspace.b64id}")
-    assert response.status_code == 403, response.data
+    response = await client.get(f"/workspaces/{pj_invitation.project.workspace.b64id}")
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["name"] == pj_invitation.project.workspace.name
+    assert res["userRole"] is None
+    assert not res["isInvited"]
 
 
-async def test_get_workspace_being_anonymous(client):
+async def test_get_workspace_not_found_error_because_invalid_id(client):
+    user = await f.create_user()
+
+    client.login(user)
+    response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}")
+    assert response.status_code == 404, response.data
+
+
+async def test_get_workspace_forbidden_anonymous(client):
     workspace = await f.create_workspace()
 
     response = await client.get(f"/workspaces/{workspace.b64id}")
     assert response.status_code == 401, response.data
 
 
-async def test_get_workspace_not_found_error(client):
+async def test_get_workspace_forbidden_because_there_is_no_relation(client):
     user = await f.create_user()
+    workspace = await f.create_workspace()
 
     client.login(user)
-    response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.data
+    response = await client.get(f"/workspaces/{workspace.b64id}")
+    assert response.status_code == 403, response.data
 
 
 ##########################################################

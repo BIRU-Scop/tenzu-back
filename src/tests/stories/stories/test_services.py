@@ -121,7 +121,7 @@ async def test_list_paginated_stories():
         ) as fake_stories_repo,
     ):
         story = f.build_story(assignees=1)
-        fake_stories_repo.list_stories.return_value.__aiter__.return_value = [story]
+        fake_stories_repo.list_stories_qs.return_value.__aiter__.return_value = [story]
 
         await services.list_stories(
             project_id=story.project.id,
@@ -129,7 +129,7 @@ async def test_list_paginated_stories():
             offset=0,
             limit=10,
         )
-        fake_stories_repo.list_stories.assert_called_once_with(
+        fake_stories_repo.list_stories_qs.assert_called_once_with(
             filters={
                 "project_id": story.project.id,
                 "workflow__slug": story.workflow.slug,
@@ -139,9 +139,9 @@ async def test_list_paginated_stories():
             order_by=["order"],
             prefetch_related=[repositories.ASSIGNEES_PREFETCH],
         )
-        fake_stories_repo.list_stories.reset_mock()
+        fake_stories_repo.list_stories_qs.reset_mock()
         story = f.build_story()
-        fake_stories_repo.list_stories.return_value.__aiter__.return_value = [story]
+        fake_stories_repo.list_stories_qs.return_value.__aiter__.return_value = [story]
         await services.list_stories(
             project_id=story.project.id,
             workflow_slug=story.workflow.slug,
@@ -149,7 +149,7 @@ async def test_list_paginated_stories():
             limit=10,
             get_assignees=False,
         )
-        fake_stories_repo.list_stories.assert_called_once_with(
+        fake_stories_repo.list_stories_qs.assert_called_once_with(
             filters={
                 "project_id": story.project.id,
                 "workflow__slug": story.workflow.slug,
@@ -489,7 +489,7 @@ async def test_validate_and_process_values_to_update_ok_without_status():
         )
 
         fake_workflows_repo.get_workflow_status.assert_not_awaited()
-        fake_stories_repo.list_stories.assert_not_called()
+        fake_stories_repo.list_stories_qs.assert_not_called()
 
         assert valid_values["title"] == values["title"]
         assert "title_updated_at" in valid_values
@@ -614,7 +614,7 @@ async def test_validate_and_process_values_to_update_ok_with_same_status():
             status_id=values["status_id"],
             filters={"workflow_id": story.workflow_id},
         )
-        fake_stories_repo.list_stories.assert_not_called()
+        fake_stories_repo.list_stories_qs.assert_not_called()
 
         assert valid_values["title"] == values["title"]
         assert "title_updated_at" in valid_values
@@ -654,7 +654,7 @@ async def test_validate_and_process_values_to_update_error_wrong_status():
             status_id="wrong_status",
             filters={"workflow_id": story.workflow_id},
         )
-        fake_stories_repo.list_stories.assert_not_called()
+        fake_stories_repo.list_stories_qs.assert_not_called()
 
 
 async def test_validate_and_process_values_to_update_ok_with_workflow():
@@ -772,7 +772,7 @@ async def test_validate_and_process_values_to_update_error_wrong_workflow():
             filters={"project_id": story.project_id, "slug": "wrong_workflow"},
             prefetch_related=["statuses"],
         )
-        fake_stories_repo.list_stories.assert_not_called()
+        fake_stories_repo.list_stories_qs.assert_not_called()
 
 
 async def test_validate_and_process_values_to_update_error_workflow_without_statuses():
@@ -807,7 +807,7 @@ async def test_validate_and_process_values_to_update_error_workflow_without_stat
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
             workflow_id=workflow2.id, order_by=["order"], offset=0, limit=1
         )
-        fake_stories_repo.list_stories.assert_not_called()
+        fake_stories_repo.list_stories_qs.assert_not_called()
 
 
 async def test_validate_and_process_values_to_update_error_workflow_and_status():
@@ -1161,12 +1161,16 @@ async def test_not_reorder_in_empty_status(project_template) -> None:
     # |          | story3   |
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_1.id}
+        )
     ]
     assert stories[0].ref == story1.ref
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_2.id}
+        )
     ]
     assert stories[0].ref == story2.ref
     assert stories[0].order == Decimal(100)
@@ -1204,12 +1208,16 @@ async def test_not_reorder_in_populated_status(project_template) -> None:
     # |          | story2   |
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_1.id}
+        )
     ]
     assert stories[0].ref == story1.ref
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_2.id}
+        )
     ]
     assert stories[0].ref == story3.ref
     assert stories[1].ref == story2.ref
@@ -1247,12 +1255,16 @@ async def test_after_in_the_end(project_template) -> None:
     # |          | story2   |
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_1.id}
+        )
     ]
     assert stories[0].ref == story1.ref
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_2.id}
+        )
     ]
     assert stories[0].ref == story3.ref
     assert stories[1].ref == story2.ref
@@ -1291,12 +1303,16 @@ async def test_after_in_the_middle(project_template) -> None:
     # |          | story3   |
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_1.id}
+        )
     ]
     assert len(stories) == 0
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_2.id}
+        )
     ]
     assert stories[0].ref == story2.ref
     assert stories[1].ref == story1.ref
@@ -1337,12 +1353,16 @@ async def test_before_in_the_beginning(project_template) -> None:
     # |          | story3   |
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_1.id}
+        )
     ]
     assert len(stories) == 0
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_2.id}
+        )
     ]
     assert stories[0].ref == story1.ref
     assert stories[0].order == story2.order - 100
@@ -1382,12 +1402,16 @@ async def test_before_in_the_middle(project_template) -> None:
     # |          | story3   |
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_1.id}
+        )
     ]
     assert len(stories) == 0
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_2.id}
+        )
     ]
     assert stories[0].ref == story2.ref
     assert stories[1].ref == story1.ref
@@ -1430,12 +1454,16 @@ async def test_before_in_the_middle_far_away(project_template) -> None:
     # |          | story3   |
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_1.id}
+        )
     ]
     assert len(stories) == 0
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_2.id}
+        )
     ]
     assert stories[0].ref == story2.ref
     assert stories[1].ref == story1.ref
@@ -1484,12 +1512,16 @@ async def test_before_in_the_middle_multiple(project_template) -> None:
     # |          | story5   |
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_1.id}
+        )
     ]
     assert len(stories) == 0
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_2.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_2.id}
+        )
     ]
     assert stories[0].ref == story2.ref
     assert stories[1].ref == story1.ref
@@ -1542,7 +1574,9 @@ async def test_after_in_the_middle_multiple_same_status(project_template) -> Non
     # | story4   |
     stories = [
         story
-        async for story in repositories.list_stories(filters={"status_id": status_1.id})
+        async for story in repositories.list_stories_qs(
+            filters={"status_id": status_1.id}
+        )
     ]
     assert stories[0].ref == story1.ref
     assert stories[1].ref == story2.ref

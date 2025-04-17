@@ -44,6 +44,7 @@ from projects.projects.serializers import (
     ProjectDetailSerializer,
 )
 from workspaces.workspaces import services as workspaces_services
+from workspaces.workspaces.models import Workspace
 
 projects_router = Router()
 
@@ -74,8 +75,11 @@ async def create_project(
     """
     Create project in a given workspace.
     """
-    workspace = await workspaces_services.get_workspace(workspace_id=form.workspace_id)
-    if workspace is None:
+    try:
+        workspace = await workspaces_services.get_workspace(
+            workspace_id=form.workspace_id
+        )
+    except Workspace.DoesNotExist:
         raise ex.BadRequest(f"Workspace {form.workspace_id} does not exist")
 
     await check_permissions(

@@ -19,21 +19,19 @@
 
 from pydantic import ConfigDict
 
-from projects.projects.serializers.nested import ProjectNestedSerializer
+from memberships.serializers import RoleSerializer
+from projects.projects.serializers.nested import InnerNestedProjectsSerializer
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class WorkspaceDetailSerializer(WorkspaceNestedSerializer):
-    latest_projects: list[ProjectNestedSerializer]
-    invited_projects: list[ProjectNestedSerializer]
-    total_projects: int
-    has_projects: bool
-    user_role: str
+class WorkspaceSerializer(WorkspaceNestedSerializer):
+    user_role: RoleSerializer | None
+    is_invited: bool
     model_config = ConfigDict(from_attributes=True)
 
 
-class WorkspaceSerializer(WorkspaceNestedSerializer):
-    total_projects: int
-    has_projects: bool
-    user_role: str | None
+class WorkspaceWithProjectsSerializer(
+    WorkspaceNestedSerializer, InnerNestedProjectsSerializer
+):
+    is_invited: bool
     model_config = ConfigDict(from_attributes=True)

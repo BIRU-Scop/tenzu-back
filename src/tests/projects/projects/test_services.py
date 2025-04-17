@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 from unittest.mock import patch
 
 import pytest
@@ -28,7 +27,6 @@ from projects.projects.services import exceptions as ex
 from tests.utils import factories as f
 from tests.utils.utils import patch_db_transaction
 from users.models import AnonymousUser
-from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
 async def test_get_landing_page_for_workflow():
@@ -248,19 +246,11 @@ async def test_get_project_detail():
     ):
         fake_workflows_repositories.list_workflows.return_value = []
         fake_pj_invitations_services.has_pending_invitation.return_value = True
-        fake_workspaces_services.get_workspace_nested.return_value = (
-            WorkspaceNestedSerializer(
-                id=uuid.uuid1(), name="ws 1", slug="ws-1", color=1
-            )
-        )
         fake_pj_invitations_services.has_pending_invitation.return_value = False
         await services.get_project_detail(project=project, user=project.created_by)
 
         # with membership's role
         fake_pj_invitations_services.has_pending_invitation.assert_not_called()
-        fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(
-            workspace_id=project.workspace.id
-        )
 
         # without membership's role
         project.created_by.project_role = None
@@ -288,18 +278,10 @@ async def test_get_project_detail_anonymous():
     ):
         fake_workflows_repositories.list_workflows.return_value = []
         fake_pj_invitations_services.has_pending_invitation.return_value = False
-        fake_workspaces_services.get_workspace_nested.return_value = (
-            WorkspaceNestedSerializer(
-                id=uuid.uuid1(), name="ws 1", slug="ws-1", color=1
-            )
-        )
         await services.get_project_detail(project=project, user=user)
 
         fake_pj_invitations_services.has_pending_invitation.assert_awaited_once_with(
             user=user, reference_object=project
-        )
-        fake_workspaces_services.get_workspace_nested.assert_awaited_once_with(
-            workspace_id=workspace.id
         )
 
 

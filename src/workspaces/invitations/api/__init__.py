@@ -53,7 +53,7 @@ workspace_invit_router = Router()
 
 
 @workspace_invit_router.post(
-    "/workspaces/{id}/invitations",
+    "/workspaces/{workspace_id}/invitations",
     url_name="workspace.invitations.create",
     summary="Create workspace invitations",
     response={
@@ -67,7 +67,7 @@ workspace_invit_router = Router()
 )
 async def create_workspace_invitations(
     request,
-    id: Path[B64UUID],
+    workspace_id: Path[B64UUID],
     form: InvitationsValidator,
 ) -> CreateInvitationsSerializer:
     """
@@ -75,7 +75,7 @@ async def create_workspace_invitations(
     role they'll take in the workspace). In case of receiving several invitations for the same user, just the first
     role will be considered.
     """
-    workspace = await get_workspace_or_404(id=id)
+    workspace = await get_workspace_or_404(workspace_id=workspace_id)
     await check_permissions(
         permissions=InvitationPermissionsCheck.CREATE.value,
         user=request.user,
@@ -100,7 +100,7 @@ async def create_workspace_invitations(
 
 
 @workspace_invit_router.get(
-    "/workspaces/{id}/invitations",
+    "/workspaces/{workspace_id}/invitations",
     url_name="workspace.invitations.list",
     summary="List workspace pending invitations",
     response={
@@ -113,12 +113,12 @@ async def create_workspace_invitations(
 )
 async def list_workspace_invitations(
     request,
-    id: Path[B64UUID],
+    workspace_id: Path[B64UUID],
 ) -> list[WorkspaceInvitation]:
     """
     List (pending) workspace invitations
     """
-    workspace = await get_workspace_or_404(id)
+    workspace = await get_workspace_or_404(workspace_id)
     await check_permissions(
         permissions=InvitationPermissionsCheck.VIEW.value,
         user=request.user,

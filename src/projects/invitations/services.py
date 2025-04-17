@@ -84,7 +84,7 @@ async def create_project_invitations(
             project=project, invitations=invitations_to_publish
         )
 
-    return serializers_services.serialize_create_invitations(
+    return CreateInvitationsSerializer(
         invitations=invitations_to_send, already_members=already_members
     )
 

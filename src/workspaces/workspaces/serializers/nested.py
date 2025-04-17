@@ -22,9 +22,16 @@ from pydantic import ConfigDict
 from base.serializers import UUIDB64, BaseModel
 
 
-class WorkspaceNestedSerializer(BaseModel):
+class _WorkspaceBaseNestedSerializer(BaseModel):
     id: UUIDB64
     name: str
     slug: str
+
+
+class WorkspaceLinkNestedSerializer(_WorkspaceBaseNestedSerializer):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkspaceNestedSerializer(_WorkspaceBaseNestedSerializer):
     color: int
     model_config = ConfigDict(from_attributes=True)

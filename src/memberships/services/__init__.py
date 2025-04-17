@@ -460,8 +460,7 @@ async def has_pending_invitation(
     return await memberships_repositories.exists_invitation(
         reference_object.invitations.model,
         filters={
-            "user": user,
-            "status": InvitationStatus.PENDING,
             f"{reference_object._meta.model_name}_id": reference_object.id,
         },
+        q_filter=memberships_repositories.pending_user_invitation_query(user),
     )

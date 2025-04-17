@@ -134,6 +134,12 @@ class IsInvitationRecipient(PermissionComponent):
 
 
 class HasPendingInvitation(PermissionComponent):
+    """
+    This permission is used to check if the user has been invited to the object.
+    The object must implement the membership+role api.
+    As a side-effect, set a is_invited property on the user
+    """
+
     async def is_authorized(
         self, user: AnyUser, obj: Project | Workspace = None
     ) -> bool:
@@ -142,6 +148,8 @@ class HasPendingInvitation(PermissionComponent):
         if not obj:
             return False
 
-        return await invitations_services.has_pending_invitation(
+        has_pending_invitation = await invitations_services.has_pending_invitation(
             user=user, reference_object=obj
         )
+        user.is_invited = has_pending_invitation
+        return has_pending_invitation

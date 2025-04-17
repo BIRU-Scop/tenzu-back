@@ -194,10 +194,6 @@ async def get_project_detail(
         else (user_role.is_owner, True, user_role.permissions)
     )
 
-    workspace = await workspaces_services.get_workspace_nested(
-        workspace_id=project.workspace_id
-    )
-
     user_has_pending_invitation = (
         False
         if user_role
@@ -217,7 +213,7 @@ async def get_project_detail(
 
     return serializers_services.serialize_project_detail(
         project=project,
-        workspace=workspace,
+        workspace=project.workspace,
         workflows=workflows,
         user_is_owner=is_project_owner,
         user_is_member=is_project_member,

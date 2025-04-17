@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from memberships.serializers.services import serialize_create_invitations  # noqa
 from projects.invitations.models import ProjectInvitation
 from projects.invitations.serializers import (
     PublicProjectInvitationSerializer,

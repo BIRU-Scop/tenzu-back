@@ -1196,7 +1196,7 @@ async def test_delete_workflow_status_moving_stories_ok():
     ):
         fake_workflows_repo.delete_workflow_status.return_value = 1
         fake_get_workflow_status.return_value = workflow_status2
-        fake_stories_repo.list_stories.return_value.values_list.return_value.__aiter__.return_value = workflow_status1_stories_ref
+        fake_stories_repo.list_stories_qs.return_value.values_list.return_value.__aiter__.return_value = workflow_status1_stories_ref
         fake_stories_services.reorder_stories.return_value = None
 
         await services.delete_workflow_status(
@@ -1210,7 +1210,7 @@ async def test_delete_workflow_status_moving_stories_ok():
             workflow_slug=workflow.slug,
             id=workflow_status2.id,
         )
-        fake_stories_repo.list_stories.assert_called_once_with(
+        fake_stories_repo.list_stories_qs.assert_called_once_with(
             filters={
                 "status_id": workflow_status1.id,
             },
@@ -1261,7 +1261,7 @@ async def test_delete_workflow_status_deleting_stories_ok():
     ):
         fake_workflows_repo.delete_workflow_status.return_value = 2
         fake_workflows_repo.get_workflow_status.return_value = 1
-        fake_stories_repo.list_stories.return_value.values_list.return_value.__aiter__.return_value = workflow_status1_stories_ref
+        fake_stories_repo.list_stories_qs.return_value.values_list.return_value.__aiter__.return_value = workflow_status1_stories_ref
         fake_stories_services.reorder_stories.return_value = None
 
         await services.delete_workflow_status(
@@ -1269,7 +1269,7 @@ async def test_delete_workflow_status_deleting_stories_ok():
         )
 
         fake_get_workflow_status.assert_not_awaited()
-        fake_stories_repo.list_stories.assert_not_called()
+        fake_stories_repo.list_stories_qs.assert_not_called()
         fake_stories_services.reorder_stories.assert_not_awaited()
         fake_workflows_repo.delete_workflow_status.assert_awaited_once_with(
             status_id=workflow_status1.id

@@ -106,6 +106,7 @@ class User(BaseModel, AbstractBaseUser):
     )
     project_role: ProjectRole | None = None
     workspace_role: WorkspaceRole | None = None
+    is_invited: bool = None
     project_memberships: ManyRelatedManager
     workspace_memberships: ManyRelatedManager
 

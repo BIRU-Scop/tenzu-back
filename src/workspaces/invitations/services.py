@@ -77,7 +77,7 @@ async def create_workspace_invitations(
             workspace=workspace, invitations=invitations_to_publish
         )
 
-    return serializers_services.serialize_create_invitations(
+    return CreateInvitationsSerializer(
         invitations=invitations_to_send, already_members=already_members
     )
 
@@ -239,8 +239,7 @@ async def has_pending_inner_projects_invitation(
     return await exists_invitation(
         ProjectInvitation,
         filters={
-            "user": user,
-            "status": InvitationStatus.PENDING,
             "project__workspace_id": workspace.id,
         },
+        q_filter=invitations_repositories.pending_user_invitation_query(user),
     )

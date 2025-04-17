@@ -17,22 +17,16 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 from projects.projects import repositories as projects_repositories
 from users.models import User
 from workspaces.memberships import repositories as ws_memberships_repositories
-from workspaces.memberships.models import WorkspaceMembership
 from workspaces.workspaces import events as workspaces_events
 from workspaces.workspaces import repositories as workspaces_repositories
 from workspaces.workspaces.models import Workspace
-from workspaces.workspaces.serializers import (
-    WorkspaceDetailSerializer,
-    WorkspaceSerializer,
-)
-from workspaces.workspaces.serializers import services as serializers_services
-from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
+from workspaces.workspaces.serializers import WorkspaceSerializer
 from workspaces.workspaces.services import exceptions as ex
 
 ##########################################################
@@ -43,11 +37,6 @@ from workspaces.workspaces.services import exceptions as ex
 async def create_workspace(
     name: str, color: int, created_by: User
 ) -> WorkspaceSerializer:
-    workspace = await _create_workspace(name=name, color=color, created_by=created_by)
-    return await get_workspace_detail(id=workspace.id, user_id=created_by.id)
-
-
-async def _create_workspace(name: str, color: int, created_by: User) -> Workspace:
     workspace = await workspaces_repositories.create_workspace(
         name=name, color=color, created_by=created_by
     )
@@ -57,7 +46,14 @@ async def _create_workspace(name: str, color: int, created_by: User) -> Workspac
     await ws_memberships_repositories.create_workspace_membership(
         user=created_by, workspace=workspace, role=owner_role
     )
-    return workspace
+    return WorkspaceSerializer(
+        id=workspace.id,
+        name=workspace.name,
+        slug=workspace.slug,
+        color=workspace.color,
+        user_role=owner_role,
+        is_invited=False,
+    )
 
 
 ##########################################################
@@ -65,13 +61,8 @@ async def _create_workspace(name: str, color: int, created_by: User) -> Workspac
 ##########################################################
 
 
-async def list_user_workspaces(user: User) -> list[WorkspaceDetailSerializer]:
-    return [
-        serializers_services.serialize_workspace_detail(workspace=workspace)
-        for workspace in await workspaces_repositories.list_user_workspaces_overview(
-            user=user
-        )
-    ]
+async def list_user_workspaces(user: User) -> list[Workspace]:
+    return await workspaces_repositories.list_user_workspaces_overview(user=user)
 
 
 ##########################################################
@@ -83,52 +74,15 @@ async def get_workspace(workspace_id: UUID) -> Workspace | None:
     return await workspaces_repositories.get_workspace(workspace_id=workspace_id)
 
 
-async def get_workspace_detail(id: UUID, user_id: UUID | None) -> WorkspaceSerializer:
-    workspace = await workspaces_repositories.get_workspace_detail(
-        workspace_id=id, user_id=user_id
+async def get_user_workspace(user: User, workspace: Workspace) -> WorkspaceSerializer:
+    return WorkspaceSerializer(
+        id=workspace.id,
+        name=workspace.name,
+        slug=workspace.slug,
+        color=workspace.color,
+        user_role=user.workspace_role,
+        is_invited=user.is_invited or False,
     )
-    try:
-        user_role = (
-            await ws_memberships_repositories.get_membership(
-                WorkspaceMembership,
-                filters={"workspace_id": id, "user_id": user_id},
-                select_related=["role"],
-            )
-        ).role.slug
-    except WorkspaceMembership.DoesNotExist:
-        user_role = None
-    return serializers_services.serialize_workspace(
-        workspace=workspace,
-        user_role=user_role,
-        total_projects=(
-            await projects_repositories.get_total_projects(
-                workspace_id=id, filters={"memberships__user_id": user_id}
-            )
-            if user_id
-            else 0
-        ),
-    )
-
-
-async def get_workspace_nested(workspace_id: UUID) -> WorkspaceNestedSerializer:
-    workspace = await workspaces_repositories.get_workspace(
-        workspace_id=workspace_id,
-    )
-    return serializers_services.serialize_nested(
-        workspace=workspace,
-    )
-
-
-async def get_user_workspace(
-    user: User, workspace_id: UUID
-) -> WorkspaceDetailSerializer | None:
-    workspace = await workspaces_repositories.get_user_workspace_overview(
-        user=user, id=workspace_id
-    )
-    if workspace:
-        return serializers_services.serialize_workspace_detail(workspace=workspace)
-
-    return None
 
 
 ##########################################################
@@ -139,8 +93,15 @@ async def get_user_workspace(
 async def update_workspace(
     workspace: Workspace, user: User, values: dict[str, Any] = {}
 ) -> WorkspaceSerializer:
-    updated_workspace = await _update_workspace(workspace=workspace, values=values)
-    return await get_workspace_detail(id=updated_workspace.id, user_id=user.id)
+    workspace = await _update_workspace(workspace=workspace, values=values)
+    return WorkspaceSerializer(
+        id=workspace.id,
+        name=workspace.name,
+        slug=workspace.slug,
+        color=workspace.color,
+        user_role=user.workspace_role,
+        is_invited=False,
+    )
 
 
 async def _update_workspace(

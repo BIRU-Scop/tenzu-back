@@ -59,6 +59,9 @@ async def test_check_permission_has_pending_project_invitation():
     invitation = await f.create_project_invitation(email=user1.email, user=user1)
 
     permissions = HasPendingInvitation()
+    assert user1.is_invited is None
+    assert user2.is_invited is None
+    assert invitation.project.created_by.is_invited is None
 
     # user1 is recipient
     assert (
@@ -67,11 +70,13 @@ async def test_check_permission_has_pending_project_invitation():
         )
         is None
     )
+    assert user1.is_invited is True
     # user2 isn't recipient
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(
             permissions=permissions, user=user2, obj=invitation.project
         )
+    assert user2.is_invited is False
     # project member isn't recipient
     with pytest.raises(ex.ForbiddenError):
         await check_permissions(
@@ -79,6 +84,7 @@ async def test_check_permission_has_pending_project_invitation():
             user=invitation.project.created_by,
             obj=invitation.project,
         )
+    assert invitation.project.created_by.is_invited is False
 
 
 async def test_check_permission_can_modify_projects_invitation():

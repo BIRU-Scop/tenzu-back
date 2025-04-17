@@ -38,15 +38,13 @@ from projects.invitations import services as project_invitations_services
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import events as pj_memberships_events
 from projects.memberships import repositories as pj_memberships_repositories
-from projects.memberships.models import ProjectMembership, ProjectRole
-from projects.projects import repositories as projects_repositories
+from projects.memberships.models import ProjectMembership
 from projects.projects import services as projects_services
 from projects.projects.models import Project
 from users import events as users_events
 from users import repositories as users_repositories
 from users.models import User
 from users.serializers import UserDeleteInfoSerializer, VerificationInfoSerializer
-from users.serializers import services as serializers_services
 from users.services import exceptions as ex
 from users.tokens import ResetPasswordToken, VerifyUserToken
 from workspaces.invitations import events as ws_invitations_events
@@ -200,7 +198,7 @@ async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
 
     # Generate auth credentials and attach invitation
     auth = await auth_services.create_auth_credentials(user=user)
-    return serializers_services.serialize_verification_info(
+    return VerificationInfoSerializer(
         auth=auth,
         project_invitation=project_invitation,
         workspace_invitation=workspace_invitation,
@@ -404,11 +402,11 @@ async def get_user_delete_info(user: User) -> UserDeleteInfoSerializer:
         )
     ]
 
-    return serializers_services.serialize_user_delete_info(
-        only_owner_collective_workspaces,
-        only_owner_collective_projects,
-        only_member_workspaces,
-        only_member_projects,
+    return UserDeleteInfoSerializer(
+        only_owner_collective_workspaces=only_owner_collective_workspaces,
+        only_owner_collective_projects=only_owner_collective_projects,
+        only_member_workspaces=only_member_workspaces,
+        only_member_projects=only_member_projects,
     )
 
 

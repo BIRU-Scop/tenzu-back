@@ -122,6 +122,8 @@ def create_simple_project(**kwargs):
 @sync_to_async
 def create_project(template, **kwargs):
     """Create project and its dependencies"""
+    if "workspace" in kwargs and "created_by" not in kwargs:
+        kwargs["created_by"] = kwargs["workspace"].created_by
     project = ProjectFactory.create(**kwargs)
     async_to_sync(projects_repositories.apply_template_to_project)(
         project=project, template=template

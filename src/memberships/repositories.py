@@ -24,8 +24,10 @@ from django.db.models import Case, Count, Q, QuerySet, When
 from memberships.choices import InvitationStatus
 from memberships.models import Invitation, Membership, Role
 from projects.projects.models import Project
-from users.models import User
+from users.models import AnyUser, User
 from workspaces.workspaces.models import Workspace
+
+T = TypeVar("T", Project, Workspace)
 
 ##########################################################
 # membership type
@@ -235,15 +237,15 @@ async def has_other_owner_memberships(membership: TM):
     )
 
 
-async def list_members(reference_object: Project | Workspace) -> list[User]:
+async def list_members(reference_object: T) -> list[User]:
     qs = reference_object.members.all()
     return [a async for a in qs]
 
 
 def only_member_queryset(
-    model: type[Project | Workspace],
+    model: type[T],
     user: User,
-) -> QuerySet[Project | Workspace]:
+) -> QuerySet[T]:
     """
     returns a queryset for all object where user is the only member
     """
@@ -257,9 +259,7 @@ def only_member_queryset(
     return qs.distinct()
 
 
-def only_owner_collective_queryset(
-    model: type[Project | Workspace], user: User
-) -> QuerySet[Project | Workspace]:
+def only_owner_collective_queryset(model: type[T], user: User) -> QuerySet[T]:
     """
     returns a queryset for all projects where user is the only owner and other members exists
     """
@@ -381,8 +381,11 @@ async def get_invitation(
 async def exists_invitation(
     model: type[TI],
     filters: InvitationFilters = {},
+    q_filter: Q | None = None,
 ) -> bool:
     qs = model.objects.all().filter(**filters)
+    if q_filter:
+        qs = qs.filter(q_filter)
     return await qs.aexists()
 
 
@@ -429,6 +432,12 @@ async def delete_invitation(
 ##########################################################
 # misc invitation
 ##########################################################
+
+
+def pending_user_invitation_query(user: AnyUser) -> Q:
+    by_user = Q(user_id=user.id)
+    by_email = Q(user__isnull=True) & Q(email__iexact=user.email)
+    return Q(status=InvitationStatus.PENDING) & (by_user | by_email)
 
 
 def username_or_email_query(username_or_email: str) -> Q:
