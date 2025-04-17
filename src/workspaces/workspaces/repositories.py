@@ -20,14 +20,11 @@
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
-from django.contrib.postgres.fields import ArrayField
 from django.db.models import (
-    BooleanField,
     Exists,
     OuterRef,
     Prefetch,
-    QuerySet,
-    Value,
+    Q,
 )
 
 from base.db.utils import Q_for_related
@@ -36,6 +33,7 @@ from memberships import repositories as memberships_repositories
 from projects.projects.models import Project
 from users.models import User
 from workspaces.invitations.models import WorkspaceInvitation
+from workspaces.memberships.models import WorkspaceMembership
 from workspaces.workspaces.models import Workspace
 
 ##########################################################
@@ -101,54 +99,40 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
     )
     ###
 
-    # queryset for all workspace where user is member
-    ws_member_qs = (
+    # queryset for all workspace where user is member or invited (either directly to workspace or to one of its projects)
+    ws_qs = (
         Workspace.objects.filter(
-            memberships__user_id=user.id,
+            Q(memberships__user_id=user.id)
+            | user_invited_query
+            | user_pj_in_ws_invited_query
         )
         .annotate(
-            is_invited=Value(False, output_field=BooleanField()),
+            is_invited=Exists(
+                WorkspaceInvitation.objects.filter(
+                    pending_user_invitation_query, workspace_id=OuterRef("pk")
+                )
+            ),
+            is_member=Exists(
+                WorkspaceMembership.objects.filter(
+                    user_id=user.id, workspace_id=OuterRef("pk")
+                )
+            ),
         )
         .prefetch_related(
             Prefetch(
                 "projects", queryset=member_projects_qs, to_attr="user_member_projects"
-            )
-        )
-        .distinct()
-    )
-
-    # queryset for all workspace where user is invited (either directly to workspace or to one of its projects)
-    ws_invitees_qs = (
-        Workspace.objects.filter(user_invited_query | user_pj_in_ws_invited_query)
-        .annotate(
-            is_invited=Exists(
-                WorkspaceInvitation.objects.filter(
-                    pending_user_invitation_query, workspace=OuterRef("pk")
-                )
             ),
-            # user can't be project member if they are not workspace member
-            # we don't care about the base field inside of arrayfield since we set it to empty
-            user_member_projects=Value(
-                [], output_field=ArrayField(base_field=BooleanField())
-            ),
-        )
-        .distinct()
-    )
-
-    def _apply_common_operations(qs: QuerySet[Workspace]) -> QuerySet[Workspace]:
-        return qs.prefetch_related(
             Prefetch(
                 "projects",
                 queryset=invited_projects_qs,
                 to_attr="user_invited_projects",
             ),
-        ).order_by("-created_at")
-
-    ws_member_qs, ws_invitees_qs = (
-        _apply_common_operations(ws_member_qs),
-        _apply_common_operations(ws_invitees_qs),
+        )
+        .order_by("-is_member", "-created_at")
+        .distinct()
     )
-    return [*[ws async for ws in ws_member_qs], *[ws async for ws in ws_invitees_qs]]
+
+    return [ws async for ws in ws_qs]
 
 
 ##########################################################

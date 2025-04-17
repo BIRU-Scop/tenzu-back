@@ -187,6 +187,7 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
     )
 
     # ASSERTS
+    # all queries are ordered by reverse on created_at
     # user1
     # owner of all workspaces and projects
     res = await repositories.list_user_workspaces_overview(user1)
@@ -210,7 +211,12 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
     # member of ws: ws1; pj: pj1_ws1
     # invited to ws: ws3, ws4; pj: pj3_ws1, pj1_ws2, pj1_ws3
     res = await repositories.list_user_workspaces_overview(user2)
-    assert [ws.name for ws in res] == [ws1.name, ws4.name, ws3.name, ws2.name]
+    assert [ws.name for ws in res] == [
+        ws1.name,  # member workspace are put before invited ones
+        ws4.name,
+        ws3.name,
+        ws2.name,
+    ]
     assert [ws.is_invited for ws in res] == [False, True, True, False]
     assert [pj.name for pj in res[0].user_member_projects] == [pj1_ws1.name]  # ws1
     assert not any(ws.user_member_projects for ws in res[1:])  # ws4, ws3, ws2
