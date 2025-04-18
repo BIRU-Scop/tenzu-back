@@ -112,9 +112,7 @@ async def test_list_workspace_projects_200_ok_owner_no_project(client):
     response = await client.get(f"/workspaces/{workspace.b64id}/projects")
     assert response.status_code == 200, response.text
     res = response.json()
-    assert res.keys() == {"userMemberProjects", "userInvitedProjects"}
-    assert res["userMemberProjects"] == []
-    assert res["userInvitedProjects"] == []
+    assert res == []
 
 
 async def test_list_workspace_projects_200_ok_owner_one_project(
@@ -127,10 +125,9 @@ async def test_list_workspace_projects_200_ok_owner_one_project(
     response = await client.get(f"/workspaces/{workspace.b64id}/projects")
     assert response.status_code == 200, response.text
     res = response.json()
-    assert res.keys() == {"userMemberProjects", "userInvitedProjects"}
-    assert len(res["userMemberProjects"]) == 1
-    assert res["userMemberProjects"][0]["name"] == project.name
-    assert res["userInvitedProjects"] == []
+    assert len(res) == 1
+    assert res[0]["name"] == project.name
+    assert not res[0]["userIsInvited"]
 
 
 async def test_list_workspace_projects_200_ok_invitee(client, project_template):
@@ -142,10 +139,9 @@ async def test_list_workspace_projects_200_ok_invitee(client, project_template):
     )
     assert response.status_code == 200, response.data
     res = response.json()
-    assert res.keys() == {"userMemberProjects", "userInvitedProjects"}
-    assert res["userMemberProjects"] == []
-    assert len(res["userInvitedProjects"]) == 1
-    assert res["userInvitedProjects"][0]["name"] == pj_invitation.project.name
+    assert len(res) == 1
+    assert res[0]["name"] == pj_invitation.project.name
+    assert res[0]["userIsInvited"]
 
 
 async def test_list_workspace_projects_404_not_found_workspace_b64id(client):

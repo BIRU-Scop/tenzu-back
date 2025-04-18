@@ -135,16 +135,9 @@ async def _create_project(
 
 async def list_workspace_projects_for_user(
     workspace: Workspace, user: User
-) -> WorkspaceListProjectsSummarySerializer:
-    (
-        user_member_projects,
-        user_invited_projects,
-    ) = await projects_repositories.list_workspace_projects_for_user(
+) -> list[Project]:
+    return await projects_repositories.list_workspace_projects_for_user(
         workspace=workspace, user=user
-    )
-    return WorkspaceListProjectsSummarySerializer(
-        user_member_projects=user_member_projects,
-        user_invited_projects=user_invited_projects,
     )
 
 

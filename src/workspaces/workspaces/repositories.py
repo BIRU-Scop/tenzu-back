@@ -124,7 +124,7 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
                 to_attr="user_invited_projects",
             ),
         )
-        .order_by("-user_is_member", "-created_at")
+        .order_by("user_is_member", "-created_at")
         .distinct()
     )
 

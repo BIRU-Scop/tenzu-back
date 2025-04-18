@@ -27,6 +27,7 @@ from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
 class ProjectSummarySerializer(ProjectNestedSerializer):
+    user_is_invited: bool
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -35,5 +36,4 @@ class ProjectDetailSerializer(ProjectSummarySerializer):
     workflows: list[WorkflowNestedSerializer]
 
     user_role: RoleSerializer | None
-    user_is_invited: bool
     model_config = ConfigDict(from_attributes=True)

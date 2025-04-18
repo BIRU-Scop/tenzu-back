@@ -21,7 +21,7 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 
 from base.db.utils import Q_for_related
 from base.utils.datetime import aware_utcnow
@@ -30,6 +30,7 @@ from commons.utils import transaction_atomic_async
 from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus
 from projects import references
+from projects.invitations.models import ProjectInvitation
 from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectRole
 from projects.projects.models import Project, ProjectTemplate
@@ -97,7 +98,7 @@ async def create_project(
 
 async def list_workspace_projects_for_user(
     workspace: Workspace, user: User
-) -> tuple[list[Project], list[Project]]:
+) -> list[Project]:
     # search user in workspace or project queryset through their invitations
     user_invited_query = Q_for_related(
         memberships_repositories.pending_user_invitation_query(user), "invitations"
@@ -105,19 +106,24 @@ async def list_workspace_projects_for_user(
     # search user in workspace or project queryset through their membership
     user_member_query = Q(memberships__user_id=user.id)
 
-    def _project_qs(q_filter: Q):
-        return (
-            Project.objects.filter(
-                q_filter,
-                workspace=workspace,
-            )
-            .distinct()
-            .order_by("-created_at")
+    qs = (
+        Project.objects.filter(
+            user_invited_query | user_member_query,
+            workspace=workspace,
         )
+        .annotate(
+            user_is_invited=Exists(
+                ProjectInvitation.objects.filter(
+                    memberships_repositories.pending_user_invitation_query(user),
+                    project_id=OuterRef("pk"),
+                )
+            ),
+        )
+        .distinct()
+        .order_by("-user_is_invited", "-created_at")
+    )
 
-    member_projects = [pj async for pj in _project_qs(user_member_query)]
-    invited_projects = [pj async for pj in _project_qs(user_invited_query)]
-    return member_projects, invited_projects
+    return [pj async for pj in qs]
 
 
 ##########################################################

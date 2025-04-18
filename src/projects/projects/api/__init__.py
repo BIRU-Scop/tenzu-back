@@ -42,10 +42,10 @@ from projects.projects.models import Project
 from projects.projects.permissions import ProjectPermissionsCheck
 from projects.projects.serializers import (
     ProjectDetailSerializer,
+    ProjectSummarySerializer,
 )
 from workspaces.workspaces.api import get_workspace_or_404
 from workspaces.workspaces.permissions import WorkspacePermissionsCheck
-from workspaces.workspaces.serializers import WorkspaceListProjectsSummarySerializer
 
 projects_router = Router()
 
@@ -105,7 +105,7 @@ async def create_project(
     url_name="workspace.projects.list",
     summary="List workspace projects",
     response={
-        200: WorkspaceListProjectsSummarySerializer,
+        200: list[ProjectSummarySerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -115,7 +115,7 @@ async def create_project(
 )
 async def list_workspace_projects(
     request, workspace_id: Path[B64UUID]
-) -> WorkspaceListProjectsSummarySerializer:
+) -> list[Project]:
     """
     List projects of a workspace visible by the user.
     """

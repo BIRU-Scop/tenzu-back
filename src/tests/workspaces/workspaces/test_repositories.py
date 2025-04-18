@@ -58,33 +58,9 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
     ws4 = await f.create_workspace(name="ws4", created_by=user1)
     ws5 = await f.create_workspace(name="ws5", created_by=user1)
 
-    # user2 is member of ws1
     ws1_member_role = await ws1.roles.aget(slug="member")
-    await f.create_workspace_invitation(
-        email=user2.email,
-        user=user2,
-        workspace=ws1,
-        role=ws1_member_role,
-        invited_by=user1,
-        status=InvitationStatus.ACCEPTED,
-    )
-    await f.create_workspace_membership(user=user2, workspace=ws1, role=ws1_member_role)
-
-    # user2 is member of a project in ws1
     pj1_ws1 = await f.create_project(
         template=project_template, name="pj1_ws1", workspace=ws1, created_by=user1
-    )
-    pj1_ws1_member_role = await pj1_ws1.roles.aget(slug="admin")
-    await f.create_project_invitation(
-        email=user2.email,
-        user=user2,
-        project=pj1_ws1,
-        role=pj1_ws1_member_role,
-        invited_by=user1,
-        status=InvitationStatus.ACCEPTED,
-    )
-    await f.create_project_membership(
-        user=user2, project=pj1_ws1, role=pj1_ws1_member_role
     )
     # user1 invites user3 to a project in ws1 (just email)
     pj2_ws1 = await f.create_project(
@@ -119,20 +95,43 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
         invited_by=user1,
         status=InvitationStatus.REVOKED,
     )
+    # user2 is member of ws2
+    ws2_member_role = await ws2.roles.aget(slug="member")
+    await f.create_workspace_invitation(
+        email=user2.email,
+        user=user2,
+        workspace=ws2,
+        role=ws2_member_role,
+        invited_by=user1,
+        status=InvitationStatus.ACCEPTED,
+    )
+    await f.create_workspace_membership(user=user2, workspace=ws2, role=ws2_member_role)
 
-    # user1 invites user2 and user3 to a project in ws2
+    # user1 invites user3 to a project in ws2
     pj1_ws2 = await f.create_project(
         template=project_template, name="pj1_ws2", workspace=ws2, created_by=user1
     )
     pj1_ws2_member_role = await pj1_ws2.roles.aget(slug="member")
-    for user in (user2, user3):
-        await f.create_project_invitation(
-            email=user.email,
-            user=user,
-            project=pj1_ws2,
-            role=pj1_ws2_member_role,
-            invited_by=user1,
-        )
+    await f.create_project_invitation(
+        email=user3.email,
+        user=user3,
+        project=pj1_ws2,
+        role=pj1_ws2_member_role,
+        invited_by=user1,
+    )
+    # user2 is member of a project in ws2
+    pj1_ws2_member_role = await pj1_ws2.roles.aget(slug="admin")
+    await f.create_project_invitation(
+        email=user2.email,
+        user=user2,
+        project=pj1_ws2,
+        role=pj1_ws2_member_role,
+        invited_by=user1,
+        status=InvitationStatus.ACCEPTED,
+    )
+    await f.create_project_membership(
+        user=user2, project=pj1_ws2, role=pj1_ws2_member_role
+    )
 
     # user1 invites user2 and user3 to ws3 (mail only) and invite user2 to a project
     ws3_member_role = await ws3.roles.aget(slug="member")
@@ -208,23 +207,23 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
     ]  # ws1
     assert not any(ws.user_invited_projects for ws in res)
     # user2
-    # member of ws: ws1; pj: pj1_ws1
+    # member of ws: ws2; pj: pj1_ws2
     # invited to ws: ws3, ws4; pj: pj3_ws1, pj1_ws2, pj1_ws3
     res = await repositories.list_user_workspaces_overview(user2)
     assert [ws.name for ws in res] == [
-        ws1.name,  # member workspace are put before invited ones
         ws4.name,
         ws3.name,
-        ws2.name,
+        ws1.name,
+        ws2.name,  # member workspace are put after invited ones
     ]
-    assert [ws.user_is_invited for ws in res] == [False, True, True, False]
-    assert [pj.name for pj in res[0].user_member_projects] == [pj1_ws1.name]  # ws1
-    assert not any(ws.user_member_projects for ws in res[1:])  # ws4, ws3, ws2
+    assert [ws.user_is_invited for ws in res] == [True, True, False, False]
+    assert [pj.name for pj in res[3].user_member_projects] == [pj1_ws2.name]  # ws2
+    assert not any(ws.user_member_projects for ws in res[:3])  # ws4, ws3, ws1
 
-    assert [pj.name for pj in res[0].user_invited_projects] == [pj3_ws1.name]  # ws1
-    assert [pj.name for pj in res[1].user_invited_projects] == []  # ws4
-    assert [pj.name for pj in res[2].user_invited_projects] == [pj1_ws3.name]  # ws3
-    assert [pj.name for pj in res[3].user_invited_projects] == [pj1_ws2.name]  # ws2
+    assert [pj.name for pj in res[0].user_invited_projects] == []  # ws4
+    assert [pj.name for pj in res[1].user_invited_projects] == [pj1_ws3.name]  # ws3
+    assert [pj.name for pj in res[2].user_invited_projects] == [pj3_ws1.name]  # ws1
+    assert [pj.name for pj in res[3].user_invited_projects] == []  # ws2
     # user3
     # member of none,
     # invited to ws: ws3; pj: pj2_ws1, pj1_ws2

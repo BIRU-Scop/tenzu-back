@@ -196,16 +196,12 @@ async def test_list_workspace_projects_for_a_ws_member():
             autospec=True,
         ) as fake_WorkspaceListProjectsSummarySerializer,
     ):
-        fake_projects_repo.list_workspace_projects_for_user.return_value = ([], [])
+        fake_projects_repo.list_workspace_projects_for_user.return_value = []
         await services.list_workspace_projects_for_user(
             workspace=workspace, user=workspace.created_by
         )
         fake_projects_repo.list_workspace_projects_for_user.assert_awaited_once_with(
             workspace=workspace, user=workspace.created_by
-        )
-        fake_WorkspaceListProjectsSummarySerializer.assert_called_once_with(
-            user_member_projects=[],
-            user_invited_projects=[],
         )
 
 

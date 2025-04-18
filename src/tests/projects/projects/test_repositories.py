@@ -113,50 +113,35 @@ async def test_list_workspace_projects_for_user(project_template):
     await f.create_project(
         template=project_template, workspace=workspace, created_by=workspace.created_by
     )
-    (
-        member_projects,
-        invited_projects,
-    ) = await repositories.list_workspace_projects_for_user(
+    projects = await repositories.list_workspace_projects_for_user(
         workspace, workspace.created_by
     )
     # owner of project can see them all
-    assert len(member_projects) == 3
-    assert len(invited_projects) == 0
+    assert len(projects) == 3
+    assert len([pj for pj in projects if pj.user_is_invited]) == 0
 
     user = await f.create_user()
-    (
-        member_projects,
-        invited_projects,
-    ) = await repositories.list_workspace_projects_for_user(workspace, user)
+    projects = await repositories.list_workspace_projects_for_user(workspace, user)
     # user has no projects
-    assert len(member_projects) == 0
-    assert len(invited_projects) == 0
+    assert len(projects) == 0
+    assert len([pj for pj in projects if pj.user_is_invited]) == 0
     invitation = await f.create_project_invitation(user=user, project=project)
-    (
-        member_projects,
-        invited_projects,
-    ) = await repositories.list_workspace_projects_for_user(workspace, user)
+    projects = await repositories.list_workspace_projects_for_user(workspace, user)
     # user has been invited to one project
-    assert len(member_projects) == 0
-    assert len(invited_projects) == 1
+    assert len(projects) == 1
+    assert len([pj for pj in projects if pj.user_is_invited]) == 1
     await f.create_project_membership(user=user, project=project)
-    (
-        member_projects,
-        invited_projects,
-    ) = await repositories.list_workspace_projects_for_user(workspace, user)
+    projects = await repositories.list_workspace_projects_for_user(workspace, user)
     # user has become member of one project and previous invitation still exists
-    # (this should not happen but we still want project to appear in both list)
-    assert len(member_projects) == 1
-    assert len(invited_projects) == 1
+    # (this should not happen but result should still be coherent)
+    assert len(projects) == 1
+    assert len([pj for pj in projects if pj.user_is_invited]) == 1
     invitation.status = InvitationStatus.ACCEPTED
     await invitation.asave()
-    (
-        member_projects,
-        invited_projects,
-    ) = await repositories.list_workspace_projects_for_user(workspace, user)
+    projects = await repositories.list_workspace_projects_for_user(workspace, user)
     # user has become member of one project and previous invitation has been accepted
-    assert len(member_projects) == 1
-    assert len(invited_projects) == 0
+    assert len(projects) == 1
+    assert len([pj for pj in projects if pj.user_is_invited]) == 0
 
 
 ##########################################################
