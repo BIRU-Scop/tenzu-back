@@ -261,13 +261,6 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
     if len(values) == 0:
         return project
 
-    if "name" in values:
-        if values.get("name") is None or values.get("name") == "":
-            raise ex.TenzuValidationError("Name cannot be empty")
-
-    if "description" in values:
-        values["description"] = values["description"] or ""
-
     file_to_delete = None
     if "logo" in values:
         if logo := values.get("logo"):

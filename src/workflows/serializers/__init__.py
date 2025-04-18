@@ -57,17 +57,6 @@ class WorkflowStatusSerializer(BaseModel):
     workflow: WorkflowNestedSerializer
     model_config = ConfigDict(from_attributes=True)
 
-    @field_validator("order", mode="before")
-    @classmethod
-    def convert_decimal_int(cls, v: Decimal, info: ValidationInfo) -> int:
-        """
-        If there are some statuses ids repeated, ignore them,
-        but keep the original order. Example:
-        v = ["1", "1", "2", "1", "2"]
-        return ["1", "2"]
-        """
-        return int(v)
-
 
 class ReorderSerializer(BaseModel):
     place: str

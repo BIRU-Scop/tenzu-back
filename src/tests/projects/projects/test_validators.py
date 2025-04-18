@@ -172,3 +172,45 @@ def test_validate_update_project_ok():
 
     assert patch.name == name
     assert patch.description == description
+
+
+def test_validate_update_project_ok_not_set():
+    patch = UpdateProjectValidator()
+
+    assert patch.name is None
+    assert patch.description is None
+    assert patch.model_dump(exclude_unset=True) == {}
+
+
+def test_validate_update_project_ko_empty():
+    name = ""
+    description = None
+
+    with pytest.raises(ValidationError) as validations_errors:
+        # noinspection PyArgumentList
+        UpdateProjectValidator(name=name, description=description)
+
+    expected_error_fields = ["name", "description"]
+    expected_error_messages = [
+        "String should have at least 1 character",
+        "Input should be a valid string",
+    ]
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
+    )
+
+
+def test_validate_update_project_ko_none():
+    name = None
+
+    with pytest.raises(ValidationError) as validations_errors:
+        # noinspection PyArgumentList
+        UpdateProjectValidator(name=name)
+
+    expected_error_fields = ["name"]
+    expected_error_messages = [
+        "Input should be a valid string",
+    ]
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
+    )

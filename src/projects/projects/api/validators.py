@@ -80,5 +80,7 @@ class ProjectValidator(BaseModel):
 
 
 class UpdateProjectValidator(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
+    ] = None
+    description: str = None
