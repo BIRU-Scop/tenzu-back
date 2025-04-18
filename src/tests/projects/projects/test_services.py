@@ -508,7 +508,6 @@ async def test_delete_project_fail():
         ) as users_repositories,
     ):
         fake_projects_repo.delete_projects.return_value = 0
-        users_repositories.list_invitees_in_ws_via_project.return_value = []
 
         await services.delete_project(project=project, deleted_by=user)
 
@@ -536,11 +535,10 @@ async def test_delete_project_ok(tqmanager):
         patch_db_transaction(),
     ):
         fake_projects_repo.delete_projects.return_value = 1
-        users_repositories.list_invitees_in_ws_via_project.return_value = []
 
         await services.delete_project(project=project, deleted_by=user)
         fake_projects_events.emit_event_when_project_is_deleted.assert_awaited_once_with(
-            workspace=project.workspace, project=project, deleted_by=user, guests=[]
+            workspace=project.workspace, project=project, deleted_by=user
         )
         fake_projects_repo.delete_projects.assert_awaited_once_with(
             project_id=project.id,

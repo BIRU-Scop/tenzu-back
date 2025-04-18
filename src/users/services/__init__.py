@@ -300,7 +300,9 @@ async def delete_user(user: User) -> bool:
     # (all members, invitations, pj-roles, stories, comments, etc
     # will be deleted in cascade)
     # (We need to delete all projects before workspaces to emit all events)
-    async for pj in pj_memberships_repositories.only_project_member_queryset(user):
+    async for pj in pj_memberships_repositories.only_project_member_queryset(
+        user
+    ).select_related("workspace"):
         await projects_services.delete_project(project=pj, deleted_by=user)
 
     # delete workspaces where the user is the only ws member

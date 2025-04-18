@@ -45,7 +45,6 @@ from memberships.choices import InvitationStatus
 from ninja_jwt.token_blacklist.models import OutstandingToken
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
-from projects.projects.models import Project
 from users.models import AuthData, User
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships.models import WorkspaceMembership
@@ -112,23 +111,6 @@ async def list_users(
         limit += offset
 
     return [u async for u in qs[offset:limit]]
-
-
-async def list_invitees_in_ws_via_project(
-    project: Project,
-) -> list[User]:
-    """
-    List users that have access to the workspace of project only because they
-    are currently invited to this project, with no other link to the workspace
-    """
-    qs = User.objects.all().filter(
-        project_invitations__project=project,
-        project_invitations__status=InvitationStatus.PENDING,
-    )
-    qs = (
-        qs.exclude(workspaces__id=project.workspace_id).distinct().order_by("full_name")
-    )
-    return [u async for u in qs]
 
 
 ##########################################################

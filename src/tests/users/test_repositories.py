@@ -125,59 +125,9 @@ async def test_list_users_by_emails():
     assert user3 not in users
 
 
-async def test_list_invitees_in_ws_via_project(project_template):
-    pj_member = await f.create_user()
-    pj_invitee = await f.create_user()
-    ws_invitee = await f.create_user()
-    ws_member = await f.create_user()
-    workspace = await f.create_workspace()
-    project = await f.create_project(project_template, workspace=workspace)
-    ws_general_role = await workspace.roles.filter(is_owner=False).afirst()
-    await f.create_workspace_membership(
-        user=pj_member, workspace=workspace, role=ws_general_role
-    )
-    await f.create_workspace_membership(
-        user=ws_member, workspace=workspace, role=ws_general_role
-    )
-    await f.create_workspace_invitation(
-        email=ws_invitee.email,
-        user=ws_invitee,
-        workspace=workspace,
-        role=ws_general_role,
-        status=InvitationStatus.PENDING,
-        invited_by=workspace.created_by,
-    )
-    pj_general_role = await f.create_project_role(project=project, is_owner=False)
-    await f.create_project_membership(
-        user=pj_member, project=project, role=pj_general_role
-    )
-    await f.create_project_invitation(
-        email=pj_invitee.email,
-        user=pj_invitee,
-        project=project,
-        role=pj_general_role,
-        status=InvitationStatus.PENDING,
-        invited_by=project.created_by,
-    )
-    await f.create_project_invitation(
-        email=ws_member.email,
-        user=ws_member,
-        project=project,
-        role=pj_general_role,
-        status=InvitationStatus.PENDING,
-        invited_by=project.created_by,
-    )
-
-    users = await users_repositories.list_invitees_in_ws_via_project(project)
-
-    # pj_invitee, ws_member are the only one with a pending project invitation
-    # ws_member should be excluded because of their direct link to workspaces
-    assert len(users) == 1
-    assert pj_invitee in users
-
-    ##########################################################
-    # list_project_users_by_text
-    ##########################################################
+##########################################################
+# list_project_users_by_text
+##########################################################
 
 
 @pytest.fixture

@@ -878,7 +878,7 @@ async def test_delete_user_success():
         )
 
         # projects where user is the only pj member
-        fake_pj_memberships_repositories.only_project_member_queryset.return_value.__aiter__.return_value = [
+        fake_pj_memberships_repositories.only_project_member_queryset.return_value.select_related.return_value.__aiter__.return_value = [
             pj1_ws1,
             pj2_ws1,
             pj1_ws3,
