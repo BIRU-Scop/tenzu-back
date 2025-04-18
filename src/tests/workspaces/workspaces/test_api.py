@@ -51,6 +51,9 @@ async def test_create_workspace_success(client):
     client.login(user)
     response = await client.post("/workspaces", json=data)
     assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["userRole"]["isOwner"] is True
+    assert res["userIsInvited"] is False
 
 
 async def test_create_workspace_validation_error(client):
@@ -84,7 +87,7 @@ async def test_my_workspaces_success_owner_no_project(client):
     res = response.json()
     assert len(res) == 1
     assert res[0]["name"] == workspace.name
-    assert res[0]["isInvited"] is False
+    assert res[0]["userIsInvited"] is False
     assert res[0]["userMemberProjects"] == []
     assert res[0]["userInvitedProjects"] == []
 
@@ -99,7 +102,7 @@ async def test_my_workspaces_success_owner_one_project(client, project_template)
     res = response.json()
     assert len(res) == 1
     assert res[0]["name"] == workspace.name
-    assert res[0]["isInvited"] is False
+    assert res[0]["userIsInvited"] is False
     assert len(res[0]["userMemberProjects"]) == 1
     assert res[0]["userMemberProjects"][0]["name"] == project.name
     assert res[0]["userInvitedProjects"] == []
@@ -114,7 +117,7 @@ async def test_my_workspaces_success_ws_invitee(client):
     res = response.json()
     assert len(res) == 1
     assert res[0]["name"] == ws_invitation.workspace.name
-    assert res[0]["isInvited"] is True
+    assert res[0]["userIsInvited"] is True
     assert res[0]["userMemberProjects"] == []
     assert res[0]["userInvitedProjects"] == []
 
@@ -128,7 +131,7 @@ async def test_my_workspaces_success_pj_invitee(client):
     res = response.json()
     assert len(res) == 1
     assert res[0]["name"] == pj_invitation.project.workspace.name
-    assert res[0]["isInvited"] is False
+    assert res[0]["userIsInvited"] is False
     assert res[0]["userMemberProjects"] == []
     assert len(res[0]["userInvitedProjects"]) == 1
     assert res[0]["userInvitedProjects"][0]["name"] == pj_invitation.project.name
@@ -148,7 +151,7 @@ async def test_get_workspace_success_owner(client):
     res = response.json()
     assert res["name"] == workspace.name
     assert res["userRole"]["isOwner"]
-    assert not res["isInvited"]
+    assert not res["userIsInvited"]
 
 
 async def test_get_workspace_success_member(client):
@@ -162,7 +165,7 @@ async def test_get_workspace_success_member(client):
     res = response.json()
     assert res["name"] == workspace.name
     assert not res["userRole"]["isOwner"]
-    assert not res["isInvited"]
+    assert not res["userIsInvited"]
 
 
 async def test_get_workspace_success_ws_invited(client):
@@ -174,7 +177,7 @@ async def test_get_workspace_success_ws_invited(client):
     res = response.json()
     assert res["name"] == ws_invitation.workspace.name
     assert res["userRole"] is None
-    assert res["isInvited"]
+    assert res["userIsInvited"]
 
 
 async def test_get_workspace_success_ws_invited_only_email(client):
@@ -187,7 +190,7 @@ async def test_get_workspace_success_ws_invited_only_email(client):
     res = response.json()
     assert res["name"] == ws_invitation.workspace.name
     assert res["userRole"] is None
-    assert res["isInvited"]
+    assert res["userIsInvited"]
 
 
 async def test_get_workspace_success_pj_invited(client):
@@ -199,7 +202,7 @@ async def test_get_workspace_success_pj_invited(client):
     res = response.json()
     assert res["name"] == pj_invitation.project.workspace.name
     assert res["userRole"] is None
-    assert not res["isInvited"]
+    assert not res["userIsInvited"]
 
 
 async def test_get_workspace_success_pj_invited_only_email(client):
@@ -212,7 +215,7 @@ async def test_get_workspace_success_pj_invited_only_email(client):
     res = response.json()
     assert res["name"] == pj_invitation.project.workspace.name
     assert res["userRole"] is None
-    assert not res["isInvited"]
+    assert not res["userIsInvited"]
 
 
 async def test_get_workspace_not_found_error_because_invalid_id(client):
@@ -253,6 +256,8 @@ async def test_update_workspace_200_ok(client):
     assert response.status_code == 200, response.data
     updated_workspace = response.json()
     assert updated_workspace["name"] == "New name"
+    assert updated_workspace["userRole"]["isOwner"] is True
+    assert updated_workspace["userIsInvited"] is False
 
     ws_member = await f.create_user()
     general_member_role = await f.create_workspace_role(
@@ -266,6 +271,10 @@ async def test_update_workspace_200_ok(client):
     client.login(ws_member)
     response = await client.patch(f"/workspaces/{workspace.b64id}", json=data)
     assert response.status_code == 200, response.data
+    updated_workspace = response.json()
+    assert updated_workspace["name"] == "New name"
+    assert updated_workspace["userRole"]["isOwner"] is False
+    assert updated_workspace["userIsInvited"] is False
 
 
 async def test_update_workspace_403_forbidden_member_without_permissions(

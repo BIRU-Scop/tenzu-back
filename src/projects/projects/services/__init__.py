@@ -28,23 +28,20 @@ from ninja import UploadedFile
 from base.utils.files import uploadfile_to_file
 from base.utils.images import get_thumbnail_url
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
-from memberships.choices import InvitationStatus
 from permissions.choices import ProjectPermissions
-from projects.invitations import services as pj_invitations_services
-from projects.memberships import repositories as pj_memberships_repositories
-from projects.memberships.models import ProjectRole
+from projects.memberships import repositories as memberships_repositories
 from projects.projects import events as projects_events
 from projects.projects import repositories as projects_repositories
 from projects.projects import tasks as projects_tasks
 from projects.projects.models import Project
-from projects.projects.serializers import ProjectDetailSerializer
-from projects.projects.serializers import services as serializers_services
-from projects.projects.services import exceptions as ex
+from projects.projects.serializers import (
+    ProjectDetailSerializer,
+)
 from users import services as users_services
 from users.models import AnyUser, User
 from workflows import repositories as workflows_repositories
-from workspaces.workspaces import services as workspaces_services
 from workspaces.workspaces.models import Workspace
+from workspaces.workspaces.serializers import WorkspaceListProjectsSummarySerializer
 
 
 def get_landing_page_for_workflow(slug: str | None):
@@ -108,27 +105,22 @@ async def _create_project(
     )
 
     # apply template
-    if template:
-        await projects_repositories.apply_template_to_project(
-            template=template, project=project
-        )
-    else:
+    if not template:
         raise Exception(
             f"Default project template '{settings.DEFAULT_PROJECT_TEMPLATE}' not found. "
             "Try to load fixtures again and check if the error persist."
         )
-
+    roles = await projects_repositories.apply_template_to_project(
+        template=template, project=project
+    )
     try:
-        # assign 'created_by' to the project as 'owner' role
-        owner_role = await pj_memberships_repositories.get_role(
-            ProjectRole, filters={"project_id": project.id, "slug": "owner"}
-        )
-    except ProjectRole.DoesNotExist as e:
+        owner_role = [role for role in roles if role.is_owner][0]
+    except IndexError as e:
         raise Exception(
-            "Default project template does not have a role with the slug 'owner'. "
+            "Default project template does not have a owner role. "
             "Try to load fixtures again and check if the error persist."
         ) from e
-    await pj_memberships_repositories.create_project_membership(
+    await memberships_repositories.create_project_membership(
         user=created_by, project=project, role=owner_role
     )
     created_by.project_role = owner_role
@@ -141,31 +133,18 @@ async def _create_project(
 ##########################################################
 
 
-async def list_projects(workspace_id: UUID) -> list[Project]:
-    return await projects_repositories.list_projects(
-        filters={"workspace_id": workspace_id},
-        select_related=["workspace"],
-    )
-
-
 async def list_workspace_projects_for_user(
     workspace: Workspace, user: User
-) -> list[Project]:
-    return await projects_repositories.list_projects(
-        filters={"workspace_id": workspace.id, "memberships__user_id": user.id},
-        select_related=["workspace"],
+) -> WorkspaceListProjectsSummarySerializer:
+    (
+        user_member_projects,
+        user_invited_projects,
+    ) = await projects_repositories.list_workspace_projects_for_user(
+        workspace=workspace, user=user
     )
-
-
-async def list_workspace_invited_projects_for_user(
-    workspace: Workspace, user: User
-) -> list[Project]:
-    return await projects_repositories.list_projects(
-        filters={
-            "workspace_id": workspace.id,
-            "invitations__user_id": user.id,
-            "invitations__status": InvitationStatus.PENDING,
-        }
+    return WorkspaceListProjectsSummarySerializer(
+        user_member_projects=user_member_projects,
+        user_invited_projects=user_invited_projects,
     )
 
 
@@ -174,7 +153,7 @@ async def list_workspace_invited_projects_for_user(
 ##########################################################
 
 
-async def get_project(id: UUID) -> Project | None:
+async def get_project(id: UUID) -> Project:
     return await projects_repositories.get_project(
         project_id=id, select_related=["workspace"], prefetch_related=["workflows"]
     )
@@ -183,26 +162,10 @@ async def get_project(id: UUID) -> Project | None:
 async def get_project_detail(
     project: Project, user: AnyUser
 ) -> ProjectDetailSerializer:
-    user_role = getattr(user, "project_role", None)
-    (
-        is_project_owner,
-        is_project_member,
-        project_role_permissions,
-    ) = (
-        (False, False, [])
-        if not user_role
-        else (user_role.is_owner, True, user_role.permissions)
-    )
-
-    user_has_pending_invitation = (
-        False
-        if user_role
-        else await pj_invitations_services.has_pending_invitation(
-            user=user, reference_object=project
-        )
-    )
-
-    if ProjectPermissions.VIEW_WORKFLOW in project_role_permissions:
+    if (
+        user.project_role is not None
+        and ProjectPermissions.VIEW_WORKFLOW in user.project_role.permissions
+    ):
         workflows = await workflows_repositories.list_workflows(
             filters={
                 "project_id": project.id,
@@ -211,14 +174,19 @@ async def get_project_detail(
     else:
         workflows = []
 
-    return serializers_services.serialize_project_detail(
-        project=project,
+    return ProjectDetailSerializer(
+        id=project.id,
+        name=project.name,
+        slug=project.slug,
+        description=project.description,
+        color=project.color,
+        logo=project.logo,
+        landing_page=project.landing_page,
         workspace=project.workspace,
+        workspace_id=project.workspace.id,
         workflows=workflows,
-        user_is_owner=is_project_owner,
-        user_is_member=is_project_member,
-        user_permissions=project_role_permissions,
-        user_has_pending_invitation=user_has_pending_invitation,
+        user_role=user.project_role,
+        user_is_invited=user.is_invited or False,
     )
 
 

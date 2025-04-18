@@ -192,7 +192,7 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
     # owner of all workspaces and projects
     res = await repositories.list_user_workspaces_overview(user1)
     assert [ws.name for ws in res] == [ws5.name, ws4.name, ws3.name, ws2.name, ws1.name]
-    assert not any(ws.is_invited for ws in res)
+    assert not any(ws.user_is_invited for ws in res)
     assert [pj.name for pj in res[0].user_member_projects] == []  # ws5
     assert [pj.name for pj in res[1].user_member_projects] == [pj1_ws4.name]  # ws4
     assert [pj.name for pj in res[2].user_member_projects] == [
@@ -217,7 +217,7 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
         ws3.name,
         ws2.name,
     ]
-    assert [ws.is_invited for ws in res] == [False, True, True, False]
+    assert [ws.user_is_invited for ws in res] == [False, True, True, False]
     assert [pj.name for pj in res[0].user_member_projects] == [pj1_ws1.name]  # ws1
     assert not any(ws.user_member_projects for ws in res[1:])  # ws4, ws3, ws2
 
@@ -230,7 +230,7 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
     # invited to ws: ws3; pj: pj2_ws1, pj1_ws2
     res = await repositories.list_user_workspaces_overview(user3)
     assert [ws.name for ws in res] == [ws3.name, ws2.name, ws1.name]
-    assert [ws.is_invited for ws in res] == [True, False, False]
+    assert [ws.user_is_invited for ws in res] == [True, False, False]
     assert not any(ws.user_member_projects for ws in res)
 
     assert [pj.name for pj in res[0].user_invited_projects] == []  # ws3

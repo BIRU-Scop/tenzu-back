@@ -26,7 +26,7 @@ from workspaces.memberships import repositories as ws_memberships_repositories
 from workspaces.workspaces import events as workspaces_events
 from workspaces.workspaces import repositories as workspaces_repositories
 from workspaces.workspaces.models import Workspace
-from workspaces.workspaces.serializers import WorkspaceSerializer
+from workspaces.workspaces.serializers import WorkspaceDetailSerializer
 from workspaces.workspaces.services import exceptions as ex
 
 ##########################################################
@@ -36,7 +36,7 @@ from workspaces.workspaces.services import exceptions as ex
 
 async def create_workspace(
     name: str, color: int, created_by: User
-) -> WorkspaceSerializer:
+) -> WorkspaceDetailSerializer:
     workspace = await workspaces_repositories.create_workspace(
         name=name, color=color, created_by=created_by
     )
@@ -46,13 +46,13 @@ async def create_workspace(
     await ws_memberships_repositories.create_workspace_membership(
         user=created_by, workspace=workspace, role=owner_role
     )
-    return WorkspaceSerializer(
+    return WorkspaceDetailSerializer(
         id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
         color=workspace.color,
         user_role=owner_role,
-        is_invited=False,
+        user_is_invited=False,
     )
 
 
@@ -74,14 +74,16 @@ async def get_workspace(workspace_id: UUID) -> Workspace | None:
     return await workspaces_repositories.get_workspace(workspace_id=workspace_id)
 
 
-async def get_user_workspace(user: User, workspace: Workspace) -> WorkspaceSerializer:
-    return WorkspaceSerializer(
+async def get_user_workspace(
+    user: User, workspace: Workspace
+) -> WorkspaceDetailSerializer:
+    return WorkspaceDetailSerializer(
         id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
         color=workspace.color,
         user_role=user.workspace_role,
-        is_invited=user.is_invited or False,
+        user_is_invited=user.is_invited or False,
     )
 
 
@@ -92,15 +94,15 @@ async def get_user_workspace(user: User, workspace: Workspace) -> WorkspaceSeria
 
 async def update_workspace(
     workspace: Workspace, user: User, values: dict[str, Any] = {}
-) -> WorkspaceSerializer:
+) -> WorkspaceDetailSerializer:
     workspace = await _update_workspace(workspace=workspace, values=values)
-    return WorkspaceSerializer(
+    return WorkspaceDetailSerializer(
         id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
         color=workspace.color,
         user_role=user.workspace_role,
-        is_invited=False,
+        user_is_invited=False,
     )
 
 

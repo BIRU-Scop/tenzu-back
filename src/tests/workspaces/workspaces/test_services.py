@@ -42,7 +42,7 @@ async def test_create_workspace_ok():
         patch(
             "workspaces.workspaces.services.ws_memberships_repositories", autospec=True
         ) as fake_ws_memberships_repo,
-        patch("workspaces.workspaces.services.WorkspaceSerializer"),
+        patch("workspaces.workspaces.services.WorkspaceDetailSerializer"),
     ):
         await services.create_workspace(name=name, color=color, created_by=user)
         fake_workspaces_repo.create_workspace.assert_awaited_once()
@@ -93,17 +93,17 @@ async def test_get_user_workspace():
 
     with (
         patch(
-            "workspaces.workspaces.services.WorkspaceSerializer", autospec=True
-        ) as fake_WorkspaceSerializer,
+            "workspaces.workspaces.services.WorkspaceDetailSerializer", autospec=True
+        ) as fake_WorkspaceDetailSerializer,
     ):
         await services.get_user_workspace(workspace=workspace, user=user)
-        fake_WorkspaceSerializer.assert_called_with(
+        fake_WorkspaceDetailSerializer.assert_called_with(
             id=workspace.id,
             name=workspace.name,
             slug=workspace.slug,
             color=workspace.color,
             user_role=role,
-            is_invited=False,
+            user_is_invited=False,
         )
 
 
@@ -121,7 +121,7 @@ async def test_update_workspace_ok(tqmanager):
         patch(
             "workspaces.workspaces.services.workspaces_repositories", autospec=True
         ) as fake_workspaces_repo,
-        patch("workspaces.workspaces.services.WorkspaceSerializer"),
+        patch("workspaces.workspaces.services.WorkspaceDetailSerializer"),
     ):
         await services.update_workspace(workspace=workspace, user=user, values=values)
         fake_workspaces_repo.update_workspace.assert_awaited_once_with(

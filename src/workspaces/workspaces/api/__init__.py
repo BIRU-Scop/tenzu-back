@@ -39,8 +39,8 @@ from workspaces.workspaces.api.validators import (
 from workspaces.workspaces.models import Workspace
 from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 from workspaces.workspaces.serializers import (
-    WorkspaceSerializer,
-    WorkspaceWithProjectsSerializer,
+    WorkspaceDetailSerializer,
+    WorkspaceSummarySerializer,
 )
 
 workspace_router = Router()
@@ -56,13 +56,15 @@ workspace_router = Router()
     url_name="workspaces.post",
     summary="Create workspace",
     response={
-        200: WorkspaceSerializer,
+        200: WorkspaceDetailSerializer,
         403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
 )
-async def create_workspace(request, data: WorkspaceValidator) -> WorkspaceSerializer:
+async def create_workspace(
+    request, data: WorkspaceValidator
+) -> WorkspaceDetailSerializer:
     """
     Create a new workspace for the logged user.
     """
@@ -84,7 +86,7 @@ async def create_workspace(request, data: WorkspaceValidator) -> WorkspaceSerial
     "/my/workspaces",
     url_name="workspaces.list",
     summary="List the overview of the workspaces to which I belong",
-    response={200: list[WorkspaceWithProjectsSerializer], 401: ERROR_RESPONSE_401},
+    response={200: list[WorkspaceSummarySerializer], 401: ERROR_RESPONSE_401},
     by_alias=True,
 )
 async def list_my_workspaces(request) -> list[Workspace]:
@@ -108,14 +110,16 @@ async def list_my_workspaces(request) -> list[Workspace]:
     url_name="workspaces.get",
     summary="Get workspace",
     response={
-        200: WorkspaceSerializer,
+        200: WorkspaceDetailSerializer,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
 )
-async def get_workspace(request, workspace_id: Path[B64UUID]) -> WorkspaceSerializer:
+async def get_workspace(
+    request, workspace_id: Path[B64UUID]
+) -> WorkspaceDetailSerializer:
     """
     Get workspace detail by id.
     """
@@ -140,7 +144,7 @@ async def get_workspace(request, workspace_id: Path[B64UUID]) -> WorkspaceSerial
     url_name="workspace.update",
     summary="Update workspace",
     response={
-        200: WorkspaceSerializer,
+        200: WorkspaceDetailSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -152,7 +156,7 @@ async def update_workspace(
     request,
     workspace_id: Path[B64UUID],
     form: UpdateWorkspaceValidator,
-) -> WorkspaceSerializer:
+) -> WorkspaceDetailSerializer:
     """
     Update workspace
     """

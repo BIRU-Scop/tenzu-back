@@ -124,29 +124,30 @@ class SubscribeToProjectEventsAction(PydanticBaseModel):
         from projects.projects import services as projects_services
 
         project_id = decode_b64str_to_uuid(self.project)
-        project = await projects_services.get_project(id=project_id)
-        if project:
-            if await can_user_subscribe_to_project_channel(
-                user=consumer.scope["user"], project=project
-            ):
-                channel = channels.project_channel(self.project)
-                content = {"channel": channel}
-                await consumer.subscribe(channel)
-                await consumer.broadcast_action_response(
-                    channel=channel, action=ActionResponse(action=self, content=content)
-                )
-            else:
-                # Not enough permissions
-                await consumer.send_without_broadcast_action_response(
-                    ActionResponse(
-                        action=self, status="error", content={"detail": "not-allowed"}
-                    ).model_dump()
-                )
-        else:
+        try:
+            project = await projects_services.get_project(id=project_id)
+        except Project.DoesNotExist:
             # Project does not exist
             await consumer.send_without_broadcast_action_response(
                 ActionResponse(
                     action=self, status="error", content={"detail": "not-found"}
+                ).model_dump()
+            )
+            return
+        if await can_user_subscribe_to_project_channel(
+            user=consumer.scope["user"], project=project
+        ):
+            channel = channels.project_channel(self.project)
+            content = {"channel": channel}
+            await consumer.subscribe(channel)
+            await consumer.broadcast_action_response(
+                channel=channel, action=ActionResponse(action=self, content=content)
+            )
+        else:
+            # Not enough permissions
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "not-allowed"}
                 ).model_dump()
             )
 
@@ -189,9 +190,12 @@ class CheckProjectEventsSubscriptionAction(PydanticBaseModel):
         from projects.projects import services as projects_services
 
         project_id = decode_b64str_to_uuid(self.project)
-        project = await projects_services.get_project(id=project_id)
+        try:
+            project = await projects_services.get_project(id=project_id)
+        except Project.DoesNotExist:
+            return
 
-        if project and not await can_user_subscribe_to_project_channel(
+        if not await can_user_subscribe_to_project_channel(
             user=consumer.scope["user"], project=project
         ):
             channel = channels.project_channel(self.project)

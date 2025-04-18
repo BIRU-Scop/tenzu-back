@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal
 from uuid import UUID
 
 from django.db.models import (
@@ -45,12 +45,6 @@ PROJECT_PREFETCH = Prefetch(
 )
 
 
-class WorkspaceFilters(TypedDict, total=False):
-    id: UUID
-    memberships__user_id: UUID
-    memberships__role__is_owner: bool
-
-
 WorkspacePrefetchRelated = list[PROJECT_PREFETCH]
 
 
@@ -75,8 +69,9 @@ async def create_workspace(name: str, color: int, created_by: User) -> Workspace
 
 async def list_user_workspaces_overview(user: User) -> list[Workspace]:
     # --- Utility queries and querysets
-    ###
-    # search user in invitation queryset
+    #####
+    ### QUERIES
+    # search user in invitation query
     pending_user_invitation_query = (
         memberships_repositories.pending_user_invitation_query(user)
     )
@@ -84,7 +79,7 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
     user_invited_query = Q_for_related(pending_user_invitation_query, "invitations")
     # search user in workspace queryset through their projects' invitations
     user_pj_in_ws_invited_query = Q_for_related(user_invited_query, "projects")
-
+    ### QUERYSETS
     # queryset for projects where user is member
     member_projects_qs = (
         Project.objects.filter(
@@ -97,9 +92,10 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
     invited_projects_qs = (
         Project.objects.filter(user_invited_query).distinct().order_by("-created_at")
     )
-    ###
+    #####
 
-    # queryset for all workspace where user is member or invited (either directly to workspace or to one of its projects)
+    # queryset for all workspaces where user is member or invited
+    # (either directly to workspace or to one of its projects)
     ws_qs = (
         Workspace.objects.filter(
             Q(memberships__user_id=user.id)
@@ -107,12 +103,12 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
             | user_pj_in_ws_invited_query
         )
         .annotate(
-            is_invited=Exists(
+            user_is_invited=Exists(
                 WorkspaceInvitation.objects.filter(
                     pending_user_invitation_query, workspace_id=OuterRef("pk")
                 )
             ),
-            is_member=Exists(
+            user_is_member=Exists(
                 WorkspaceMembership.objects.filter(
                     user_id=user.id, workspace_id=OuterRef("pk")
                 )
@@ -128,7 +124,7 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
                 to_attr="user_invited_projects",
             ),
         )
-        .order_by("-is_member", "-created_at")
+        .order_by("-user_is_member", "-created_at")
         .distinct()
     )
 

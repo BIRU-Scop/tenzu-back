@@ -43,8 +43,9 @@ from projects.projects.permissions import ProjectPermissionsCheck
 from projects.projects.serializers import (
     ProjectDetailSerializer,
 )
-from workspaces.workspaces import services as workspaces_services
-from workspaces.workspaces.models import Workspace
+from workspaces.workspaces.api import get_workspace_or_404
+from workspaces.workspaces.permissions import WorkspacePermissionsCheck
+from workspaces.workspaces.serializers import WorkspaceListProjectsSummarySerializer
 
 projects_router = Router()
 
@@ -55,7 +56,7 @@ projects_router = Router()
 
 
 @projects_router.post(
-    "/projects",
+    "/workspaces/{workspace_id}/projects",
     url_name="projects.create",
     summary="Create projects",
     response={
@@ -65,22 +66,19 @@ projects_router = Router()
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
+    tags=["workspaces", "projects"],
     by_alias=True,
 )
 async def create_project(
     request,
+    workspace_id: Path[B64UUID],
     form: Form[ProjectValidator],
     logo: LogoField | None = File(None),
 ) -> ProjectDetailSerializer:
     """
     Create project in a given workspace.
     """
-    try:
-        workspace = await workspaces_services.get_workspace(
-            workspace_id=form.workspace_id
-        )
-    except Workspace.DoesNotExist:
-        raise ex.BadRequest(f"Workspace {form.workspace_id} does not exist")
+    workspace = await get_workspace_or_404(workspace_id=workspace_id)
 
     await check_permissions(
         permissions=ProjectPermissionsCheck.CREATE.value,
@@ -98,12 +96,47 @@ async def create_project(
 
 
 ##########################################################
+# list projects
+##########################################################
+
+
+@projects_router.get(
+    "/workspaces/{workspace_id}/projects",
+    url_name="workspace.projects.list",
+    summary="List workspace projects",
+    response={
+        200: WorkspaceListProjectsSummarySerializer,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    tags=["workspaces", "projects"],
+    by_alias=True,
+)
+async def list_workspace_projects(
+    request, workspace_id: Path[B64UUID]
+) -> WorkspaceListProjectsSummarySerializer:
+    """
+    List projects of a workspace visible by the user.
+    """
+    workspace = await get_workspace_or_404(workspace_id=workspace_id)
+    await check_permissions(
+        permissions=WorkspacePermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workspace,
+    )
+    return await projects_services.list_workspace_projects_for_user(
+        workspace=workspace, user=request.user
+    )
+
+
+##########################################################
 # get project
 ##########################################################
 
 
 @projects_router.get(
-    "/projects/{id}",
+    "/projects/{project_id}",
     url_name="project.get",
     summary="Get project",
     response={
@@ -114,12 +147,12 @@ async def create_project(
     },
     by_alias=True,
 )
-async def get_project(request, id: Path[B64UUID]) -> ProjectDetailSerializer:
+async def get_project(request, project_id: Path[B64UUID]) -> ProjectDetailSerializer:
     """
     Get project detail by id.
     """
 
-    project = await get_project_or_404(id)
+    project = await get_project_or_404(project_id)
     await check_permissions(
         permissions=ProjectPermissionsCheck.VIEW.value, user=request.user, obj=project
     )
@@ -136,7 +169,7 @@ async def get_project(request, id: Path[B64UUID]) -> ProjectDetailSerializer:
 # WARNING: route has been passed from PATCH  to POST
 # Django ninja ignored Form data (by multiform or url-encode) if it's not a POST route
 @projects_router.post(
-    "/projects/{id}",
+    "/projects/{project_id}",
     url_name="project.update",
     summary="Update project",
     response={
@@ -150,14 +183,14 @@ async def get_project(request, id: Path[B64UUID]) -> ProjectDetailSerializer:
 )
 async def update_project(
     request,
-    id: Path[B64UUID],
+    project_id: Path[B64UUID],
     form: Form[UpdateProjectValidator],
     logo: LogoField | None = File(None),
 ) -> ProjectDetailSerializer:
     """
     Update project
     """
-    project = await get_project_or_404(id)
+    project = await get_project_or_404(project_id)
     await check_permissions(
         permissions=ProjectPermissionsCheck.MODIFY.value, user=request.user, obj=project
     )
@@ -177,7 +210,7 @@ async def update_project(
 
 
 @projects_router.delete(
-    "/projects/{id}",
+    "/projects/{project_id}",
     url_name="projects.delete",
     summary="Delete project",
     response={
@@ -190,12 +223,12 @@ async def update_project(
 )
 async def delete_project(
     request,
-    id: Path[B64UUID],
+    project_id: Path[B64UUID],
 ) -> tuple[int, None]:
     """
     Delete a project
     """
-    project = await get_project_or_404(id)
+    project = await get_project_or_404(project_id)
     await check_permissions(
         permissions=ProjectPermissionsCheck.DELETE.value, user=request.user, obj=project
     )
@@ -209,9 +242,10 @@ async def delete_project(
 ##########################################################
 
 
-async def get_project_or_404(id: UUID) -> Project:
-    project = await projects_services.get_project(id=id)
-    if project is None:
-        raise ex.NotFoundError("Project does not exist")
+async def get_project_or_404(project_id: UUID) -> Project:
+    try:
+        project = await projects_services.get_project(id=project_id)
+    except Project.DoesNotExist as e:
+        raise ex.NotFoundError("Project does not exist") from e
 
     return project

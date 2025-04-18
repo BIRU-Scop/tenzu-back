@@ -58,7 +58,7 @@ invitations_router = Router()
 
 
 @invitations_router.post(
-    "/projects/{id}/invitations",
+    "/projects/{project_id}/invitations",
     url_name="project.invitations.create",
     summary="Create project invitations",
     response={
@@ -72,7 +72,7 @@ invitations_router = Router()
 )
 async def create_project_invitations(
     request,
-    id: Path[B64UUID],
+    project_id: Path[B64UUID],
     form: InvitationsValidator,
 ) -> CreateInvitationsSerializer:
     """
@@ -80,7 +80,7 @@ async def create_project_invitations(
     role they'll take in the project). In case of receiving several invitations for the same user, just the first
     role will be considered.
     """
-    project = await get_project_or_404(id=id)
+    project = await get_project_or_404(project_id=project_id)
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.CREATE.value,
         user=request.user,
@@ -105,7 +105,7 @@ async def create_project_invitations(
 
 
 @invitations_router.get(
-    "/projects/{id}/invitations",
+    "/projects/{project_id}/invitations",
     url_name="project.invitations.list",
     summary="List project invitations",
     response={
@@ -117,18 +117,18 @@ async def create_project_invitations(
 )
 async def list_project_invitations(
     request,
-    id: Path[B64UUID],
+    project_id: Path[B64UUID],
 ) -> list[ProjectInvitation]:
     """
     List all project invitations
     """
-    project = await get_project_or_404(id=id)
+    project = await get_project_or_404(project_id=project_id)
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.VIEW.value,
         user=request.user,
         obj=project,
     )
-    return await invitations_services.list_project_invitations(project_id=id)
+    return await invitations_services.list_project_invitations(project_id=project_id)
 
 
 ##########################################################
@@ -252,7 +252,7 @@ async def revoke_project_invitation(
 
 
 @invitations_router.post(
-    "/projects/{id}/invitations/deny",
+    "/projects/{project_id}/invitations/deny",
     url_name="project.invitations.deny",
     summary="Deny project invitation for authenticated user",
     response={
@@ -264,7 +264,7 @@ async def revoke_project_invitation(
     by_alias=True,
 )
 async def deny_project_invitation_by_project(
-    request, id: Path[B64UUID]
+    request, project_id: Path[B64UUID]
 ) -> ProjectInvitation:
     """
     An authenticated user denies a project invitation for themself.
@@ -275,7 +275,7 @@ async def deny_project_invitation_by_project(
         obj=None,
     )
     invitation = await get_project_invitation_by_username_or_email_or_404(
-        project_id=id, username_or_email=request.user.username
+        project_id=project_id, username_or_email=request.user.username
     )
 
     return await invitations_services.deny_project_invitation(invitation=invitation)
@@ -316,7 +316,7 @@ async def accept_project_invitation_by_token(request, token: str) -> ProjectInvi
 
 
 @invitations_router.post(
-    "/projects/{id}/invitations/accept",
+    "/projects/{project_id}/invitations/accept",
     url_name="project.my.invitations.accept",
     summary="Accept a project invitation for authenticated users",
     response={
@@ -328,7 +328,7 @@ async def accept_project_invitation_by_token(request, token: str) -> ProjectInvi
     by_alias=True,
 )
 async def accept_project_invitation_by_project(
-    request, id: Path[B64UUID]
+    request, project_id: Path[B64UUID]
 ) -> ProjectInvitation:
     """
     An authenticated user accepts a project invitation
@@ -339,7 +339,7 @@ async def accept_project_invitation_by_project(
         obj=None,
     )
     invitation = await get_project_invitation_by_username_or_email_or_404(
-        project_id=id, username_or_email=request.user.username
+        project_id=project_id, username_or_email=request.user.username
     )
     return await invitations_services.accept_project_invitation(invitation=invitation)
 

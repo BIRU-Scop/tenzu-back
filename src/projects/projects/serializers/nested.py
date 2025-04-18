@@ -39,9 +39,3 @@ class ProjectNestedSerializer(ProjectLogoBaseSerializer, _ProjectBaseNestedSeria
 
 class ProjectLinkNestedSerializer(_ProjectBaseNestedSerializer):
     model_config = ConfigDict(from_attributes=True)
-
-
-class InnerNestedProjectsSerializer(BaseModel):
-    user_member_projects: list[ProjectNestedSerializer]
-    user_invited_projects: list[ProjectNestedSerializer]
-    model_config = ConfigDict(from_attributes=True)

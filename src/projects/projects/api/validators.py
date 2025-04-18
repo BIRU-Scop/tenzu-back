@@ -71,7 +71,6 @@ class ProjectValidator(BaseModel):
     name: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
     ]  # type: ignore
-    workspace_id: B64UUID
     # description max_length validation to 220 characteres to resolve
     # this problem https://stackoverflow.com/a/69851342/2883148
     description: Annotated[str, StringConstraints(max_length=220)] | None = None  # type: ignore

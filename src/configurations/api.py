@@ -89,7 +89,7 @@ def healthcheck(request):
 
 api.add_router("", tags=["projects"], router=projects_router)
 api.add_router("", tags=["projects", "memberships"], router=projects_memberships_router)
-api.add_router("", tags=["projects", "Invitations"], router=projects_invitations_router)
+api.add_router("", tags=["projects", "invitations"], router=projects_invitations_router)
 api.add_router("", tags=["system"], router=system_router)
 api.add_router("", tags=["stories"], router=stories_router)
 api.add_router("", tags=["stories", "assignments"], router=stories_assignments_router)

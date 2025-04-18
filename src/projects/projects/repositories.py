@@ -21,13 +21,16 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.db.models import Q
 
+from base.db.utils import Q_for_related
 from base.utils.datetime import aware_utcnow
 from base.utils.files import File
 from commons.utils import transaction_atomic_async
+from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus
 from projects import references
-from projects.memberships import repositories as memberships_repositories
+from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectRole
 from projects.projects.models import Project, ProjectTemplate
 from users.models import User
@@ -92,27 +95,29 @@ async def create_project(
 ##########################################################
 
 
-async def list_projects(
-    filters: ProjectFilters = {},
-    select_related: ProjectSelectRelated = [],
-    prefetch_related: ProjectPrefetchRelated = [],
-    order_by: ProjectOrderBy = ["-created_at"],
-    offset: int | None = None,
-    limit: int | None = None,
-) -> list[Project]:
-    qs = Project.objects.all()
-    qs = (
-        qs.filter(**filters)
-        .select_related(*select_related)
-        .prefetch_related(*prefetch_related)
-        .order_by(*order_by)
-        .distinct()
+async def list_workspace_projects_for_user(
+    workspace: Workspace, user: User
+) -> tuple[list[Project], list[Project]]:
+    # search user in workspace or project queryset through their invitations
+    user_invited_query = Q_for_related(
+        memberships_repositories.pending_user_invitation_query(user), "invitations"
     )
+    # search user in workspace or project queryset through their membership
+    user_member_query = Q(memberships__user_id=user.id)
 
-    if limit is not None and offset is not None:
-        limit += offset
+    def _project_qs(q_filter: Q):
+        return (
+            Project.objects.filter(
+                q_filter,
+                workspace=workspace,
+            )
+            .distinct()
+            .order_by("-created_at")
+        )
 
-    return [p async for p in qs[offset:limit]]
+    member_projects = [pj async for pj in _project_qs(user_member_query)]
+    invited_projects = [pj async for pj in _project_qs(user_invited_query)]
+    return member_projects, invited_projects
 
 
 ##########################################################
@@ -124,17 +129,14 @@ async def get_project(
     project_id: UUID,
     select_related: ProjectSelectRelated = ["workspace"],
     prefetch_related: ProjectPrefetchRelated = [],
-) -> Project | None:
+) -> Project:
     qs = (
         Project.objects.all()
         .select_related(*select_related)
         .prefetch_related(*prefetch_related)
     )
 
-    try:
-        return await qs.aget(id=project_id)
-    except Project.DoesNotExist:
-        return None
+    return await qs.aget(id=project_id)
 
 
 ##########################################################
@@ -220,8 +222,8 @@ async def get_project_template(
 @transaction_atomic_async
 async def apply_template_to_project(
     template: ProjectTemplate, project: Project
-) -> None:
-    await memberships_repositories.bulk_create_project_roles(
+) -> list[ProjectRole]:
+    roles = await pj_memberships_repositories.bulk_create_project_roles(
         [
             ProjectRole(
                 name=role["name"],
@@ -259,3 +261,6 @@ async def apply_template_to_project(
             for wf in workflows
         ]
     )
+    # do not return workflows, they can't be used as-is
+    # because statuses are created separately so they're not put in prefetched_cache
+    return roles

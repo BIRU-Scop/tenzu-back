@@ -19,6 +19,7 @@
 
 from pydantic import ConfigDict
 
+from memberships.serializers import RoleSerializer
 from projects.projects.serializers.mixins import ProjectLogoBaseSerializer  # noqa
 from projects.projects.serializers.nested import ProjectNestedSerializer
 from workflows.serializers.nested import WorkflowNestedSerializer
@@ -29,13 +30,10 @@ class ProjectSummarySerializer(ProjectNestedSerializer):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjectDetailSerializer(ProjectNestedSerializer):
+class ProjectDetailSerializer(ProjectSummarySerializer):
     workspace: WorkspaceNestedSerializer
     workflows: list[WorkflowNestedSerializer]
 
-    # User related fields
-    user_is_owner: bool
-    user_is_member: bool
-    user_has_pending_invitation: bool
-    user_permissions: list[str]
+    user_role: RoleSerializer | None
+    user_is_invited: bool
     model_config = ConfigDict(from_attributes=True)

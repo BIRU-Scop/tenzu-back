@@ -34,51 +34,132 @@ pytestmark = pytest.mark.django_db
 
 async def test_create_project_200_ok_being_workspace_member(client):
     workspace = await f.create_workspace()
-    data = {"name": "Project test", "color": 1, "workspaceId": workspace.b64id}
+    data = {"name": "Project test", "color": 1}
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
     client.login(workspace.created_by)
-    response = await client.post("/projects", data=data, files=files)
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/projects", data=data, files=files
+    )
     assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["userRole"]["isOwner"] is True
+    assert res["userIsInvited"] is False
+    assert len(res["workflows"]) > 0
 
 
 async def test_create_project_400_bad_request_invalid_workspace_error(client):
     workspace = await f.create_workspace()
-    non_existing_uuid = "6JgsbGyoEe2VExhWgGrI2w"
-    data = {"name": "My pro#%&乕شject", "color": 1, "workspaceId": non_existing_uuid}
+    data = {"name": "My pro#%&乕شject", "color": 1}
 
     client.login(workspace.created_by)
-    response = await client.post("/projects", data=data)
-    assert response.status_code == 400, response.data
+    response = await client.post(
+        f"/workspaces/{NOT_EXISTING_B64ID}/projects", data=data
+    )
+    assert response.status_code == 404, response.data
 
 
 async def test_create_project_403_being_no_workspace_member(client):
     workspace = await f.create_workspace()
     user2 = await f.create_user()
-    data = {"name": "Project test", "color": 1, "workspaceId": workspace.b64id}
+    data = {"name": "Project test", "color": 1}
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
     client.login(user2)
-    response = await client.post("/projects", data=data, files=files)
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/projects", data=data, files=files
+    )
     assert response.status_code == 403, response.data
 
 
 async def test_create_project_401_being_anonymous(client):
     workspace = await f.create_workspace()
-    data = {"name": "Project test", "color": 1, "workspaceId": workspace.b64id}
+    data = {"name": "Project test", "color": 1}
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
-    response = await client.post("/projects", data=data, files=files)
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/projects", data=data, files=files
+    )
     assert response.status_code == 401, response.data
 
 
 async def test_create_project_422_unprocessable_color(client):
     workspace = await f.create_workspace()
-    data = {"name": "My project", "color": 12, "workspaceId": workspace.b64id}
+    data = {"name": "My project", "color": 12}
 
     client.login(workspace.created_by)
-    response = await client.post("/projects", data=data)
+    response = await client.post(f"/workspaces/{workspace.b64id}/projects", data=data)
     assert response.status_code == 422, response.data
+
+
+async def test_create_project_422_unprocessable_uuid(client):
+    workspace = await f.create_workspace()
+    data = {"name": "My project", "color": 12}
+
+    client.login(workspace.created_by)
+    response = await client.post(f"/workspaces/{INVALID_B64ID}/projects", data=data)
+    assert response.status_code == 422, response.data
+
+
+##########################################################
+# GET /workspaces/<id>/projects
+##########################################################
+
+
+async def test_list_workspace_projects_200_ok_owner_no_project(client):
+    workspace = await f.create_workspace()
+    client.login(workspace.created_by)
+    response = await client.get(f"/workspaces/{workspace.b64id}/projects")
+    assert response.status_code == 200, response.text
+    res = response.json()
+    assert res.keys() == {"userMemberProjects", "userInvitedProjects"}
+    assert res["userMemberProjects"] == []
+    assert res["userInvitedProjects"] == []
+
+
+async def test_list_workspace_projects_200_ok_owner_one_project(
+    client, project_template
+):
+    workspace = await f.create_workspace()
+    project = await f.create_project(template=project_template, workspace=workspace)
+
+    client.login(workspace.created_by)
+    response = await client.get(f"/workspaces/{workspace.b64id}/projects")
+    assert response.status_code == 200, response.text
+    res = response.json()
+    assert res.keys() == {"userMemberProjects", "userInvitedProjects"}
+    assert len(res["userMemberProjects"]) == 1
+    assert res["userMemberProjects"][0]["name"] == project.name
+    assert res["userInvitedProjects"] == []
+
+
+async def test_list_workspace_projects_200_ok_invitee(client, project_template):
+    pj_invitation = await f.create_project_invitation()
+
+    client.login(pj_invitation.user)
+    response = await client.get(
+        f"/workspaces/{pj_invitation.project.workspace.b64id}/projects"
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res.keys() == {"userMemberProjects", "userInvitedProjects"}
+    assert res["userMemberProjects"] == []
+    assert len(res["userInvitedProjects"]) == 1
+    assert res["userInvitedProjects"][0]["name"] == pj_invitation.project.name
+
+
+async def test_list_workspace_projects_404_not_found_workspace_b64id(client):
+    user = await f.create_user()
+    client.login(user)
+    response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}/projects")
+    assert response.status_code == 404, response.text
+
+
+async def test_list_workspace_projects_422_unprocessable_workspace_b64id(client):
+    user = await f.create_user()
+    client.login(user)
+    response = await client.get(f"/workspaces/{INVALID_B64ID}/projects")
+    assert response.status_code == 422, response.text
 
 
 ##########################################################
@@ -92,6 +173,10 @@ async def test_get_project_200_ok_being_project_owner(client, project_template):
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}")
     assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["userRole"]["isOwner"] is True
+    assert res["userIsInvited"] is False
+    assert len(res["workflows"]) > 0
 
 
 async def test_get_project_200_ok_being_project_member_without_view_workflows(
@@ -112,7 +197,10 @@ async def test_get_project_200_ok_being_project_member_without_view_workflows(
     client.login(user)
     response = await client.get(f"/projects/{project.b64id}")
     assert response.status_code == 200, response.data
-    assert response.json()["workflows"] == []
+    res = response.json()
+    assert res["userRole"]["isOwner"] is False
+    assert res["userIsInvited"] is False
+    assert res["workflows"] == []
 
 
 async def test_get_project_200_ok_being_project_member(client, project_template):
@@ -131,7 +219,10 @@ async def test_get_project_200_ok_being_project_member(client, project_template)
     client.login(pj_member)
     response = await client.get(f"/projects/{project.b64id}")
     assert response.status_code == 200, response.data
-    assert len(response.json()["workflows"]) > 0
+    res = response.json()
+    assert res["userRole"]["isOwner"] is False
+    assert res["userIsInvited"] is False
+    assert len(res["workflows"]) > 0
 
 
 async def test_get_project_200_ok_being_invited_user(client, project_template):
@@ -149,6 +240,10 @@ async def test_get_project_200_ok_being_invited_user(client, project_template):
     client.login(user)
     response = await client.get(f"/projects/{project.b64id}")
     assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["userRole"] is None
+    assert res["userIsInvited"] is True
+    assert res["workflows"] == []
 
 
 async def test_get_project_403_forbidden_not_project_member(client, project_template):
@@ -210,6 +305,9 @@ async def test_update_project_files_200_ok(client, project_template):
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
     assert "new-logo.png" in updated_project["logo"]
+    assert updated_project["userRole"]["isOwner"] is True
+    assert updated_project["userIsInvited"] is False
+    assert len(updated_project["workflows"]) > 0
 
 
 async def test_update_project_files_200_ok_no_logo_change(client, project_template):
@@ -263,6 +361,23 @@ async def test_update_project_200_ok_delete_description(client, project_template
     assert updated_project["description"] == ""
 
 
+async def test_update_project_422_empty_name(client, project_template):
+    project = await f.create_project(project_template)
+
+    data = {"name": ""}
+
+    client.login(project.created_by)
+    response = await client.post(f"/projects/{project.b64id}", data=data)
+    assert response.status_code == 422, response.data
+
+    data = {"name": None}
+
+    client.login(project.created_by)
+    response = await client.post(f"/projects/{project.b64id}", data=data)
+    assert response.status_code == 200, response.data
+    assert response.json()["name"] == project.name
+
+
 async def test_update_project_200_ok_member(client, project_template):
     project = await f.create_project(project_template)
     general_member_role = await f.create_project_role(
@@ -281,6 +396,10 @@ async def test_update_project_200_ok_member(client, project_template):
     client.login(user)
     response = await client.post(f"/projects/{project.b64id}", data=data)
     assert response.status_code == 200, response.data
+    updated_project = response.json()
+    assert updated_project["userRole"]["isOwner"] is False
+    assert updated_project["userIsInvited"] is False
+    assert updated_project["workflows"] == []
 
 
 async def test_update_project_403_forbidden_member_without_permissions(
