@@ -74,13 +74,12 @@ async def create_user(
     workspace_invitation_token: str | None = None,
     accept_workspace_invitation: bool = True,
 ) -> User:
-    user = await users_repositories.get_user(filters={"username_or_email": email})
-
-    if user and user.is_active:
-        raise ex.EmailAlreadyExistsError("Email already exists")
-
     lang = lang if lang else settings.LANGUAGE_CODE
-    if not user:
+    try:
+        user = await users_repositories.get_user(
+            q_filter=users_repositories.username_or_email_query(email)
+        )
+    except User.DoesNotExist:
         # new user
         if not color:
             color = generate_random_color()
@@ -88,6 +87,8 @@ async def create_user(
             email=email, full_name=full_name, color=color, password=password, lang=lang
         )
     else:
+        if user.is_active:
+            raise ex.EmailAlreadyExistsError("Email already exists")
         # the user (is_active=False) tries to sign-up again before verifying the previous attempt
         user.full_name = full_name
         user.lang = lang
@@ -178,15 +179,16 @@ async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
     await sync_to_async(verify_token.blacklist)()
 
     # Get user and verify it
-    user = await users_repositories.get_user(
-        filters={
-            settings.NINJA_JWT["USER_ID_FIELD"]: verify_token.get(
-                settings.NINJA_JWT["USER_ID_CLAIM"]
-            )
-        }
-    )
-    if not user:
-        raise ex.BadVerifyUserTokenError("The user doesn't exist.")
+    try:
+        user = await users_repositories.get_user(
+            filters={
+                settings.NINJA_JWT["USER_ID_FIELD"]: verify_token.get(
+                    settings.NINJA_JWT["USER_ID_CLAIM"]
+                )
+            }
+        )
+    except User.DoesNotExist as e:
+        raise ex.BadVerifyUserTokenError("The user doesn't exist.") from e
 
     await verify_user(user=user)
 
@@ -214,7 +216,7 @@ async def list_users_emails_as_dict(
     emails: list[str],
 ) -> dict[str, User]:
     users = await users_repositories.list_users(
-        filters={"is_active": True, "emails": emails}
+        filters={"is_active": True, "email__iin": emails}
     )
     return {u.email: u for u in users}
 
@@ -223,17 +225,9 @@ async def list_users_usernames_as_dict(
     usernames: list[str],
 ) -> dict[str, User]:
     users = await users_repositories.list_users(
-        filters={"is_active": True, "usernames": usernames}
+        filters={"is_active": True, "username__iin": usernames}
     )
     return {u.username: u for u in users}
-
-
-async def list_invitees_in_ws_via_project(
-    project: Project,
-) -> list[User]:
-    return await users_repositories.list_users(
-        filters={"invitees_in_ws_via_project": project}
-    )
 
 
 # search users
@@ -424,17 +418,19 @@ async def _get_user_and_reset_password_token(
         raise ex.BadResetPasswordTokenError("Invalid or expired token.")
 
     # Get user
-    user = await users_repositories.get_user(
-        filters={
-            settings.NINJA_JWT["USER_ID_FIELD"]: reset_token.get(
-                settings.NINJA_JWT["USER_ID_CLAIM"]
-            ),
-            "is_active": True,
-        }
-    )
-    if not user:
+    try:
+        user = await users_repositories.get_user(
+            filters={
+                settings.NINJA_JWT["USER_ID_FIELD"]: reset_token.get(
+                    settings.NINJA_JWT["USER_ID_CLAIM"]
+                ),
+                "is_active": True,
+            }
+        )
+
+    except User.DoesNotExist as e:
         await sync_to_async(reset_token.blacklist)()
-        raise ex.BadResetPasswordTokenError("Invalid or malformed token.")
+        raise ex.BadResetPasswordTokenError("Invalid or malformed token.") from e
 
     return reset_token, user
 
@@ -454,10 +450,14 @@ async def _send_reset_password_email(user: User) -> None:
 
 
 async def request_reset_password(email: str) -> None:
-    user = await users_repositories.get_user(
-        filters={"username_or_email": email, "is_active": True}
-    )
-    if user:
+    try:
+        user = await users_repositories.get_user(
+            filters={"is_active": True},
+            q_filter=users_repositories.username_or_email_query(email),
+        )
+    except User.DoesNotExist:
+        pass
+    else:
         await _send_reset_password_email(user)
 
 

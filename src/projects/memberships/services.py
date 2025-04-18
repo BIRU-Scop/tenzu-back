@@ -122,7 +122,7 @@ async def delete_project_membership(
             filters={
                 "project_id": membership.project_id,
             },
-            q_filter=project_invitations_repositories.username_or_email_query(
+            q_filter=project_invitations_repositories.invitation_username_or_email_query(
                 membership.user.email
             ),
         )

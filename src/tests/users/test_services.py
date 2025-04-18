@@ -36,6 +36,7 @@ from projects.projects.models import Project
 from tests.utils import factories as f
 from tests.utils.utils import patch_db_transaction, preserve_real_attrs
 from users import services
+from users.models import User
 from users.services import exceptions as ex
 from users.tokens import ResetPasswordToken, VerifyUserToken
 from workspaces.invitations.models import WorkspaceInvitation
@@ -82,7 +83,7 @@ async def test_create_user_ok_accept_invitation(
             "users.services._generate_verify_user_token", return_value="verify_token"
         ) as fake_user_token,
     ):
-        fake_users_repo.get_user.return_value = None
+        fake_users_repo.get_user.side_effect = User.DoesNotExist
         fake_users_repo.create_user.return_value = user
 
         await services.create_user(
@@ -145,7 +146,7 @@ async def test_create_user_default_instance_lang(tqmanager):
             "users.services._generate_verify_user_token", return_value="verify_token"
         ) as fake_user_token,
     ):
-        fake_users_repo.get_user.return_value = None
+        fake_users_repo.get_user.side_effect = User.DoesNotExist
         fake_users_repo.create_user.return_value = user
 
         await services.create_user(
@@ -500,7 +501,7 @@ async def test_verify_user_error_with_invalid_data():
             VerifyUserToken.blacklist,
             ["__code__"],
         )
-        fake_users_repo.get_user.return_value = None
+        fake_users_repo.get_user.side_effect = User.DoesNotExist
 
         await services.verify_user_from_token("some_token")
 
@@ -674,7 +675,7 @@ async def test_list_users_as_dict_with_emails():
         users = await services.list_users_emails_as_dict(emails=emails)
 
         fake_users_repo.list_users.assert_called_once_with(
-            filters={"is_active": True, "emails": emails}
+            filters={"is_active": True, "email__iin": emails}
         )
         assert users == {
             "one@tenzu.demo": user1,
@@ -697,7 +698,7 @@ async def test_list_users_as_dict_with_usernames():
         users = await services.list_users_usernames_as_dict(usernames=usernames)
 
         fake_users_repo.list_users.assert_called_once_with(
-            filters={"is_active": True, "usernames": usernames}
+            filters={"is_active": True, "username__iin": usernames}
         )
         assert users == {"one": user1, "two": user2, "three": user3}
 
@@ -1109,7 +1110,7 @@ async def test_password_reset_error_no_user_token():
             ResetPasswordToken.blacklist,
             ["__code__"],
         )
-        fake_users_repo.get_user.return_value = None
+        fake_users_repo.get_user.side_effect = User.DoesNotExist
 
         await services._get_user_and_reset_password_token("")
         FakeResetPasswordToken.return_value.blacklist.assert_called()
@@ -1129,8 +1130,10 @@ async def test_request_reset_password_ok():
         ret = await services.request_reset_password(user.email)
 
         fake_users_repo.get_user.assert_awaited_once_with(
-            filters={"username_or_email": user.email, "is_active": True}
+            filters={"is_active": True},
+            q_filter=fake_users_repo.username_or_email_query.return_value,
         )
+        fake_users_repo.username_or_email_query.assert_called_once_with(user.email)
         fake_send_reset_password_email.assert_awaited_once_with(user)
         assert ret is None
 
@@ -1142,7 +1145,7 @@ async def test_request_reset_password_error_user():
             "users.services._send_reset_password_email", return_value=None
         ) as fake_send_reset_password_email,
     ):
-        fake_users_repo.get_user.return_value = None
+        fake_users_repo.get_user.side_effect = User.DoesNotExist
 
         ret = await services.request_reset_password("user@email.com")
 

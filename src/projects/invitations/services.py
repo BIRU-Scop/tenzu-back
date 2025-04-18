@@ -143,7 +143,9 @@ async def get_project_invitation_by_username_or_email(
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
         filters={"project_id": project_id},
-        q_filter=invitations_repositories.username_or_email_query(username_or_email),
+        q_filter=invitations_repositories.invitation_username_or_email_query(
+            username_or_email
+        ),
         select_related=["user", "project", "project__workspace", "role"],
     )
 

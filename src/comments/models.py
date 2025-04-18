@@ -19,12 +19,12 @@
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 
-from base.db.mixins import (
+from base.db.models import BaseModel
+from base.db.models.mixins import (
     CreatedMetaInfoMixin,
     DeletedMetaInfoMixin,
     ModifiedAtMetaInfoMixin,
 )
-from base.db.models import BaseModel
 from projects.projects.models import Project
 
 

@@ -188,7 +188,9 @@ async def create_invitations(
                         InvitationStatus.DENIED,
                     ],
                 },
-                q_filter=memberships_repositories.username_or_email_query(email),
+                q_filter=memberships_repositories.invitation_username_or_email_query(
+                    email
+                ),
                 select_related=[
                     "user",
                     "role",

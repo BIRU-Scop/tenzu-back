@@ -504,11 +504,11 @@ async def test_delete_project_fail():
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
         patch(
-            "projects.projects.services.users_services", autospec=True
-        ) as fake_users_services,
+            "projects.projects.services.users_repositories", autospec=True
+        ) as users_repositories,
     ):
         fake_projects_repo.delete_projects.return_value = 0
-        fake_users_services.list_invitees_in_ws_via_project.return_value = []
+        users_repositories.list_invitees_in_ws_via_project.return_value = []
 
         await services.delete_project(project=project, deleted_by=user)
 
@@ -531,12 +531,12 @@ async def test_delete_project_ok(tqmanager):
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
         patch(
-            "projects.projects.services.users_services", autospec=True
-        ) as fake_users_services,
+            "projects.projects.services.users_repositories", autospec=True
+        ) as users_repositories,
         patch_db_transaction(),
     ):
         fake_projects_repo.delete_projects.return_value = 1
-        fake_users_services.list_invitees_in_ws_via_project.return_value = []
+        users_repositories.list_invitees_in_ws_via_project.return_value = []
 
         await services.delete_project(project=project, deleted_by=user)
         fake_projects_events.emit_event_when_project_is_deleted.assert_awaited_once_with(

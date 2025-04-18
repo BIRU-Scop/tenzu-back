@@ -101,7 +101,7 @@ async def test_list_users_by_usernames():
     users = await users_repositories.list_users(
         filters={
             "is_active": True,
-            "usernames": [user1.username, user2.username, user3.username],
+            "username__iin": [user1.username, user2.username, user3.username],
         }
     )
 
@@ -115,7 +115,10 @@ async def test_list_users_by_emails():
     user3 = await f.create_user(is_active=False)
 
     users = await users_repositories.list_users(
-        filters={"is_active": True, "emails": [user1.email, user2.email, user3.email]}
+        filters={
+            "is_active": True,
+            "email__iin": [user1.email, user2.email, user3.email],
+        }
     )
 
     assert len(users) == 2
@@ -123,29 +126,54 @@ async def test_list_users_by_emails():
 
 
 async def test_list_invitees_in_ws_via_project(project_template):
-    member = await f.create_user()
-    invitee = await f.create_user()
+    pj_member = await f.create_user()
+    pj_invitee = await f.create_user()
+    ws_invitee = await f.create_user()
+    ws_member = await f.create_user()
     workspace = await f.create_workspace()
-    project = await f.create_project(
-        project_template, created_by=workspace.created_by, workspace=workspace
+    project = await f.create_project(project_template, workspace=workspace)
+    ws_general_role = await workspace.roles.filter(is_owner=False).afirst()
+    await f.create_workspace_membership(
+        user=pj_member, workspace=workspace, role=ws_general_role
     )
-    general_role = await f.create_project_role(project=project, is_owner=False)
-    await f.create_project_membership(user=member, project=project, role=general_role)
+    await f.create_workspace_membership(
+        user=ws_member, workspace=workspace, role=ws_general_role
+    )
+    await f.create_workspace_invitation(
+        email=ws_invitee.email,
+        user=ws_invitee,
+        workspace=workspace,
+        role=ws_general_role,
+        status=InvitationStatus.PENDING,
+        invited_by=workspace.created_by,
+    )
+    pj_general_role = await f.create_project_role(project=project, is_owner=False)
+    await f.create_project_membership(
+        user=pj_member, project=project, role=pj_general_role
+    )
     await f.create_project_invitation(
-        email=invitee.email,
-        user=invitee,
+        email=pj_invitee.email,
+        user=pj_invitee,
         project=project,
-        role=general_role,
+        role=pj_general_role,
+        status=InvitationStatus.PENDING,
+        invited_by=project.created_by,
+    )
+    await f.create_project_invitation(
+        email=ws_member.email,
+        user=ws_member,
+        project=project,
+        role=pj_general_role,
         status=InvitationStatus.PENDING,
         invited_by=project.created_by,
     )
 
-    users = await users_repositories.list_users(
-        filters={"invitees_in_ws_via_project": project}
-    )
+    users = await users_repositories.list_invitees_in_ws_via_project(project)
 
+    # pj_invitee, ws_member are the only one with a pending project invitation
+    # ws_member should be excluded because of their direct link to workspaces
     assert len(users) == 1
-    assert invitee in users
+    assert pj_invitee in users
 
     ##########################################################
     # list_project_users_by_text
@@ -387,40 +415,38 @@ async def test_get_user_by_username_or_email_success_username_case_insensitive()
     user = await f.create_user(username="test_user_1")
     await f.create_user(username="test_user_2")
     assert user == await users_repositories.get_user(
-        filters={"username_or_email": "test_user_1"}
+        q_filter=users_repositories.username_or_email_query("test_user_1")
     )
     assert user == await users_repositories.get_user(
-        filters={"username_or_email": "TEST_user_1"}
+        q_filter=users_repositories.username_or_email_query("TEST_user_1")
     )
 
 
 async def test_get_user_by_username_or_email_error_invalid_username_case_insensitive():
-    assert (
+    with pytest.raises(User.DoesNotExist):
         await users_repositories.get_user(
-            filters={"username_or_email": "test_other_user"}
+            q_filter=users_repositories.username_or_email_query("test_other_user")
         )
-        is None
-    )
 
 
 async def test_get_user_by_username_or_email_success_email_case_insensitive():
     user = await f.create_user(email="test_user_1@email.com")
     await f.create_user(email="test_user_2@email.com")
     assert user == await users_repositories.get_user(
-        filters={"username_or_email": "test_user_1@email.com"}
+        q_filter=users_repositories.username_or_email_query("test_user_1@email.com")
     )
     assert user == await users_repositories.get_user(
-        filters={"username_or_email": "TEST_user_1@email.com"}
+        q_filter=users_repositories.username_or_email_query("TEST_user_1@email.com")
     )
 
 
 async def test_get_user_by_username_or_email_error_invalid_email_case_insensitive():
-    assert (
+    with pytest.raises(User.DoesNotExist):
         await users_repositories.get_user(
-            filters={"username_or_email": "test_other_user@email.com"}
+            q_filter=users_repositories.username_or_email_query(
+                "test_other_user@email.com"
+            )
         )
-        is None
-    )
 
 
 async def test_get_user_by_email():
@@ -484,20 +510,15 @@ async def test_change_password_and_check_password():
 ##########################################################
 
 
-@sync_to_async
-def get_total_users() -> int:
-    return User.objects.count()
-
-
 async def test_clean_expired_users():
-    total_users = await get_total_users()
+    total_users = await User.objects.acount()
     await f.create_user(is_active=False)  # without token - it'll be cleaned
     user = await f.create_user(is_active=False)  # with token - it won't be cleaned
     await sync_to_async(VerifyUserToken.for_user)(user)
 
-    assert await get_total_users() == total_users + 2
+    assert await User.objects.acount() == total_users + 2
     await users_repositories.clean_expired_users()
-    assert await get_total_users() == total_users + 1
+    assert await User.objects.acount() == total_users + 1
 
 
 ##########################################################

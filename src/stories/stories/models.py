@@ -20,12 +20,12 @@
 from django.db import models
 
 from attachments.mixins import RelatedAttachmentsMixin
-from base.db.mixins import (
+from base.db.models import BaseModel
+from base.db.models.mixins import (
     CreatedMetaInfoMixin,
     DescriptionUpdatedMetaInfoMixin,
     TitleUpdatedMetaInfoMixin,
 )
-from base.db.models import BaseModel
 from base.occ.models import VersionedMixin
 from comments.mixins import RelatedCommentsMixin
 from commons.ordering import OrderedMixin

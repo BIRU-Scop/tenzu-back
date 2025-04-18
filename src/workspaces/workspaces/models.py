@@ -21,8 +21,8 @@ from django.db import models
 from django_stubs_ext.db.models.manager import ManyRelatedManager
 from slugify import slugify
 
-from base.db.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from base.db.models import BaseModel
+from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from commons.colors import NUM_COLORS
 
 

@@ -114,7 +114,7 @@ async def delete_workspace_membership(
             filters={
                 "workspace_id": membership.workspace_id,
             },
-            q_filter=workspace_invitations_repositories.username_or_email_query(
+            q_filter=workspace_invitations_repositories.invitation_username_or_email_query(
                 membership.user.email
             ),
         )

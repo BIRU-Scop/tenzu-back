@@ -19,8 +19,8 @@
 
 from django.db import models
 
-from base.db.mixins import CreatedAtMetaInfoMixin
 from base.db.models import BaseModel
+from base.db.models.mixins import CreatedAtMetaInfoMixin
 
 
 class StoryAssignment(BaseModel, CreatedAtMetaInfoMixin):

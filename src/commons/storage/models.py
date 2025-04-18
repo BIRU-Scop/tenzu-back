@@ -20,8 +20,8 @@
 from django.db import models
 from django.db.models.functions import TruncDate
 
-from base.db.mixins import CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin
 from base.db.models import BaseModel
+from base.db.models.mixins import CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin
 from base.utils.files import get_obfuscated_file_path
 
 

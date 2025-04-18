@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -17,15 +16,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from memberships.repositories import (  # noqa
-    pending_user_invitation_query,
-    invitation_username_or_email_query,
-    create_invitations,
-    list_invitations,
-    get_invitation,
-    exists_invitation,
-    update_invitation,
-    bulk_update_invitations,
-    update_user_invitations,
-    delete_invitation,
-)
+from django.apps import AppConfig
+
+
+class BaseDBConfig(AppConfig):
+    name = "base.db"
+
+    def ready(self):
+        # register lookups
+        from . import lookups  # noqa

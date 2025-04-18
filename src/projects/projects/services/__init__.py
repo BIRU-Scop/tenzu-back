@@ -37,7 +37,7 @@ from projects.projects.models import Project
 from projects.projects.serializers import (
     ProjectDetailSerializer,
 )
-from users import services as users_services
+from users import repositories as users_repositories
 from users.models import AnyUser, User
 from workflows import repositories as workflows_repositories
 from workspaces.workspaces.models import Workspace
@@ -263,7 +263,7 @@ async def delete_project(project: Project, deleted_by: User) -> bool:
     if project.logo:
         file_to_delete = project.logo.path
 
-    guests = await users_services.list_invitees_in_ws_via_project(project=project)
+    guests = await users_repositories.list_invitees_in_ws_via_project(project=project)
     deleted = await projects_repositories.delete_projects(project_id=project.id)
 
     if deleted > 0:

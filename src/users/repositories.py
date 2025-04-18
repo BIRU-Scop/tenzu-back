@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from functools import reduce
-from operator import or_
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
@@ -57,52 +55,12 @@ from workspaces.memberships.models import WorkspaceMembership
 ##########################################################
 
 
-DEFAULT_QUERYSET = User.objects.all()
-
-
 class UserFilters(TypedDict, total=False):
     id: UUID
     email: str
-    emails: list[str]
-    usernames: list[str]
-    username_or_email: str
+    email__iin: list[str]
+    username__iin: list[str]
     is_active: bool
-    invitees_in_ws_via_project: Project
-
-
-def _apply_filters_to_queryset(
-    qs: QuerySet[User],
-    filters: UserFilters = {},
-) -> QuerySet[User]:
-    filter_data = dict(filters.copy())
-
-    if "emails" in filter_data:
-        emails = filter_data.pop("emails")
-        qs = qs.filter(reduce(or_, (Q(email__iexact=email) for email in emails)))  # type: ignore[attr-defined]
-
-    if "usernames" in filter_data:
-        usernames = filter_data.pop("usernames")
-        filter_tmp = reduce(
-            or_, (Q(username__iexact=username) for username in usernames)
-        )  # type: ignore[attr-defined]
-        qs = qs.filter(filter_tmp)
-
-    if "username_or_email" in filter_data:
-        username_or_email = filter_data.pop("username_or_email")
-        qs = qs.filter(
-            Q(username__iexact=username_or_email) | Q(email__iexact=username_or_email)
-        )
-
-    if "invitees_in_ws_via_project" in filter_data:
-        project = filter_data.pop("invitees_in_ws_via_project")
-        pj_invitees = Q(
-            project_invitations__project=project,
-            project_invitations__status=InvitationStatus.PENDING,
-        )
-        qs = qs.filter(pj_invitees)
-        qs = qs.exclude(workspaces=project.workspace).distinct()  # type: ignore[attr-defined]
-
-    return qs.filter(**filter_data)
 
 
 UserOrderBy = list[
@@ -113,23 +71,15 @@ UserOrderBy = list[
 ]
 
 
-def _apply_order_by_to_queryset(
-    qs: QuerySet[User],
-    order_by: UserOrderBy,
-) -> QuerySet[User]:
-    return qs.order_by(*order_by)
-
-
 ##########################################################
 # create user
 ##########################################################
 
 
-@sync_to_async
-def create_user(
+async def create_user(
     email: str, full_name: str, color: int, lang: str, password: str | None
 ) -> User:
-    user = User.objects.create(
+    user = User(
         email=email,
         full_name=full_name,
         is_active=False,
@@ -140,7 +90,7 @@ def create_user(
     if password:
         user.set_password(password)
 
-    user.save()
+    await user.asave()
     return user
 
 
@@ -149,20 +99,36 @@ def create_user(
 ##########################################################
 
 
-@sync_to_async
-def list_users(
+async def list_users(
     filters: UserFilters = {},
     order_by: UserOrderBy = ["full_name"],
     offset: int | None = None,
     limit: int | None = None,
 ) -> list[User]:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_order_by_to_queryset(order_by=order_by, qs=qs)
+    qs = User.objects.all().filter(**filters)
+    qs = qs.order_by(*order_by)
 
     if limit is not None and offset is not None:
         limit += offset
 
-    return list(qs[offset:limit])
+    return [u async for u in qs[offset:limit]]
+
+
+async def list_invitees_in_ws_via_project(
+    project: Project,
+) -> list[User]:
+    """
+    List users that have access to the workspace of project only because they
+    are currently invited to this project, with no other link to the workspace
+    """
+    qs = User.objects.all().filter(
+        project_invitations__project=project,
+        project_invitations__status=InvitationStatus.PENDING,
+    )
+    qs = (
+        qs.exclude(workspaces__id=project.workspace_id).distinct().order_by("full_name")
+    )
+    return [u async for u in qs]
 
 
 ##########################################################
@@ -170,42 +136,40 @@ def list_users(
 ##########################################################
 
 
-@sync_to_async
-def list_project_users_by_text(
+async def list_project_users_by_text(
     text_search: str = "",
     project_id: UUID | None = None,
     exclude_inactive: bool = True,
-    offset: int = 0,
-    limit: int = 0,
+    offset: int | None = None,
+    limit: int | None = None,
 ) -> list[User]:
     qs = _list_project_users_by_text_qs(
         text_search=text_search,
         project_id=project_id,
         exclude_inactive=exclude_inactive,
     )
-    if limit:
-        return list(qs[offset : offset + limit])
+    if limit is not None and offset is not None:
+        limit += offset
 
-    return list(qs)
+    return [u async for u in qs[offset:limit]]
 
 
-@sync_to_async
-def list_workspace_users_by_text(
+async def list_workspace_users_by_text(
     text_search: str = "",
     workspace_id: UUID | None = None,
     exclude_inactive: bool = True,
-    offset: int = 0,
-    limit: int = 0,
+    offset: int | None = None,
+    limit: int | None = None,
 ) -> list[User]:
     qs = _list_workspace_users_by_text_qs(
         text_search=text_search,
         workspace_id=workspace_id,
         exclude_inactive=exclude_inactive,
     )
-    if limit:
-        return list(qs[offset : offset + limit])
+    if limit is not None and offset is not None:
+        limit += offset
 
-    return list(qs)
+    return [u async for u in qs[offset:limit]]
 
 
 def _list_users_by_text_qs(
@@ -377,9 +341,7 @@ def _sort_queryset_if_unsorted(
     users_qs: QuerySet[User], text_search: str
 ) -> QuerySet[User]:
     if not text_search:
-        return _apply_order_by_to_queryset(
-            order_by=["full_name", "username"], qs=users_qs
-        )
+        return users_qs.order_by("full_name", "username")
 
     # the queryset has already been sorted by the "Full Text Search" and its annotated 'rank' field
     return users_qs
@@ -432,15 +394,14 @@ def _list_users_by_fullname_or_username(
 ##########################################################
 
 
-@sync_to_async
-def get_user(
+async def get_user(
     filters: UserFilters = {},
+    q_filter: Q | None = None,
 ) -> User | None:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    try:
-        return qs.get()
-    except User.DoesNotExist:
-        return None
+    qs = User.objects.all().filter(**filters)
+    if q_filter:
+        qs = qs.filter(q_filter)
+    return await qs.aget()
 
 
 ##########################################################
@@ -448,13 +409,12 @@ def get_user(
 ##########################################################
 
 
-@sync_to_async
-def update_user(user: User, values: dict[str, Any] = {}) -> User:
+async def update_user(user: User, values: dict[str, Any] = {}) -> User:
     for attr, value in values.items():
         if value:
             setattr(user, attr, value)
 
-    user.save()
+    await user.asave()
     return user
 
 
@@ -469,27 +429,26 @@ async def delete_user(user: User) -> int:
 
 
 ##########################################################
-# misc
+# queries invitation
 ##########################################################
 
 
-@sync_to_async
-def user_exists(
-    filters: UserFilters = {},
-) -> bool:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    return qs.exists()
+def username_or_email_query(username_or_email: str) -> Q:
+    return Q(username__iexact=username_or_email) | Q(email__iexact=username_or_email)
 
 
-@sync_to_async
-def check_password(user: User, password: str) -> bool:
-    return user.password != "" and user.check_password(password)
+##########################################################
+# misc user
+##########################################################
 
 
-@sync_to_async
-def change_password(user: User, password: str) -> None:
+async def check_password(user: User, password: str) -> bool:
+    return user.password != "" and await user.acheck_password(password)
+
+
+async def change_password(user: User, password: str) -> None:
     user.set_password(password)
-    user.save()
+    await user.asave()
 
 
 @sync_to_async
@@ -508,16 +467,7 @@ async def clean_expired_users() -> None:
     )
 
 
-@sync_to_async
-def get_total_users(
-    filters: UserFilters = {},
-) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    return qs.count()
-
-
-@sync_to_async
-def get_total_workspace_users_by_text(
+async def get_total_workspace_users_by_text(
     text_search: str = "",
     workspace_id: UUID | None = None,
     exclude_inactive: bool = True,
@@ -527,7 +477,7 @@ def get_total_workspace_users_by_text(
         workspace_id=workspace_id,
         exclude_inactive=exclude_inactive,
     )
-    return qs.count()
+    return await qs.acount()
 
 
 ##########################################################

@@ -20,7 +20,7 @@
 import abc
 from typing import TYPE_CHECKING, Any
 
-from base.db.mixins import DeletedAtMetaInfoMixin
+from base.db.models.mixins import DeletedAtMetaInfoMixin
 from commons.exceptions import api as ex
 
 if TYPE_CHECKING:

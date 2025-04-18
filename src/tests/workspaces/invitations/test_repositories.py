@@ -233,7 +233,9 @@ async def test_get_workspace_invitation_by_user_username() -> None:
             "workspace_id": invitation.workspace.id,
             "status__in": [InvitationStatus.PENDING],
         },
-        q_filter=repositories.username_or_email_query(invitation.user.username),
+        q_filter=repositories.invitation_username_or_email_query(
+            invitation.user.username
+        ),
     )
 
     assert new_invitation is not None
@@ -249,7 +251,7 @@ async def test_get_workspace_invitation_by_user_email() -> None:
             "workspace_id": invitation.workspace.id,
             "status__in": [InvitationStatus.PENDING],
         },
-        q_filter=repositories.username_or_email_query(invitation.user.email),
+        q_filter=repositories.invitation_username_or_email_query(invitation.user.email),
     )
 
     assert new_invitation is not None
@@ -265,7 +267,7 @@ async def test_get_workspace_invitation_by_email() -> None:
             "workspace_id": invitation.workspace.id,
             "status__in": [InvitationStatus.PENDING],
         },
-        q_filter=repositories.username_or_email_query(invitation.email),
+        q_filter=repositories.invitation_username_or_email_query(invitation.email),
     )
 
     assert new_invitation is not None
@@ -280,7 +282,7 @@ async def test_get_workspace_invitation_by_email_no_user() -> None:
         filters={
             "workspace_id": invitation.workspace.id,
         },
-        q_filter=repositories.username_or_email_query(invitation.email),
+        q_filter=repositories.invitation_username_or_email_query(invitation.email),
     )
 
     assert new_invitation is not None
@@ -411,6 +413,6 @@ async def test_delete_workspace_invitation():
     deleted_invitation = await repositories.delete_invitation(
         WorkspaceInvitation,
         filters={"workspace_id": workspace.id},
-        q_filter=repositories.username_or_email_query(user.email),
+        q_filter=repositories.invitation_username_or_email_query(user.email),
     )
     assert deleted_invitation == 1

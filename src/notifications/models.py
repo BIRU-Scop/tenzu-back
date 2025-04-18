@@ -19,8 +19,8 @@
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
-from base.db.mixins import CreatedMetaInfoMixin
 from base.db.models import BaseModel
+from base.db.models.mixins import CreatedMetaInfoMixin
 
 #######################################################################
 # Base Notification

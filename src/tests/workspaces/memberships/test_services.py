@@ -253,9 +253,7 @@ async def test_delete_workspace_membership_ok():
     ):
         fake_membership_repository.exists_membership.return_value = False
         fake_membership_repository.delete_membership.return_value = 1
-        fake_workspace_invitations_repository.username_or_email_query.return_value = (
-            None
-        )
+        fake_workspace_invitations_repository.invitation_username_or_email_query.return_value = None
         await services.delete_workspace_membership(membership=membership)
         fake_membership_repository.delete_membership.assert_awaited_once_with(
             membership

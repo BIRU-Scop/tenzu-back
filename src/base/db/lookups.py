@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -17,15 +16,21 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from memberships.repositories import (  # noqa
-    pending_user_invitation_query,
-    invitation_username_or_email_query,
-    create_invitations,
-    list_invitations,
-    get_invitation,
-    exists_invitation,
-    update_invitation,
-    bulk_update_invitations,
-    update_user_invitations,
-    delete_invitation,
-)
+from django.db.models.lookups import In
+
+from base.db.models import SaveAsLowerCaseMixin
+
+__all__ = ["CaseInsensitiveIn"]
+
+
+@SaveAsLowerCaseMixin.register_lookup
+class CaseInsensitiveIn(In):
+    """
+    Case-insensitive version of __in filter, for fields inheriting from SaveAsLowerCaseMixin
+    """
+
+    lookup_name = "iin"
+
+    def process_rhs(self, compiler, connection):
+        rhs, params = super().process_rhs(compiler, connection)
+        return rhs, tuple(p.lower() for p in params)

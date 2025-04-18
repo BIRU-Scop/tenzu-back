@@ -19,8 +19,8 @@
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 
-from base.db.mixins import CreatedMetaInfoMixin
 from base.db.models import BaseModel
+from base.db.models.mixins import CreatedMetaInfoMixin
 
 
 class Attachment(BaseModel, CreatedMetaInfoMixin):

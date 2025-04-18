@@ -129,10 +129,14 @@ async def _create_scenario_freelance_working_for_others() -> None:
     userb1 = await factories.create_user(username="userb1")
     userb2 = await factories.create_user(username="userb2")
     userb3 = await factories.create_user(username="userb3")
-    usera1 = await users_repositories.get_user(filters={"username_or_email": "usera1"})
+    usera1 = await users_repositories.get_user(
+        q_filter=users_repositories.username_or_email_query("usera1")
+    )
     if not usera1:
         raise Exception("User usera1 not found")
-    userd0 = await users_repositories.get_user(filters={"username_or_email": "userd0"})
+    userd0 = await users_repositories.get_user(
+        q_filter=users_repositories.username_or_email_query("userd0")
+    )
     if not userd0:
         raise Exception("User userd0 not found")
     userd1 = await factories.create_user(username="userd1")
@@ -313,10 +317,14 @@ async def _create_scenario_user_in_society_working_for_others() -> None:
 
 async def _create_scenario_manager_in_society_working_for_others() -> None:
     # USERS
-    userd0 = await users_repositories.get_user(filters={"username_or_email": "userd0"})
+    userd0 = await users_repositories.get_user(
+        q_filter=users_repositories.username_or_email_query("userd0")
+    )
     if not userd0:
         raise Exception("User userd0 not found")
-    userc0 = await users_repositories.get_user(filters={"username_or_email": "userc0"})
+    userc0 = await users_repositories.get_user(
+        q_filter=users_repositories.username_or_email_query("userc0")
+    )
     if not userc0:
         raise Exception("User userc0 not found")
     # usersdx total 150
@@ -426,7 +434,9 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
 async def _create_scenario_manager_in_society_with_big_client() -> None:
     # USERS
     usere0 = await factories.create_user(username="usere0")
-    userc0 = await users_repositories.get_user(filters={"username_or_email": "userc0"})
+    userc0 = await users_repositories.get_user(
+        q_filter=users_repositories.username_or_email_query("userc0")
+    )
     if not userc0:
         raise Exception("User userc0 not found")
     usere1 = await factories.create_user(username="usere1")
@@ -576,7 +586,9 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
 
 async def _create_scenario_manager_in_society_with_own_product() -> None:
     # USERS
-    userf0 = await users_repositories.get_user(filters={"username_or_email": "userf0"})
+    userf0 = await users_repositories.get_user(
+        q_filter=users_repositories.username_or_email_query("userf0")
+    )
     if not userf0:
         raise Exception("User userf0 not found")
     userf1 = await factories.create_user(username="userf1")

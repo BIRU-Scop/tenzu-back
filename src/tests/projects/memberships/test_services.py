@@ -341,7 +341,7 @@ async def test_delete_project_membership_ok():
         patch_db_transaction(),
     ):
         fake_membership_repository.delete_membership.return_value = 1
-        fake_project_invitations_repository.username_or_email_query.return_value = None
+        fake_project_invitations_repository.invitation_username_or_email_query.return_value = None
         await services.delete_project_membership(membership=membership)
         fake_membership_repository.delete_membership.assert_awaited_once_with(
             membership

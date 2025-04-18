@@ -21,9 +21,11 @@ from uuid import UUID
 
 from django.db.models import Case, Count, Q, QuerySet, When
 
+from base.db.utils import Q_for_related
 from memberships.choices import InvitationStatus
 from memberships.models import Invitation, Membership, Role
 from projects.projects.models import Project
+from users import repositories as users_repositories
 from users.models import AnyUser, User
 from workspaces.workspaces.models import Workspace
 
@@ -430,7 +432,7 @@ async def delete_invitation(
 
 
 ##########################################################
-# misc invitation
+# queries invitation
 ##########################################################
 
 
@@ -440,9 +442,9 @@ def pending_user_invitation_query(user: AnyUser) -> Q:
     return Q(status=InvitationStatus.PENDING) & (by_user | by_email)
 
 
-def username_or_email_query(username_or_email: str) -> Q:
-    by_user = Q(user__username__iexact=username_or_email) | Q(
-        user__email__iexact=username_or_email
+def invitation_username_or_email_query(username_or_email: str) -> Q:
+    by_user = Q_for_related(
+        users_repositories.username_or_email_query(username_or_email), "user"
     )
     by_email = Q(user__isnull=True, email__iexact=username_or_email)
     return by_user | by_email

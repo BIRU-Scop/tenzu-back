@@ -25,8 +25,8 @@ from django.db import models
 from django.db.models.base import ModelBase
 from django_stubs_ext.db.models.manager import ManyRelatedManager
 
-from base.db.mixins import CreatedAtMetaInfoMixin
 from base.db.models import BaseModel, LowerEmailField, LowerSlugField
+from base.db.models.mixins import CreatedAtMetaInfoMixin
 from base.utils.datetime import timestamp_mics
 from base.utils.slug import (
     generate_incremental_int_suffix,

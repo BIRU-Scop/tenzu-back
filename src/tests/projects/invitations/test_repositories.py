@@ -93,7 +93,9 @@ async def test_get_project_invitation_by_user_username() -> None:
             "project_id": invitation.project.id,
             "status__in": [InvitationStatus.PENDING],
         },
-        q_filter=repositories.username_or_email_query(invitation.user.username),
+        q_filter=repositories.invitation_username_or_email_query(
+            invitation.user.username
+        ),
     )
 
     assert new_invitation is not None
@@ -109,7 +111,7 @@ async def test_get_project_invitation_by_user_email() -> None:
             "project_id": invitation.project.id,
             "status__in": [InvitationStatus.PENDING],
         },
-        q_filter=repositories.username_or_email_query(invitation.user.email),
+        q_filter=repositories.invitation_username_or_email_query(invitation.user.email),
     )
 
     assert new_invitation is not None
@@ -125,7 +127,7 @@ async def test_get_project_invitation_by_email() -> None:
             "project_id": invitation.project.id,
             "status__in": [InvitationStatus.PENDING],
         },
-        q_filter=repositories.username_or_email_query(invitation.email),
+        q_filter=repositories.invitation_username_or_email_query(invitation.email),
     )
 
     assert new_invitation is not None
@@ -140,7 +142,7 @@ async def test_get_project_invitation_by_email_no_status() -> None:
         filters={
             "project_id": invitation.project.id,
         },
-        q_filter=repositories.username_or_email_query(invitation.email),
+        q_filter=repositories.invitation_username_or_email_query(invitation.email),
     )
 
     assert new_invitation is not None
@@ -422,6 +424,6 @@ async def test_delete_project_invitation(project_template):
     deleted_invitation = await repositories.delete_invitation(
         ProjectInvitation,
         filters={"project_id": project.id},
-        q_filter=repositories.username_or_email_query(user.email),
+        q_filter=repositories.invitation_username_or_email_query(user.email),
     )
     assert deleted_invitation == 1
