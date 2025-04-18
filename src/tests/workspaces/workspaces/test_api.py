@@ -27,7 +27,7 @@ pytestmark = pytest.mark.django_db
 
 
 #############################################################
-#  POST /my/workspaces/
+#  POST /workspaces/
 #############################################################
 
 
@@ -69,20 +69,20 @@ async def test_create_workspace_validation_error(client):
 
 
 #############################################################
-#  GET /my/workspaces/
+#  GET /workspaces/
 #############################################################
 
 
-async def test_my_workspaces_being_anonymous(client):
-    response = await client.get("/my/workspaces")
+async def test_list_workspaces_being_anonymous(client):
+    response = await client.get("/workspaces")
     assert response.status_code == 401, response.data
 
 
-async def test_my_workspaces_success_owner_no_project(client):
+async def test_list_workspaces_success_owner_no_project(client):
     workspace = await f.create_workspace()
 
     client.login(workspace.created_by)
-    response = await client.get("/my/workspaces")
+    response = await client.get("/workspaces")
     assert response.status_code == 200, response.data
     res = response.json()
     assert len(res) == 1
@@ -92,12 +92,12 @@ async def test_my_workspaces_success_owner_no_project(client):
     assert res[0]["userInvitedProjects"] == []
 
 
-async def test_my_workspaces_success_owner_one_project(client, project_template):
+async def test_list_workspaces_success_owner_one_project(client, project_template):
     workspace = await f.create_workspace()
     project = await f.create_project(project_template, workspace=workspace)
 
     client.login(workspace.created_by)
-    response = await client.get("/my/workspaces")
+    response = await client.get("/workspaces")
     assert response.status_code == 200, response.data
     res = response.json()
     assert len(res) == 1
@@ -108,11 +108,11 @@ async def test_my_workspaces_success_owner_one_project(client, project_template)
     assert res[0]["userInvitedProjects"] == []
 
 
-async def test_my_workspaces_success_ws_invitee(client):
+async def test_list_workspaces_success_ws_invitee(client):
     ws_invitation = await f.create_workspace_invitation()
 
     client.login(ws_invitation.user)
-    response = await client.get("/my/workspaces")
+    response = await client.get("/workspaces")
     assert response.status_code == 200, response.data
     res = response.json()
     assert len(res) == 1
@@ -122,11 +122,11 @@ async def test_my_workspaces_success_ws_invitee(client):
     assert res[0]["userInvitedProjects"] == []
 
 
-async def test_my_workspaces_success_pj_invitee(client):
+async def test_list_workspaces_success_pj_invitee(client):
     pj_invitation = await f.create_project_invitation()
 
     client.login(pj_invitation.user)
-    response = await client.get("/my/workspaces")
+    response = await client.get("/workspaces")
     assert response.status_code == 200, response.data
     res = response.json()
     assert len(res) == 1

@@ -110,13 +110,13 @@ async def verify_user(
 
 
 @users_router.get(
-    "/my/user",
-    url_name="my.user",
+    "/users/me",
+    url_name="user.get.me",
     summary="Get authenticated user",
     response=UserSerializer,
     by_alias=True,
 )
-async def get_my_user(request) -> User:
+async def get_current_user(request) -> User:
     """
     Get the current authenticated user (according to the auth token in the request headers).
     """
@@ -133,8 +133,8 @@ async def get_my_user(request) -> User:
 
 
 @users_router.put(
-    "/my/user",
-    url_name="my.user.update",
+    "/users/me",
+    url_name="user.update.me",
     summary="Update authenticated user",
     response={
         200: UserSerializer,
@@ -144,7 +144,7 @@ async def get_my_user(request) -> User:
     },
     by_alias=True,
 )
-async def update_my_user(request, form: UpdateUserValidator) -> User:
+async def update_current_user(request, form: UpdateUserValidator) -> User:
     """
     Update the current authenticated user (according to the auth token in the request headers).
     """
@@ -166,13 +166,13 @@ async def update_my_user(request, form: UpdateUserValidator) -> User:
 
 
 @users_router.delete(
-    "/my/user",
-    url_name="my.user.delete",
+    "/users/me",
+    url_name="user.delete.me",
     summary="Delete user",
     response={204: None, 400: ERROR_RESPONSE_400, 401: ERROR_RESPONSE_401},
     by_alias=True,
 )
-async def delete_user(request) -> tuple[int, None]:
+async def delete_current_user(request) -> tuple[int, None]:
     """
     Delete a user.
 
@@ -199,13 +199,13 @@ async def delete_user(request) -> tuple[int, None]:
 
 
 @users_router.get(
-    "/my/user/delete-info",
-    url_name="my.user.delete-info",
+    "/users/me/delete-info",
+    url_name="user.me.delete-info",
     summary="Get user delete info",
     response={200: UserDeleteInfoSerializer, 401: ERROR_RESPONSE_401},
     by_alias=True,
 )
-async def get_user_delete_info(request) -> UserDeleteInfoSerializer:
+async def get_current_user_delete_info(request) -> UserDeleteInfoSerializer:
     """
     Get some info before deleting a user.
 

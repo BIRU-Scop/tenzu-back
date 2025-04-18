@@ -45,8 +45,8 @@ notifications_router = Router()
 
 
 @notifications_router.get(
-    "/my/notifications",
-    url_name="my.notifications.list",
+    "/notifications",
+    url_name="notifications.list",
     summary="List all the user notifications",
     response={200: list[NotificationSerializer], 403: ERROR_RESPONSE_403},
     by_alias=True,
@@ -73,8 +73,8 @@ async def list_my_notifications(
 
 
 @notifications_router.get(
-    "/my/notifications/count",
-    url_name="my.notifications.count",
+    "/notifications/count",
+    url_name="notifications.count",
     summary="Counts all the user notifications by type",
     response={200: NotificationCountersSerializer, 403: ERROR_RESPONSE_403},
     by_alias=True,
@@ -97,8 +97,8 @@ async def count_my_notifications(request) -> dict[str, int]:
 
 
 @notifications_router.post(
-    "/my/notifications/read",
-    url_name="my.notifications.all.read",
+    "/notifications/read",
+    url_name="notifications.mark.all.read",
     summary="Mark all notifications as read",
     response={
         200: list[NotificationSerializer],
@@ -123,8 +123,8 @@ async def mark_all_my_notification_as_read(
 
 
 @notifications_router.post(
-    "/my/notifications/{id}/read",
-    url_name="my.notifications.read",
+    "/notifications/{id}/read",
+    url_name="notifications.mark.read",
     summary="Mark notification as read",
     response={
         200: NotificationSerializer,

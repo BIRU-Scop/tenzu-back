@@ -83,7 +83,7 @@ async def create_workspace(
 
 
 @workspace_router.get(
-    "/my/workspaces",
+    "/workspaces",
     url_name="workspaces.list",
     summary="List the overview of the workspaces to which I belong",
     response={200: list[WorkspaceSummarySerializer], 401: ERROR_RESPONSE_401},
@@ -107,7 +107,7 @@ async def list_my_workspaces(request) -> list[Workspace]:
 
 @workspace_router.get(
     "/workspaces/{workspace_id}",
-    url_name="workspaces.get",
+    url_name="workspace.get",
     summary="Get workspace",
     response={
         200: WorkspaceDetailSerializer,

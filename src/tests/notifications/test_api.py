@@ -30,44 +30,44 @@ pytestmark = pytest.mark.django_db
 ##########################################################
 
 
-async def test_list_my_notifications_200_ok(client):
+async def test_list_notifications_200_ok(client):
     user = await f.create_user()
     await f.create_notification(owner=user)
     await f.create_notification(owner=user)
     await f.create_notification(owner=user, read_at=aware_utcnow())
 
     client.login(user)
-    response = await client.get("/my/notifications")
+    response = await client.get("/notifications")
     assert response.status_code == 200, response.data
     assert len(response.json()) == 3
 
 
-async def test_list_my_notifications_200_ok_filter_only_read(client):
+async def test_list_notifications_200_ok_filter_only_read(client):
     user = await f.create_user()
     await f.create_notification(owner=user)
     await f.create_notification(owner=user)
     await f.create_notification(owner=user, read_at=aware_utcnow())
 
     client.login(user)
-    response = await client.get("/my/notifications?read=true")
+    response = await client.get("/notifications?read=true")
     assert response.status_code == 200, response.data
     assert len(response.json()) == 1
 
 
-async def test_list_my_notifications_200_ok_filter_only_unread(client):
+async def test_list_notifications_200_ok_filter_only_unread(client):
     user = await f.create_user()
     await f.create_notification(owner=user)
     await f.create_notification(owner=user)
     await f.create_notification(owner=user, read_at=aware_utcnow())
 
     client.login(user)
-    response = await client.get("/my/notifications?read=false")
+    response = await client.get("/notifications?read=false")
     assert response.status_code == 200, response.data
     assert len(response.json()) == 2
 
 
-async def test_list_my_notifications_401_forbidden_error_anonymous(client):
-    response = await client.get("/my/notifications")
+async def test_list_notifications_401_forbidden_error_anonymous(client):
+    response = await client.get("/notifications")
     assert response.status_code == 401, response.data
 
 
@@ -76,14 +76,14 @@ async def test_list_my_notifications_401_forbidden_error_anonymous(client):
 ##########################################################
 
 
-async def test_count_my_notifications_200_ok(client):
+async def test_count_notifications_200_ok(client):
     user = await f.create_user()
     await f.create_notification(owner=user)
     await f.create_notification(owner=user)
     await f.create_notification(owner=user, read_at=aware_utcnow())
 
     client.login(user)
-    response = await client.get("/my/notifications/count")
+    response = await client.get("/notifications/count")
     assert response.status_code == 200, response.data
     res = response.json()
     assert res["read"] == 1
@@ -91,8 +91,8 @@ async def test_count_my_notifications_200_ok(client):
     assert res["total"] == 3
 
 
-async def test_count_my_notifications_401_forbidden_error_anonymous(client):
-    response = await client.get("/my/notifications/count")
+async def test_count_notifications_401_forbidden_error_anonymous(client):
+    response = await client.get("/notifications/count")
     assert response.status_code == 401, response.data
 
 
@@ -107,13 +107,13 @@ async def test_mark_all_notifications_as_read_200_ok(client):
     await f.create_notification(owner=user)
 
     client.login(user)
-    response = await client.post("/my/notifications/read")
+    response = await client.post("/notifications/read")
     assert response.status_code == 200, response.data
     assert len(response.json()) == 2
 
 
 async def test_mark_all_notifications_as_read_401_anonymous(client):
-    response = await client.post("/my/notifications/read")
+    response = await client.post("/notifications/read")
     assert response.status_code == 401, response.data
 
 
@@ -127,40 +127,40 @@ async def test_mark_notification_as_read_200_ok(client):
     notification = await f.create_notification(owner=user)
 
     client.login(user)
-    response = await client.post(f"/my/notifications/{notification.b64id}/read")
+    response = await client.post(f"/notifications/{notification.b64id}/read")
     assert response.status_code == 200, response.data
     assert response.json()["readAt"] is not None, response.json()
 
 
-async def test_mark_my_notification_as_read_404_not_found(client):
+async def test_mark_notification_as_read_404_not_found(client):
     user = await f.create_user()
 
     client.login(user)
-    response = await client.post(f"/my/notifications/{NOT_EXISTING_B64ID}/read")
+    response = await client.post(f"/notifications/{NOT_EXISTING_B64ID}/read")
     assert response.status_code == 404, response.data
 
 
-async def test_mark_my_notification_as_read_403_forbidden_error(client):
+async def test_mark_notification_as_read_403_forbidden_error(client):
     user = await f.create_user()
     other_user = await f.create_user()
     notification = await f.create_notification(owner=user)
 
     client.login(other_user)
-    response = await client.post(f"/my/notifications/{notification.b64id}/read")
+    response = await client.post(f"/notifications/{notification.b64id}/read")
     assert response.status_code == 403, response.data
 
 
-async def test_mark_my_notification_as_read_401_forbidden_error(client):
+async def test_mark_notification_as_read_401_forbidden_error(client):
     user = await f.create_user()
     notification = await f.create_notification(owner=user)
 
-    response = await client.post(f"/my/notifications/{notification.b64id}/read")
+    response = await client.post(f"/notifications/{notification.b64id}/read")
     assert response.status_code == 401, response.data
 
 
-async def test_mark_my_notification_as_read_422_unprocessable_entity(client):
+async def test_mark_notification_as_read_422_unprocessable_entity(client):
     user = await f.create_user()
 
     client.login(user)
-    response = await client.post(f"/my/notifications/{INVALID_B64ID}/read")
+    response = await client.post(f"/notifications/{INVALID_B64ID}/read")
     assert response.status_code == 422, response.data

@@ -203,42 +203,42 @@ async def test_verify_user_error_used_token(client):
 
 
 ##########################################################
-# GET /my/user
+# GET /users/me
 ##########################################################
 
 
-async def test_my_user_error_no_authenticated_user(client):
-    response = await client.get("/my/user")
+async def test_get_current_user_error_no_authenticated_user(client):
+    response = await client.get("/users/me")
 
     assert response.status_code == 401
 
 
-async def test_my_user_success(client):
+async def test_get_current_user_success(client):
     user = await f.create_user()
 
     client.login(user)
-    response = await client.get("/my/user")
+    response = await client.get("/users/me")
 
     assert response.status_code == 200
     assert "email" in response.json().keys()
 
 
 ##########################################################
-# PUT /my/user
+# PUT /users/me
 ##########################################################
 
 
-async def test_update_my_user_error_no_authenticated_user(client):
+async def test_update_current_user_error_no_authenticated_user(client):
     data = {
         "fullName": "Ada Lovelace",
         "lang": "es-ES",
     }
-    response = await client.put("/my/user", json=data)
+    response = await client.put("/users/me", json=data)
 
     assert response.status_code == 401
 
 
-async def test_update_my_user_success(client):
+async def test_update_current_user_success(client):
     user = await f.create_user()
     data = {
         "fullName": "Ada Lovelace",
@@ -246,13 +246,13 @@ async def test_update_my_user_success(client):
     }
 
     client.login(user)
-    response = await client.put("/my/user", json=data)
+    response = await client.put("/users/me", json=data)
 
     assert response.status_code == 200, response.data
 
 
 #####################################################################
-# DELETE /my/user
+# DELETE /users/me
 #####################################################################
 
 
@@ -260,7 +260,7 @@ async def test_delete_user_204_ok(client):
     user = await f.create_user(username="user", is_active=True)
 
     client.login(user)
-    response = await client.delete("/my/user")
+    response = await client.delete("/users/me")
     assert response.status_code == 204, response.data
     assert not await User.objects.aexists()
 
@@ -323,7 +323,7 @@ async def test_delete_user_204_complex_data(client, project_template):
     await f.create_project_invitation(user=user, project=pj1_ws7)
 
     client.login(user)
-    response = await client.delete("/my/user")
+    response = await client.delete("/users/me")
     assert response.status_code == 204, response.data
 
     with pytest.raises(User.DoesNotExist):
@@ -350,7 +350,7 @@ async def test_delete_user_400_only_owner(client, project_template):
     await f.create_workspace_membership(workspace=ws1)
 
     client.login(user)
-    response = await client.delete("/my/user")
+    response = await client.delete("/users/me")
     assert response.status_code == 400, response.data
 
     # not only ws owner but only pj owner
@@ -358,28 +358,28 @@ async def test_delete_user_400_only_owner(client, project_template):
     await f.create_workspace_membership(workspace=ws1, role=owner_role)
     pj1_ws1 = await f.create_project(project_template, created_by=user, workspace=ws1)
     await f.create_project_membership(project=pj1_ws1)
-    response = await client.delete("/my/user")
+    response = await client.delete("/users/me")
     assert response.status_code == 400, response.data
 
 
 async def test_delete_user_401_unauthorized_user(client):
-    response = await client.get("/my/user")
+    response = await client.get("/users/me")
 
     assert response.status_code == 401
 
 
 #####################################################################
-# GET /my/user/delete-info
+# GET /users/me/delete-info
 #####################################################################
 
 
-async def test_get_user_delete_info_no_authenticated_user(client):
-    response = await client.get("/my/user/delete-info")
+async def test_get_current_user_delete_info_no_authenticated_user(client):
+    response = await client.get("/users/me/delete-info")
 
     assert response.status_code == 401
 
 
-async def test_get_user_delete_info_success(client, project_template):
+async def test_get_current_user_delete_info_success(client, project_template):
     user = await f.create_user(username="user", is_active=True)
     other_user = await f.create_user(username="other_user", is_active=True)
     # user only ws and pj member
@@ -452,7 +452,7 @@ async def test_get_user_delete_info_success(client, project_template):
     await f.create_project_membership(project=pj1_ws8, user=other_user)
 
     client.login(user)
-    response = await client.get("/my/user/delete-info")
+    response = await client.get("/users/me/delete-info")
     assert response.status_code == 200, response.data
     res = response.json()
     assert len(res) == 4
