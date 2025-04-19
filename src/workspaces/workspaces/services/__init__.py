@@ -53,6 +53,7 @@ async def create_workspace(
         color=workspace.color,
         user_role=owner_role,
         user_is_invited=False,
+        total_projects=0,
     )
 
 
@@ -84,6 +85,7 @@ async def get_user_workspace(
         color=workspace.color,
         user_role=user.workspace_role,
         user_is_invited=user.is_invited or False,
+        total_projects=workspace.total_projects,
     )
 
 
@@ -103,6 +105,7 @@ async def update_workspace(
         color=workspace.color,
         user_role=user.workspace_role,
         user_is_invited=False,
+        total_projects=workspace.total_projects,
     )
 
 

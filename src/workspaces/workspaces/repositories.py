@@ -26,6 +26,7 @@ from django.db.models import (
     Prefetch,
     Q,
 )
+from django.db.models.aggregates import Count
 
 from base.db.utils import Q_for_related
 from base.utils.datetime import aware_utcnow
@@ -139,7 +140,11 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
 async def get_workspace(
     workspace_id: UUID,
 ) -> Workspace:
-    qs = Workspace.objects.all().filter(id=workspace_id)
+    qs = (
+        Workspace.objects.all()
+        .annotate(total_projects=Count("projects"))
+        .filter(id=workspace_id)
+    )
     return await qs.aget()
 
 

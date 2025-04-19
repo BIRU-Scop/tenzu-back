@@ -87,6 +87,7 @@ async def test_get_workspace():
 
 async def test_get_user_workspace():
     workspace = f.build_workspace(name="test")
+    workspace.total_projects = 3
     user = f.build_user()
     role = f.build_workspace_role(workspace=workspace)
     user.workspace_role = role
@@ -104,6 +105,7 @@ async def test_get_user_workspace():
             color=workspace.color,
             user_role=role,
             user_is_invited=False,
+            total_projects=3,
         )
 
 

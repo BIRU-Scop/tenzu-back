@@ -36,6 +36,7 @@ class WorkspaceListProjectsSummarySerializer(BaseModel):
 class WorkspaceDetailSerializer(WorkspaceNestedSerializer):
     user_role: RoleSerializer | None
     user_is_invited: bool
+    total_projects: int
     model_config = ConfigDict(from_attributes=True)
 
 
