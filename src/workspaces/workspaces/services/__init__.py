@@ -23,6 +23,7 @@ from uuid import UUID
 from projects.projects import repositories as projects_repositories
 from users.models import User
 from workspaces.memberships import repositories as ws_memberships_repositories
+from workspaces.memberships.models import WorkspaceRole
 from workspaces.workspaces import events as workspaces_events
 from workspaces.workspaces import repositories as workspaces_repositories
 from workspaces.workspaces.models import Workspace
@@ -37,14 +38,8 @@ from workspaces.workspaces.services import exceptions as ex
 async def create_workspace(
     name: str, color: int, created_by: User
 ) -> WorkspaceDetailSerializer:
-    workspace = await workspaces_repositories.create_workspace(
+    workspace, owner_role = await _create_workspace(
         name=name, color=color, created_by=created_by
-    )
-    owner_role = (
-        await ws_memberships_repositories.bulk_create_workspace_default_roles(workspace)
-    )[0]
-    await ws_memberships_repositories.create_workspace_membership(
-        user=created_by, workspace=workspace, role=owner_role
     )
     return WorkspaceDetailSerializer(
         id=workspace.id,
@@ -55,6 +50,21 @@ async def create_workspace(
         user_is_invited=False,
         total_projects=0,
     )
+
+
+async def _create_workspace(
+    name: str, color: int, created_by: User
+) -> tuple[Workspace, WorkspaceRole]:
+    workspace = await workspaces_repositories.create_workspace(
+        name=name, color=color, created_by=created_by
+    )
+    owner_role = (
+        await ws_memberships_repositories.bulk_create_workspace_default_roles(workspace)
+    )[0]
+    await ws_memberships_repositories.create_workspace_membership(
+        user=created_by, workspace=workspace, role=owner_role
+    )
+    return workspace, owner_role
 
 
 ##########################################################

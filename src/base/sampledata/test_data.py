@@ -646,21 +646,31 @@ async def _create_scenario_with_invitations() -> None:
     user902 = await _create_user(902)
 
     # user900 is member of several workspaces
-    ws1 = await workspaces_services._create_workspace(
-        name="ws1 for members", created_by=user900, color=2
-    )
-    ws2 = await workspaces_services._create_workspace(
-        name="ws2 for members allowed(p)", created_by=user900, color=2
-    )
-    ws3 = await workspaces_services._create_workspace(
-        name="ws3 for members not allowed(p)", created_by=user900, color=2
-    )
-    ws4 = await workspaces_services._create_workspace(
-        name="ws4 for guests", created_by=user900, color=2
-    )
-    ws5 = await workspaces_services._create_workspace(
-        name="ws5 lots of projects", created_by=user900, color=2
-    )
+    ws1 = (
+        await workspaces_services._create_workspace(
+            name="ws1 for members", created_by=user900, color=2
+        )
+    )[0]
+    ws2 = (
+        await workspaces_services._create_workspace(
+            name="ws2 for members allowed(p)", created_by=user900, color=2
+        )
+    )[0]
+    ws3 = (
+        await workspaces_services._create_workspace(
+            name="ws3 for members not allowed(p)", created_by=user900, color=2
+        )
+    )[0]
+    ws4 = (
+        await workspaces_services._create_workspace(
+            name="ws4 for guests", created_by=user900, color=2
+        )
+    )[0]
+    ws5 = (
+        await workspaces_services._create_workspace(
+            name="ws5 lots of projects", created_by=user900, color=2
+        )
+    )[0]
 
     workspace_role = await ws_memberships_repositories.get_role(
         WorkspaceRole,
@@ -780,9 +790,11 @@ async def _create_scenario_for_searches() -> None:
     await factories.create_user(username="elmarv", full_name="Joanna Marinari")
 
     # user800 is member of ws1
-    ws1 = await workspaces_services._create_workspace(
-        name="ws for searches(p)", created_by=user800, color=2
-    )
+    ws1 = (
+        await workspaces_services._create_workspace(
+            name="ws for searches(p)", created_by=user800, color=2
+        )
+    )[0]
 
     workspace_role = await ws_memberships_repositories.get_role(
         WorkspaceRole,
@@ -832,9 +844,11 @@ async def _create_scenario_for_revoke() -> None:
         email="pruebastenzu+4@gmail.com",
     )
 
-    ws = await workspaces_services._create_workspace(
-        name="ws for revoking(p)", created_by=user1, color=2
-    )
+    ws = (
+        await workspaces_services._create_workspace(
+            name="ws for revoking(p)", created_by=user1, color=2
+        )
+    )[0]
     workspace_role = await ws_memberships_repositories.get_role(
         WorkspaceRole,
         filters={"workspace_id": ws.id, "slug": "member"},

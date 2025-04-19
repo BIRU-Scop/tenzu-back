@@ -91,11 +91,13 @@ def create_user(
 async def create_workspace(
     created_by: User, name: str | None = None, color: int | None = None
 ) -> Workspace:
-    return await workspaces_services._create_workspace(
-        name=name or fake.bs()[:35],
-        color=color or fake.random_int(min=1, max=NUM_COLORS),
-        created_by=created_by,
-    )
+    return (
+        await workspaces_services._create_workspace(
+            name=name or fake.bs()[:35],
+            color=color or fake.random_int(min=1, max=NUM_COLORS),
+            created_by=created_by,
+        )
+    )[0]
 
 
 async def create_workspace_memberships(workspace: Workspace, users: list[User]) -> None:
@@ -170,6 +172,7 @@ async def create_project(
 
 
 async def create_project_memberships(project: Project, users: list[User]) -> None:
+    memberships_cache = []
     # get owner and other roles
     other_roles = [r for r in project.roles.all() if r.slug != "owner"]
     owner_role = [r for r in project.roles.all() if r.slug == "owner"][0]
@@ -180,16 +183,23 @@ async def create_project_memberships(project: Project, users: list[User]) -> Non
     # calculate owner (at least 1/3 of the members) and no owner users
     num_owners = random.randint(0, len(users) // 3)
     for user in users[:num_owners]:
-        await pj_memberships_repositories.create_project_membership(
-            user=user, project=project, role=owner_role
+        memberships_cache.append(
+            await pj_memberships_repositories.create_project_membership(
+                user=user, project=project, role=owner_role
+            )
         )
 
     if other_roles:
         for user in users[num_owners:]:
             role = random.choice(other_roles)
-            await pj_memberships_repositories.create_project_membership(
-                user=user, project=project, role=role
+            memberships_cache.append(
+                await pj_memberships_repositories.create_project_membership(
+                    user=user, project=project, role=role
+                )
             )
+    # hack to fill prefetch cache so that no db refresh is needed to sync memberships
+    project._prefetched_objects_cache["memberships"] = memberships_cache
+    project._prefetched_objects_cache["members"] = [m.user for m in memberships_cache]
 
 
 async def create_project_invitations(project: Project, users: list[User]) -> None:
