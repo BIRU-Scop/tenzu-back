@@ -16,10 +16,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from decimal import Decimal
+from typing import Literal
 
-from pydantic import ConfigDict, field_validator
-from pydantic_core.core_schema import ValidationInfo
+from pydantic import ConfigDict
 
 from base.serializers import UUIDB64, BaseModel
 from stories.stories.serializers import StorySummarySerializer
@@ -29,11 +28,7 @@ from workflows.serializers.nested import (
 )
 
 
-class WorkflowSerializer(BaseModel):
-    id: UUIDB64
-    project_id: UUIDB64
-    name: str
-    slug: str
+class WorkflowSerializer(WorkflowNestedSerializer):
     order: int
     statuses: list[WorkflowStatusNestedSerializer]
     model_config = ConfigDict(from_attributes=True)
@@ -49,23 +44,19 @@ class DeleteWorkflowSerializer(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class WorkflowStatusSerializer(BaseModel):
-    id: UUIDB64
-    name: str
-    color: int
-    order: int
+class WorkflowStatusSerializer(WorkflowStatusNestedSerializer):
     workflow: WorkflowNestedSerializer
     model_config = ConfigDict(from_attributes=True)
 
 
-class ReorderSerializer(BaseModel):
-    place: str
-    status: UUIDB64
+class _ReorderSerializer(BaseModel):
+    place: Literal["before", "after"]
+    status_id: UUIDB64
     model_config = ConfigDict(from_attributes=True)
 
 
 class ReorderWorkflowStatusesSerializer(BaseModel):
     workflow: WorkflowNestedSerializer
-    statuses: list[UUIDB64]
-    reorder: ReorderSerializer | None = None
+    status_ids: list[UUIDB64]
+    reorder: _ReorderSerializer | None = None
     model_config = ConfigDict(from_attributes=True)

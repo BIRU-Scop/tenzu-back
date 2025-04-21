@@ -545,8 +545,8 @@ async def test_reorder_statuses_200_ok_with_reorder_ok(client, project_template)
     reorder_status = await sync_to_async(workflow.statuses.last)()
 
     data = {
-        "statuses": [wf_status.b64id],
-        "reorder": {"place": "before", "status": reorder_status.b64id},
+        "status_ids": [wf_status.b64id],
+        "reorder": {"place": "before", "status_id": reorder_status.b64id},
     }
     client.login(project.created_by)
     response = await client.post(
@@ -556,8 +556,8 @@ async def test_reorder_statuses_200_ok_with_reorder_ok(client, project_template)
     assert response.status_code == 200, response.data
     res = response.json()
     assert "reorder" in res
-    assert "statuses" in res
-    assert res["statuses"] == [wf_status.b64id]
+    assert "statusIds" in res
+    assert res["statusIds"] == [wf_status.b64id]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -581,8 +581,8 @@ async def test_reorder_statuses_forbidden_not_member(client, project_template):
     reorder_status = await sync_to_async(workflow.statuses.last)()
 
     data = {
-        "statuses": [wf_status.b64id],
-        "reorder": {"place": "before", "status": reorder_status.b64id},
+        "status_ids": [wf_status.b64id],
+        "reorder": {"place": "before", "status_id": reorder_status.b64id},
     }
 
     user = await f.create_user()
@@ -601,8 +601,8 @@ async def test_reorder_statuses_forbidden_no_permission(client, project_template
     reorder_status = await sync_to_async(workflow.statuses.last)()
 
     data = {
-        "statuses": [wf_status.b64id],
-        "reorder": {"place": "before", "status": reorder_status.b64id},
+        "status_ids": [wf_status.b64id],
+        "reorder": {"place": "before", "status_id": reorder_status.b64id},
     }
 
     pj_member = await f.create_user()
@@ -627,8 +627,8 @@ async def test_reorder_statuses_404_not_found_pj_b64id(client, project_template)
     reorder_status = await sync_to_async(workflow.statuses.last)()
 
     data = {
-        "statuses": [wf_status.b64id],
-        "reorder": {"place": "before", "status": reorder_status.b64id},
+        "status_ids": [wf_status.b64id],
+        "reorder": {"place": "before", "status_id": reorder_status.b64id},
     }
     client.login(pj.created_by)
     response = await client.post(
@@ -645,8 +645,8 @@ async def test_reorder_statuses_404_not_found_workflow_slug(client, project_temp
     reorder_status = await sync_to_async(workflow.statuses.last)()
 
     data = {
-        "statuses": [wf_status.b64id],
-        "reorder": {"place": "before", "status": reorder_status.b64id},
+        "status_ids": [wf_status.b64id],
+        "reorder": {"place": "before", "status_id": reorder_status.b64id},
     }
     client.login(pj.created_by)
     response = await client.post(
@@ -664,8 +664,8 @@ async def test_reorder_statuses_422_unprocessable_pj_b64id(client, project_templ
     reorder_status = await sync_to_async(workflow.statuses.last)()
 
     data = {
-        "statuses": [wf_status.b64id],
-        "reorder": {"place": "before", "status": reorder_status.b64id},
+        "status_ids": [wf_status.b64id],
+        "reorder": {"place": "before", "status_id": reorder_status.b64id},
     }
     client.login(pj.created_by)
     response = await client.post(

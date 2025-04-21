@@ -292,7 +292,7 @@ async def delete_workflow(
             if not target_workflow_statuses:
                 await reorder_workflow_statuses(
                     target_workflow=target_workflow,
-                    statuses=[status.id for status in statuses_to_move],
+                    status_ids=[status.id for status in statuses_to_move],
                     reorder=None,
                     source_workflow=workflow,
                 )
@@ -300,10 +300,10 @@ async def delete_workflow(
             else:
                 await reorder_workflow_statuses(
                     target_workflow=target_workflow,
-                    statuses=[status.id for status in statuses_to_move],
+                    status_ids=[status.id for status in statuses_to_move],
                     reorder={
                         "place": "after",
-                        "status": target_workflow_statuses[0].id,
+                        "status_id": target_workflow_statuses[0].id,
                     },
                     source_workflow=workflow,
                 )
@@ -440,7 +440,7 @@ async def _calculate_offset(
 @transaction_atomic_async
 async def reorder_workflow_statuses(
     target_workflow: Workflow,
-    statuses: list[UUID],
+    status_ids: list[UUID],
     reorder: dict[str, Any] | None,
     source_workflow: Workflow | None = None,
 ) -> ReorderWorkflowStatusesSerializer:
@@ -448,7 +448,7 @@ async def reorder_workflow_statuses(
     Reorder the statuses from a workflow to another (can be the same), before or after an existing status
     (anchor) when a reorder criteria is provided, or preserving its original order when not provided.
     :param target_workflow: the destination workflow for the statuses being reordered
-    :param statuses: the statuses id's to reorder (move) in the "target_workflow"
+    :param status_ids: the statuses id's to reorder (move) in the "target_workflow"
     :param reorder: reorder["status"] anchor workflow status's id, reorder["place"]: position strategy ["before","after]
         None will mean there's no anchor status preserving their original order
     :param source_workflow: Workflow containing the statuses to reorder.
@@ -460,10 +460,10 @@ async def reorder_workflow_statuses(
 
     statuses_to_reorder = (
         await workflows_repositories.list_workflow_statuses_to_reorder(
-            workflow_id=source_workflow.id, ids=statuses
+            workflow_id=source_workflow.id, ids=status_ids
         )
     )
-    if len(statuses_to_reorder) < len(statuses):
+    if len(statuses_to_reorder) < len(status_ids):
         raise ex.InvalidWorkflowStatusError(
             "One or more statuses don't exist in this workflow"
         )
@@ -481,7 +481,7 @@ async def reorder_workflow_statuses(
     elif reorder:
         # check anchor workflow status exists
         reorder_reference_status = await workflows_repositories.get_workflow_status(
-            status_id=reorder["status"],
+            status_id=reorder["status_id"],
             filters={
                 "workflow_id": target_workflow.id,
             },
@@ -489,12 +489,12 @@ async def reorder_workflow_statuses(
         if not reorder_reference_status:
             # re-ordering in the same workflow must have a valid anchor status
             raise ex.InvalidWorkflowStatusError(
-                f"Status {reorder['status']} doesn't exist in this workflow"
+                f"Status {reorder['status_id']} doesn't exist in this workflow"
             )
 
-        if reorder["status"] in statuses:
+        if reorder["status_id"] in status_ids:
             raise ex.InvalidWorkflowStatusError(
-                f"Status {reorder['status']} should not be part of the statuses to reorder"
+                f"Status {reorder['status_id']} should not be part of the statuses to reorder"
             )
         reorder_place = reorder["place"]
         # calculate offset
@@ -503,7 +503,7 @@ async def reorder_workflow_statuses(
             total_statuses_to_reorder=len(statuses_to_reorder),
             reorder_reference_status=reorder_reference_status,
             reorder_place=reorder_place,
-            reordered_statuses=statuses,
+            reordered_statuses=status_ids,
         )
         if offset == 0:
             # There is not enough space left between the stories where stories_to_reorder need to be inserted
@@ -513,7 +513,7 @@ async def reorder_workflow_statuses(
                 filters={
                     "order__gt": pre_order,
                 },
-                excludes={"id__in": statuses},
+                excludes={"id__in": status_ids},
                 order_by=["order"],
             )
             total_slots = len(statuses_to_reorder) + 1
@@ -540,14 +540,14 @@ async def reorder_workflow_statuses(
     if source_workflow != target_workflow and statuses_to_reorder:
         # update the workflow to the moved stories
         await stories_repositories.bulk_update_workflow_to_stories(
-            statuses_ids=statuses,
+            statuses_ids=status_ids,
             old_workflow_id=source_workflow.id,
             new_workflow_id=target_workflow.id,
         )
 
     reorder_status_serializer = (
         serializers_services.serialize_reorder_workflow_statuses(
-            workflow=target_workflow, statuses=statuses, reorder=reorder
+            workflow=target_workflow, status_ids=status_ids, reorder=reorder
         )
     )
 

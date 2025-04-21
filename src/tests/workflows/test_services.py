@@ -604,7 +604,7 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
                 name=deleted_workflow.name,
                 slug=deleted_workflow.slug,
             ),
-            statuses=[],
+            status_ids=[],
             reorder=None,
         )
         fake_workflows_repo.list_workflow_statuses.side_effect = [
@@ -639,8 +639,8 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         )
         fake_reorder_workflow_statuses.assert_awaited_once_with(
             target_workflow=target_workflow,
-            statuses=[status.id for status in deleted_workflow_statuses],
-            reorder={"place": "after", "status": target_workflow_statuses[0].id},
+            status_ids=[status.id for status in deleted_workflow_statuses],
+            reorder={"place": "after", "status_id": target_workflow_statuses[0].id},
             source_workflow=deleted_workflow,
         )
         fake_get_workflow_detail.assert_awaited_once_with(
@@ -713,7 +713,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
                 name=deleted_workflow.name,
                 slug=deleted_workflow.slug,
             ),
-            statuses=[],
+            status_ids=[],
             reorder=None,
         )
         fake_workflows_repo.list_workflow_statuses.side_effect = [
@@ -748,7 +748,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         )
         fake_reorder_workflow_statuses.assert_awaited_once_with(
             target_workflow=target_workflow,
-            statuses=[status.id for status in deleted_workflow_statuses],
+            status_ids=[status.id for status in deleted_workflow_statuses],
             reorder=None,
             source_workflow=deleted_workflow,
         )
@@ -957,8 +957,8 @@ async def test_reorder_workflow_statuses_same_workflow_ok():
 
         await services.reorder_workflow_statuses(
             target_workflow=f.build_workflow(),
-            statuses=[status3.id, status2.id],
-            reorder={"place": "after", "status": status1.id},
+            status_ids=[status3.id, status2.id],
+            reorder={"place": "after", "status_id": status1.id},
         )
 
         fake_stories_repo.bulk_update_workflow_to_stories.assert_not_awaited()
@@ -998,8 +998,8 @@ async def test_reorder_workflow_statuses_between_workflows_with_anchor_ok():
 
         await services.reorder_workflow_statuses(
             target_workflow=workflow1,
-            statuses=[status3.id, status2.id],
-            reorder={"place": "after", "status": status1.id},
+            status_ids=[status3.id, status2.id],
+            reorder={"place": "after", "status_id": status1.id},
             source_workflow=workflow2,
         )
 
@@ -1040,7 +1040,7 @@ async def test_reorder_workflow_statuses_between_workflows_no_anchor_ok():
 
         await services.reorder_workflow_statuses(
             target_workflow=workflow2,
-            statuses=[status1.id, status2.id],
+            status_ids=[status1.id, status2.id],
             reorder=None,
             source_workflow=workflow1,
         )
@@ -1074,7 +1074,7 @@ async def test_reorder_workflow_statuses_between_workflows_no_anchor_same_workfl
 
         await services.reorder_workflow_statuses(
             target_workflow=workflow,
-            statuses=[status1.id, status2.id],
+            status_ids=[status1.id, status2.id],
             reorder=None,
             source_workflow=workflow,
         )
@@ -1094,8 +1094,8 @@ async def test_reorder_workflow_status_repeated():
 
         await services.reorder_workflow_statuses(
             target_workflow=workflow,
-            statuses=[status.id],
-            reorder={"place": "after", "status": status.id},
+            status_ids=[status.id],
+            reorder={"place": "after", "status_id": status.id},
         )
 
 
@@ -1111,8 +1111,8 @@ async def test_reorder_anchor_workflow_status_does_not_exist():
 
         await services.reorder_workflow_statuses(
             target_workflow=f.build_workflow(),
-            statuses=["in-progress"],
-            reorder={"place": "after", "status": "mooo"},
+            status_ids=["in-progress"],
+            reorder={"place": "after", "status_id": "mooo"},
         )
 
 
@@ -1128,8 +1128,8 @@ async def test_reorder_any_workflow_status_does_not_exist():
 
         await services.reorder_workflow_statuses(
             target_workflow=f.build_workflow(),
-            statuses=["in-progress", "mooo"],
-            reorder={"place": "after", "status": "new"},
+            status_ids=["in-progress", "mooo"],
+            reorder={"place": "after", "status_id": "new"},
         )
 
 
@@ -1144,8 +1144,8 @@ async def test_after_in_the_middle_multiple() -> None:
 
     await services.reorder_workflow_statuses(
         target_workflow=workflow,
-        statuses=[status2.id, status3.id, status5.id],
-        reorder={"place": "after", "status": status1.id},
+        status_ids=[status2.id, status3.id, status5.id],
+        reorder={"place": "after", "status_id": status1.id},
         source_workflow=workflow,
     )
 

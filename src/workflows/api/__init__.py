@@ -384,9 +384,7 @@ async def reorder_workflow_statuses(
     model_dump = form.model_dump()
 
     return await workflows_services.reorder_workflow_statuses(
-        target_workflow=workflow,
-        statuses=model_dump["statuses"],
-        reorder=model_dump["reorder"],
+        target_workflow=workflow, **model_dump
     )
 
 

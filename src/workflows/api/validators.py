@@ -60,14 +60,14 @@ class UpdateWorkflowStatusValidator(BaseModel):
 
 class ReorderValidator(BaseModel):
     place: Literal["before", "after"]
-    status: B64UUID
+    status_id: B64UUID
 
 
 class ReorderWorkflowStatusesValidator(BaseModel):
-    statuses: Annotated[List[B64UUID], Field(min_length=1)]  # type: ignore[valid-type]
+    status_ids: Annotated[List[B64UUID], Field(min_length=1)]  # type: ignore[valid-type]
     reorder: ReorderValidator
 
-    @field_validator("statuses")
+    @field_validator("status_ids")
     @classmethod
     def return_unique_statuses(cls, v: list[str], info: ValidationInfo) -> list[str]:
         """
