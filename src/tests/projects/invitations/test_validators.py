@@ -22,7 +22,7 @@ from pydantic import ValidationError
 
 from memberships.api.validators import (
     InvitationsValidator,
-    InvitationValidator,
+    _InvitationValidator,
 )
 from tests.utils.utils import check_validation_errors
 
@@ -49,7 +49,7 @@ from tests.utils.utils import check_validation_errors
 )
 def test_email_role_slug(email, username, role_slug, error_fields, expected_errors):
     with pytest.raises(ValidationError) as validation_errors:
-        InvitationValidator(email=email, username=username, role_slug=role_slug)
+        _InvitationValidator(email=email, username=username, role_slug=role_slug)
 
     expected_error_fields = error_fields
     expected_error_messages = expected_errors

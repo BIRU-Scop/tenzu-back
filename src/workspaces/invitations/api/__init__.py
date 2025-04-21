@@ -39,7 +39,7 @@ from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.invitations.permissions import InvitationPermissionsCheck
 from workspaces.invitations.serializers import (
     CreateInvitationsSerializer,
-    PublicWorkspaceInvitationSerializer,
+    PublicWorkspacePendingInvitationSerializer,
     WorkspaceInvitationSerializer,
 )
 from workspaces.workspaces.api import get_workspace_or_404
@@ -140,7 +140,7 @@ async def list_workspace_invitations(
     url_name="workspace.invitations.get",
     summary="Get public information about a workspace invitation",
     response={
-        200: PublicWorkspaceInvitationSerializer,
+        200: PublicWorkspacePendingInvitationSerializer,
         400: ERROR_RESPONSE_400,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -148,17 +148,15 @@ async def list_workspace_invitations(
     by_alias=True,
     auth=None,
 )
-async def get_public_workspace_invitation(
+async def get_public_pending_workspace_invitation(
     request, token: str
-) -> PublicWorkspaceInvitationSerializer:
+) -> PublicWorkspacePendingInvitationSerializer:
     """
-    Get public information about a workspace invitation
+    Get public information about a pending workspace invitation
     """
     try:
-        invitation = (
-            await workspaces_invitations_services.get_public_workspace_invitation(
-                token=token
-            )
+        invitation = await workspaces_invitations_services.get_public_pending_workspace_invitation(
+            token=token
         )
     except BadInvitationTokenError as e:
         raise ex.BadRequest(str(e))

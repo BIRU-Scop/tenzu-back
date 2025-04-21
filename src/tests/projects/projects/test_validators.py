@@ -21,7 +21,10 @@
 import pytest
 from pydantic import ValidationError
 
-from projects.projects.api.validators import ProjectValidator, UpdateProjectValidator
+from projects.projects.api.validators import (
+    CreateProjectValidator,
+    UpdateProjectValidator,
+)
 from tests.utils import factories as f
 from tests.utils.utils import check_validation_errors
 
@@ -32,7 +35,7 @@ from tests.utils.utils import check_validation_errors
 
 def test_validate_create_user_wrong_not_all_required_fields():
     with pytest.raises(ValidationError) as validation_errors:
-        ProjectValidator()
+        CreateProjectValidator()
 
     expected_error_fields = ["name"]
     expected_error_messages = ["Field required"]
@@ -49,7 +52,7 @@ def test_validate_project_with_empty_name():
         ValidationError, match=r"String should have at least 1 character"
     ):
         # noinspection PyArgumentList
-        ProjectValidator(name=name, color=color)
+        CreateProjectValidator(name=name, color=color)
 
 
 def test_validate_project_with_long_name():
@@ -58,7 +61,7 @@ def test_validate_project_with_long_name():
     with pytest.raises(
         ValidationError, match=r"String should have at most 80 characters"
     ):
-        ProjectValidator(name=name, color=color)
+        CreateProjectValidator(name=name, color=color)
 
 
 def test_validate_project_with_long_description():
@@ -74,7 +77,7 @@ def test_validate_project_with_long_description():
     with pytest.raises(
         ValidationError, match=r"String should have at most 220 characters"
     ):
-        ProjectValidator(name=name, description=description, color=color)
+        CreateProjectValidator(name=name, description=description, color=color)
 
 
 def test_validate_project_with_invalid_color():
@@ -84,14 +87,14 @@ def test_validate_project_with_invalid_color():
     with pytest.raises(
         ValidationError, match=r"Input should be less than or equal to 8"
     ):
-        ProjectValidator(name=name, color=color)
+        CreateProjectValidator(name=name, color=color)
 
 
 def test_valid_project():
     name = "Project test"
     color = 1
 
-    project = ProjectValidator(name=name, color=color)
+    project = CreateProjectValidator(name=name, color=color)
 
     assert project.name == name
     assert project.color == color
@@ -103,7 +106,7 @@ def test_validate_logo_content_type():
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        ProjectValidator(color=color, logo=logo)
+        CreateProjectValidator(color=color, logo=logo)
 
     expected_error_fields = [
         "logo",
@@ -124,7 +127,7 @@ def test_validate_logo_content():
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        ProjectValidator(color=color, logo=logo)
+        CreateProjectValidator(color=color, logo=logo)
 
     expected_error_fields = ["logo", "name"]
     expected_error_messages = ["Value error, Invalid image content", "Field required"]
@@ -139,7 +142,7 @@ def test_validate_logo_name_empty():
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        ProjectValidator(color=color, logo=logo)
+        CreateProjectValidator(color=color, logo=logo)
 
     expected_error_fields = ["name"]
     expected_error_messages = ["Field required"]

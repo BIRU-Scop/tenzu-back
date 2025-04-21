@@ -46,7 +46,7 @@ class MembershipValidator(BaseModel):
 # --- Invitations
 
 
-class InvitationValidator(BaseModel):
+class _InvitationValidator(BaseModel):
     email: EmailStr | None = None
     username: str | None = None
     role_slug: Annotated[
@@ -75,7 +75,7 @@ class InvitationValidator(BaseModel):
 
 class InvitationsValidator(BaseModel):
     # Max items 50 and duplicated items not allowed
-    invitations: Annotated[List[InvitationValidator], Field(max_length=50)]
+    invitations: Annotated[List[_InvitationValidator], Field(max_length=50)]
 
 
 class UpdateInvitationValidator(BaseModel):

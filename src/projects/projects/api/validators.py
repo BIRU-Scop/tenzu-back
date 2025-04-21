@@ -67,7 +67,7 @@ LogoField = Annotated[
 ]
 
 
-class ProjectValidator(BaseModel):
+class CreateProjectValidator(BaseModel):
     name: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
     ]  # type: ignore

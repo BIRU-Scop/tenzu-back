@@ -42,9 +42,8 @@ from workspaces.invitations import repositories as invitations_repositories
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.invitations.serializers import (
     CreateInvitationsSerializer,
-    PublicWorkspaceInvitationSerializer,
+    PublicWorkspacePendingInvitationSerializer,
 )
-from workspaces.invitations.serializers import services as serializers_services
 from workspaces.invitations.tokens import WorkspaceInvitationToken
 from workspaces.memberships import repositories as memberships_repositories
 from workspaces.workspaces.models import Workspace
@@ -104,7 +103,9 @@ async def list_workspace_invitations(
 ##########################################################
 
 
-async def get_workspace_invitation(token: str) -> WorkspaceInvitation | None:
+async def get_workspace_invitation(
+    token: str, filters: WorkspaceInvitationFilters = {}
+) -> WorkspaceInvitation | None:
     try:
         invitation_token = WorkspaceInvitationToken(token=token)
     except TokenError:
@@ -113,22 +114,27 @@ async def get_workspace_invitation(token: str) -> WorkspaceInvitation | None:
     invitation_data = cast(WorkspaceInvitationFilters, invitation_token.object_id_data)
     return await invitations_repositories.get_invitation(
         WorkspaceInvitation,
-        filters=invitation_data,
+        filters={**invitation_data, **filters},
         select_related=["user", "workspace", "role"],
     )
 
 
-async def get_public_workspace_invitation(
+async def get_public_pending_workspace_invitation(
     token: str,
-) -> PublicWorkspaceInvitationSerializer | None:
-    invitation = await get_workspace_invitation(token=token)
+) -> PublicWorkspacePendingInvitationSerializer | None:
+    invitation = await get_workspace_invitation(
+        token=token, filters={"status": InvitationStatus.PENDING}
+    )
     available_logins = (
         await auth_services.get_available_user_logins(user=invitation.user)
         if invitation.user
         else []
     )
-    return serializers_services.serialize_public_workspace_invitation(
-        invitation=invitation, available_logins=available_logins
+    return PublicWorkspacePendingInvitationSerializer(
+        email=invitation.email,
+        existing_user=invitation.user is not None,
+        available_logins=available_logins,
+        workspace=invitation.workspace,
     )
 
 

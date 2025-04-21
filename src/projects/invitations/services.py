@@ -41,9 +41,8 @@ from projects.invitations import repositories as invitations_repositories
 from projects.invitations.models import ProjectInvitation
 from projects.invitations.serializers import (
     CreateInvitationsSerializer,
-    PublicProjectInvitationSerializer,
+    PublicProjectPendingInvitationSerializer,
 )
-from projects.invitations.serializers import services as serializers_services
 from projects.invitations.tokens import ProjectInvitationToken
 from projects.memberships import repositories as memberships_repositories
 from projects.projects.models import Project
@@ -109,7 +108,9 @@ async def list_project_invitations(project_id: UUID) -> list[ProjectInvitation]:
 ##########################################################
 
 
-async def get_project_invitation(token: str) -> ProjectInvitation:
+async def get_project_invitation(
+    token: str, filters: ProjectInvitationFilters = {}
+) -> ProjectInvitation:
     try:
         invitation_token = ProjectInvitationToken(token=token)
     except TokenError:
@@ -118,22 +119,27 @@ async def get_project_invitation(token: str) -> ProjectInvitation:
     invitation_data = cast(ProjectInvitationFilters, invitation_token.object_id_data)
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
-        filters=invitation_data,
+        filters={**invitation_data, **filters},
         select_related=["user", "project", "project__workspace", "role"],
     )
 
 
-async def get_public_project_invitation(
+async def get_public_pending_project_invitation(
     token: str,
-) -> PublicProjectInvitationSerializer | None:
-    invitation = await get_project_invitation(token=token)
+) -> PublicProjectPendingInvitationSerializer | None:
+    invitation = await get_project_invitation(
+        token=token, filters={"status": InvitationStatus.PENDING}
+    )
     available_logins = (
         await auth_services.get_available_user_logins(user=invitation.user)
         if invitation.user
         else []
     )
-    return serializers_services.serialize_public_project_invitation(
-        invitation=invitation, available_logins=available_logins
+    return PublicProjectPendingInvitationSerializer(
+        email=invitation.email,
+        existing_user=invitation.user is not None,
+        available_logins=available_logins,
+        project=invitation.project,
     )
 
 

@@ -291,6 +291,14 @@ async def test_get_project_invitation_invitation_does_not_exist(client):
     assert response.status_code == 404, response.data
 
 
+async def test_get_project_invitation_accepted_does_not_exist(client):
+    invitation = await f.create_project_invitation(status=InvitationStatus.ACCEPTED)
+    token = await ProjectInvitationToken.create_for_object(invitation)
+
+    response = await client.get(f"/projects/invitations/{str(token)}")
+    assert response.status_code == 404, response.data
+
+
 #########################################################################
 # POST /projects/invitations/<token>/accept (accept a project invitation)
 #########################################################################

@@ -34,8 +34,8 @@ from permissions import (
 )
 from projects.projects import services as projects_services
 from projects.projects.api.validators import (
+    CreateProjectValidator,
     LogoField,
-    ProjectValidator,
     UpdateProjectValidator,
 )
 from projects.projects.models import Project
@@ -72,7 +72,7 @@ projects_router = Router()
 async def create_project(
     request,
     workspace_id: Path[B64UUID],
-    form: Form[ProjectValidator],
+    form: Form[CreateProjectValidator],
     logo: LogoField | None = File(None),
 ) -> ProjectDetailSerializer:
     """

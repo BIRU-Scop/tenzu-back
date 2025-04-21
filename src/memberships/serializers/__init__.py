@@ -34,25 +34,16 @@ class RoleSerializer(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PublicInvitationSerializer(BaseModel):
+class InvitationBaseSerializer(BaseModel):
+    id: UUIDB64
     status: InvitationStatus
-    email: EmailStr
-    existing_user: bool
-    available_logins: list[str]
-
-
-class InvitationSerializer(BaseModel):
-    id: UUIDB64
     user: UserNestedSerializer | None = None
     role: RoleSerializer
     email: EmailStr
 
 
-class PrivateEmailInvitationSerializer(BaseModel):
-    id: UUIDB64
-    user: UserNestedSerializer | None = None
-    role: RoleSerializer
-    email: EmailStr | None = None
+class _PrivateEmailInvitationSerializer(InvitationBaseSerializer):
+    email: EmailStr | None
     model_config = ConfigDict(from_attributes=True)
 
     @field_validator("email", mode="after")
@@ -63,6 +54,12 @@ class PrivateEmailInvitationSerializer(BaseModel):
 
 
 class CreateInvitationsSerializer(BaseModel):
-    invitations: list[PrivateEmailInvitationSerializer]
+    invitations: list[_PrivateEmailInvitationSerializer]
     already_members: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class PublicPendingInvitationBaseSerializer(BaseModel):
+    email: EmailStr
+    existing_user: bool
+    available_logins: list[str]

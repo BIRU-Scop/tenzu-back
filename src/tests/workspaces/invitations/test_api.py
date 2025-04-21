@@ -287,6 +287,14 @@ async def test_get_workspace_invitation_404_not_found_token(client):
     assert response.status_code == 404, response.data
 
 
+async def test_get_workspace_invitation_revoked_does_not_exist(client):
+    invitation = await f.create_workspace_invitation(status=InvitationStatus.REVOKED)
+    token = await WorkspaceInvitationToken.create_for_object(invitation)
+
+    response = await client.get(f"/workspaces/invitations/{str(token)}")
+    assert response.status_code == 404, response.data
+
+
 #########################################################################
 # POST /workspaces/invitations/<token>/accept
 #########################################################################

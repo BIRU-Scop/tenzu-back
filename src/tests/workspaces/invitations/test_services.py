@@ -488,10 +488,12 @@ async def test_get_public_workspace_invitation_ok():
         fake_auth_services.get_available_user_logins.return_value = (
             available_user_logins
         )
-        pub_invitation = await services.get_public_workspace_invitation(token=token)
+        pub_invitation = await services.get_public_pending_workspace_invitation(
+            token=token
+        )
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
-            filters={"id": str(invitation.id)},
+            filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
             select_related=["user", "workspace", "role"],
         )
         fake_auth_services.get_available_user_logins.assert_awaited_once_with(
@@ -517,10 +519,10 @@ async def test_get_public_workspace_invitation_ok_without_user():
         ) as fake_auth_services,
     ):
         fake_invitations_repo.get_invitation.return_value = invitation
-        pub_invitation = await services.get_public_workspace_invitation(token)
+        pub_invitation = await services.get_public_pending_workspace_invitation(token)
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
-            filters={"id": str(invitation.id)},
+            filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
             select_related=["user", "workspace", "role"],
         )
         fake_auth_services.get_available_user_logins.assert_not_awaited()
@@ -542,10 +544,10 @@ async def test_get_public_workspace_invitation_error_invitation_not_exists():
             WorkspaceInvitation.DoesNotExist
         )
         with pytest.raises(WorkspaceInvitation.DoesNotExist):
-            await services.get_public_workspace_invitation(token)
+            await services.get_public_pending_workspace_invitation(token)
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
-            filters={"id": str(invitation.id)},
+            filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
             select_related=["user", "workspace", "role"],
         )
 

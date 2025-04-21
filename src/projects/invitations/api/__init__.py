@@ -45,7 +45,7 @@ from projects.invitations.permissions import ProjectInvitationPermissionsCheck
 from projects.invitations.serializers import (
     CreateInvitationsSerializer,
     ProjectInvitationSerializer,
-    PublicProjectInvitationSerializer,
+    PublicProjectPendingInvitationSerializer,
 )
 from projects.projects.api import get_project_or_404
 
@@ -141,7 +141,7 @@ async def list_project_invitations(
     url_name="project.invitations.get",
     summary="Get information about a project invitation using a token",
     response={
-        200: PublicProjectInvitationSerializer,
+        200: PublicProjectPendingInvitationSerializer,
         400: ERROR_RESPONSE_400,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -149,14 +149,14 @@ async def list_project_invitations(
     by_alias=True,
     auth=None,
 )
-async def get_public_project_invitation(
+async def get_public_pending_project_invitation(
     request, token: str
-) -> PublicProjectInvitationSerializer:
+) -> PublicProjectPendingInvitationSerializer:
     """
-    Get public information about a project invitation
+    Get public information about a pending project invitation
     """
     try:
-        invitation = await invitations_services.get_public_project_invitation(
+        invitation = await invitations_services.get_public_pending_project_invitation(
             token=token
         )
     except BadInvitationTokenError as e:

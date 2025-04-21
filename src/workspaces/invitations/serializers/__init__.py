@@ -22,17 +22,17 @@ from pydantic import ConfigDict
 
 from memberships.serializers import (
     CreateInvitationsSerializer,  # noqa
-    InvitationSerializer,
-    PublicInvitationSerializer,
+    InvitationBaseSerializer,
+    PublicPendingInvitationBaseSerializer,
 )
-from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
+from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializer
 
 
-class PublicWorkspaceInvitationSerializer(PublicInvitationSerializer):
-    workspace: WorkspaceNestedSerializer
+class PublicWorkspacePendingInvitationSerializer(PublicPendingInvitationBaseSerializer):
+    workspace: WorkspaceLinkNestedSerializer
     model_config = ConfigDict(from_attributes=True)
 
 
-class WorkspaceInvitationSerializer(InvitationSerializer):
-    workspace: WorkspaceNestedSerializer
+class WorkspaceInvitationSerializer(InvitationBaseSerializer):
+    workspace: WorkspaceLinkNestedSerializer
     model_config = ConfigDict(from_attributes=True)

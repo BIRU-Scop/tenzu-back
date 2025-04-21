@@ -26,25 +26,20 @@ from projects.projects.serializers.nested import (
     ProjectLinkNestedSerializer,
     ProjectNestedSerializer,
 )
+from users.serializers.nested import UserNestedSerializer
 from workspaces.invitations.serializers.nested import (
     WorkspaceInvitationNestedSerializer,
 )
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class UserBaseSerializer(BaseModel):
-    username: str
-    full_name: str
-    color: int
-
-
-class UserSerializer(UserBaseSerializer):
+class UserSerializer(UserNestedSerializer):
     email: EmailStr
     lang: str
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserSearchSerializer(UserBaseSerializer):
+class UserSearchSerializer(UserNestedSerializer):
     user_is_member: bool | None = None
     user_has_pending_invitation: bool | None = None
     model_config = ConfigDict(from_attributes=True)

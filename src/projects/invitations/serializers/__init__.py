@@ -23,18 +23,18 @@ from pydantic import ConfigDict
 from base.serializers import UUIDB64, BaseModel
 from memberships.serializers import (
     CreateInvitationsSerializer,  # noqa
-    InvitationSerializer,
-    PublicInvitationSerializer,
+    InvitationBaseSerializer,
+    PublicPendingInvitationBaseSerializer,
 )
 from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 
 
-class PublicProjectInvitationSerializer(PublicInvitationSerializer):
+class PublicProjectPendingInvitationSerializer(PublicPendingInvitationBaseSerializer):
     project: ProjectLinkNestedSerializer
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjectInvitationSerializer(InvitationSerializer):
+class ProjectInvitationSerializer(InvitationBaseSerializer):
     project: ProjectLinkNestedSerializer
     workspace_id: UUIDB64
 
