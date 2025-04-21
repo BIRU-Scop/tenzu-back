@@ -191,10 +191,6 @@ async def test_list_workspace_projects_for_a_ws_member():
         patch(
             "projects.projects.services.projects_repositories", autospec=True
         ) as fake_projects_repo,
-        patch(
-            "projects.projects.services.WorkspaceListProjectsSummarySerializer",
-            autospec=True,
-        ) as fake_WorkspaceListProjectsSummarySerializer,
     ):
         fake_projects_repo.list_workspace_projects_for_user.return_value = []
         await services.list_workspace_projects_for_user(

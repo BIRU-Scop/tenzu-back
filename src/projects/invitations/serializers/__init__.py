@@ -36,10 +36,5 @@ class PublicProjectPendingInvitationSerializer(PublicPendingInvitationBaseSerial
 
 class ProjectInvitationSerializer(InvitationBaseSerializer):
     project: ProjectLinkNestedSerializer
-    workspace_id: UUIDB64
-
-    @staticmethod
-    def resolve_workspace_id(obj):
-        return obj.project.workspace_id
 
     model_config = ConfigDict(from_attributes=True)

@@ -27,21 +27,23 @@ from projects.projects.serializers.nested import (
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class WorkspaceListProjectsSummarySerializer(BaseModel):
+class _WorkspaceListProjectsSummarySerializer(BaseModel):
     user_member_projects: list[ProjectNestedSerializer]
     user_invited_projects: list[ProjectNestedSerializer]
     model_config = ConfigDict(from_attributes=True)
 
 
-class WorkspaceDetailSerializer(WorkspaceNestedSerializer):
-    user_role: RoleSerializer | None
+class WorkspaceSummarySerializer(
+    WorkspaceNestedSerializer, _WorkspaceListProjectsSummarySerializer
+):
     user_is_invited: bool
-    total_projects: int
     model_config = ConfigDict(from_attributes=True)
 
 
-class WorkspaceSummarySerializer(
-    WorkspaceNestedSerializer, WorkspaceListProjectsSummarySerializer
-):
-    user_is_invited: bool
+class WorkspaceDetailSerializer(WorkspaceSummarySerializer):
+    user_role: RoleSerializer | None
+    total_projects: int
+    # should always be empty, field are added to satisfy "detail inherit from summary" in the frontend
+    user_member_projects: list[ProjectNestedSerializer] = []
+    user_invited_projects: list[ProjectNestedSerializer] = []
     model_config = ConfigDict(from_attributes=True)

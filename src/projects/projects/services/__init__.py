@@ -41,7 +41,6 @@ from users import repositories as users_repositories
 from users.models import AnyUser, User
 from workflows import repositories as workflows_repositories
 from workspaces.workspaces.models import Workspace
-from workspaces.workspaces.serializers import WorkspaceListProjectsSummarySerializer
 
 
 def get_landing_page_for_workflow(slug: str | None):
