@@ -387,7 +387,7 @@ async def test_create_workspace_invitations_owner_no_permission(tqmanager):
 
 
 #######################################################
-# list_pending_workspace_invitations
+# list_workspace_invitations
 #######################################################
 
 

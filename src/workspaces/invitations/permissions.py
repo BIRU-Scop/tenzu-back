@@ -45,7 +45,7 @@ class HasPendingInnerProjectsInvitation(PermissionComponent):
         )
 
 
-class InvitationPermissionsCheck(Enum):
+class WorkspaceInvitationPermissionsCheck(Enum):
     VIEW = IsAuthenticated() & HasPermission(
         "workspace", WorkspacePermissions.CREATE_MODIFY_MEMBER
     )

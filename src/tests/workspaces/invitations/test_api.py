@@ -335,3 +335,695 @@ async def test_accept_workspace_invitation_404_not_found_token(client):
     client.login(user)
     response = await client.post(f"/workspaces/invitations/{str(token)}/accept")
     assert response.status_code == 404, response.data
+
+
+#########################################################################
+# POST /workspaces/<id>/invitations/accept authenticated user accepts a workspace invitation
+#########################################################################
+
+
+async def test_accept_workspace_invitations_anonymous_user(
+    client,
+):
+    workspace = await f.create_workspace()
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/accept")
+    assert response.status_code == 401, response.data
+
+
+async def test_accept_user_workspace_invitation_ok(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        email=user.email,
+        user=user,
+        status=InvitationStatus.PENDING,
+        workspace=workspace,
+    )
+    assert not await user.workspace_memberships.filter(
+        workspace=invitation.workspace
+    ).aexists()
+
+    client.login(user)
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/accept")
+    assert response.status_code == 200, response.data
+    assert response.json()["user"]["username"] == user.username
+    assert response.json()["email"] == user.email
+    assert await user.workspace_memberships.filter(
+        workspace=invitation.workspace
+    ).aexists()
+
+
+async def test_accept_user_workspace_not_found(
+    client,
+):
+    workspace = await f.create_workspace()
+    uninvited_user = await f.create_user()
+
+    client.login(uninvited_user)
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/accept")
+    assert response.status_code == 404, response.data
+
+
+async def test_accept_user_already_accepted_workspace_invitation(
+    client,
+):
+    workspace = await f.create_workspace()
+    invited_user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        email=invited_user.email,
+        user=invited_user,
+        status=InvitationStatus.ACCEPTED,
+        workspace=workspace,
+    )
+    await WorkspaceInvitationToken.create_for_object(invitation)
+
+    client.login(invited_user)
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/accept")
+    assert response.status_code == 400, response.data
+
+
+async def test_accept_user_revoked_workspace_invitation(
+    client,
+):
+    workspace = await f.create_workspace()
+    invited_user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        email=invited_user.email,
+        user=invited_user,
+        status=InvitationStatus.REVOKED,
+        workspace=workspace,
+    )
+    await WorkspaceInvitationToken.create_for_object(invitation)
+
+    client.login(invited_user)
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/accept")
+    assert response.status_code == 400, response.data
+
+
+#########################################################################
+# POST /workspaces/<id>/invitations/resend
+#########################################################################
+
+
+async def test_resend_workspace_invitations_anonymous_user(
+    client,
+):
+    workspace = await f.create_workspace()
+    invitation = await f.create_workspace_invitation(
+        user=None, email="test@test.test", workspace=workspace
+    )
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+    )
+    assert response.status_code == 401, response.data
+
+
+async def test_resend_workspace_invitation_by_email_ok(
+    client,
+):
+    workspace = await f.create_workspace()
+    email = "user-test@email.com"
+    invitation = await f.create_workspace_invitation(
+        user=None, email=email, workspace=workspace
+    )
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.PENDING
+
+    user = await f.create_user()
+    client.login(user)
+    role = await f.create_workspace_role(
+        permissions=[WorkspacePermissions.CREATE_MODIFY_MEMBER], workspace=workspace
+    )
+    await f.create_workspace_membership(role=role, workspace=workspace, user=user)
+    invitation = await f.create_workspace_invitation(
+        user=None, email="test@demo.com", workspace=workspace
+    )
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.PENDING
+
+
+async def test_resend_workspace_invitation_by_user_email_ok(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        user=user, email=user.email, workspace=workspace
+    )
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.PENDING
+
+    user = await f.create_user()
+    client.login(user)
+    role = await f.create_workspace_role(
+        permissions=[WorkspacePermissions.CREATE_MODIFY_MEMBER], workspace=workspace
+    )
+    await f.create_workspace_membership(role=role, workspace=workspace, user=user)
+    user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        user=user, email=user.email, workspace=workspace
+    )
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.PENDING
+
+
+async def test_resend_workspace_invitation_user_without_permission(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+    email = "user-test-2@email.com"
+    invitation = await f.create_workspace_invitation(
+        user=None, email=email, workspace=workspace
+    )
+
+    client.login(user)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+    )
+    assert response.status_code == 403, response.data
+    role = await f.create_workspace_role(permissions=[], workspace=workspace)
+    await f.create_workspace_membership(role=role, workspace=workspace, user=user)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+    )
+    assert response.status_code == 403, response.data
+
+
+async def test_resend_workspace_invitation_not_exist(
+    client,
+):
+    workspace = await f.create_workspace()
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{NOT_EXISTING_B64ID}/resend",
+    )
+    assert response.status_code == 404, response.data
+
+
+async def test_resend_workspace_invitation_already_accepted(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        user=user,
+        email=user.email,
+        workspace=workspace,
+        status=InvitationStatus.ACCEPTED,
+    )
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+    )
+    assert response.status_code == 400, response.data
+
+
+async def test_resend_workspace_invitation_revoked(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        user=user,
+        email=user.email,
+        workspace=workspace,
+        status=InvitationStatus.REVOKED,
+    )
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+    )
+    assert response.status_code == 400, response.data
+
+
+#########################################################################
+# POST /workspaces/<id>/invitations/revoke
+#########################################################################
+
+
+async def test_revoke_workspace_invitations_anonymous_user(
+    client,
+):
+    workspace = await f.create_workspace()
+    invitation = await f.create_workspace_invitation(
+        user=None,
+        email="test@test.test",
+        workspace=workspace,
+        status=InvitationStatus.PENDING,
+    )
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 401, response.data
+
+
+async def test_revoke_workspace_invitation_for_email_ok(
+    client,
+):
+    workspace = await f.create_workspace()
+    email = "someone@email.com"
+    invitation = await f.create_workspace_invitation(
+        user=None, email=email, workspace=workspace, status=InvitationStatus.PENDING
+    )
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
+
+    user = await f.create_user()
+    client.login(user)
+    role = await f.create_workspace_role(
+        permissions=[WorkspacePermissions.CREATE_MODIFY_MEMBER], workspace=workspace
+    )
+    await f.create_workspace_membership(role=role, workspace=workspace, user=user)
+    invitation = await f.create_workspace_invitation(
+        user=None, email="test@demo.com", workspace=workspace
+    )
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
+
+
+async def test_revoke_workspace_invitation_for_user_email_ok(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        user=user,
+        email=user.email,
+        workspace=workspace,
+        status=InvitationStatus.PENDING,
+    )
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
+
+    user = await f.create_user()
+    client.login(user)
+    role = await f.create_workspace_role(
+        permissions=[WorkspacePermissions.CREATE_MODIFY_MEMBER], workspace=workspace
+    )
+    await f.create_workspace_membership(role=role, workspace=workspace, user=user)
+    user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        user=user, email=user.email, workspace=workspace
+    )
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
+
+
+async def test_revoke_workspace_invitation_not_found(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+
+    client.login(workspace.created_by)
+    data = {"username_or_email": user.email}
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{NOT_EXISTING_B64ID}/revoke",
+    )
+    assert response.status_code == 404, response.data
+
+
+async def test_revoke_workspace_invitation_already_member_invalid(
+    client,
+):
+    workspace = await f.create_workspace()
+    member_role = await f.create_workspace_role(
+        permissions=WorkspacePermissions.values,
+        is_owner=False,
+        workspace=workspace,
+    )
+    user = await f.create_user()
+    await f.create_workspace_membership(
+        user=user, workspace=workspace, role=member_role
+    )
+    invitation = await f.create_workspace_invitation(
+        user=user,
+        email=user.email,
+        workspace=workspace,
+        status=InvitationStatus.ACCEPTED,
+    )
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 400, response.data
+
+
+async def test_revoke_workspace_invitation_revoked(
+    client,
+):
+    workspace = await f.create_workspace()
+    member_role = await f.create_workspace_role(
+        permissions=WorkspacePermissions.values,
+        is_owner=False,
+        workspace=workspace,
+    )
+    user = await f.create_user()
+    await f.create_workspace_membership(
+        user=user, workspace=workspace, role=member_role
+    )
+    invitation = await f.create_workspace_invitation(
+        user=user,
+        email=user.email,
+        workspace=workspace,
+        status=InvitationStatus.REVOKED,
+    )
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 400, response.data
+
+
+async def test_revoke_workspace_invitation_user_without_permission(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        user=None, email=user.email, workspace=workspace
+    )
+
+    client.login(user)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 403, response.data
+    role = await f.create_workspace_role(permissions=[], workspace=workspace)
+    await f.create_workspace_membership(role=role, workspace=workspace, user=user)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 403, response.data
+
+
+async def test_revoke_workspace_invitation_owner(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+    owner_role = await workspace.roles.aget(is_owner=True)
+    invitation = await f.create_workspace_invitation(
+        user=None, email=user.email, workspace=workspace, role=owner_role
+    )
+    role = await f.create_workspace_role(workspace=workspace)
+    membership = await f.create_workspace_membership(
+        role=role, workspace=workspace, user=user
+    )
+
+    client.login(user)
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 403, response.data
+    membership.role = owner_role
+    await membership.asave()
+    response = await client.post(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
+
+
+#########################################################################
+# POST /workspaces/<id>/invitations/deny
+#########################################################################
+
+
+async def test_deny_workspace_invitations_anonymous_user(
+    client,
+):
+    workspace = await f.create_workspace()
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/deny")
+    assert response.status_code == 401, response.data
+
+
+async def test_deny_workspace_invitation_ok(
+    client,
+):
+    user = await f.create_user()
+    workspace = await f.create_workspace()
+    invitation = await f.create_workspace_invitation(
+        user=user, workspace=workspace, status=InvitationStatus.PENDING
+    )
+
+    client.login(user)
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/deny")
+    assert response.status_code == 200, response.data
+    assert response.json()["id"] == invitation.b64id
+
+
+async def test_deny_workspace_invitation_not_found(
+    client,
+):
+    workspace = await f.create_workspace()
+
+    client.login(workspace.created_by)
+    response = await client.post(f"workspaces/{NOT_EXISTING_B64ID}/invitations/deny")
+    assert response.status_code == 404, response.data
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/deny")
+    assert response.status_code == 404, response.data
+
+
+async def test_deny_workspace_invitation_already_member_invalid(
+    client,
+):
+    workspace = await f.create_workspace()
+    member_role = await f.create_workspace_role(
+        permissions=WorkspacePermissions.values,
+        is_owner=False,
+        workspace=workspace,
+    )
+    user = await f.create_user()
+    await f.create_workspace_membership(
+        user=user, workspace=workspace, role=member_role
+    )
+    await f.create_workspace_invitation(
+        user=user,
+        email=user.email,
+        workspace=workspace,
+        status=InvitationStatus.ACCEPTED,
+    )
+
+    client.login(user)
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/deny")
+    assert response.status_code == 400, response.data
+
+
+async def test_deny_workspace_invitation_already_denied(
+    client,
+):
+    workspace = await f.create_workspace()
+    member_role = await f.create_workspace_role(
+        permissions=WorkspacePermissions.values,
+        is_owner=False,
+        workspace=workspace,
+    )
+    user = await f.create_user()
+    await f.create_workspace_membership(
+        user=user, workspace=workspace, role=member_role
+    )
+    await f.create_workspace_invitation(
+        user=user,
+        email=user.email,
+        workspace=workspace,
+        status=InvitationStatus.DENIED,
+    )
+
+    client.login(user)
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/deny")
+    assert response.status_code == 400, response.data
+
+
+async def test_deny_workspace_invitation_revoked(
+    client,
+):
+    workspace = await f.create_workspace()
+    member_role = await f.create_workspace_role(
+        permissions=WorkspacePermissions.values,
+        is_owner=False,
+        workspace=workspace,
+    )
+    user = await f.create_user()
+    await f.create_workspace_membership(
+        user=user, workspace=workspace, role=member_role
+    )
+    await f.create_workspace_invitation(
+        user=user,
+        email=user.email,
+        workspace=workspace,
+        status=InvitationStatus.REVOKED,
+    )
+
+    client.login(user)
+    response = await client.post(f"workspaces/{workspace.b64id}/invitations/deny")
+    assert response.status_code == 400, response.data
+
+
+##########################################################
+# PATCH /workspaces/<workspace_id>/invitations/<id>
+##########################################################
+
+
+async def test_update_workspace_invitation_role_invitation_not_exist(
+    client,
+):
+    workspace = await f.create_workspace()
+
+    client.login(workspace.created_by)
+    data = {"role_slug": "owner"}
+    response = await client.patch(
+        f"workspaces/{workspace.b64id}/invitations/{NOT_EXISTING_B64ID}", json=data
+    )
+    assert response.status_code == 404, response.data
+
+
+async def test_update_workspace_invitation_role_user_without_permission(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+
+    invited_user = await f.create_user()
+    invitation = await f.create_workspace_invitation(
+        user=invited_user,
+        workspace=workspace,
+        email=invited_user.email,
+    )
+
+    client.login(user)
+    data = {"role_slug": "member"}
+    response = await client.patch(
+        f"/workspaces/{workspace.b64id}/invitations/{invitation.b64id}", json=data
+    )
+    assert response.status_code == 403, response.data
+    role = await f.create_workspace_role(permissions=[], workspace=workspace)
+    await f.create_workspace_membership(role=role, workspace=workspace, user=user)
+    response = await client.patch(
+        f"/workspaces/{workspace.b64id}/invitations/{invitation.b64id}", json=data
+    )
+    assert response.status_code == 403, response.data
+
+
+async def test_update_workspace_invitation_owner(
+    client,
+):
+    user = await f.create_user()
+    workspace = await f.create_workspace()
+    owner_role = await workspace.roles.aget(is_owner=True)
+    member_role = await workspace.roles.filter(is_owner=False).afirst()
+    owner_invitation = await f.create_workspace_invitation(
+        user=None, email="email1@test.demo", workspace=workspace, role=owner_role
+    )
+    member_invitation = await f.create_workspace_invitation(
+        user=None, email="email2@test.demo", workspace=workspace, role=member_role
+    )
+    membership = await f.create_workspace_membership(
+        role=member_role, workspace=workspace, user=user
+    )
+
+    client.login(user)
+    data = {"role_slug": "owner"}
+    response = await client.patch(
+        f"/workspaces/{workspace.b64id}/invitations/{member_invitation.b64id}",
+        json=data,
+    )
+    assert response.status_code == 403, response.data
+    response = await client.patch(
+        f"/workspaces/{workspace.b64id}/invitations/{owner_invitation.b64id}", json=data
+    )
+    assert response.status_code == 403, response.data
+    membership.role = owner_role
+    await membership.asave()
+    response = await client.patch(
+        f"/workspaces/{workspace.b64id}/invitations/{member_invitation.b64id}",
+        json=data,
+    )
+    assert response.status_code == 200, response.data
+    response = await client.patch(
+        f"/workspaces/{workspace.b64id}/invitations/{owner_invitation.b64id}", json=data
+    )
+    assert response.status_code == 200, response.data
+
+
+async def test_update_workspace_invitation_role_ok(
+    client,
+):
+    workspace = await f.create_workspace()
+    user = await f.create_user()
+    member_role = await f.create_workspace_role(
+        workspace=workspace,
+        permissions=WorkspacePermissions.values,
+        is_owner=False,
+    )
+    invitation = await f.create_workspace_invitation(
+        user=user, workspace=workspace, role=member_role, email=user.email
+    )
+
+    client.login(workspace.created_by)
+    data = {"role_slug": "readonly-member"}
+    response = await client.patch(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}", json=data
+    )
+    assert response.status_code == 200, response.data
+
+    user = await f.create_user()
+    client.login(user)
+    role = await f.create_workspace_role(
+        permissions=[WorkspacePermissions.CREATE_MODIFY_MEMBER], workspace=workspace
+    )
+    await f.create_workspace_membership(role=role, workspace=workspace, user=user)
+    data = {"role_slug": "member"}
+    response = await client.patch(
+        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}", json=data
+    )
+    assert response.status_code == 200, response.data

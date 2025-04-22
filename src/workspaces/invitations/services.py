@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from typing import cast
+from uuid import UUID
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
@@ -138,6 +139,29 @@ async def get_public_pending_workspace_invitation(
     )
 
 
+async def get_workspace_invitation_by_username_or_email(
+    workspace_id: UUID, username_or_email: str
+) -> WorkspaceInvitation | None:
+    return await invitations_repositories.get_invitation(
+        WorkspaceInvitation,
+        filters={"workspace_id": workspace_id},
+        q_filter=invitations_repositories.invitation_username_or_email_query(
+            username_or_email
+        ),
+        select_related=["user", "workspace", "role"],
+    )
+
+
+async def get_workspace_invitation_by_id(
+    workspace_id: UUID, invitation_id: UUID
+) -> WorkspaceInvitation | None:
+    return await invitations_repositories.get_invitation(
+        WorkspaceInvitation,
+        filters={"workspace_id": workspace_id, "id": invitation_id},
+        select_related=["user", "workspace", "role"],
+    )
+
+
 ##########################################################
 # update workspace invitations
 ##########################################################
@@ -155,6 +179,22 @@ async def update_user_workspaces_invitations(user: User) -> None:
     await transaction_on_commit_async(
         invitations_events.emit_event_when_workspace_invitations_are_updated
     )(invitations=invitations)
+
+
+async def update_workspace_invitation(
+    invitation: WorkspaceInvitation, role_slug: str, user: User
+) -> WorkspaceInvitation:
+    user_role = user.workspace_role
+    updated_invitation = await memberships_services.update_invitation(
+        invitation=invitation,
+        role_slug=role_slug,
+        user_role=user_role,
+    )
+    await transaction_on_commit_async(
+        invitations_events.emit_event_when_workspace_invitation_is_updated
+    )(invitation=updated_invitation)
+
+    return updated_invitation
 
 
 ##########################################################
@@ -193,6 +233,62 @@ async def accept_workspace_invitation_from_token(
         raise ex.InvitationIsNotForThisUserError("Invitation is not for this user")
 
     return await accept_workspace_invitation(invitation=invitation)
+
+
+##########################################################
+# resend workspace invitation
+##########################################################
+
+
+async def resend_workspace_invitation(
+    invitation: WorkspaceInvitation, resent_by: User
+) -> WorkspaceInvitation:
+    resent_invitation = await memberships_services.resend_invitation(
+        invitation=invitation, resent_by=resent_by
+    )
+    if resent_invitation is not None:
+        await send_workspace_invitation_email(
+            invitation=resent_invitation, is_resend=True
+        )
+        return resent_invitation
+    return invitation
+
+
+##########################################################
+# deny workspace invitation
+##########################################################
+
+
+async def deny_workspace_invitation(
+    invitation: WorkspaceInvitation,
+) -> WorkspaceInvitation:
+    denied_invitation = await memberships_services.deny_invitation(
+        invitation=invitation
+    )
+
+    await invitations_events.emit_event_when_workspace_invitation_is_denied(
+        invitation=denied_invitation
+    )
+
+    return denied_invitation
+
+
+##########################################################
+# revoke workspace invitation
+##########################################################
+
+
+async def revoke_workspace_invitation(
+    invitation: WorkspaceInvitation, revoked_by: User
+) -> WorkspaceInvitation:
+    revoked_invitation = await memberships_services.revoke_invitation(
+        invitation=invitation, revoked_by=revoked_by
+    )
+
+    await invitations_events.emit_event_when_workspace_invitation_is_revoked(
+        invitation=revoked_invitation
+    )
+    return revoked_invitation
 
 
 ##########################################################

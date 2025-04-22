@@ -21,7 +21,6 @@
 import pytest
 
 from memberships.choices import InvitationStatus
-from permissions import choices
 from permissions.choices import ProjectPermissions
 from projects.invitations.tokens import ProjectInvitationToken
 from tests.utils import factories as f
@@ -555,7 +554,9 @@ async def test_resend_project_invitation_by_email_ok(client, project_template):
     response = await client.post(
         f"projects/{project.b64id}/invitations/{invitation.b64id}/resend",
     )
-    assert response.status_code == 204, response.data
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.PENDING
 
     user = await f.create_user()
     client.login(user)
@@ -564,12 +565,14 @@ async def test_resend_project_invitation_by_email_ok(client, project_template):
     )
     await f.create_project_membership(role=role, project=project, user=user)
     invitation = await f.create_project_invitation(
-        user=None, email="test@demo.test", project=project
+        user=None, email="test@demo.com", project=project
     )
     response = await client.post(
         f"projects/{project.b64id}/invitations/{invitation.b64id}/resend",
     )
-    assert response.status_code == 204, response.data
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.PENDING
 
 
 async def test_resend_project_invitation_by_user_email_ok(client, project_template):
@@ -583,7 +586,9 @@ async def test_resend_project_invitation_by_user_email_ok(client, project_templa
     response = await client.post(
         f"projects/{project.b64id}/invitations/{invitation.b64id}/resend",
     )
-    assert response.status_code == 204, response.data
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.PENDING
 
     user = await f.create_user()
     client.login(user)
@@ -598,7 +603,9 @@ async def test_resend_project_invitation_by_user_email_ok(client, project_templa
     response = await client.post(
         f"projects/{project.b64id}/invitations/{invitation.b64id}/resend",
     )
-    assert response.status_code == 204, response.data
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.PENDING
 
 
 async def test_resend_project_invitation_user_without_permission(
@@ -698,7 +705,9 @@ async def test_revoke_project_invitation_for_email_ok(client, project_template):
     response = await client.post(
         f"projects/{project.b64id}/invitations/{invitation.b64id}/revoke",
     )
-    assert response.status_code == 204, response.data
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
 
     user = await f.create_user()
     client.login(user)
@@ -707,12 +716,14 @@ async def test_revoke_project_invitation_for_email_ok(client, project_template):
     )
     await f.create_project_membership(role=role, project=project, user=user)
     invitation = await f.create_project_invitation(
-        user=None, email="test@demo.test", project=project
+        user=None, email="test@demo.com", project=project
     )
     response = await client.post(
         f"projects/{project.b64id}/invitations/{invitation.b64id}/revoke",
     )
-    assert response.status_code == 204, response.data
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
 
 
 async def test_revoke_project_invitation_for_user_email_ok(client, project_template):
@@ -729,7 +740,9 @@ async def test_revoke_project_invitation_for_user_email_ok(client, project_templ
     response = await client.post(
         f"projects/{project.b64id}/invitations/{invitation.b64id}/revoke",
     )
-    assert response.status_code == 204, response.data
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
 
     user = await f.create_user()
     client.login(user)
@@ -744,7 +757,9 @@ async def test_revoke_project_invitation_for_user_email_ok(client, project_templ
     response = await client.post(
         f"projects/{project.b64id}/invitations/{invitation.b64id}/revoke",
     )
-    assert response.status_code == 204, response.data
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
 
 
 async def test_revoke_project_invitation_not_found(client, project_template):
@@ -764,7 +779,7 @@ async def test_revoke_project_invitation_already_member_invalid(
 ):
     project = await f.create_project(project_template)
     member_role = await f.create_project_role(
-        permissions=choices.ProjectPermissions.values,
+        permissions=ProjectPermissions.values,
         is_owner=False,
         project=project,
     )
@@ -787,7 +802,7 @@ async def test_revoke_project_invitation_already_member_invalid(
 async def test_revoke_project_invitation_revoked(client, project_template):
     project = await f.create_project(project_template)
     member_role = await f.create_project_role(
-        permissions=choices.ProjectPermissions.values,
+        permissions=ProjectPermissions.values,
         is_owner=False,
         project=project,
     )
@@ -851,7 +866,9 @@ async def test_revoke_project_invitation_owner(client, project_template):
     response = await client.post(
         f"projects/{project.b64id}/invitations/{invitation.b64id}/revoke",
     )
-    assert response.status_code == 204, response.data
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["status"] == InvitationStatus.REVOKED
 
 
 #########################################################################
@@ -891,7 +908,7 @@ async def test_deny_project_invitation_not_found(client, project_template):
 async def test_deny_project_invitation_already_member_invalid(client, project_template):
     project = await f.create_project(project_template)
     member_role = await f.create_project_role(
-        permissions=choices.ProjectPermissions.values,
+        permissions=ProjectPermissions.values,
         is_owner=False,
         project=project,
     )
@@ -912,7 +929,7 @@ async def test_deny_project_invitation_already_member_invalid(client, project_te
 async def test_deny_project_invitation_already_denied(client, project_template):
     project = await f.create_project(project_template)
     member_role = await f.create_project_role(
-        permissions=choices.ProjectPermissions.values,
+        permissions=ProjectPermissions.values,
         is_owner=False,
         project=project,
     )
@@ -933,7 +950,7 @@ async def test_deny_project_invitation_already_denied(client, project_template):
 async def test_deny_project_invitation_revoked(client, project_template):
     project = await f.create_project(project_template)
     member_role = await f.create_project_role(
-        permissions=choices.ProjectPermissions.values,
+        permissions=ProjectPermissions.values,
         is_owner=False,
         project=project,
     )
@@ -1038,7 +1055,7 @@ async def test_update_project_invitation_role_ok(client, project_template):
     user = await f.create_user()
     member_role = await f.create_project_role(
         project=project,
-        permissions=choices.ProjectPermissions.values,
+        permissions=ProjectPermissions.values,
         is_owner=False,
     )
     invitation = await f.create_project_invitation(

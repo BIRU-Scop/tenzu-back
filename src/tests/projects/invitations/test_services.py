@@ -1448,6 +1448,7 @@ async def test_resend_project_invitation_num_emails_sent_in_limit() -> None:
         patch(
             "projects.invitations.services.send_project_invitation_email", autospec=True
         ) as fake_send_project_invitation_email,
+        override_settings(**{"INVITATION_RESEND_LIMIT": 10}),
     ):
         await services.resend_project_invitation(
             invitation=invitation, resent_by=project.created_by
@@ -1470,6 +1471,7 @@ async def test_resend_project_invitation_resent_at_in_limit() -> None:
         patch(
             "projects.invitations.services.send_project_invitation_email", autospec=True
         ) as fake_send_project_invitation_email,
+        override_settings(**{"INVITATION_RESEND_TIME": 10}),
     ):
         await services.resend_project_invitation(
             invitation=invitation, resent_by=project.created_by

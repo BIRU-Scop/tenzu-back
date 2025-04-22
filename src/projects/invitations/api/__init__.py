@@ -178,7 +178,7 @@ async def get_public_pending_project_invitation(
     url_name="project.invitations.resend",
     summary="Resend project invitation",
     response={
-        204: None,
+        200: ProjectInvitationSerializer,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -189,7 +189,7 @@ async def resend_project_invitation(
     request,
     invitation_id: Path[B64UUID],
     project_id: Path[B64UUID],
-) -> tuple[int, None]:
+) -> ProjectInvitation:
     """
     Resend invitation to a project
     """
@@ -201,10 +201,9 @@ async def resend_project_invitation(
         user=request.user,
         obj=invitation.project,
     )
-    await invitations_services.resend_project_invitation(
+    return await invitations_services.resend_project_invitation(
         invitation=invitation, resent_by=request.user
     )
-    return 204, None
 
 
 ##########################################################
@@ -217,7 +216,7 @@ async def resend_project_invitation(
     url_name="project.invitations.revoke",
     summary="Revoke project invitation",
     response={
-        204: None,
+        200: ProjectInvitationSerializer,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -228,7 +227,7 @@ async def revoke_project_invitation(
     request,
     invitation_id: Path[B64UUID],
     project_id: Path[B64UUID],
-) -> tuple[int, None]:
+) -> ProjectInvitation:
     """
     Revoke invitation in a project.
     """
@@ -240,10 +239,9 @@ async def revoke_project_invitation(
         user=request.user,
         obj=invitation,
     )
-    await invitations_services.revoke_project_invitation(
+    return await invitations_services.revoke_project_invitation(
         invitation=invitation, revoked_by=request.user
     )
-    return 204, None
 
 
 ##########################################################

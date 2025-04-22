@@ -243,7 +243,7 @@ async def accept_project_invitation_from_token(
 
 async def resend_project_invitation(
     invitation: ProjectInvitation, resent_by: User
-) -> None:
+) -> ProjectInvitation:
     resent_invitation = await memberships_services.resend_invitation(
         invitation=invitation, resent_by=resent_by
     )
@@ -251,6 +251,8 @@ async def resend_project_invitation(
         await send_project_invitation_email(
             invitation=resent_invitation, is_resend=True
         )
+        return resent_invitation
+    return invitation
 
 
 ##########################################################
@@ -277,7 +279,7 @@ async def deny_project_invitation(invitation: ProjectInvitation) -> ProjectInvit
 
 async def revoke_project_invitation(
     invitation: ProjectInvitation, revoked_by: User
-) -> None:
+) -> ProjectInvitation:
     revoked_invitation = await memberships_services.revoke_invitation(
         invitation=invitation, revoked_by=revoked_by
     )
@@ -285,6 +287,7 @@ async def revoke_project_invitation(
     await invitations_events.emit_event_when_project_invitation_is_revoked(
         invitation=revoked_invitation
     )
+    return revoked_invitation
 
 
 ##########################################################

@@ -26,7 +26,9 @@ from workspaces.workspaces.models import Workspace
 
 CREATE_WORKSPACE_INVITATION = "workspaceinvitations.create"
 UPDATE_WORKSPACE_INVITATION = "workspaceinvitations.update"
-ACCEPT_WORKSPACE_INVITATION = "workspacememberships.create"
+ACCEPT_WORKSPACE_INVITATION = "workspaceinvitations.create"
+REVOKE_WORKSPACE_INVITATION = "workspaceinvitations.revoke"
+DENY_WORKSPACE_INVITATION = "workspaceinvitations.deny"
 DELETE_WORKSPACE_INVITATION = "workspaceinvitations.delete"
 
 
@@ -59,6 +61,14 @@ async def emit_event_when_workspace_invitation_is_updated(
         workspace=invitation.workspace,
         type=UPDATE_WORKSPACE_INVITATION,
     )
+    if invitation.user:
+        await events_manager.publish_on_user_channel(
+            user=invitation.user,
+            type=UPDATE_WORKSPACE_INVITATION,
+            content=WorkspaceInvitationContent(
+                workspace=invitation.workspace_id,
+            ),
+        )
 
 
 async def emit_event_when_workspace_invitations_are_updated(
@@ -79,6 +89,40 @@ async def emit_event_when_workspace_invitation_is_accepted(
         await events_manager.publish_on_user_channel(
             user=invitation.user,
             type=ACCEPT_WORKSPACE_INVITATION,
+            content=WorkspaceInvitationContent(
+                workspace=invitation.workspace_id,
+            ),
+        )
+
+
+async def emit_event_when_workspace_invitation_is_revoked(
+    invitation: WorkspaceInvitation,
+) -> None:
+    await events_manager.publish_on_workspace_channel(
+        workspace=invitation.workspace,
+        type=REVOKE_WORKSPACE_INVITATION,
+    )
+    if invitation.user:
+        await events_manager.publish_on_user_channel(
+            user=invitation.user,
+            type=REVOKE_WORKSPACE_INVITATION,
+            content=WorkspaceInvitationContent(
+                workspace=invitation.workspace_id,
+            ),
+        )
+
+
+async def emit_event_when_workspace_invitation_is_denied(
+    invitation: WorkspaceInvitation,
+) -> None:
+    await events_manager.publish_on_workspace_channel(
+        workspace=invitation.workspace,
+        type=DENY_WORKSPACE_INVITATION,
+    )
+    if invitation.user:
+        await events_manager.publish_on_user_channel(
+            user=invitation.user,
+            type=DENY_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
                 workspace=invitation.workspace_id,
             ),
