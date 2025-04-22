@@ -87,7 +87,7 @@ async def emit_event_when_project_membership_is_deleted(
 UPDATE_PROJECT_ROLE_PERMISSIONS = "projectroles.update"
 
 
-async def emit_event_when_project_role_permissions_are_updated(
+async def emit_event_when_project_role_is_updated(
     role: ProjectRole,
 ) -> None:
     """

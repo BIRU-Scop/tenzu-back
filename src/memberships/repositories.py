@@ -318,6 +318,9 @@ async def get_role(
 
 
 async def update_role(role: TR, values: dict[str, Any] = {}) -> TR:
+    # Prevent hitting the database with an empty PATCH
+    if len(values) == 0:
+        return role
     for attr, value in values.items():
         setattr(role, attr, value)
 

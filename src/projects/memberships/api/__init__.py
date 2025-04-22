@@ -216,7 +216,7 @@ async def update_project_role(
     form: RoleValidator,
 ):
     """
-    Edit project roles permissions
+    Edit project roles
     """
 
     role = await get_project_role_or_404(project_id=project_id, slug=role_slug)
@@ -225,12 +225,10 @@ async def update_project_role(
         user=request.user,
         obj=role,
     )
+    values = form.model_dump(exclude_unset=True)
 
     try:
-        # TODO enable changing name also
-        await memberships_services.update_project_role_permissions(
-            role, form.permissions
-        )
+        await memberships_services.update_project_role(role, values)
     except NonEditableRoleError as exc:
         # change the bad-request into a forbidden error
         raise ex.ForbiddenError(str(exc))

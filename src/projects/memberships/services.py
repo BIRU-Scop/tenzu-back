@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Any
 from uuid import UUID
 
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
@@ -164,30 +165,31 @@ async def get_project_role(project_id: UUID, slug: str) -> ProjectRole:
 
 
 @transaction_atomic_async
-async def update_project_role_permissions(
-    role: ProjectRole, permissions: list[str]
+async def update_project_role(
+    role: ProjectRole, values: dict[str, Any] = {}
 ) -> ProjectRole:
     if not role.editable:
         raise ex.NonEditableRoleError(f"Role {role.slug} is not editable")
 
-    project_role_permissions = await memberships_repositories.update_role(
+    updated_role = await memberships_repositories.update_role(
         role=role,
-        values={"permissions": permissions},
+        values=values,
     )
 
     await transaction_on_commit_async(
-        memberships_events.emit_event_when_project_role_permissions_are_updated
+        memberships_events.emit_event_when_project_role_is_updated
     )(role=role)
 
-    # Check if new permissions have view_story
-    view_story_is_deleted = (
-        ProjectPermissions.VIEW_STORY.value in role.permissions
-        and ProjectPermissions.VIEW_STORY.value not in permissions
-    )
-    # Unassign stories for user if the new permissions don't have view_story
-    if view_story_is_deleted:
-        await story_assignments_repositories.delete_stories_assignments(
-            filters={"role_id": role.id}
+    if "permissions" in values:
+        # Check if new permissions have view_story
+        view_story_is_deleted = (
+            ProjectPermissions.VIEW_STORY.value in role.permissions
+            and ProjectPermissions.VIEW_STORY.value not in values["permissions"]
         )
+        # Unassign stories for user if the new permissions don't have view_story
+        if view_story_is_deleted:
+            await story_assignments_repositories.delete_stories_assignments(
+                filters={"role_id": role.id}
+            )
 
-    return project_role_permissions
+    return updated_role

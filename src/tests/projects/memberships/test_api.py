@@ -18,7 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
-from fastapi import status
 
 from memberships.choices import InvitationStatus
 from permissions import choices
@@ -52,7 +51,7 @@ async def test_list_project_memberships(client, project_template):
     client.login(pj_member)
 
     response = await client.get(f"/projects/{project.b64id}/memberships")
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
     assert len(response.json()) == 3  # 2 explicitly created + owner membership
 
 
@@ -61,7 +60,7 @@ async def test_list_project_memberships_wrong_id(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{NOT_EXISTING_B64ID}/memberships")
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
 async def test_list_project_memberships_not_a_member(client, project_template):
@@ -70,7 +69,7 @@ async def test_list_project_memberships_not_a_member(client, project_template):
 
     client.login(not_a_member)
     response = await client.get(f"/projects/{project.b64id}/memberships")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
     # even invitee can't see members
     general_admin_role = await f.create_project_role(
@@ -86,7 +85,7 @@ async def test_list_project_memberships_not_a_member(client, project_template):
         status=InvitationStatus.PENDING,
     )
     response = await client.get(f"/projects/{project.b64id}/memberships")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 ##########################################################
@@ -105,7 +104,7 @@ async def test_update_project_membership_role_membership_not_exist(
     response = await client.patch(
         f"projects/{project.b64id}/memberships/{username}", json=data
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
 async def test_update_project_membership_role_user_without_permission(
@@ -127,13 +126,13 @@ async def test_update_project_membership_role_user_without_permission(
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
     await f.create_project_membership(user=user1, project=project, role=member_role)
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 async def test_update_project_membership_role_ok(client, project_template):
@@ -157,12 +156,12 @@ async def test_update_project_membership_role_ok(client, project_template):
     response = await client.patch(
         f"projects/{project.b64id}/memberships/{user2.username}", json=data
     )
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
     client.login(user1)
     response = await client.patch(
         f"projects/{project.b64id}/memberships/{user2.username}", json=data
     )
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
 
 
 async def test_update_project_membership_role_owner_and_not_owner(
@@ -190,14 +189,14 @@ async def test_update_project_membership_role_owner_and_not_owner(
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
     # change role of owner
     username = project.created_by.username
     data = {"role_slug": "member"}
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 async def test_update_project_membership_role_owner_and_owner(client, project_template):
@@ -217,13 +216,13 @@ async def test_update_project_membership_role_owner_and_owner(client, project_te
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
     # change role of owner
     data = {"role_slug": "member"}
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
 
 
 ##########################################################
@@ -237,7 +236,7 @@ async def test_delete_project_membership_not_exist(client, project_template):
 
     client.login(project.created_by)
     response = await client.delete(f"/projects/{project.b64id}/memberships/{username}")
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_project_membership_without_permissions(client, project_template):
@@ -256,7 +255,7 @@ async def test_delete_project_membership_without_permissions(client, project_tem
     response = await client.delete(
         f"/projects/{project.b64id}/memberships/{user2.username}"
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 async def test_delete_project_membership_role_ok(client, project_template):
@@ -279,7 +278,7 @@ async def test_delete_project_membership_role_ok(client, project_template):
     response = await client.delete(
         f"/projects/{project.b64id}/memberships/{user2.username}"
     )
-    assert response.status_code == status.HTTP_204_NO_CONTENT, response.data
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_project_membership_only_owner(client, project_template):
@@ -289,7 +288,7 @@ async def test_delete_project_membership_only_owner(client, project_template):
     response = await client.delete(
         f"/projects/{project.b64id}/memberships/{project.created_by.username}"
     )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.data
+    assert response.status_code == 400, response.data
 
 
 async def test_delete_project_membership_role_owner_and_not_owner(
@@ -310,7 +309,7 @@ async def test_delete_project_membership_role_owner_and_not_owner(
     response = await client.delete(
         f"/projects/{project.b64id}/memberships/{project.created_by.username}"
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 async def test_delete_project_membership_role_owner_and_owner(client, project_template):
@@ -323,7 +322,7 @@ async def test_delete_project_membership_role_owner_and_owner(client, project_te
     response = await client.delete(
         f"/projects/{project.b64id}/memberships/{user.username}"
     )
-    assert response.status_code == status.HTTP_204_NO_CONTENT, response.data
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_project_membership_self_request(client, project_template):
@@ -340,7 +339,7 @@ async def test_delete_project_membership_self_request(client, project_template):
     response = await client.delete(
         f"/projects/{project.b64id}/memberships/{member.username}"
     )
-    assert response.status_code == status.HTTP_204_NO_CONTENT, response.data
+    assert response.status_code == 204, response.data
 
 
 ##########################################################
@@ -363,7 +362,7 @@ async def test_list_project_roles(client, project_template):
     client.login(pj_member)
 
     response = await client.get(f"/projects/{project.b64id}/roles")
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
     assert len(response.json()) == 5  # 4 default + newly created
 
 
@@ -372,7 +371,7 @@ async def test_list_project_roles_wrong_id(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{NOT_EXISTING_B64ID}/roles")
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
 async def test_list_project_roles_not_a_member(client, project_template):
@@ -381,7 +380,7 @@ async def test_list_project_roles_not_a_member(client, project_template):
 
     client.login(not_a_member)
     response = await client.get(f"/projects/{project.b64id}/roles")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
     # even invitee can't see members
     general_admin_role = await f.create_project_role(
@@ -397,7 +396,7 @@ async def test_list_project_roles_not_a_member(client, project_template):
         status=InvitationStatus.PENDING,
     )
     response = await client.get(f"/projects/{project.b64id}/roles")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 #########################################################################
@@ -405,7 +404,7 @@ async def test_list_project_roles_not_a_member(client, project_template):
 #########################################################################
 
 
-async def test_update_project_role_permissions_anonymous_user(client, project_template):
+async def test_update_project_role_anonymous_user(client, project_template):
     project = await f.create_project(project_template)
     role_slug = "member"
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
@@ -414,10 +413,10 @@ async def test_update_project_role_permissions_anonymous_user(client, project_te
         f"/projects/{project.b64id}/roles/{role_slug}", json=data
     )
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED, response.data
+    assert response.status_code == 401, response.data
 
 
-async def test_update_project_role_permissions_project_not_found(client):
+async def test_update_project_role_project_not_found(client):
     user = await f.create_user()
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
 
@@ -426,10 +425,10 @@ async def test_update_project_role_permissions_project_not_found(client):
         f"/projects/{NOT_EXISTING_B64ID}/roles/role-slug", json=data
     )
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
-async def test_update_project_role_permissions_role_not_found(client, project_template):
+async def test_update_project_role_role_not_found(client, project_template):
     project = await f.create_project(project_template)
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
 
@@ -438,12 +437,10 @@ async def test_update_project_role_permissions_role_not_found(client, project_te
         f"/projects/{project.b64id}/roles/{NOT_EXISTING_SLUG}", json=data
     )
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
-async def test_update_project_role_permissions_user_without_permission(
-    client, project_template
-):
+async def test_update_project_role_user_without_permission(client, project_template):
     user = await f.create_user()
     project = await f.create_project(project_template)
     role_slug = "member"
@@ -454,12 +451,10 @@ async def test_update_project_role_permissions_user_without_permission(
         f"/projects/{project.b64id}/roles/{role_slug}", json=data
     )
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
-async def test_update_project_role_permissions_role_non_editable(
-    client, project_template
-):
+async def test_update_project_role_role_non_editable(client, project_template):
     project = await f.create_project(project_template)
     role_slug = "admin"
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
@@ -469,12 +464,10 @@ async def test_update_project_role_permissions_role_non_editable(
         f"/projects/{project.b64id}/roles/{role_slug}", json=data
     )
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
-async def test_update_project_role_permissions_incompatible_permissions(
-    client, project_template
-):
+async def test_update_project_role_incompatible_permissions(client, project_template):
     project = await f.create_project(project_template)
     role_slug = "member"
     data = {"permissions": [choices.ProjectPermissions.MODIFY_STORY.value]}
@@ -484,12 +477,10 @@ async def test_update_project_role_permissions_incompatible_permissions(
         f"/projects/{project.b64id}/roles/{role_slug}", json=data
     )
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.data
+    assert response.status_code == 422, response.data
 
 
-async def test_update_project_role_permissions_not_valid_permissions(
-    client, project_template
-):
+async def test_update_project_role_not_valid_permissions(client, project_template):
     project = await f.create_project(project_template)
     role_slug = "member"
     data = {"permissions": ["not_valid", "foo"]}
@@ -499,10 +490,10 @@ async def test_update_project_role_permissions_not_valid_permissions(
         f"/projects/{project.b64id}/roles/{role_slug}", json=data
     )
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.data
+    assert response.status_code == 422, response.data
 
 
-async def test_update_project_role_permissions_ok(client, project_template):
+async def test_update_project_role_ok(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()
     general_admin_role = await f.create_project_role(
@@ -520,6 +511,32 @@ async def test_update_project_role_permissions_ok(client, project_template):
     response = await client.put(
         f"/projects/{project.b64id}/roles/{role_slug}", json=data
     )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert data["permissions"] == res["permissions"]
+    assert "Member" == res["name"]
 
-    assert response.status_code == status.HTTP_200_OK, response.data
-    assert data["permissions"] == response.json()["permissions"]
+    data = {
+        "permissions": [
+            choices.ProjectPermissions.VIEW_STORY.value,
+            choices.ProjectPermissions.MODIFY_STORY.value,
+        ],
+        "name": "New member",
+    }
+    response = await client.put(
+        f"/projects/{project.b64id}/roles/{role_slug}", json=data
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert data["permissions"] == res["permissions"]
+    assert data["name"] == res["name"]
+    role_slug = res["slug"]
+
+    data = {"name": "New member 2"}
+    response = await client.put(
+        f"/projects/{project.b64id}/roles/{role_slug}", json=data
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert len(res["permissions"]) == 2
+    assert data["name"] == res["name"]

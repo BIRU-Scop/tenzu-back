@@ -475,8 +475,8 @@ async def test_update_project_role_permissions_is_owner():
         patch_db_transaction(),
         pytest.raises(ex.NonEditableRoleError),
     ):
-        await services.update_project_role_permissions(
-            role=role, permissions=permissions
+        await services.update_project_role(
+            role=role, values={"permissions": permissions}
         )
         fake_memberships_repositories.update_role.assert_not_awaited()
 
@@ -495,14 +495,14 @@ async def test_update_project_role_permissions_ok():
         patch_db_transaction(),
     ):
         fake_memberships_repositories.update_role.return_value = role
-        await services.update_project_role_permissions(
-            role=role, permissions=permissions
+        await services.update_project_role(
+            role=role, values={"permissions": permissions}
         )
         fake_memberships_repositories.update_role.assert_awaited_once_with(
             role=role,
             values={"permissions": permissions},
         )
-        fake_memberships_events.emit_event_when_project_role_permissions_are_updated.assert_awaited_with(
+        fake_memberships_events.emit_event_when_project_role_is_updated.assert_awaited_with(
             role=role
         )
 
@@ -529,16 +529,49 @@ async def test_update_project_role_permissions_view_story_deleted():
         patch_db_transaction(),
     ):
         fake_memberships_repositories.update_role.return_value = role
-        await services.update_project_role_permissions(
-            role=role, permissions=permissions
+        await services.update_project_role(
+            role=role, values={"permissions": permissions}
         )
         fake_memberships_repositories.update_role.assert_awaited_once_with(
             role=role,
             values={"permissions": permissions},
         )
-        fake_memberships_events.emit_event_when_project_role_permissions_are_updated.assert_awaited_with(
+        fake_memberships_events.emit_event_when_project_role_is_updated.assert_awaited_with(
             role=role
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
             filters={"role_id": role.id}
         )
+
+
+async def test_update_project_role_name():
+    role = f.build_project_role()
+    user = f.build_user()
+    f.build_project_membership(user=user, project=role.project, role=role)
+    story = f.build_story(project=role.project)
+    f.build_story_assignment(story=story, user=user)
+    new_name = "New member"
+
+    with (
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.memberships.services.story_assignments_repositories",
+            autospec=True,
+        ) as fake_story_assignments_repository,
+        patch_db_transaction(),
+    ):
+        fake_memberships_repositories.update_role.return_value = role
+        await services.update_project_role(role=role, values={"name": new_name})
+        fake_memberships_repositories.update_role.assert_awaited_once_with(
+            role=role,
+            values={"name": new_name},
+        )
+        fake_memberships_events.emit_event_when_project_role_is_updated.assert_awaited_with(
+            role=role
+        )
+        fake_story_assignments_repository.delete_stories_assignments.assert_not_awaited()

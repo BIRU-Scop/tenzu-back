@@ -16,11 +16,19 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Annotated
 
+from pydantic import StringConstraints
 
 from commons.validators import BaseModel
 from permissions.validators import ProjectPermissionsField
 
 
 class RoleValidator(BaseModel):
-    permissions: ProjectPermissionsField
+    permissions: ProjectPermissionsField | None = None
+    name: (
+        Annotated[
+            str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
+        ]
+        | None
+    ) = None
