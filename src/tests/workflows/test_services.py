@@ -27,6 +27,7 @@ from base.repositories.neighbors import Neighbor
 from tests.utils import factories as f
 from tests.utils.utils import patch_db_transaction
 from workflows import repositories, services
+from workflows.models import Workflow, WorkflowStatus
 from workflows.serializers import (
     DeleteWorkflowSerializer,
     ReorderWorkflowStatusesSerializer,
@@ -218,9 +219,7 @@ async def test_get_detailed_workflow_ok():
             order=workflow.order,
             statuses=[workflow_status],
         )
-        await services.get_workflow_detail(
-            project_id=workflow.project_id, workflow_slug=workflow.slug
-        )
+        await services.get_workflow_detail(workflow_id=workflow.id)
         fake_workflows_repo.get_workflow.assert_awaited_once()
         fake_workflows_serializers.serialize_workflow.assert_called_once()
 
@@ -253,9 +252,7 @@ async def test_get_delete_workflow_detail_ok():
         workflow_statuses = [workflow_status]
         fake_workflows_repo.get_workflow.return_value = workflow
         fake_workflows_repo.list_workflow_statuses.return_value = workflow_statuses
-        await services.get_delete_workflow_detail(
-            project_id=workflow.project_id, workflow_slug=workflow.slug
-        )
+        await services.get_delete_workflow_detail(workflow_id=workflow.id)
         fake_workflows_repo.get_workflow.assert_awaited_once()
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
             workflow_id=workflow.id
@@ -641,10 +638,10 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
             source_workflow=deleted_workflow,
         )
         fake_get_workflow_detail.assert_awaited_once_with(
-            project_id=target_workflow.project.id, workflow_slug=target_workflow.slug
+            workflow_id=target_workflow.id
         )
         fake_get_delete_workflow_detail.assert_awaited_once_with(
-            project_id=deleted_workflow.project.id, workflow_slug=deleted_workflow.slug
+            workflow_id=deleted_workflow.id
         )
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once_with(
             project=deleted_workflow.project,
@@ -752,7 +749,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
             source_workflow=deleted_workflow,
         )
         fake_get_workflow_detail.assert_awaited_once_with(
-            project_id=target_workflow.project.id, workflow_slug=target_workflow.slug
+            workflow_id=target_workflow.id
         )
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once_with(
             project=deleted_workflow.project,
@@ -794,7 +791,7 @@ async def test_delete_workflow_not_existing_target_workflow_exception():
         )
         target_workflow = f.build_workflow(slug="target_workflow")
         fake_get_delete_workflow_detail.return_value = deleted_workflow_detail
-        fake_get_workflow.return_value = None
+        fake_get_workflow.side_effect = Workflow.DoesNotExist
 
         # service call
         ret = await services.delete_workflow(
@@ -1296,7 +1293,7 @@ async def test_delete_workflow_status_wrong_target_status_ex():
         patch_db_transaction(),
         pytest.raises(ex.NonExistingMoveToStatus),
     ):
-        fake_get_workflow_status.return_value = None
+        fake_get_workflow_status.side_effect = WorkflowStatus.DoesNotExist
 
         await services.delete_workflow_status(
             workflow_status=workflow_status1,

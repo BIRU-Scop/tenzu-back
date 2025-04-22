@@ -113,10 +113,7 @@ async def get_workflow(
         .prefetch_related(*prefetch_related)
     )
 
-    try:
-        return await qs.aget()
-    except Workflow.DoesNotExist:
-        return None
+    return await qs.aget()
 
 
 ##########################################################
@@ -271,10 +268,7 @@ async def get_workflow_status(
 ) -> WorkflowStatus | None:
     qs = WorkflowStatus.objects.all().filter(**filters).select_related(*select_related)
 
-    try:
-        return await qs.aget(id=status_id)
-    except WorkflowStatus.DoesNotExist:
-        return None
+    return await qs.aget(id=status_id)
 
 
 ##########################################################

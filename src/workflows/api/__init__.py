@@ -151,9 +151,7 @@ async def get_workflow(
         user=request.user,
         obj=workflow.project,
     )
-    return await workflows_services.get_workflow_detail(
-        project_id=workflow.project_id, workflow_slug=workflow.slug
-    )
+    return await workflows_services.get_workflow_detail(workflow_id=workflow.id)
 
 
 @workflows_router.get(
@@ -184,9 +182,7 @@ async def get_workflow_by_slug(
         user=request.user,
         obj=workflow.project,
     )
-    return await workflows_services.get_workflow_detail(
-        project_id=project_id, workflow_slug=workflow_slug
-    )
+    return await workflows_services.get_workflow_detail(workflow_id=workflow.id)
 
 
 #########################################################
@@ -279,19 +275,21 @@ async def delete_workflow(
 
 
 async def get_workflow_by_slug_or_404(project_id: UUID, workflow_slug: str) -> Workflow:
-    workflow = await workflows_services.get_workflow_by_slug(
-        project_id=project_id, workflow_slug=workflow_slug
-    )
-    if workflow is None:
-        raise ex.NotFoundError(f"Workflow {workflow_slug} does not exist")
+    try:
+        workflow = await workflows_services.get_workflow_by_slug(
+            project_id=project_id, workflow_slug=workflow_slug
+        )
+    except Workflow.DoesNotExist as e:
+        raise ex.NotFoundError(f"Workflow {workflow_slug} does not exist") from e
 
     return workflow
 
 
 async def get_workflow_or_404(workflow_id: UUID) -> Workflow:
-    workflow = await workflows_services.get_workflow_by_id(workflow_id=workflow_id)
-    if workflow is None:
-        raise ex.NotFoundError(f"Workflow {workflow_id} does not exist")
+    try:
+        workflow = await workflows_services.get_workflow_by_id(workflow_id=workflow_id)
+    except Workflow.DoesNotExist as e:
+        raise ex.NotFoundError(f"Workflow {workflow_id} does not exist") from e
 
     return workflow
 
@@ -473,10 +471,11 @@ async def delete_workflow_status(
 async def get_workflow_status_or_404(
     workflow_id: UUID, status_id: UUID
 ) -> WorkflowStatus:
-    workflow_status = await workflows_services.get_workflow_status(
-        workflow_id=workflow_id, status_id=status_id
-    )
-    if workflow_status is None:
-        raise ex.NotFoundError("Workflow status does not exist")
+    try:
+        workflow_status = await workflows_services.get_workflow_status(
+            workflow_id=workflow_id, status_id=status_id
+        )
+    except WorkflowStatus.DoesNotExist as e:
+        raise ex.NotFoundError("Workflow status does not exist") from e
 
     return workflow_status

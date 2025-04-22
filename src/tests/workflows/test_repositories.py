@@ -87,10 +87,10 @@ async def test_get_workflow_ok(project_template) -> None:
 
 async def test_get_project_without_workflow_ok() -> None:
     project = await f.create_simple_project()
-    workflow = await repositories.get_workflow(
-        filters={"project_id": project.id, "slug": "not-existing-slug"}
-    )
-    assert workflow is None
+    with pytest.raises(Workflow.DoesNotExist):
+        await repositories.get_workflow(
+            filters={"project_id": project.id, "slug": "not-existing-slug"}
+        )
 
 
 ##########################################################
@@ -295,13 +295,13 @@ async def test_get_project_without_workflow_statuses_ok(project_template) -> Non
     workflows = await _list_workflows(project=project)
     bad_status_id = uuid.uuid1()
 
-    workflow_status = await repositories.get_workflow_status(
-        status_id=bad_status_id,
-        filters={
-            "workflow_id": workflows[0].id,
-        },
-    )
-    assert workflow_status is None
+    with pytest.raises(WorkflowStatus.DoesNotExist):
+        await repositories.get_workflow_status(
+            status_id=bad_status_id,
+            filters={
+                "workflow_id": workflows[0].id,
+            },
+        )
 
 
 ##########################################################

@@ -150,15 +150,12 @@ async def get_workflow_by_id(workflow_id: UUID) -> Workflow | None:
     )
 
 
-async def get_workflow_detail(
-    project_id: UUID, workflow_slug: str
-) -> WorkflowSerializer:
+async def get_workflow_detail(workflow_id: UUID) -> WorkflowSerializer:
     workflow = cast(
         Workflow,
         await workflows_repositories.get_workflow(
             filters={
-                "project_id": project_id,
-                "slug": workflow_slug,
+                "id": workflow_id,
             },
             select_related=["project"],
         ),
@@ -171,15 +168,12 @@ async def get_workflow_detail(
     )
 
 
-async def get_delete_workflow_detail(
-    project_id: UUID, workflow_slug: str
-) -> DeleteWorkflowSerializer:
+async def get_delete_workflow_detail(workflow_id: UUID) -> DeleteWorkflowSerializer:
     workflow = cast(
         Workflow,
         await workflows_repositories.get_workflow(
             filters={
-                "project_id": project_id,
-                "slug": workflow_slug,
+                "id": workflow_id,
             },
             select_related=["project"],
         ),
@@ -188,7 +182,7 @@ async def get_delete_workflow_detail(
         workflow_id=workflow.id
     )
     workflow_stories = await stories_services.list_stories(
-        project_id=project_id, workflow_slug=workflow_slug, get_assignees=False
+        project_id=workflow.project_id, workflow_slug=workflow.slug, get_assignees=False
     )
 
     return serializers_services.serialize_delete_workflow_detail(
@@ -211,9 +205,7 @@ async def update_workflow(
     updated_workflow = await workflows_repositories.update_workflow(
         workflow=workflow, values=values
     )
-    updated_workflow_detail = await get_workflow_detail(
-        project_id=workflow.project_id, workflow_slug=updated_workflow.slug
-    )
+    updated_workflow_detail = await get_workflow_detail(workflow_id=updated_workflow.id)
 
     if (
         previous_slug != updated_workflow.slug
@@ -256,18 +248,17 @@ async def delete_workflow(
     :return: bool
     """
     # recover the workflow's detail before being deleted
-    workflow_detail = await get_delete_workflow_detail(
-        project_id=workflow.project_id, workflow_slug=workflow.slug
-    )
+    workflow_detail = await get_delete_workflow_detail(workflow_id=workflow.id)
     target_workflow = None
     if target_workflow_slug:
-        target_workflow = await get_workflow_by_slug(
-            project_id=workflow.project_id, workflow_slug=target_workflow_slug
-        )
-        if not target_workflow:
+        try:
+            target_workflow = await get_workflow_by_slug(
+                project_id=workflow.project_id, workflow_slug=target_workflow_slug
+            )
+        except Workflow.DoesNotExist as e:
             raise ex.NonExistingMoveToWorkflow(
                 f"The workflow '{target_workflow_slug}' doesn't exist"
-            )
+            ) from e
         if target_workflow.id == workflow.id:
             raise ex.SameMoveToWorkflow(
                 "The to-be-deleted workflow and the target-workflow cannot be the same"
@@ -320,8 +311,7 @@ async def delete_workflow(
         # events will render the final statuses in the target_workflow AFTER any reorder process
         if target_workflow:
             target_workflow_detail = await get_workflow_detail(
-                project_id=target_workflow.project_id,
-                workflow_slug=target_workflow.slug,
+                workflow_id=target_workflow.id
             )
 
         await transaction_on_commit_async(
@@ -479,17 +469,18 @@ async def reorder_workflow_statuses(
     # position statuses according to this anchor status
     elif reorder:
         # check anchor workflow status exists
-        reorder_reference_status = await workflows_repositories.get_workflow_status(
-            status_id=reorder["status_id"],
-            filters={
-                "workflow_id": target_workflow.id,
-            },
-        )
-        if not reorder_reference_status:
+        try:
+            reorder_reference_status = await workflows_repositories.get_workflow_status(
+                status_id=reorder["status_id"],
+                filters={
+                    "workflow_id": target_workflow.id,
+                },
+            )
+        except WorkflowStatus.DoesNotExist as e:
             # re-ordering in the same workflow must have a valid anchor status
             raise ex.InvalidWorkflowStatusError(
                 f"Status {reorder['status_id']} doesn't exist in this workflow"
-            )
+            ) from e
 
         if reorder["status_id"] in status_ids:
             raise ex.InvalidWorkflowStatusError(
@@ -583,14 +574,15 @@ async def delete_workflow_status(
     # in the same workflow
     target_status = None
     if target_status_id:
-        target_status = await get_workflow_status(
-            workflow_id=workflow_status.workflow_id,
-            status_id=target_status_id,
-        )
-        if not target_status:
+        try:
+            target_status = await get_workflow_status(
+                workflow_id=workflow_status.workflow_id,
+                status_id=target_status_id,
+            )
+        except WorkflowStatus.DoesNotExist as e:
             raise ex.NonExistingMoveToStatus(
                 f"The status '{target_status_id}' doesn't exist"
-            )
+            ) from e
         if target_status.id == workflow_status.id:
             raise ex.SameMoveToStatus(
                 "The to-be-deleted status and the target-status cannot be the same"

@@ -242,7 +242,7 @@ async def test_get_workflow_by_slug_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(
-        f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
+        f"/workflows/by_slug/{workflow.slug}/projects/{project.b64id}"
     )
     assert response.status_code == 200, response.data
 
@@ -256,7 +256,7 @@ async def test_get_workflow_by_slug_200_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.get(
-        f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
+        f"/workflows/by_slug/{workflow.slug}/projects/{project.b64id}"
     )
     assert response.status_code == 200, response.data
 
@@ -268,7 +268,7 @@ async def test_get_workflow_by_slug_403_forbidden_not_member(client, project_tem
 
     client.login(user)
     response = await client.get(
-        f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
+        f"/workflows/by_slug/{workflow.slug}/projects/{project.b64id}"
     )
     assert response.status_code == 403, response.data
 
@@ -289,7 +289,7 @@ async def test_get_workflow_by_slug_403_forbidden_no_permission(
 
     client.login(pj_member)
     response = await client.get(
-        f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
+        f"/workflows/by_slug/{workflow.slug}/projects/{project.b64id}"
     )
     assert response.status_code == 403, response.data
 
@@ -302,7 +302,7 @@ async def test_get_workflow_by_slug_404_not_found_project_b64id(
 
     client.login(project.created_by)
     response = await client.get(
-        f"/projects/{NOT_EXISTING_B64ID}/workflows/by_slug/{workflow.slug}"
+        f"/workflows/by_slug/{workflow.slug}/projects/{NOT_EXISTING_B64ID}"
     )
     assert response.status_code == 404, response.data
 
@@ -312,7 +312,7 @@ async def test_get_workflow_by_slug_404_workflow_slug(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(
-        f"/projects/{project.b64id}/workflows/by_slug/{NOT_EXISTING_SLUG}"
+        f"/workflows/by_slug/{NOT_EXISTING_SLUG}/projects/{project.b64id}"
     )
     assert response.status_code == 404, response.data
 
@@ -325,7 +325,7 @@ async def test_get_workflow_by_slug_422_unprocessable_project_b64id(
 
     client.login(project.created_by)
     response = await client.get(
-        f"/projects/{INVALID_B64ID}/workflows/by_slug/{workflow.slug}"
+        f"/workflows/by_slug/{workflow.slug}/projects/{INVALID_B64ID}"
     )
     assert response.status_code == 422, response.data
 

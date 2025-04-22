@@ -27,6 +27,7 @@ from base.repositories.neighbors import Neighbor
 from stories.stories import repositories, services
 from stories.stories.services import exceptions as ex
 from tests.utils import factories as f
+from workflows.models import Workflow, WorkflowStatus
 from workflows.serializers import WorkflowSerializer
 from workflows.serializers.nested import WorkflowStatusNestedSerializer
 
@@ -98,7 +99,9 @@ async def test_create_story_invalid_status():
             "stories.stories.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
     ):
-        fake_workflows_repo.get_workflow_status.return_value = None
+        fake_workflows_repo.get_workflow_status.side_effect = (
+            WorkflowStatus.DoesNotExist
+        )
         await services.create_story(
             project=story.project,
             workflow=build_workflow_serializer(story),
@@ -643,7 +646,9 @@ async def test_validate_and_process_values_to_update_error_wrong_status():
             "stories.stories.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
     ):
-        fake_workflows_repo.get_workflow_status.return_value = None
+        fake_workflows_repo.get_workflow_status.side_effect = (
+            WorkflowStatus.DoesNotExist
+        )
 
         with pytest.raises(ex.InvalidStatusError):
             await services._validate_and_process_values_to_update(
@@ -761,7 +766,7 @@ async def test_validate_and_process_values_to_update_error_wrong_workflow():
             "stories.stories.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
     ):
-        fake_workflows_repo.get_workflow.return_value = None
+        fake_workflows_repo.get_workflow.side_effect = Workflow.DoesNotExist
 
         with pytest.raises(ex.InvalidWorkflowError):
             await services._validate_and_process_values_to_update(
@@ -992,7 +997,9 @@ async def test_reorder_story_workflowstatus_does_not_exist():
         ) as fake_workflows_repo,
         pytest.raises(ex.InvalidStatusError),
     ):
-        fake_workflows_repo.get_workflow_status.return_value = None
+        fake_workflows_repo.get_workflow_status.side_effect = (
+            WorkflowStatus.DoesNotExist
+        )
 
         await services.reorder_stories(
             reordered_by=user,
