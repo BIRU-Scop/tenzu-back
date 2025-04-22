@@ -34,13 +34,11 @@ pytestmark = pytest.mark.django_db
 
 async def test_create_project_200_ok_being_workspace_member(client):
     workspace = await f.create_workspace()
-    data = {"name": "Project test", "color": 1}
+    data = {"name": "Project test", "color": 1, "workspaceId": workspace.b64id}
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
     client.login(workspace.created_by)
-    response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects", data=data, files=files
-    )
+    response = await client.post("/projects", data=data, files=files)
     assert response.status_code == 200, response.data
     res = response.json()
     assert res["userRole"]["isOwner"] is True
@@ -50,54 +48,48 @@ async def test_create_project_200_ok_being_workspace_member(client):
 
 async def test_create_project_400_bad_request_invalid_workspace_error(client):
     workspace = await f.create_workspace()
-    data = {"name": "My pro#%&乕شject", "color": 1}
+    data = {"name": "My pro#%&乕شject", "color": 1, "workspaceId": NOT_EXISTING_B64ID}
 
     client.login(workspace.created_by)
-    response = await client.post(
-        f"/workspaces/{NOT_EXISTING_B64ID}/projects", data=data
-    )
+    response = await client.post("/projects", data=data)
     assert response.status_code == 404, response.data
 
 
 async def test_create_project_403_being_no_workspace_member(client):
     workspace = await f.create_workspace()
     user2 = await f.create_user()
-    data = {"name": "Project test", "color": 1}
+    data = {"name": "Project test", "color": 1, "workspaceId": workspace.b64id}
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
     client.login(user2)
-    response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects", data=data, files=files
-    )
+    response = await client.post("/projects", data=data, files=files)
     assert response.status_code == 403, response.data
 
 
 async def test_create_project_401_being_anonymous(client):
     workspace = await f.create_workspace()
-    data = {"name": "Project test", "color": 1}
+    data = {"name": "Project test", "color": 1, "workspaceId": workspace.b64id}
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
-    response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects", data=data, files=files
-    )
+    response = await client.post("/projects", data=data, files=files)
     assert response.status_code == 401, response.data
 
 
 async def test_create_project_422_unprocessable_color(client):
     workspace = await f.create_workspace()
-    data = {"name": "My project", "color": 12}
+    data = {"name": "My project", "color": 12, "workspaceId": workspace.b64id}
 
     client.login(workspace.created_by)
-    response = await client.post(f"/workspaces/{workspace.b64id}/projects", data=data)
+    response = await client.post("/projects", data=data)
     assert response.status_code == 422, response.data
 
 
 async def test_create_project_422_unprocessable_uuid(client):
     workspace = await f.create_workspace()
-    data = {"name": "My project", "color": 12}
+    data = {"name": "My project", "color": 12, "workspaceId": INVALID_B64ID}
 
     client.login(workspace.created_by)
-    response = await client.post(f"/workspaces/{INVALID_B64ID}/projects", data=data)
+    response = await client.post("/projects", data=data)
     assert response.status_code == 422, response.data
 
 

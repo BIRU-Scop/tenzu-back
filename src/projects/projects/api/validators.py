@@ -76,6 +76,7 @@ class CreateProjectValidator(BaseModel):
     description: Annotated[str, StringConstraints(max_length=220)] | None = None  # type: ignore
     color: Annotated[int, Field(gt=0, le=NUM_COLORS)] | None = None  # type: ignore
     logo: LogoField | None = None
+    workspace_id: B64UUID
 
 
 class UpdateProjectValidator(BaseModel):
