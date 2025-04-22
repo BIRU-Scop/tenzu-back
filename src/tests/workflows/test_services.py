@@ -190,7 +190,7 @@ async def test_get_workflow_ok():
         "workflows.services.workflows_repositories", autospec=True
     ) as fake_workflows_repo:
         fake_workflows_repo.get_workflow.return_value = workflow
-        await services.get_workflow(
+        await services.get_workflow_by_slug(
             project_id=workflow.project.id, workflow_slug=workflow.slug
         )
         fake_workflows_repo.get_workflow.assert_awaited_once()
@@ -293,7 +293,7 @@ async def test_update_workflow_ok():
         patch_db_transaction(),
     ):
         updated_workflow = await services.update_workflow(
-            project_id=project.id, workflow=workflow, updated_by=user, values=values
+            workflow=workflow, updated_by=user, values=values
         )
         fake_workflows_repo.update_workflow.assert_awaited_once_with(
             workflow=workflow, values=values
@@ -319,12 +319,7 @@ async def test_update_workflow_update_landing_to_new_slug():
         ) as fake_projects_services,
         patch_db_transaction(),
     ):
-        await services.update_workflow(
-            project_id=workflow.project.id,
-            workflow=workflow,
-            updated_by=user,
-            values=values,
-        )
+        await services.update_workflow(workflow=workflow, updated_by=user, values=values)
         fake_projects_services.update_project_landing_page.assert_awaited_once()
 
 
@@ -550,7 +545,9 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         patch(
             "workflows.services.get_delete_workflow_detail", autospec=True
         ) as fake_get_delete_workflow_detail,
-        patch("workflows.services.get_workflow", autospec=True) as fake_get_workflow,
+        patch(
+            "workflows.services.get_workflow_by_slug", autospec=True
+        ) as fake_get_workflow,
         patch(
             "workflows.services.reorder_workflow_statuses", autospec=True
         ) as fake_reorder_workflow_statuses,
@@ -668,7 +665,9 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         patch(
             "workflows.services.get_delete_workflow_detail", autospec=True
         ) as fake_get_delete_workflow_detail,
-        patch("workflows.services.get_workflow", autospec=True) as fake_get_workflow,
+        patch(
+            "workflows.services.get_workflow_by_slug", autospec=True
+        ) as fake_get_workflow,
         patch(
             "workflows.services.reorder_workflow_statuses", autospec=True
         ) as fake_reorder_workflow_statuses,
@@ -771,7 +770,9 @@ async def test_delete_workflow_not_existing_target_workflow_exception():
         patch(
             "workflows.services.get_delete_workflow_detail", autospec=True
         ) as fake_get_delete_workflow_detail,
-        patch("workflows.services.get_workflow", autospec=True) as fake_get_workflow,
+        patch(
+            "workflows.services.get_workflow_by_slug", autospec=True
+        ) as fake_get_workflow,
         patch(
             "workflows.services.reorder_workflow_statuses", autospec=True
         ) as fake_reorder_workflow_statuses,
@@ -818,7 +819,9 @@ async def test_delete_workflow_same_target_workflow_exception():
         patch(
             "workflows.services.get_delete_workflow_detail", autospec=True
         ) as fake_get_delete_workflow_detail,
-        patch("workflows.services.get_workflow", autospec=True) as fake_get_workflow,
+        patch(
+            "workflows.services.get_workflow_by_slug", autospec=True
+        ) as fake_get_workflow,
         patch(
             "workflows.services.reorder_workflow_statuses", autospec=True
         ) as fake_reorder_workflow_statuses,
@@ -1206,9 +1209,8 @@ async def test_delete_workflow_status_moving_stories_ok():
         )
 
         fake_get_workflow_status.assert_awaited_once_with(
-            project_id=workflow.project.id,
-            workflow_slug=workflow.slug,
-            id=workflow_status2.id,
+            workflow_id=workflow.id,
+            status_id=workflow_status2.id,
         )
         fake_stories_repo.list_stories_qs.assert_called_once_with(
             filters={
@@ -1303,9 +1305,8 @@ async def test_delete_workflow_status_wrong_target_status_ex():
         )
 
         fake_get_workflow_status.assert_awaited_once_with(
-            project_id=workflow.project.id,
-            workflow_slug=workflow.slug,
-            id=workflow_status2.id,
+            workflow_id=workflow.id,
+            status_id=workflow_status2.id,
         )
 
 
@@ -1332,5 +1333,5 @@ async def test_delete_workflow_status_same_target_status_ex():
         fake_get_workflow_status.assert_awaited_once_with(
             project_id=workflow.project.id,
             workflow_slug=workflow.slug,
-            id=workflow_status1.id,
+            status_id=workflow_status1.id,
         )

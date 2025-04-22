@@ -57,7 +57,7 @@ workflows_router = Router()
 
 
 @workflows_router.post(
-    "/projects/{project_id}/workflows",
+    "/workflows",
     url_name="project.workflow.create",
     summary="Create workflows",
     response={
@@ -70,13 +70,12 @@ workflows_router = Router()
 )
 async def create_workflow(
     request,
-    project_id: Path[B64UUID],
     form: CreateWorkflowValidator,
 ) -> WorkflowSerializer:
     """
     Creates a workflow for a project
     """
-    project = await get_project_or_404(project_id)
+    project = await get_project_or_404(form.project_id)
     await check_permissions(
         permissions=WorkflowPermissionsCheck.CREATE.value,
         user=request.user,
@@ -104,6 +103,7 @@ async def create_workflow(
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
+    tags=["projects", "workflows"],
     by_alias=True,
 )
 async def list_workflows(
@@ -126,39 +126,7 @@ async def list_workflows(
 
 
 @workflows_router.get(
-    "/projects/{project_id}/workflows/by_id/{workflow_id}",
-    url_name="project.workflow.get_by_id",
-    summary="Get project workflow",
-    response={
-        200: WorkflowSerializer,
-        403: ERROR_RESPONSE_403,
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-async def get_workflow_by_id(
-    request,
-    project_id: Path[B64UUID],
-    workflow_id: Path[B64UUID],
-) -> WorkflowSerializer:
-    """
-    Get the details of a workflow by id
-    """
-
-    workflow = await get_workflow_by_id_or_404(workflow_id=workflow_id)
-    await check_permissions(
-        permissions=WorkflowPermissionsCheck.VIEW.value,
-        user=request.user,
-        obj=workflow.project,
-    )
-    return await workflows_services.get_workflow_detail(
-        project_id=project_id, workflow_slug=workflow.slug
-    )
-
-
-@workflows_router.get(
-    "/projects/{project_id}/workflows/{workflow_slug}",
+    "/workflows/{workflow_id}",
     url_name="project.workflow.get",
     summary="Get project workflow",
     response={
@@ -171,13 +139,44 @@ async def get_workflow_by_id(
 )
 async def get_workflow(
     request,
+    workflow_id: Path[B64UUID],
+) -> WorkflowSerializer:
+    """
+    Get the details of a workflow by id
+    """
+
+    workflow = await get_workflow_or_404(workflow_id=workflow_id)
+    await check_permissions(
+        permissions=WorkflowPermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workflow.project,
+    )
+    return await workflows_services.get_workflow_detail(
+        project_id=workflow.project_id, workflow_slug=workflow.slug
+    )
+
+
+@workflows_router.get(
+    "/workflows/by_slug/{workflow_slug}/projects/{project_id}",
+    url_name="project.workflow.get_by_slug",
+    summary="Get project workflow by slug",
+    response={
+        200: WorkflowSerializer,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def get_workflow_by_slug(
+    request,
     project_id: Path[B64UUID],
     workflow_slug: str,
 ) -> WorkflowSerializer:
     """
-    Get the details of a workflow
+    Get the details of a workflow by slug
     """
-    workflow = await get_workflow_or_404(
+    workflow = await get_workflow_by_slug_or_404(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(
@@ -196,7 +195,7 @@ async def get_workflow(
 
 
 @workflows_router.patch(
-    "/projects/{project_id}/workflows/{workflow_slug}",
+    "/workflows/{workflow_id}",
     url_name="project.workflow.update",
     summary="Update workflow",
     response={
@@ -209,16 +208,13 @@ async def get_workflow(
 )
 async def update_workflow(
     request,
-    project_id: Path[B64UUID],
-    workflow_slug: str,
+    workflow_id: Path[B64UUID],
     form: UpdateWorkflowValidator,
 ) -> WorkflowSerializer:
     """
     Update workflow
     """
-    workflow = await get_workflow_or_404(
-        project_id=project_id, workflow_slug=workflow_slug
-    )
+    workflow = await get_workflow_or_404(workflow_id=workflow_id)
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -226,9 +222,7 @@ async def update_workflow(
     )
 
     values = form.dict(exclude_unset=True)
-    return await workflows_services.update_workflow(
-        project_id=project_id, workflow=workflow, updated_by=request.user, values=values
-    )
+    return await workflows_services.update_workflow(workflow=workflow, updated_by=request.user, values=values)
 
 
 ################################################
@@ -237,7 +231,7 @@ async def update_workflow(
 
 
 @workflows_router.delete(
-    "/projects/{project_id}/workflows/{workflow_slug}",
+    "/workflows/{workflow_id}",
     url_name="project.workflow.delete",
     summary="Delete a workflow",
     response={
@@ -250,8 +244,7 @@ async def update_workflow(
 )
 async def delete_workflow(
     request,
-    project_id: Path[B64UUID],
-    workflow_slug: str,
+    workflow_id: Path[B64UUID],
     query_params: Query[DeleteWorkflowQuery],
 ) -> tuple[int, None]:
     """
@@ -265,9 +258,7 @@ async def delete_workflow(
         - if received, the workflow will be deleted but its statuses and stories won't (they will be appended to the
          last status of the specified workflow).
     """
-    workflow = await get_workflow_or_404(
-        project_id=project_id, workflow_slug=workflow_slug
-    )
+    workflow = await get_workflow_or_404(workflow_id=workflow_id)
     await check_permissions(
         permissions=WorkflowPermissionsCheck.DELETE.value,
         user=request.user,
@@ -287,8 +278,8 @@ async def delete_workflow(
 ################################################
 
 
-async def get_workflow_or_404(project_id: UUID, workflow_slug: str) -> Workflow:
-    workflow = await workflows_services.get_workflow(
+async def get_workflow_by_slug_or_404(project_id: UUID, workflow_slug: str) -> Workflow:
+    workflow = await workflows_services.get_workflow_by_slug(
         project_id=project_id, workflow_slug=workflow_slug
     )
     if workflow is None:
@@ -297,7 +288,7 @@ async def get_workflow_or_404(project_id: UUID, workflow_slug: str) -> Workflow:
     return workflow
 
 
-async def get_workflow_by_id_or_404(workflow_id: UUID) -> Workflow:
+async def get_workflow_or_404(workflow_id: UUID) -> Workflow:
     workflow = await workflows_services.get_workflow_by_id(workflow_id=workflow_id)
     if workflow is None:
         raise ex.NotFoundError(f"Workflow {workflow_id} does not exist")
@@ -311,7 +302,7 @@ async def get_workflow_by_id_or_404(workflow_id: UUID) -> Workflow:
 
 
 @workflows_router.post(
-    "/projects/{project_id}/workflows/{workflow_slug}/statuses",
+    "/workflows/{workflow_id}/statuses",
     url_name="project.workflowstatus.create",
     summary="Create a workflow status",
     response={
@@ -324,16 +315,13 @@ async def get_workflow_by_id_or_404(workflow_id: UUID) -> Workflow:
 )
 async def create_workflow_status(
     request,
-    project_id: Path[B64UUID],
-    workflow_slug: str,
+    workflow_id: Path[B64UUID],
     form: CreateWorkflowStatusValidator,
 ) -> WorkflowStatus:
     """
     Creates a workflow status in the given project workflow
     """
-    workflow = await get_workflow_or_404(
-        project_id=project_id, workflow_slug=workflow_slug
-    )
+    workflow = await get_workflow_or_404(workflow_id=workflow_id)
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -353,7 +341,7 @@ async def create_workflow_status(
 
 
 @workflows_router.post(
-    "/projects/{project_id}/workflows/{workflow_slug}/statuses/reorder",
+    "/workflows/{workflow_id}/statuses/reorder",
     url_name="project.workflowstatus.reorder",
     summary="Reorder workflow statuses",
     response={
@@ -366,16 +354,13 @@ async def create_workflow_status(
 )
 async def reorder_workflow_statuses(
     request,
-    project_id: Path[B64UUID],
-    workflow_slug: str,
+    workflow_id: Path[B64UUID],
     form: ReorderWorkflowStatusesValidator,
 ) -> ReorderWorkflowStatusesSerializer:
     """
     Reorder one or more workflow statuses; it may change workflow and order
     """
-    workflow = await get_workflow_or_404(
-        project_id=project_id, workflow_slug=workflow_slug
-    )
+    workflow = await get_workflow_or_404(workflow_id=workflow_id)
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -394,7 +379,7 @@ async def reorder_workflow_statuses(
 
 
 @workflows_router.patch(
-    "/projects/{project_id}/workflows/{workflow_slug}/statuses/{id}",
+    "/workflows/{workflow_id}/statuses/{status_id}",
     url_name="project.workflowstatus.update",
     summary="Update workflow status",
     response={
@@ -407,16 +392,15 @@ async def reorder_workflow_statuses(
 )
 async def update_workflow_status(
     request,
-    id: Path[B64UUID],
-    project_id: Path[B64UUID],
-    workflow_slug: str,
+    status_id: Path[B64UUID],
+    workflow_id: Path[B64UUID],
     form: UpdateWorkflowStatusValidator,
 ) -> WorkflowStatus:
     """
     Updates a workflow status in the given project workflow
     """
     workflow_status = await get_workflow_status_or_404(
-        project_id=project_id, workflow_slug=workflow_slug, id=id
+        workflow_id=workflow_id, status_id=status_id
     )
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
@@ -436,7 +420,7 @@ async def update_workflow_status(
 
 
 @workflows_router.delete(
-    "/projects/{project_id}/workflows/{workflow_slug}/statuses/{id}",
+    "/workflows/{workflow_id}/statuses/{status_id}",
     url_name="project.workflowstatus.delete",
     summary="Delete a workflow status",
     response={
@@ -449,9 +433,8 @@ async def update_workflow_status(
 )
 async def delete_workflow_status(
     request,
-    id: Path[B64UUID],
-    project_id: Path[B64UUID],
-    workflow_slug: str,
+    status_id: Path[B64UUID],
+    workflow_id: Path[B64UUID],
     query_params: Query[DeleteWorkflowStatusQuery],
 ) -> tuple[int, None]:
     """
@@ -465,7 +448,7 @@ async def delete_workflow_status(
          the specified status).
     """
     workflow_status = await get_workflow_status_or_404(
-        project_id=project_id, workflow_slug=workflow_slug, id=id
+        workflow_id=workflow_id, status_id=status_id
     )
     await check_permissions(
         permissions=WorkflowPermissionsCheck.MODIFY.value,
@@ -488,10 +471,10 @@ async def delete_workflow_status(
 
 
 async def get_workflow_status_or_404(
-    project_id: UUID, workflow_slug: str, id: UUID
+    workflow_id: UUID, status_id: UUID
 ) -> WorkflowStatus:
     workflow_status = await workflows_services.get_workflow_status(
-        project_id=project_id, workflow_slug=workflow_slug, id=id
+        workflow_id=workflow_id, status_id=status_id
     )
     if workflow_status is None:
         raise ex.NotFoundError("Workflow status does not exist")

@@ -284,8 +284,7 @@ async def test_get_workflow_status_ok(project_template) -> None:
     workflow_status = await repositories.get_workflow_status(
         status_id=status.id,
         filters={
-            "workflow__project_id": project.id,
-            "workflow__slug": workflow.slug,
+            "workflow_id": workflow.id,
         },
     )
     assert workflow_status == status
@@ -299,8 +298,7 @@ async def test_get_project_without_workflow_statuses_ok(project_template) -> Non
     workflow_status = await repositories.get_workflow_status(
         status_id=bad_status_id,
         filters={
-            "workflow__project_id": project.id,
-            "workflow__slug": workflows[0].slug,
+            "workflow_id": workflows[0].id,
         },
     )
     assert workflow_status is None

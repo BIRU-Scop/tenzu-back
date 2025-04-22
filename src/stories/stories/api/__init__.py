@@ -45,7 +45,7 @@ from stories.stories.serializers import (
     StorySummarySerializer,
 )
 from stories.stories.services.exceptions import InvalidStatusError, InvalidStoryRefError
-from workflows.api import get_workflow_or_404
+from workflows.api import get_workflow_by_slug_or_404
 
 stories_router = Router()
 
@@ -76,7 +76,7 @@ async def create_story(
     """
     Creates a story in the given project workflow
     """
-    workflow = await get_workflow_or_404(
+    workflow = await get_workflow_by_slug_or_404(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(
@@ -123,7 +123,7 @@ async def list_stories(
     """
     List all the stories for a project workflow
     """
-    workflow = await get_workflow_or_404(
+    workflow = await get_workflow_by_slug_or_404(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(
@@ -243,7 +243,7 @@ async def reorder_stories(
     """
     Reorder one or more stories; it may change priority and/or status
     """
-    workflow = await get_workflow_or_404(
+    workflow = await get_workflow_by_slug_or_404(
         project_id=project_id, workflow_slug=workflow_slug
     )
     await check_permissions(

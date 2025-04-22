@@ -131,7 +131,7 @@ async def list_workflows(project_id: UUID) -> list[WorkflowSerializer]:
 ##########################################################
 
 
-async def get_workflow(project_id: UUID, workflow_slug: str) -> Workflow | None:
+async def get_workflow_by_slug(project_id: UUID, workflow_slug: str) -> Workflow | None:
     return await workflows_repositories.get_workflow(
         filters={
             "project_id": project_id,
@@ -205,14 +205,14 @@ async def get_delete_workflow_detail(
 
 @transaction_atomic_async
 async def update_workflow(
-    project_id: UUID, workflow: Workflow, updated_by: User, values: dict[str, Any] = {}
+    workflow: Workflow, updated_by: User, values: dict[str, Any] = {}
 ) -> WorkflowSerializer:
     previous_slug = workflow.slug
     updated_workflow = await workflows_repositories.update_workflow(
         workflow=workflow, values=values
     )
     updated_workflow_detail = await get_workflow_detail(
-        project_id=project_id, workflow_slug=updated_workflow.slug
+        project_id=workflow.project_id, workflow_slug=updated_workflow.slug
     )
 
     if (
@@ -261,7 +261,7 @@ async def delete_workflow(
     )
     target_workflow = None
     if target_workflow_slug:
-        target_workflow = await get_workflow(
+        target_workflow = await get_workflow_by_slug(
             project_id=workflow.project_id, workflow_slug=target_workflow_slug
         )
         if not target_workflow:
@@ -369,13 +369,12 @@ async def create_workflow_status(
 
 
 async def get_workflow_status(
-    project_id: UUID, workflow_slug: str, id: UUID
+    workflow_id: UUID, status_id: UUID
 ) -> WorkflowStatus | None:
     return await workflows_repositories.get_workflow_status(
-        status_id=id,
+        status_id=status_id,
         filters={
-            "workflow__project_id": project_id,
-            "workflow__slug": workflow_slug,
+            "workflow_id": workflow_id,
         },
         select_related=[
             "workflow",
@@ -585,9 +584,8 @@ async def delete_workflow_status(
     target_status = None
     if target_status_id:
         target_status = await get_workflow_status(
-            project_id=workflow_status.project.id,
-            workflow_slug=workflow_status.workflow.slug,
-            id=target_status_id,
+            workflow_id=workflow_status.workflow_id,
+            status_id=target_status_id,
         )
         if not target_status:
             raise ex.NonExistingMoveToStatus(
