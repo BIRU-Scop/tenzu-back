@@ -18,15 +18,12 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
-from asgiref.sync import sync_to_async
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from attachments import repositories as attachments_repositories
 from permissions.choices import ProjectPermissions
 from tests.utils import factories as f
 from tests.utils.bad_params import (
     INVALID_B64ID,
-    INVALID_REF,
     NOT_EXISTING_B64ID,
     NOT_EXISTING_REF,
 )
@@ -165,21 +162,6 @@ async def test_create_story_attachment_422_unprocessable_entity_project_b64id(
     client.login(user)
     response = await client.post(
         f"/projects/{INVALID_B64ID}/stories/{story.ref}/attachments",
-        FILES=files,
-    )
-    assert response.status_code == 422, response.data
-
-
-async def test_create_story_attachment_422_unprocessable_entity_story_ref(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    user = project.created_by
-    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
-
-    client.login(user)
-    response = await client.post(
-        f"/projects/{project.b64id}/stories/{INVALID_REF}/attachments",
         FILES=files,
     )
     assert response.status_code == 422, response.data

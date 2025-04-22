@@ -34,6 +34,7 @@ class StoryValidator(BaseModel):
     title: Title
     description: str | None = None
     status_id: B64UUID
+    workflow_slug: str
 
 
 class UpdateStoryValidator(BaseModel):
@@ -59,6 +60,7 @@ class ReorderStoriesValidator(BaseModel):
     status_id: B64UUID
     stories: Annotated[List[int], Field(min_length=1)]  # type: ignore[valid-type]
     reorder: ReorderValidator | None = None
+    workflow_slug: str
 
     @field_validator("stories")
     @classmethod

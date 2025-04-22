@@ -47,7 +47,7 @@ attachments_router = Router()
 
 
 @attachments_router.post(
-    "/projects/{project_id}/stories/{ref}/attachments",
+    "/projects/{project_id}/stories/{int:ref}/attachments",
     url_name="project.story.attachments.create",
     summary="Attach a file to a story",
     response={
@@ -61,7 +61,7 @@ attachments_router = Router()
 async def create_story_attachments(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     file: UploadedFile = File(...),
 ) -> Attachment:
     """
@@ -85,7 +85,7 @@ async def create_story_attachments(
 
 
 @attachments_router.get(
-    "/projects/{project_id}/stories/{ref}/attachments",
+    "/projects/{project_id}/stories/{int:ref}/attachments",
     url_name="project.story.attachments.list",
     summary="List story attachments",
     response={
@@ -99,7 +99,7 @@ async def create_story_attachments(
 async def list_story_attachment(
     request: HttpRequest,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
 ) -> list[Attachment]:
     """
     List the story attachments
@@ -120,7 +120,7 @@ async def list_story_attachment(
 
 
 @attachments_router.delete(
-    "/projects/{project_id}/stories/{ref}/attachments/{attachment_id}",
+    "/projects/{project_id}/stories/{int:ref}/attachments/{attachment_id}",
     url_name="project.story.attachments.delete",
     summary="Delete story attachment",
     response={
@@ -134,7 +134,7 @@ async def list_story_attachment(
 async def delete_story_attachment(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     attachment_id: Path[B64UUID],
 ) -> tuple[int, None]:
     """
@@ -161,7 +161,7 @@ async def delete_story_attachment(
 
 
 @attachments_router.get(
-    "/projects/{project_id}/stories/{ref}/attachments/{attachment_id}",
+    "/projects/{project_id}/stories/{int:ref}/attachments/{attachment_id}",
     url_name="project.story.attachments.file",
     summary="Download the story attachment file",
     response={
@@ -177,7 +177,7 @@ async def delete_story_attachment(
 async def get_story_attachment_file(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     attachment_id: Path[B64UUID],
     is_view: bool = False,
 ) -> FileResponse:

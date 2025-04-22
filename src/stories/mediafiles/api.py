@@ -41,7 +41,7 @@ mediafiles_router = Router()
 
 
 @mediafiles_router.post(
-    "/projects/{project_id}/stories/{ref}/mediafiles",
+    "/projects/{project_id}/stories/{int:ref}/mediafiles",
     url_name="project.story.mediafiles.create",
     summary="Create mediafiles and attach to a story",
     response={
@@ -55,7 +55,7 @@ mediafiles_router = Router()
 async def create_story_mediafiles(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     files: list[UploadedFile] = File(...),
 ) -> list[Mediafile]:
     """

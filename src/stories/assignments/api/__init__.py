@@ -45,7 +45,7 @@ assignments_router = Router()
 
 
 @assignments_router.post(
-    "/projects/{project_id}/stories/{ref}/assignments",
+    "/projects/{project_id}/stories/{int:ref}/assignments",
     url_name="project.story.assignments.create",
     summary="Create story assignment",
     response={
@@ -59,7 +59,7 @@ assignments_router = Router()
 async def create_story_assignment(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     form: StoryAssignmentValidator,
 ) -> StoryAssignment:
     """
@@ -84,7 +84,7 @@ async def create_story_assignment(
 
 
 @assignments_router.delete(
-    "/projects/{project_id}/stories/{ref}/assignments/{username}",
+    "/projects/{project_id}/stories/{int:ref}/assignments/{username}",
     url_name="project.story.assignments.delete",
     summary="Delete story assignment",
     response={
@@ -98,8 +98,8 @@ async def create_story_assignment(
 async def delete_story_assignment(
     request,
     project_id: Path[B64UUID],
-    ref: int,
-    username: str,
+    ref: Path[int],
+    username: Path[str],
 ) -> tuple[int, None]:
     """
     Delete a story assignment

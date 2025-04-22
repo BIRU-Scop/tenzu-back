@@ -66,14 +66,21 @@ async def test_reorder_validator_fail():
 async def test_reorder_stories_validator_ok():
     reorder = ReorderValidator(place="after", ref=2)
     assert ReorderStoriesValidator(
-        status_id=NOT_EXISTING_B64ID, stories=[1, 2, 3], reorder=reorder
+        status_id=NOT_EXISTING_B64ID,
+        stories=[1, 2, 3],
+        reorder=reorder,
+        workflow_slug="main",
     )
-    assert ReorderStoriesValidator(status_id=NOT_EXISTING_B64ID, stories=[1, 2, 3])
+    assert ReorderStoriesValidator(
+        status_id=NOT_EXISTING_B64ID, stories=[1, 2, 3], workflow_slug="main"
+    )
 
 
 async def test_reorder_stories_validator_fail():
     with pytest.raises(ValidationError) as exc_info:
-        ReorderStoriesValidator(status_id=NOT_EXISTING_B64ID, stories=[])
+        ReorderStoriesValidator(
+            status_id=NOT_EXISTING_B64ID, stories=[], workflow_slug="main"
+        )
     expected_error_fields = ["stories"]
     expected_error_messages = [
         "List should have at least 1 item after validation, not 0"
@@ -81,7 +88,7 @@ async def test_reorder_stories_validator_fail():
     check_validation_errors(exc_info, expected_error_fields, expected_error_messages)
 
     with pytest.raises(ValidationError) as exc_info:
-        ReorderStoriesValidator(status_id=None, stories=[1])
+        ReorderStoriesValidator(status_id=None, stories=[1], workflow_slug="main")
     expected_error_fields = ["status_id"]
     expected_error_messages = ["Input should be a valid string"]
     check_validation_errors(exc_info, expected_error_fields, expected_error_messages)
@@ -91,6 +98,7 @@ async def test_reorder_stories_validator_fail():
             status_id=NOT_EXISTING_B64ID,
             stories=[1],
             reorder={"place": "nope", "ref": 3},
+            workflow_slug="main",
         )
     expected_error_fields = ["place"]
     expected_error_messages = ["Input should be 'before' or 'after'"]

@@ -56,7 +56,7 @@ stories_router = Router()
 
 
 @stories_router.post(
-    "/projects/{project_id}/workflows/{workflow_slug}/stories",
+    "/projects/{project_id}/stories",
     url_name="project.stories.create",
     summary="Create a story",
     response={
@@ -70,14 +70,13 @@ stories_router = Router()
 async def create_story(
     request,
     project_id: Path[B64UUID],
-    workflow_slug: str,
     form: StoryValidator,
 ) -> StoryDetailSerializer:
     """
     Creates a story in the given project workflow
     """
     workflow = await get_workflow_by_slug_or_404(
-        project_id=project_id, workflow_slug=workflow_slug
+        project_id=project_id, workflow_slug=form.workflow_slug
     )
     await check_permissions(
         permissions=StoryPermissionsCheck.CREATE.value, user=request.user, obj=workflow
@@ -116,7 +115,7 @@ async def create_story(
 async def list_stories(
     request,
     project_id: Path[B64UUID],
-    workflow_slug: str,
+    workflow_slug: Path[str],
     pagination_params: Query[PaginationQuery],
     response: HttpResponse,
 ) -> list[StorySummarySerializer]:
@@ -149,7 +148,7 @@ async def list_stories(
 
 
 @stories_router.get(
-    "/projects/{project_id}/stories/{ref}",
+    "/projects/{project_id}/stories/{int:ref}",
     url_name="project.stories.get",
     summary="Get story",
     response={
@@ -163,7 +162,7 @@ async def list_stories(
 async def get_story(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
 ) -> StoryDetailSerializer:
     """
     Get the detailed information of a story.
@@ -182,7 +181,7 @@ async def get_story(
 
 
 @stories_router.patch(
-    "/projects/{project_id}/stories/{ref}",
+    "/projects/{project_id}/stories/{int:ref}",
     url_name="project.stories.update",
     summary="Update story",
     response={
@@ -196,7 +195,7 @@ async def get_story(
 async def update_story(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     form: UpdateStoryValidator,
 ) -> StoryDetailSerializer:
     """
@@ -223,7 +222,7 @@ async def update_story(
 
 
 @stories_router.post(
-    "/projects/{project_id}/workflows/{workflow_slug}/stories/reorder",
+    "/projects/{project_id}/stories/reorder",
     url_name="project.stories.reorder",
     summary="Reorder stories",
     response={
@@ -237,14 +236,13 @@ async def update_story(
 async def reorder_stories(
     request,
     project_id: Path[B64UUID],
-    workflow_slug: str,
     form: ReorderStoriesValidator,
 ) -> ReorderStoriesSerializer:
     """
     Reorder one or more stories; it may change priority and/or status
     """
     workflow = await get_workflow_by_slug_or_404(
-        project_id=project_id, workflow_slug=workflow_slug
+        project_id=project_id, workflow_slug=form.workflow_slug
     )
     await check_permissions(
         permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=workflow
@@ -268,7 +266,7 @@ async def reorder_stories(
 
 
 @stories_router.delete(
-    "/projects/{project_id}/stories/{ref}",
+    "/projects/{project_id}/stories/{int:ref}",
     url_name="project.stories.delete",
     summary="Delete story",
     response={
@@ -282,7 +280,7 @@ async def reorder_stories(
 async def delete_story(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
 ) -> tuple[int, None]:
     """
     Delete a story

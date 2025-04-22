@@ -45,7 +45,6 @@ from permissions import (
 from stories.comments import services as services
 from stories.comments.permissions import CommentPermissionsCheck
 from stories.stories.api import get_story_or_404
-from stories.stories.models import Story
 
 comments_router = Router()
 
@@ -56,7 +55,7 @@ comments_router = Router()
 
 
 @comments_router.post(
-    "/projects/{project_id}/stories/{ref}/comments",
+    "/projects/{project_id}/stories/{int:ref}/comments",
     url_name="project.story.comments.create",
     summary="Create story comment",
     response={
@@ -70,7 +69,7 @@ comments_router = Router()
 async def create_story_comments(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     form: CreateCommentValidator,
 ) -> Comment:
     """
@@ -93,7 +92,7 @@ async def create_story_comments(
 
 
 @comments_router.get(
-    "/projects/{project_id}/stories/{ref}/comments",
+    "/projects/{project_id}/stories/{int:ref}/comments",
     url_name="project.story.comments.list",
     summary="List story comments",
     response={
@@ -110,7 +109,7 @@ async def create_story_comments(
 async def list_story_comments(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     response: HttpResponse,
     pagination_params: Query[PaginationQuery],
     order: Query[CommentOrderSortQuery],
@@ -143,7 +142,7 @@ async def list_story_comments(
 
 
 @comments_router.patch(
-    "/projects/{project_id}/stories/{ref}/comments/{comment_id}",
+    "/projects/{project_id}/stories/{int:ref}/comments/{comment_id}",
     url_name="project.story.comments.update",
     summary="Update story comment",
     response={
@@ -157,7 +156,7 @@ async def list_story_comments(
 async def update_story_comments(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     comment_id: Path[B64UUID],
     form: UpdateCommentValidator,
 ) -> Comment:
@@ -183,7 +182,7 @@ async def update_story_comments(
 
 
 @comments_router.delete(
-    "/projects/{project_id}/stories/{ref}/comments/{comment_id}",
+    "/projects/{project_id}/stories/{int:ref}/comments/{comment_id}",
     url_name="project.story.comments.delete",
     summary="Delete story comment",
     response={
@@ -197,7 +196,7 @@ async def update_story_comments(
 async def delete_story_comment(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     comment_id: Path[B64UUID],
 ) -> Comment:
     """
