@@ -29,8 +29,7 @@ from base.db.models import BaseModel, LowerEmailField, LowerSlugField
 from base.db.models.mixins import CreatedAtMetaInfoMixin
 from base.utils.datetime import timestamp_mics
 from base.utils.slug import (
-    generate_incremental_int_suffix,
-    slugify_uniquely_for_queryset,
+    sync_slug_on_save,
 )
 from memberships.choices import InvitationStatus
 from permissions.choices import PermissionsBase
@@ -130,17 +129,8 @@ class RoleBase(ModelBase):
             return f"<{self.__class__.__name__} {getattr(self, reference_model._meta.model_name)} {self.slug}>"
 
         def save(self, *args: Any, **kwargs: Any) -> None:
-            self.slug = slugify_uniquely_for_queryset(
-                value=self.name,
-                queryset=getattr(self, reference_model._meta.model_name).roles.all(),
-                generate_suffix=generate_incremental_int_suffix(),
-                use_always_suffix=False,
-            )
-            if (
-                update_fields := kwargs.get("update_fields")
-            ) is not None and "name" in update_fields:
-                kwargs["update_fields"] = {"slug"}.union(update_fields)
-
+            unique_qs = getattr(self, reference_model._meta.model_name).roles.all()
+            sync_slug_on_save(self, unique_qs, self.name, **kwargs)
             Role.save(self, *args, **kwargs)
 
         attrs["__repr__"] = __repr__

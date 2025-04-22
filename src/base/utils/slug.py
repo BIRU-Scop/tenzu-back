@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import random
-from typing import Generator, Type
+from typing import Any, Generator, Type
 
 from django.db.models import Model, QuerySet
 from slugify import slugify
@@ -118,3 +118,20 @@ def slugify_uniquely_for_queryset(
         if not queryset.filter(**{slugfield: potential}).exists():
             return potential
         suffix = next(generator)
+
+
+def sync_slug_on_save(
+    model: Model, unique_qs: QuerySet[Model], value: str, **kwargs: Any
+) -> None:
+    if model.pk is not None:
+        unique_qs = unique_qs.exclude(pk=model.pk)
+    model.slug = slugify_uniquely_for_queryset(
+        value=value,
+        queryset=unique_qs,
+        generate_suffix=generate_incremental_int_suffix(),
+        use_always_suffix=False,
+    )
+    if (
+        update_fields := kwargs.get("update_fields")
+    ) is not None and "name" in update_fields:
+        kwargs["update_fields"] = {"slug"}.union(update_fields)
