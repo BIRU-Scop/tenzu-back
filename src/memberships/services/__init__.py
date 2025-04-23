@@ -55,7 +55,7 @@ async def update_membership(
             raise ex.MembershipIsTheOnlyOwnerError("Membership is the only owner")
     elif not user_role or not user_role.is_owner:
         raise ex.OwnerRoleNotAuthorisedError(
-            "You dont have the permissions to promote a membership to owner"
+            "You don't have the permissions to promote a membership to owner"
         )
 
     updated_membership = await memberships_repositories.update_membership(
@@ -303,7 +303,7 @@ async def update_invitation(
 
     if role.is_owner and (not user_role or not user_role.is_owner):
         raise ex.OwnerRoleNotAuthorisedError(
-            "You dont have the permissions to promote an invitation to owner"
+            "You don't have the permissions to promote an invitation to owner"
         )
 
     updated_invitation = await memberships_repositories.update_invitation(

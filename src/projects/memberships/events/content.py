@@ -36,3 +36,8 @@ class DeleteProjectMembershipContent(BaseModel):
 
 class ProjectRoleContent(RoleSerializer):
     pass
+
+
+class DeleteProjectRoleContent(RoleSerializer):
+    role: RoleSerializer
+    target_role: RoleSerializer

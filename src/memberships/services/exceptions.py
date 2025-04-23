@@ -56,6 +56,22 @@ class OwnerRoleNotAuthorisedError(TenzuServiceException):
     pass
 
 
+class NonExistingMoveToRole(TenzuServiceException):
+    pass
+
+
+class SameMoveToRole(TenzuServiceException):
+    pass
+
+
+class RequiredMoveToRole(TenzuServiceException):
+    pass
+
+
+class RoleWithTargetThatDoNotBelong(TenzuServiceException):
+    pass
+
+
 # --- Invitations
 
 

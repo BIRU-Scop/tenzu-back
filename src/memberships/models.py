@@ -163,6 +163,8 @@ class Role(BaseModel, metaclass=RoleBase):
     )
     editable = models.BooleanField(null=False, default=True, verbose_name="editable")
     users: ManyRelatedManager
+    memberships: ManyRelatedManager
+    invitations: ManyRelatedManager
     reference_model_filter: dict[str, UUID]
 
     def __str__(self) -> str:

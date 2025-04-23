@@ -28,11 +28,15 @@ _RoleName = Annotated[
 ]
 
 
-class RoleUpdateValidator(BaseModel):
+class UpdateRoleValidator(BaseModel):
     name: _RoleName | None = None
     permissions: ProjectPermissionsField | None = None
 
 
-class RoleCreateValidator(BaseModel):
+class CreateRoleValidator(BaseModel):
     name: _RoleName
     permissions: ProjectPermissionsField
+
+
+class DeleteRoleQuery(BaseModel):
+    move_to: str | None = None

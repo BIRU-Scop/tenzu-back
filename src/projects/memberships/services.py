@@ -19,6 +19,8 @@
 from typing import Any
 from uuid import UUID
 
+from django.db.models import RestrictedError
+
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from memberships import services as memberships_services
 from memberships.services import exceptions as ex
@@ -216,3 +218,59 @@ async def update_project_role(
             )
 
     return updated_role
+
+
+##########################################################
+# delete project role
+##########################################################
+
+
+@transaction_atomic_async
+async def delete_project_role(
+    user: User,
+    role: ProjectRole,
+    target_role_slug: str | None = None,
+) -> bool:
+    if not role.editable:
+        raise ex.NonEditableRoleError(f"Role {role.slug} is not editable")
+    target_role = None
+    if target_role_slug is not None:
+        try:
+            target_role = await get_project_role(
+                project_id=role.project_id, slug=target_role_slug
+            )
+        except ProjectRole.DoesNotExist as e:
+            raise ex.NonExistingMoveToRole(
+                f"The role '{target_role_slug}' doesn't exist"
+            ) from e
+        if target_role.id == role.id:
+            raise ex.SameMoveToRole(
+                "The to-be-deleted role and the target-role cannot be the same"
+            )
+        if not user.project_role.is_owner and target_role.is_owner:
+            raise ex.OwnerRoleNotAuthorisedError(
+                "You don't have the permissions to promote existing memberships or invitations to owner"
+            )
+
+        await memberships_repositories.move_project_role_of_related(
+            role=role, target_role=target_role
+        )
+    try:
+        deleted = await transaction_atomic_async(
+            memberships_repositories.delete_project_role
+        )(
+            role=role,
+        )
+    except RestrictedError:
+        # TODO handle concurrency issue where target_role_slug was provided
+        #  but a membership or invitation was created in the meantime
+        raise ex.RequiredMoveToRole(
+            "Some memberships or invitations use this role, you need to provide a role then can use instead"
+        )
+
+    if deleted > 0:
+        await transaction_on_commit_async(
+            memberships_events.emit_event_when_project_role_is_deleted
+        )(role=role, target_role=target_role)
+        return True
+    return False

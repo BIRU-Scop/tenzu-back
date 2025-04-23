@@ -461,3 +461,44 @@ async def test_update_project_role():
         values={"permissions": [ProjectPermissions.VIEW_STORY.value]},
     )
     assert ProjectPermissions.VIEW_STORY.value in updated_role.permissions
+
+
+##########################################################
+# delete project role
+##########################################################
+
+
+async def test_delete_project_role():
+    role = await f.create_project_role()
+    deleted = await repositories.delete_project_role(
+        role=role,
+    )
+    assert deleted == 1
+    with pytest.raises(ProjectRole.DoesNotExist):
+        await role.arefresh_from_db()
+
+
+##########################################################
+# misc project role
+##########################################################
+
+
+async def test_move_project_role_of_related():
+    role = await f.create_project_role()
+    target_role = await f.create_project_role(project=role.project)
+    invitation = await f.create_project_invitation(role=role, project=role.project)
+    membership = await f.create_project_membership(role=role, project=role.project)
+    await repositories.move_project_role_of_related(role=role, target_role=target_role)
+    await invitation.arefresh_from_db()
+    await membership.arefresh_from_db()
+    assert invitation.role_id == target_role.id
+    assert membership.role_id == target_role.id
+
+
+async def test_move_project_role_of_related_ko_role_different_project():
+    role = await f.create_project_role()
+    target_role = await f.create_project_role()
+    with pytest.raises(ex.RoleWithTargetThatDoNotBelong):
+        await repositories.move_project_role_of_related(
+            role=role, target_role=target_role
+        )

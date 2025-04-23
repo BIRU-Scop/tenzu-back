@@ -20,6 +20,7 @@
 from unittest.mock import patch
 
 import pytest
+from django.db.models import RestrictedError
 
 from memberships.services import exceptions as ex
 from permissions.choices import ProjectPermissions
@@ -609,3 +610,219 @@ async def test_update_project_role_name():
             role=role
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_not_awaited()
+
+
+#######################################################
+# delete_project_role
+#######################################################
+
+
+async def test_delete_project_role_ok():
+    role = f.build_project_role()
+    user = f.build_user()
+
+    with (
+        patch(
+            "projects.memberships.services.get_project_role", autospec=True
+        ) as fake_get_project_role,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch_db_transaction(),
+    ):
+        fake_memberships_repositories.delete_project_role.return_value = 1
+        await services.delete_project_role(role=role, user=user)
+        fake_get_project_role.assert_not_awaited()
+        fake_memberships_repositories.delete_project_role.assert_awaited_once_with(
+            role=role,
+        )
+        fake_memberships_events.emit_event_when_project_role_is_deleted.assert_awaited_once_with(
+            role=role, target_role=None
+        )
+        fake_memberships_repositories.move_project_role_of_related.assert_not_awaited()
+
+
+async def test_delete_project_role_ok_with_move_to():
+    role = f.build_project_role()
+    target_role = f.build_project_role()
+    user = f.build_user()
+    user.project_role = role
+
+    with (
+        patch(
+            "projects.memberships.services.get_project_role", autospec=True
+        ) as fake_get_project_role,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch_db_transaction(),
+    ):
+        fake_get_project_role.return_value = target_role
+        fake_memberships_repositories.delete_project_role.return_value = 1
+        await services.delete_project_role(
+            role=role, user=user, target_role_slug="member"
+        )
+        fake_get_project_role.assert_awaited_once_with(
+            project_id=role.project_id,
+            slug="member",
+        )
+        fake_memberships_repositories.delete_project_role.assert_awaited_once_with(
+            role=role,
+        )
+        fake_memberships_events.emit_event_when_project_role_is_deleted.assert_awaited_once_with(
+            role=role, target_role=target_role
+        )
+        fake_memberships_repositories.move_project_role_of_related.assert_awaited_once_with(
+            role=role, target_role=target_role
+        )
+
+
+async def test_delete_project_role_ko_non_editable():
+    role = f.build_project_role(editable=False)
+    user = f.build_user()
+
+    with (
+        patch(
+            "projects.memberships.services.get_project_role", autospec=True
+        ) as fake_get_project_role,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch_db_transaction(),
+        pytest.raises(ex.NonEditableRoleError),
+    ):
+        await services.delete_project_role(role=role, user=user)
+        fake_get_project_role.assert_not_awaited()
+        fake_memberships_repositories.delete_project_role.assert_not_awaited()
+        fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()
+        fake_memberships_repositories.move_project_role_of_related.assert_not_awaited()
+
+
+async def test_delete_project_role_ko_not_existing_target_slug():
+    role = f.build_project_role()
+    user = f.build_user()
+
+    with (
+        patch(
+            "projects.memberships.services.get_project_role", autospec=True
+        ) as fake_get_project_role,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch_db_transaction(),
+        pytest.raises(ex.NonExistingMoveToRole),
+    ):
+        fake_get_project_role.side_effect = ProjectRole.DoesNotExist
+        await services.delete_project_role(
+            role=role, user=user, target_role_slug=NOT_EXISTING_SLUG
+        )
+        fake_get_project_role.assert_awaited_once_with(
+            project_id=role.project_id,
+            slug="member",
+        )
+        fake_memberships_repositories.delete_project_role.assert_not_awaited()
+        fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()
+        fake_memberships_repositories.move_project_role_of_related.assert_not_awaited()
+
+
+async def test_delete_project_role_ko_role_same_as_target():
+    role = f.build_project_role()
+    user = f.build_user()
+
+    with (
+        patch(
+            "projects.memberships.services.get_project_role", autospec=True
+        ) as fake_get_project_role,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch_db_transaction(),
+        pytest.raises(ex.SameMoveToRole),
+    ):
+        fake_get_project_role.return_value = role
+        await services.delete_project_role(
+            role=role, user=user, target_role_slug=role.slug
+        )
+        fake_get_project_role.assert_awaited_once_with(
+            project_id=role.project_id,
+            slug="member",
+        )
+        fake_memberships_repositories.delete_project_role.assert_not_awaited()
+        fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()
+        fake_memberships_repositories.move_project_role_of_related.assert_not_awaited()
+
+
+async def test_delete_project_role_ko_target_owner():
+    role = f.build_project_role()
+    owner_role = f.build_project_role(is_owner=True)
+    user = f.build_user()
+    user.project_role = role
+
+    with (
+        patch(
+            "projects.memberships.services.get_project_role", autospec=True
+        ) as fake_get_project_role,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch_db_transaction(),
+        pytest.raises(ex.OwnerRoleNotAuthorisedError),
+    ):
+        fake_get_project_role.return_value = owner_role
+        await services.delete_project_role(
+            role=role, user=user, target_role_slug=role.slug
+        )
+        fake_get_project_role.assert_awaited_once_with(
+            project_id=role.project_id,
+            slug="member",
+        )
+        fake_memberships_repositories.delete_project_role.assert_not_awaited()
+        fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()
+        fake_memberships_repositories.move_project_role_of_related.assert_not_awaited()
+
+
+async def test_delete_project_role_ko_restricted_db():
+    role = f.build_project_role()
+    user = f.build_user()
+
+    with (
+        patch(
+            "projects.memberships.services.get_project_role", autospec=True
+        ) as fake_get_project_role,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch_db_transaction(),
+        pytest.raises(ex.RequiredMoveToRole),
+    ):
+        fake_memberships_repositories.delete_project_role.side_effect = RestrictedError(
+            "", set()
+        )
+        await services.delete_project_role(role=role, user=user)
+        fake_get_project_role.assert_not_awaited()
+        fake_memberships_repositories.delete_project_role.assert_awaited_once_with(
+            role=role
+        )
+        fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()
+        fake_memberships_repositories.move_project_role_of_related.assert_not_awaited()

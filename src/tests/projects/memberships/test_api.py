@@ -519,7 +519,7 @@ async def test_update_project_role_role_not_found(client, project_template):
     assert response.status_code == 404, response.data
 
 
-async def test_update_project_role_user_without_permission(client, project_template):
+async def test_update_project_role_user_forbidden_not_member(client, project_template):
     user = await f.create_user()
     project = await f.create_project(project_template)
     role_slug = "member"
@@ -530,6 +530,27 @@ async def test_update_project_role_user_without_permission(client, project_templ
         f"/projects/{project.b64id}/roles/{role_slug}", json=data
     )
 
+    assert response.status_code == 403, response.data
+
+
+async def test_update_project_role_user_forbidden_no_permission(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    role_slug = "member"
+    user = await f.create_user()
+    member_role = await f.create_project_role(
+        project=project,
+        permissions=[],
+        is_owner=False,
+    )
+    await f.create_project_membership(user=user, project=project, role=member_role)
+    data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
+
+    client.login(user)
+    response = await client.put(
+        f"/projects/{project.b64id}/roles/{role_slug}", json=data
+    )
     assert response.status_code == 403, response.data
 
 
@@ -619,3 +640,181 @@ async def test_update_project_role_ok(client, project_template):
     res = response.json()
     assert len(res["permissions"]) == 2
     assert data["name"] == res["name"]
+
+
+#########################################################################
+# DELETE /projects/<project_id>/roles/<role_slug>
+#########################################################################
+
+
+async def test_delete_project_role_anonymous_user(client, project_template):
+    project = await f.create_project(project_template)
+    role_slug = "member"
+
+    response = await client.delete(f"/projects/{project.b64id}/roles/{role_slug}")
+
+    assert response.status_code == 401, response.data
+
+
+async def test_delete_project_role_project_not_found(client):
+    user = await f.create_user()
+
+    client.login(user)
+    response = await client.delete(f"/projects/{NOT_EXISTING_B64ID}/roles/role-slug")
+
+    assert response.status_code == 404, response.data
+
+
+async def test_delete_project_role_role_not_found(client, project_template):
+    project = await f.create_project(project_template)
+
+    client.login(project.created_by)
+    response = await client.delete(
+        f"/projects/{project.b64id}/roles/{NOT_EXISTING_SLUG}"
+    )
+
+    assert response.status_code == 404, response.data
+
+
+async def test_delete_project_role_user_forbidden_not_member(client, project_template):
+    user = await f.create_user()
+    project = await f.create_project(project_template)
+    role_slug = "member"
+
+    client.login(user)
+    response = await client.delete(f"/projects/{project.b64id}/roles/{role_slug}")
+
+    assert response.status_code == 403, response.data
+
+
+async def test_delete_project_role_user_forbidden_no_permission(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    role_slug = "member"
+    user = await f.create_user()
+    member_role = await f.create_project_role(
+        project=project,
+        permissions=[],
+        is_owner=False,
+    )
+    await f.create_project_membership(user=user, project=project, role=member_role)
+
+    client.login(user)
+    response = await client.delete(f"/projects/{project.b64id}/roles/{role_slug}")
+    assert response.status_code == 403, response.data
+
+
+async def test_delete_project_role_role_non_editable(client, project_template):
+    project = await f.create_project(project_template)
+    role_slug = "admin"
+
+    client.login(project.created_by)
+    response = await client.delete(f"/projects/{project.b64id}/roles/{role_slug}")
+
+    assert response.status_code == 403, response.data
+
+
+async def test_delete_project_role_not_exists_move_to(client, project_template):
+    project = await f.create_project(project_template)
+    role_slug = "member"
+
+    client.login(project.created_by)
+    response = await client.delete(
+        f"/projects/{project.b64id}/roles/{role_slug}?moveTo={NOT_EXISTING_SLUG}"
+    )
+
+    assert response.status_code == 400, response.data
+
+
+async def test_delete_project_role_same_role_move_to(client, project_template):
+    project = await f.create_project(project_template)
+    role_slug = "member"
+
+    client.login(project.created_by)
+    response = await client.delete(
+        f"/projects/{project.b64id}/roles/{role_slug}?moveTo={role_slug}"
+    )
+
+    assert response.status_code == 400, response.data
+
+
+async def test_delete_project_role_move_to_owner(client, project_template):
+    project = await f.create_project(project_template)
+    role_slug = "member"
+    owner_slug = "owner"
+    user = await f.create_user()
+    member_role = await f.create_project_role(
+        project=project,
+        permissions=[choices.ProjectPermissions.CREATE_MODIFY_DELETE_ROLE.value],
+        is_owner=False,
+    )
+    await f.create_project_membership(user=user, project=project, role=member_role)
+
+    client.login(user)
+    response = await client.delete(
+        f"/projects/{project.b64id}/roles/{role_slug}?moveTo={owner_slug}"
+    )
+    assert response.status_code == 403, response.data
+
+    client.login(project.created_by)
+    response = await client.delete(
+        f"/projects/{project.b64id}/roles/{role_slug}?moveTo={owner_slug}"
+    )
+    assert response.status_code == 204, response.data
+
+
+async def test_delete_project_role_ok(client, project_template):
+    project = await f.create_project(project_template)
+    pj_member = await f.create_user()
+    general_admin_role = await f.create_project_role(
+        project=project,
+        permissions=[choices.ProjectPermissions.CREATE_MODIFY_DELETE_ROLE.value],
+        is_owner=False,
+    )
+    await f.create_project_membership(
+        user=pj_member, project=project, role=general_admin_role
+    )
+    role_slug = "member"
+
+    client.login(pj_member)
+    response = await client.delete(f"/projects/{project.b64id}/roles/{role_slug}")
+    assert response.status_code == 204, response.data
+
+
+async def test_delete_project_role_ok_move_to(client, project_template):
+    project = await f.create_project(project_template)
+    pj_member = await f.create_user()
+    general_admin_role = await f.create_project_role(
+        project=project,
+        permissions=[choices.ProjectPermissions.CREATE_MODIFY_DELETE_ROLE.value],
+        is_owner=False,
+    )
+    await f.create_project_membership(
+        user=pj_member, project=project, role=general_admin_role
+    )
+    role_slug = general_admin_role.slug
+
+    client.login(pj_member)
+    response = await client.delete(
+        f"/projects/{project.b64id}/roles/{role_slug}?moveTo=member"
+    )
+    assert response.status_code == 204, response.data
+
+
+async def test_delete_project_role_ko_move_to_required(client, project_template):
+    project = await f.create_project(project_template)
+    pj_member = await f.create_user()
+    general_admin_role = await f.create_project_role(
+        project=project,
+        permissions=[choices.ProjectPermissions.CREATE_MODIFY_DELETE_ROLE.value],
+        is_owner=False,
+    )
+    await f.create_project_membership(
+        user=pj_member, project=project, role=general_admin_role
+    )
+    role_slug = general_admin_role.slug
+
+    client.login(pj_member)
+    response = await client.delete(f"/projects/{project.b64id}/roles/{role_slug}")
+    assert response.status_code == 400, response.data

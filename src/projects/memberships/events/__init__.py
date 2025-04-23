@@ -20,6 +20,7 @@
 from events import events_manager
 from projects.memberships.events.content import (
     DeleteProjectMembershipContent,
+    DeleteProjectRoleContent,
     ProjectMembershipContent,
     ProjectRoleContent,
 )
@@ -118,7 +119,7 @@ async def emit_event_when_project_role_is_updated(
 
 
 async def emit_event_when_project_role_is_deleted(
-    role: ProjectRole,
+    role: ProjectRole, target_role: ProjectRole
 ) -> None:
     """
     This event is emitted whenever the permissions list or name changes for a role
@@ -127,5 +128,8 @@ async def emit_event_when_project_role_is_deleted(
     await events_manager.publish_on_project_channel(
         project=role.project,
         type=DELETE_PROJECT_ROLE,
-        content=ProjectRoleContent.from_orm(role),
+        content=DeleteProjectRoleContent(
+            role=role,
+            target_role=target_role,
+        ),
     )

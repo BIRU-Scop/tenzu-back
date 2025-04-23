@@ -103,3 +103,29 @@ async def create_project_role(
 
 async def bulk_create_project_roles(roles: list[ProjectRole]) -> list[ProjectRole]:
     return await ProjectRole.objects.abulk_create(roles)
+
+
+##########################################################
+# delete project role
+##########################################################
+
+
+async def delete_project_role(role: ProjectRole) -> int:
+    count, _ = await role.adelete()
+    return count
+
+
+##########################################################
+# misc project role
+##########################################################
+
+
+async def move_project_role_of_related(
+    role: ProjectRole, target_role: ProjectRole
+) -> None:
+    if role.project_id != target_role.project_id:
+        raise ex.RoleWithTargetThatDoNotBelong(
+            "role and target role must be from the same project"
+        )
+    await role.memberships.aupdate(role=target_role)
+    await role.invitations.aupdate(role=target_role)

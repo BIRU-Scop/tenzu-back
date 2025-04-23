@@ -19,7 +19,7 @@
 
 from uuid import UUID
 
-from ninja import Path, Router
+from ninja import Path, Query, Router
 
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
@@ -37,7 +37,11 @@ from memberships.services.exceptions import (
 )
 from permissions import check_permissions
 from projects.memberships import services as memberships_services
-from projects.memberships.api.validators import RoleCreateValidator, RoleUpdateValidator
+from projects.memberships.api.validators import (
+    CreateRoleValidator,
+    DeleteRoleQuery,
+    UpdateRoleValidator,
+)
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.memberships.permissions import (
     ProjectMembershipPermissionsCheck,
@@ -216,8 +220,8 @@ async def list_project_roles(request, project_id: Path[B64UUID]):
 async def create_project_role(
     request,
     project_id: Path[B64UUID],
-    form: RoleCreateValidator,
-):
+    form: CreateRoleValidator,
+) -> ProjectRole:
     """
     Create project roles
     """
@@ -256,8 +260,8 @@ async def update_project_role(
     request,
     project_id: Path[B64UUID],
     role_slug: Path[str],
-    form: RoleUpdateValidator,
-):
+    form: UpdateRoleValidator,
+) -> ProjectRole:
     """
     Edit project roles
     """
@@ -277,7 +281,51 @@ async def update_project_role(
         raise ex.ForbiddenError(str(exc))
 
 
-# TODO create and delete api (for delete, have replacement role for existing users and pending invitations) take care of editable attribute
+##########################################################
+# delete project role
+##########################################################
+
+
+@project_membership_router.delete(
+    "/projects/{project_id}/roles/{role_slug}",
+    url_name="project.roles.delete",
+    summary="Delete project roles",
+    response={
+        204: None,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def delete_project_role(
+    request,
+    project_id: Path[B64UUID],
+    role_slug: Path[str],
+    query_params: Query[DeleteRoleQuery],
+) -> tuple[int, None]:
+    """
+    Delete project roles
+    """
+
+    role = await get_project_role_or_404(project_id=project_id, slug=role_slug)
+    await check_permissions(
+        permissions=ProjectRolePermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=role,
+    )
+    try:
+        await memberships_services.delete_project_role(
+            user=request.user,
+            role=role,
+            target_role_slug=query_params.move_to,
+        )
+    except (NonEditableRoleError, OwnerRoleNotAuthorisedError) as exc:
+        # change the bad-request into a forbidden error
+        raise ex.ForbiddenError(str(exc))
+    return 204, None
+
 
 ################################################
 # misc
