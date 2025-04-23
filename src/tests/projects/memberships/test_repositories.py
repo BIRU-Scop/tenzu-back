@@ -337,8 +337,7 @@ async def test_create_project_roles(project_template):
     project = await f.create_project(project_template)
     project_role_res = await repositories.create_project_role(
         name="project-role",
-        order=1,
-        project=project,
+        project_id=project.id,
         permissions=[],
     )
     assert project_role_res.name == "project-role"

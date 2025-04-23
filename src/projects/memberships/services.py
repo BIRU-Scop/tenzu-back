@@ -160,6 +160,29 @@ async def get_project_role(project_id: UUID, slug: str) -> ProjectRole:
 
 
 ##########################################################
+# create project role
+##########################################################
+
+
+@transaction_atomic_async
+async def create_project_role(
+    name: str, permissions: list[str], project_id: UUID
+) -> ProjectRole:
+    role = await memberships_repositories.create_project_role(
+        name=name,
+        permissions=permissions,
+        project_id=project_id,
+    )
+
+    # Emit event
+    await transaction_on_commit_async(
+        memberships_events.emit_event_when_project_role_is_created
+    )(role=role)
+
+    return role
+
+
+##########################################################
 # update project role
 ##########################################################
 

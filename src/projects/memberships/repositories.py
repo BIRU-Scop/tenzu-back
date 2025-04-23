@@ -16,6 +16,8 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from uuid import UUID
+
 from django.db.models import QuerySet
 
 from memberships.repositories import (  # noqa
@@ -88,14 +90,12 @@ def only_project_member_queryset(
 async def create_project_role(
     name: str,
     permissions: list[str],
-    project: Project,
-    order: int | None = None,
+    project_id: UUID,
 ) -> ProjectRole:
     return await ProjectRole.objects.acreate(
         name=name,
         permissions=permissions,
-        project=project,
-        order=order,
+        project_id=project_id,
         is_owner=False,
         editable=True,
     )

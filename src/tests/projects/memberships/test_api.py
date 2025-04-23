@@ -400,6 +400,85 @@ async def test_list_project_roles_not_a_member(client, project_template):
 
 
 #########################################################################
+# POST /projects/<project_id>/roles
+#########################################################################
+
+
+async def test_create_project_role_anonymous_user(client, project_template):
+    project = await f.create_project(project_template)
+    data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value], "name": "Dev"}
+
+    response = await client.post(f"/projects/{project.b64id}/roles", json=data)
+
+    assert response.status_code == 401, response.data
+
+
+async def test_create_project_role_project_not_found(client):
+    user = await f.create_user()
+    data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value], "name": "Dev"}
+
+    client.login(user)
+    response = await client.post(f"/projects/{NOT_EXISTING_B64ID}/roles", json=data)
+
+    assert response.status_code == 404, response.data
+
+
+async def test_create_project_role_user_without_permission(client, project_template):
+    user = await f.create_user()
+    project = await f.create_project(project_template)
+    data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value], "name": "Dev"}
+
+    client.login(user)
+    response = await client.post(f"/projects/{project.b64id}/roles", json=data)
+
+    assert response.status_code == 403, response.data
+
+
+async def test_create_project_role_incompatible_permissions(client, project_template):
+    project = await f.create_project(project_template)
+    data = {
+        "permissions": [choices.ProjectPermissions.MODIFY_STORY.value],
+        "name": "Dev",
+    }
+
+    client.login(project.created_by)
+    response = await client.post(f"/projects/{project.b64id}/roles", json=data)
+
+    assert response.status_code == 422, response.data
+
+
+async def test_create_project_role_not_valid_permissions(client, project_template):
+    project = await f.create_project(project_template)
+    data = {"permissions": ["not_valid", "foo"], "name": "Dev"}
+
+    client.login(project.created_by)
+    response = await client.post(f"/projects/{project.b64id}/roles", json=data)
+
+    assert response.status_code == 422, response.data
+
+
+async def test_create_project_role_ok(client, project_template):
+    project = await f.create_project(project_template)
+    pj_member = await f.create_user()
+    general_admin_role = await f.create_project_role(
+        project=project,
+        permissions=[choices.ProjectPermissions.CREATE_MODIFY_DELETE_ROLE.value],
+        is_owner=False,
+    )
+    await f.create_project_membership(
+        user=pj_member, project=project, role=general_admin_role
+    )
+    data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value], "name": "Dev"}
+
+    client.login(pj_member)
+    response = await client.post(f"/projects/{project.b64id}/roles", json=data)
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert data["permissions"] == res["permissions"]
+    assert "Dev" == res["name"]
+
+
+#########################################################################
 # PUT /projects/<project_id>/roles/<role_slug>
 #########################################################################
 

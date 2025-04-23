@@ -20,7 +20,7 @@ import pytest
 from pydantic import ValidationError
 
 from permissions.choices import ProjectPermissions
-from projects.memberships.api import RoleValidator
+from projects.memberships.api import RoleUpdateValidator
 from tests.utils.utils import check_validation_errors
 
 ##########################################################
@@ -31,7 +31,7 @@ from tests.utils.utils import check_validation_errors
 def test_validate_role_ok():
     name = "new name"
     permissions = [ProjectPermissions.VIEW_STORY]
-    patch = RoleValidator(name=name, permissions=permissions)
+    patch = RoleUpdateValidator(name=name, permissions=permissions)
 
     assert patch.name == name
     assert patch.permissions == permissions
@@ -42,7 +42,7 @@ def test_validate_role_ko_empty_permission():
     permissions = []
 
     with pytest.raises(ValidationError) as validations_errors:
-        RoleValidator(name=name, permissions=permissions)
+        RoleUpdateValidator(name=name, permissions=permissions)
 
     expected_error_fields = ["permissions"]
     expected_error_messages = [
@@ -54,7 +54,7 @@ def test_validate_role_ko_empty_permission():
 
 
 def test_validate_role_ok_not_set():
-    patch = RoleValidator()
+    patch = RoleUpdateValidator()
 
     assert patch.name is None
     assert patch.permissions is None

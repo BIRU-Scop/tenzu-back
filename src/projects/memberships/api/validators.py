@@ -23,12 +23,16 @@ from pydantic import StringConstraints
 from commons.validators import BaseModel
 from permissions.validators import ProjectPermissionsField
 
+_RoleName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
+]
 
-class RoleValidator(BaseModel):
+
+class RoleUpdateValidator(BaseModel):
+    name: _RoleName | None = None
     permissions: ProjectPermissionsField | None = None
-    name: (
-        Annotated[
-            str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
-        ]
-        | None
-    ) = None
+
+
+class RoleCreateValidator(BaseModel):
+    name: _RoleName
+    permissions: ProjectPermissionsField

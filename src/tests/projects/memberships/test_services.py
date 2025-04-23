@@ -464,6 +464,40 @@ async def test_get_project_role():
 #######################################################
 
 
+async def test_create_project_role():
+    project = f.build_project()
+    permissions = []
+    name = "Dev"
+
+    with (
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch_db_transaction(),
+    ):
+        await services.create_project_role(
+            name=name,
+            permissions=permissions,
+            project_id=project.id,
+        )
+        fake_memberships_repositories.create_project_role.assert_awaited_once_with(
+            name=name,
+            permissions=permissions,
+            project_id=project.id,
+        )
+        fake_memberships_events.emit_event_when_project_role_is_created.assert_awaited_once_with(
+            fake_memberships_repositories.create_project_role.return_value
+        )
+
+
+#######################################################
+# update_project_role
+#######################################################
+
+
 async def test_update_project_role_permissions_is_owner():
     role = f.build_project_role(editable=False)
     permissions = []
