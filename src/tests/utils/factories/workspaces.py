@@ -17,11 +17,35 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from asgiref.sync import sync_to_async
+from asgiref.sync import async_to_sync, sync_to_async
 
-from workspaces.invitations.choices import WorkspaceInvitationStatus
+from memberships.choices import InvitationStatus
+from permissions import choices
+from workspaces.memberships.repositories import bulk_create_workspace_default_roles
 
 from .base import Factory, factory
+
+# WORKSPACE ROLE
+
+
+class WorkspaceRoleFactory(Factory):
+    name = factory.Sequence(lambda n: f"Role {n}")
+    slug = factory.Sequence(lambda n: f"role-{n}")
+    permissions = choices.WorkspacePermissions.values
+    workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
+
+    class Meta:
+        model = "workspaces_memberships.WorkspaceRole"
+
+
+@sync_to_async
+def create_workspace_role(**kwargs):
+    return WorkspaceRoleFactory.create(**kwargs)
+
+
+def build_workspace_role(**kwargs):
+    return WorkspaceRoleFactory.build(**kwargs)
+
 
 # WORKSPACE MEMBERSHIP
 
@@ -29,6 +53,10 @@ from .base import Factory, factory
 class WorkspaceMembershipFactory(Factory):
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
+    role = factory.SubFactory(
+        "tests.utils.factories.WorkspaceRoleFactory",
+        workspace=factory.SelfAttribute("..workspace"),
+    )
 
     class Meta:
         model = "workspaces_memberships.WorkspaceMembership"
@@ -47,10 +75,14 @@ def build_workspace_membership(**kwargs):
 
 
 class WorkspaceInvitationFactory(Factory):
-    status = WorkspaceInvitationStatus.PENDING
+    status = InvitationStatus.PENDING
     email = factory.Sequence(lambda n: f"user{n}@email.com")
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
+    role = factory.SubFactory(
+        "tests.utils.factories.WorkspaceRoleFactory",
+        workspace=factory.SelfAttribute("..workspace"),
+    )
     invited_by = factory.SubFactory("tests.utils.factories.UserFactory")
 
     class Meta:
@@ -76,16 +108,23 @@ class WorkspaceFactory(Factory):
     class Meta:
         model = "workspaces.Workspace"
 
+    @factory.post_generation
+    def memberships(obj, create, extracted, **kwargs):
+        if not create:
+            return
+        owner, _admin, _member, _readonly = async_to_sync(
+            bulk_create_workspace_default_roles
+        )(obj)
+
+        WorkspaceMembershipFactory.create(
+            user=obj.created_by, workspace=obj, role=owner
+        )
+
 
 @sync_to_async
 def create_workspace(**kwargs):
     """Create workspace and its dependencies"""
-    defaults = {}
-    defaults.update(kwargs)
-
-    workspace = WorkspaceFactory.create(**defaults)
-    WorkspaceMembershipFactory.create(user=workspace.created_by, workspace=workspace)
-
+    workspace = WorkspaceFactory.create(**kwargs)
     return workspace
 
 

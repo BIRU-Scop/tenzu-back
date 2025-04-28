@@ -17,54 +17,22 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any
 
-from pydantic import ConfigDict, EmailStr, validator
+from pydantic import ConfigDict
 
-from base.serializers import UUIDB64, BaseModel
-from users.serializers.nested import UserNestedSerializer
-from workspaces.invitations.choices import WorkspaceInvitationStatus
-from workspaces.workspaces.serializers.nested import WorkspaceSmallNestedSerializer
-
-
-class PrivateEmailWorkspaceInvitationSerializer(BaseModel):
-    id: UUIDB64
-    user: UserNestedSerializer | None = None
-    email: EmailStr | None = None
-    model_config = ConfigDict(from_attributes=True)
-
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("email")
-    def avoid_to_publish_email_if_user(
-        cls, email: str, values: dict[str, Any]
-    ) -> str | None:
-        user = values.get("user")
-        if user:
-            return None
-        else:
-            return email
+from memberships.serializers import (
+    CreateInvitationsSerializer,  # noqa
+    InvitationBaseSerializer,
+    PublicPendingInvitationBaseSerializer,
+)
+from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializer
 
 
-class CreateWorkspaceInvitationsSerializer(BaseModel):
-    invitations: list[PrivateEmailWorkspaceInvitationSerializer]
-    already_members: int
+class PublicWorkspacePendingInvitationSerializer(PublicPendingInvitationBaseSerializer):
+    workspace: WorkspaceLinkNestedSerializer
     model_config = ConfigDict(from_attributes=True)
 
 
-class PublicWorkspaceInvitationSerializer(BaseModel):
-    status: WorkspaceInvitationStatus
-
-    email: EmailStr
-    existing_user: bool
-    available_logins: list[str]
-    workspace: WorkspaceSmallNestedSerializer
-    model_config = ConfigDict(from_attributes=True)
-
-
-class WorkspaceInvitationSerializer(BaseModel):
-    id: UUIDB64
-    workspace: WorkspaceSmallNestedSerializer
-    user: UserNestedSerializer | None = None
-    email: EmailStr
+class WorkspaceInvitationSerializer(InvitationBaseSerializer):
+    workspace: WorkspaceLinkNestedSerializer
     model_config = ConfigDict(from_attributes=True)

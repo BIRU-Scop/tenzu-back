@@ -16,13 +16,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.contrib.contenttypes.fields import GenericRelation
+from django.db import models
 
 from attachments.models import Attachment
-from base.db import models
 
 
 class RelatedAttachmentsMixin(models.Model):
-    attachments = models.GenericRelation(
+    attachments = GenericRelation(
         Attachment,
         content_type_field="object_content_type",
         object_id_field="object_id",

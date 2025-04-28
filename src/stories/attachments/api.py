@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from functools import partial
 from uuid import UUID
 
 from django.http import FileResponse, HttpRequest
@@ -25,28 +24,21 @@ from ninja import File, Path, Router, UploadedFile
 
 from attachments import services as attachments_services
 from attachments.models import Attachment
-from base.api.permissions import check_permissions
 from base.utils.files import iterfile
-from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
-from permissions import HasPerm
-from stories.attachments import events
+from commons.validators import B64UUID
+from permissions import check_permissions
+from stories.attachments import services as services
 from stories.attachments.serializers import StoryAttachmentSerializer
 from stories.stories.api import get_story_or_404
-from stories.stories.models import Story
+from stories.stories.permissions import StoryPermissionsCheck
 
-attachments_router = Router(auth=AsyncJWTAuth())
-
-# PERMISSIONS
-CREATE_STORY_ATTACHMENT = HasPerm("modify_story")
-LIST_STORY_ATTACHMENTS = HasPerm("view_story")
-DELETE_STORY_ATTACHMENT = HasPerm("modify_story")
+attachments_router = Router()
 
 
 ################################################
@@ -55,7 +47,7 @@ DELETE_STORY_ATTACHMENT = HasPerm("modify_story")
 
 
 @attachments_router.post(
-    "/projects/{project_id}/stories/{ref}/attachments",
+    "/projects/{project_id}/stories/{int:ref}/attachments",
     url_name="project.story.attachments.create",
     summary="Attach a file to a story",
     response={
@@ -69,25 +61,21 @@ DELETE_STORY_ATTACHMENT = HasPerm("modify_story")
 async def create_story_attachments(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     file: UploadedFile = File(...),
 ) -> Attachment:
     """
-    Create an attachment asociate to a story
+    Create an attachment associated to a story
     """
     story = await get_story_or_404(project_id, ref)
     await check_permissions(
-        permissions=CREATE_STORY_ATTACHMENT, user=request.user, obj=story
+        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
     )
 
-    event_on_create = partial(
-        events.emit_event_when_story_attachment_is_created, project=story.project
-    )
-    return await attachments_services.create_attachment(
+    return await services.create_attachment(
         file=file,
-        object=story,
+        story=story,
         created_by=request.user,
-        event_on_create=event_on_create,
     )
 
 
@@ -97,7 +85,7 @@ async def create_story_attachments(
 
 
 @attachments_router.get(
-    "/projects/{project_id}/stories/{ref}/attachments",
+    "/projects/{project_id}/stories/{int:ref}/attachments",
     url_name="project.story.attachments.list",
     summary="List story attachments",
     response={
@@ -111,14 +99,14 @@ async def create_story_attachments(
 async def list_story_attachment(
     request: HttpRequest,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
 ) -> list[Attachment]:
     """
     List the story attachments
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
     await check_permissions(
-        permissions=LIST_STORY_ATTACHMENTS, user=request.user, obj=story
+        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=story
     )
     attachments = await attachments_services.list_attachments(
         content_object=story,
@@ -132,7 +120,7 @@ async def list_story_attachment(
 
 
 @attachments_router.delete(
-    "/projects/{project_id}/stories/{ref}/attachments/{attachment_id}",
+    "/projects/{project_id}/stories/{int:ref}/attachments/{attachment_id}",
     url_name="project.story.attachments.delete",
     summary="Delete story attachment",
     response={
@@ -146,25 +134,23 @@ async def list_story_attachment(
 async def delete_story_attachment(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     attachment_id: Path[B64UUID],
 ) -> tuple[int, None]:
     """
     Delete a story attachment
     """
-    story = await get_story_or_404(project_id=project_id, ref=ref)
     attachment = await get_story_attachment_or_404(
-        attachment_id=attachment_id, story=story
+        attachment_id=attachment_id, project_id=project_id, ref=ref
     )
     await check_permissions(
-        permissions=DELETE_STORY_ATTACHMENT, user=request.user, obj=story
+        permissions=StoryPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=attachment.content_object,
     )
 
-    event_on_delete = partial(
-        events.emit_event_when_story_attachment_is_deleted, project=story.project
-    )
-    await attachments_services.delete_attachment(
-        attachment=attachment, event_on_delete=event_on_delete
+    await services.delete_attachment(
+        attachment=attachment, project=attachment.content_object.project
     )
     return 204, None
 
@@ -175,8 +161,7 @@ async def delete_story_attachment(
 
 
 @attachments_router.get(
-    "/projects/{project_id}/stories/{ref}/attachments/{attachment_id}",
-    auth=None,
+    "/projects/{project_id}/stories/{int:ref}/attachments/{attachment_id}",
     url_name="project.story.attachments.file",
     summary="Download the story attachment file",
     response={
@@ -192,17 +177,22 @@ async def delete_story_attachment(
 async def get_story_attachment_file(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     attachment_id: Path[B64UUID],
     is_view: bool = False,
 ) -> FileResponse:
     """
     Download a story attachment file
     """
-    story = await get_story_or_404(project_id=project_id, ref=ref)
     attachment = await get_story_attachment_or_404(
-        attachment_id=attachment_id, story=story
+        attachment_id=attachment_id, project_id=project_id, ref=ref
     )
+    await check_permissions(
+        permissions=StoryPermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=attachment.content_object,
+    )
+
     file = attachment.storaged_object.file
 
     response = FileResponse(
@@ -219,11 +209,21 @@ async def get_story_attachment_file(
 ################################################
 
 
-async def get_story_attachment_or_404(attachment_id: UUID, story: Story) -> Attachment:
+async def get_story_attachment_or_404(
+    attachment_id: UUID,
+    project_id: Path[B64UUID],
+    ref: int,
+) -> Attachment:
     attachment = await attachments_services.get_attachment(
-        id=attachment_id, content_object=story
+        attachment_id=attachment_id,
     )
-    if attachment is None:
-        raise ex.NotFoundError(f"Attachment {attachment_id} does not exist")
+    if (
+        attachment is None
+        or attachment.content_object.ref != ref
+        or attachment.content_object.project_id != project_id
+    ):
+        raise ex.NotFoundError(
+            f"Attachment {attachment_id} does not exist for given story"
+        )
 
     return attachment

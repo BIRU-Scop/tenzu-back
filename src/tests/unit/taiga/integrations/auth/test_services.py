@@ -21,6 +21,7 @@ from unittest.mock import patch
 
 from integrations.auth import services
 from tests.utils import factories as f
+from users.models import User
 
 ##########################################################
 # social_login
@@ -87,7 +88,7 @@ async def test_social_login_no_user():
         ) as fake_ws_invitations_services,
     ):
         fake_users_repositories.get_auth_data.return_value = None
-        fake_users_repositories.get_user.return_value = None
+        fake_users_repositories.get_user.side_effect = User.DoesNotExist
 
         await services.social_login(
             email="", full_name="", social_key="", social_id="", bio=""

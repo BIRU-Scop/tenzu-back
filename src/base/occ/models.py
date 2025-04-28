@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.db import models
+from django.db import models
 
 
 class VersionedMixin(models.Model):

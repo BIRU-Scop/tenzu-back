@@ -23,7 +23,7 @@ from pydantic import Field, StringConstraints, field_validator, model_validator
 from pydantic.types import PositiveInt
 from typing_extensions import Annotated
 
-from base.validators import B64UUID, BaseModel
+from commons.validators import B64UUID, BaseModel
 
 Title = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)
@@ -34,6 +34,7 @@ class StoryValidator(BaseModel):
     title: Title
     description: str | None = None
     status_id: B64UUID
+    workflow_slug: str
 
 
 class UpdateStoryValidator(BaseModel):
@@ -59,6 +60,7 @@ class ReorderStoriesValidator(BaseModel):
     status_id: B64UUID
     stories: Annotated[List[int], Field(min_length=1)]  # type: ignore[valid-type]
     reorder: ReorderValidator | None = None
+    workflow_slug: str
 
     @field_validator("stories")
     @classmethod

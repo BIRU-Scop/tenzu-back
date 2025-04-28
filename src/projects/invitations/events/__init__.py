@@ -26,8 +26,9 @@ from projects.projects.models import Project
 
 CREATE_PROJECT_INVITATION = "projectinvitations.create"
 UPDATE_PROJECT_INVITATION = "projectinvitations.update"
-ACCEPT_PROJECT_INVITATION = "projectmemberships.create"
+ACCEPT_PROJECT_INVITATION = "projectinvitations.create"
 REVOKE_PROJECT_INVITATION = "projectinvitations.revoke"
+DENY_PROJECT_INVITATION = "projectinvitations.deny"
 DELETE_PROJECT_INVITATION = "projectinvitations.delete"
 
 
@@ -111,6 +112,28 @@ async def emit_event_when_project_invitation_is_revoked(
         await events_manager.publish_on_user_channel(
             user=invitation.user,
             type=REVOKE_PROJECT_INVITATION,
+            content=ProjectInvitationContent(
+                workspace=invitation.project.workspace_id,
+                project=invitation.project_id,
+            ),
+        )
+
+
+async def emit_event_when_project_invitation_is_denied(
+    invitation: ProjectInvitation,
+) -> None:
+    await events_manager.publish_on_project_channel(
+        project=invitation.project,
+        type=DENY_PROJECT_INVITATION,
+    )
+    await events_manager.publish_on_workspace_channel(
+        workspace=invitation.project.workspace,
+        type=DENY_PROJECT_INVITATION,
+    )
+    if invitation.user:
+        await events_manager.publish_on_user_channel(
+            user=invitation.user,
+            type=DENY_PROJECT_INVITATION,
             content=ProjectInvitationContent(
                 workspace=invitation.project.workspace_id,
                 project=invitation.project_id,

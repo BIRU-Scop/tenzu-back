@@ -22,7 +22,7 @@ import pytest
 from base.occ import repositories
 from tests.utils.samples.occ.models import SampleOCCItem
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 async def test_update_success() -> None:

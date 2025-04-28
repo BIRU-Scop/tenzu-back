@@ -16,17 +16,27 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Annotated
 
-from pydantic import field_validator
+from pydantic import StringConstraints
 
-from base.validators import BaseModel
+from commons.validators import BaseModel
+from permissions.validators import ProjectPermissionsField
+
+_RoleName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
+]
 
 
-class ProjectMembershipValidator(BaseModel):
-    role_slug: str
+class UpdateRoleValidator(BaseModel):
+    name: _RoleName | None = None
+    permissions: ProjectPermissionsField | None = None
 
-    @field_validator("role_slug")
-    @classmethod
-    def check_not_empty(cls, v: str) -> str:
-        assert v != "", "Empty field is not allowed"
-        return v
+
+class CreateRoleValidator(BaseModel):
+    name: _RoleName
+    permissions: ProjectPermissionsField
+
+
+class DeleteRoleQuery(BaseModel):
+    move_to: str | None = None

@@ -81,7 +81,7 @@ tasks:
       - task: collectstatic
       - task: manage
         vars: 
-          CLI_ARGS: "loaddata initial_user initial_project_templates"
+          CLI_ARGS: "loaddata initial_user"
       # can pass --no-demo to import less data
       # can pass --no-test as well for no test data
       - task: manage

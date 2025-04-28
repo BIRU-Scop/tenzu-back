@@ -22,29 +22,12 @@ import uuid
 from typing import Type
 
 from asgiref.sync import sync_to_async
-
-# isort: off
-from django.db.models import *  # noqa
-
-# isort: on
-
-from django.apps import apps
 from django.conf import settings
-from django.contrib.contenttypes.fields import (  # noqa
-    GenericForeignKey,
-    GenericRelation,
-)
-from django.contrib.contenttypes.models import ContentType  # noqa
-from django.contrib.postgres.fields import ArrayField  # noqa
-from django.contrib.postgres.lookups import Unaccent  # noqa
-from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector  # noqa
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model, UUIDField
-from django.db.models.functions import Coalesce, Lower, StrIndex, TruncDate  # noqa
 
 from base.db.models.fields import *  # noqa
 from base.utils.uuid import encode_uuid_to_b64str
-
-get_model = apps.get_model
 
 
 def uuid_generator() -> uuid.UUID:

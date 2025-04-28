@@ -17,23 +17,27 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.db import models
+
 from attachments.mixins import RelatedAttachmentsMixin
-from base.db import models
-from base.db.mixins import (
+from base.db.models import BaseModel
+from base.db.models.mixins import (
     CreatedMetaInfoMixin,
     DescriptionUpdatedMetaInfoMixin,
     TitleUpdatedMetaInfoMixin,
 )
 from base.occ.models import VersionedMixin
 from comments.mixins import RelatedCommentsMixin
+from commons.ordering import OrderedMixin
 from mediafiles.mixins import RelatedMediafilesMixin
 from projects.references.mixins import ProjectReferenceMixin
 
 
 class Story(
-    models.BaseModel,
+    BaseModel,
     ProjectReferenceMixin,
     VersionedMixin,
+    OrderedMixin,
     CreatedMetaInfoMixin,
     TitleUpdatedMetaInfoMixin,
     DescriptionUpdatedMetaInfoMixin,
@@ -45,14 +49,6 @@ class Story(
         max_length=500, null=False, blank=False, verbose_name="title"
     )
     description = models.TextField(null=True, blank=True, verbose_name="description")
-    order = models.DecimalField(
-        max_digits=16,
-        decimal_places=10,
-        default=100,
-        null=False,
-        blank=False,
-        verbose_name="order",
-    )
     project = models.ForeignKey(
         "projects.Project",
         null=False,

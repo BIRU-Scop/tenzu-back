@@ -16,8 +16,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from typing import cast
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
@@ -27,37 +25,35 @@ from auth import services as auth_services
 from base.api.pagination import Pagination
 from base.utils.datetime import aware_utcnow
 from commons.colors import generate_random_color
-from commons.utils import transaction_atomic_async
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from emails.emails import Emails
 from emails.tasks import send_email
+from memberships.choices import InvitationStatus
+from memberships.services import exceptions as invitations_ex
+from memberships.services.exceptions import MembershipIsTheOnlyOwnerError
 from ninja_jwt.exceptions import TokenError
 from projects.invitations import events as pj_invitations_events
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations import services as project_invitations_services
-from projects.invitations.choices import ProjectInvitationStatus
 from projects.invitations.models import ProjectInvitation
-from projects.invitations.services import exceptions as invitations_ex
 from projects.memberships import events as pj_memberships_events
 from projects.memberships import repositories as pj_memberships_repositories
-from projects.projects import repositories as projects_repositories
+from projects.memberships.models import ProjectMembership
 from projects.projects import services as projects_services
 from projects.projects.models import Project
-from projects.roles import repositories as pj_roles_repositories
 from users import events as users_events
 from users import repositories as users_repositories
 from users.models import User
-from users.repositories import UserFilters
 from users.serializers import UserDeleteInfoSerializer, VerificationInfoSerializer
-from users.serializers import services as serializers_services
 from users.services import exceptions as ex
 from users.tokens import ResetPasswordToken, VerifyUserToken
 from workspaces.invitations import events as ws_invitations_events
 from workspaces.invitations import repositories as ws_invitations_repositories
 from workspaces.invitations import services as workspace_invitations_services
-from workspaces.invitations.choices import WorkspaceInvitationStatus
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import events as ws_memberships_events
 from workspaces.memberships import repositories as ws_memberships_repositories
+from workspaces.memberships.models import WorkspaceMembership
 from workspaces.workspaces import events as workspaces_events
 from workspaces.workspaces import repositories as workspaces_repositories
 from workspaces.workspaces.models import Workspace
@@ -78,13 +74,12 @@ async def create_user(
     workspace_invitation_token: str | None = None,
     accept_workspace_invitation: bool = True,
 ) -> User:
-    user = await users_repositories.get_user(filters={"username_or_email": email})
-
-    if user and user.is_active:
-        raise ex.EmailAlreadyExistsError("Email already exists")
-
     lang = lang if lang else settings.LANGUAGE_CODE
-    if not user:
+    try:
+        user = await users_repositories.get_user(
+            q_filter=users_repositories.username_or_email_query(email)
+        )
+    except User.DoesNotExist:
         # new user
         if not color:
             color = generate_random_color()
@@ -92,6 +87,8 @@ async def create_user(
             email=email, full_name=full_name, color=color, password=password, lang=lang
         )
     else:
+        if user.is_active:
+            raise ex.EmailAlreadyExistsError("Email already exists")
         # the user (is_active=False) tries to sign-up again before verifying the previous attempt
         user.full_name = full_name
         user.lang = lang
@@ -162,12 +159,16 @@ async def _generate_verify_user_token(
     return str(verify_user_token)
 
 
+@transaction_atomic_async
 async def verify_user(user: User) -> None:
     await users_repositories.update_user(
         user=user, values={"is_active": True, "date_verification": aware_utcnow()}
     )
+    await workspace_invitations_services.update_user_workspaces_invitations(user=user)
+    await project_invitations_services.update_user_projects_invitations(user=user)
 
 
+@transaction_atomic_async
 async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
     # Get token and deny it
     try:
@@ -178,19 +179,18 @@ async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
     await sync_to_async(verify_token.blacklist)()
 
     # Get user and verify it
-    user = await users_repositories.get_user(
-        filters={
-            settings.NINJA_JWT["USER_ID_FIELD"]: verify_token.get(
-                settings.NINJA_JWT["USER_ID_CLAIM"]
-            )
-        }
-    )
-    if not user:
-        raise ex.BadVerifyUserTokenError("The user doesn't exist.")
+    try:
+        user = await users_repositories.get_user(
+            filters={
+                settings.NINJA_JWT["USER_ID_FIELD"]: verify_token.get(
+                    settings.NINJA_JWT["USER_ID_CLAIM"]
+                )
+            }
+        )
+    except User.DoesNotExist as e:
+        raise ex.BadVerifyUserTokenError("The user doesn't exist.") from e
 
     await verify_user(user=user)
-    await project_invitations_services.update_user_projects_invitations(user=user)
-    await workspace_invitations_services.update_user_workspaces_invitations(user=user)
 
     # The user may have a pending invitation to join a project or a workspace
     project_invitation, workspace_invitation = await _accept_invitations_from_token(
@@ -200,7 +200,7 @@ async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
 
     # Generate auth credentials and attach invitation
     auth = await auth_services.create_auth_credentials(user=user)
-    return serializers_services.serialize_verification_info(
+    return VerificationInfoSerializer(
         auth=auth,
         project_invitation=project_invitation,
         workspace_invitation=workspace_invitation,
@@ -216,7 +216,7 @@ async def list_users_emails_as_dict(
     emails: list[str],
 ) -> dict[str, User]:
     users = await users_repositories.list_users(
-        filters={"is_active": True, "emails": emails}
+        filters={"is_active": True, "email__iin": emails}
     )
     return {u.email: u for u in users}
 
@@ -225,17 +225,9 @@ async def list_users_usernames_as_dict(
     usernames: list[str],
 ) -> dict[str, User]:
     users = await users_repositories.list_users(
-        filters={"is_active": True, "usernames": usernames}
+        filters={"is_active": True, "username__iin": usernames}
     )
     return {u.username: u for u in users}
-
-
-async def list_guests_in_workspace_for_project(
-    project: Project,
-) -> list[User]:
-    return await users_repositories.list_users(
-        filters={"guest_in_ws_for_project": project}
-    )
 
 
 # search users
@@ -246,6 +238,14 @@ async def list_paginated_users_by_text(
     workspace_id: UUID | None = None,
     project_id: UUID | None = None,
 ) -> tuple[Pagination, list[User]]:
+    """
+    List all the users matching the full-text search criteria in their usernames and/or full names. The response will be
+    ***alphabetically ordered in blocks***, according to their proximity to a *<project/workspace>* when any of
+    these two parameters are received:
+      - 1st ordering block: *<project / workspace>* members,
+      - 2nd ordering block: *<members of the project's workspace / members of the workspace's projects>*
+      - 3rd ordering block: rest of the users
+    """
     if workspace_id:
         users = await users_repositories.list_workspace_users_by_text(
             text_search=text, workspace_id=workspace_id, offset=offset, limit=limit
@@ -282,180 +282,127 @@ async def update_user(user: User, full_name: str, lang: str, password: str) -> U
 
 @transaction_atomic_async
 async def delete_user(user: User) -> bool:
-    # delete workspaces where the user is the only ws member
-    # (Whe need to delete all projects first to emit all events)
-    workspaces = await workspaces_repositories.list_workspaces(
-        user=user, is_only_user=True
-    )
-    for ws in workspaces:
-        for pj in await workspaces_repositories.list_workspace_projects(workspace=ws):
-            await projects_services.delete_project(project=pj, deleted_by=user)
-
-        ws_deleted = await workspaces_repositories.delete_workspace(workspace_id=ws.id)
-        if ws_deleted > 0:
-            await workspaces_events.emit_event_when_workspace_is_deleted(
-                workspace=ws, deleted_by=user
-            )
+    # Check that there is no workspace or project where the user is the only owner and there are other members
+    if await ws_memberships_repositories.only_owner_collective_queryset(
+        Workspace, user
+    ).aexists():
+        raise MembershipIsTheOnlyOwnerError(
+            "Can't delete a user when they are still the only owner of some workspaces"
+        )
+    if await pj_memberships_repositories.only_owner_collective_queryset(
+        Project, user
+    ).aexists():
+        raise MembershipIsTheOnlyOwnerError(
+            "Can't delete a user when they are still the only owner of some projects"
+        )
 
     # delete projects where the user is the only pj member
     # (all members, invitations, pj-roles, stories, comments, etc
     # will be deleted in cascade)
-    projects = await projects_repositories.list_projects(
-        filters={"memberships__user_id": user.id},
-        is_individual_project=True,
-    )
-    for pj in projects:
+    # (We need to delete all projects before workspaces to emit all events)
+    async for pj in pj_memberships_repositories.only_project_member_queryset(
+        user
+    ).select_related("workspace"):
         await projects_services.delete_project(project=pj, deleted_by=user)
 
-    # update role of a workspace member as project admin in projects where the user is the only pj admin
-    # better if the workspace member is project member too
-    projects = await projects_repositories.list_projects(
-        filters={
-            "memberships__user_id": user.id,
-            "memberships__role__is_admin": True,
-        },
-        is_individual_project=False,
-        num_admins=1,
-        select_related=["workspace"],
-    )
-    for pj in projects:
-        workspace_members = (
-            await ws_memberships_repositories.list_workspace_members_excluding_user(
-                workspace=pj.workspace, exclude_user=user
-            )
-        )
-        project_members = (
-            await pj_memberships_repositories.list_project_members_excluding_user(
-                project=pj, exclude_user=user
-            )
-        )
+    # delete workspaces where the user is the only ws member
+    async for ws in ws_memberships_repositories.only_workspace_member_queryset(user):
+        # We do not need to delete associated projects: this has been handled by previous
+        # projects deletion since when user become project member they also become workspace member
+        ws_deleted = await workspaces_repositories.delete_workspace(workspace_id=ws.id)
+        if ws_deleted > 0:
+            await transaction_on_commit_async(
+                workspaces_events.emit_event_when_workspace_is_deleted
+            )(workspace=ws, deleted_by=user)
 
-        project_admin_role = await pj_roles_repositories.get_project_role(
-            filters={"project_id": pj.id, "slug": "admin"}
-        )
-        common_members = list(set(workspace_members).intersection(project_members))
-        if len(common_members) > 0:
-            pj_membership = await pj_memberships_repositories.get_project_membership(
-                filters={"project_id": pj.id, "user_id": common_members[0].id},
-                select_related=["user", "role", "project", "workspace"],
-            )
-            if pj_membership and project_admin_role:
-                updated_pj_membership = (
-                    await pj_memberships_repositories.update_project_membership(
-                        membership=pj_membership,
-                        values={"role": project_admin_role},
-                    )
-                )
-                await (
-                    pj_memberships_events.emit_event_when_project_membership_is_updated(
-                        membership=updated_pj_membership
-                    )
-                )
-        else:
-            if project_admin_role:
-                created_pj_membership = (
-                    await pj_memberships_repositories.create_project_membership(
-                        project=pj, role=project_admin_role, user=workspace_members[0]
-                    )
-                )
-                await (
-                    pj_memberships_events.emit_event_when_project_membership_is_created(
-                        membership=created_pj_membership
-                    )
-                )
-
-    # delete ws memberships
-    ws_memberships = await ws_memberships_repositories.list_workspace_memberships(
-        filters={"user_id": user.id}, select_related=["user", "workspace"]
+    # send event for related object deletion, actual deletion will be handled by CASCADE
+    # event for deletion of ws memberships
+    ws_memberships = await ws_memberships_repositories.list_memberships(
+        WorkspaceMembership,
+        filters={"user_id": user.id},
+        select_related=["user", "workspace"],
     )
     for ws_membership in ws_memberships:
-        deleted = await ws_memberships_repositories.delete_workspace_memberships(
-            filters={"id": ws_membership.id},
-        )
-        if deleted > 0:
-            await ws_memberships_events.emit_event_when_workspace_membership_is_deleted(
-                membership=ws_membership
-            )
+        await transaction_on_commit_async(
+            ws_memberships_events.emit_event_when_workspace_membership_is_deleted
+        )(membership=ws_membership)
 
-    # delete ws invitations
-    ws_invitations = await ws_invitations_repositories.list_workspace_invitations(
+    # event for deletion of ws invitations
+    ws_invitations = await ws_invitations_repositories.list_invitations(
+        WorkspaceInvitation,
         filters={"user": user},
         select_related=["workspace"],
     )
     for ws_invitation in ws_invitations:
-        is_pending = (
-            True if ws_invitation.status == WorkspaceInvitationStatus.PENDING else False
-        )
-        deleted = await ws_invitations_repositories.delete_workspace_invitation(
-            filters={"id": ws_invitation.id}
-        )
-        if deleted > 0 and is_pending:
-            await ws_invitations_events.emit_event_when_workspace_invitation_is_deleted(
-                invitation=ws_invitation
-            )
+        await transaction_on_commit_async(
+            ws_invitations_events.emit_event_when_workspace_invitation_is_deleted
+        )(invitation=ws_invitation)
 
-    # delete pj memberships
-    pj_memberships = await pj_memberships_repositories.list_project_memberships(
+    # event for deletion of pj memberships
+    pj_memberships = await pj_memberships_repositories.list_memberships(
+        ProjectMembership,
         filters={"user_id": user.id},
-        select_related=["user", "project", "workspace"],
+        select_related=["user", "project"],
     )
     for pj_membership in pj_memberships:
-        deleted = await pj_memberships_repositories.delete_project_membership(
-            filters={"id": pj_membership.id},
-        )
-        if deleted > 0:
-            await pj_memberships_events.emit_event_when_project_membership_is_deleted(
-                membership=pj_membership
-            )
+        await transaction_on_commit_async(
+            pj_memberships_events.emit_event_when_project_membership_is_deleted
+        )(membership=pj_membership)
 
-    # delete pj invitations
-    pj_invitations = await pj_invitations_repositories.list_project_invitations(
+    # event for deletion of pj invitations
+    pj_invitations = await pj_invitations_repositories.list_invitations(
+        ProjectInvitation,
         filters={"user": user},
         select_related=["project"],
     )
     for pj_invitation in pj_invitations:
-        is_pending = (
-            True if pj_invitation.status == ProjectInvitationStatus.PENDING else False
-        )
-        deleted = await pj_invitations_repositories.delete_project_invitation(
-            filters={"id": pj_invitation.id}
-        )
-        if deleted > 0 and is_pending:
-            await pj_invitations_events.emit_event_when_project_invitation_is_deleted(
-                invitation=pj_invitation
-            )
+        await transaction_on_commit_async(
+            pj_invitations_events.emit_event_when_project_invitation_is_deleted
+        )(invitation=pj_invitation)
 
     # delete user
     deleted_user = await users_repositories.delete_user(user)
 
     if deleted_user > 0:
-        await users_events.emit_event_when_user_is_deleted(user=user)
+        await transaction_on_commit_async(users_events.emit_event_when_user_is_deleted)(
+            user=user
+        )
         return True
 
     return False
 
 
-#####################################################################
-# delete info user
-#####################################################################
-
-
 async def get_user_delete_info(user: User) -> UserDeleteInfoSerializer:
-    ws_list = await _list_workspaces_delete_info(user=user)
-    pj_list = await _list_projects_delete_info(user=user, ws_list=ws_list)
-
-    ws_list_serialized = [
-        serializers_services.serialize_workspace_with_projects_nested(
-            workspace=workspace,
-            projects=await workspaces_repositories.list_workspace_projects(
-                workspace=workspace
-            ),
+    only_owner_collective_workspaces = [
+        ws
+        async for ws in ws_memberships_repositories.only_owner_collective_queryset(
+            Workspace, user
         )
-        for workspace in ws_list
+    ]
+    only_owner_collective_projects = [
+        pj
+        async for pj in pj_memberships_repositories.only_owner_collective_queryset(
+            Project, user
+        )
+    ]
+    only_member_workspaces = [
+        ws
+        async for ws in ws_memberships_repositories.only_workspace_member_queryset(
+            user, prefetch_related=[workspaces_repositories.PROJECT_PREFETCH]
+        )
+    ]
+    only_member_projects = [
+        pj
+        async for pj in pj_memberships_repositories.only_project_member_queryset(
+            user, excludes={"workspace__in": only_member_workspaces}
+        )
     ]
 
-    return serializers_services.serialize_user_delete_info(
-        workspaces=ws_list_serialized, projects=pj_list
+    return UserDeleteInfoSerializer(
+        only_owner_collective_workspaces=only_owner_collective_workspaces,
+        only_owner_collective_projects=only_owner_collective_projects,
+        only_member_workspaces=only_member_workspaces,
+        only_member_projects=only_member_projects,
     )
 
 
@@ -473,16 +420,19 @@ async def _get_user_and_reset_password_token(
         raise ex.BadResetPasswordTokenError("Invalid or expired token.")
 
     # Get user
-    user = await users_repositories.get_user(
-        filters={
-            settings.NINJA_JWT["USER_ID_FIELD"]: reset_token.get(
-                settings.NINJA_JWT["USER_ID_CLAIM"]
-            )
-        }
-    )
-    if not user:
+    try:
+        user = await users_repositories.get_user(
+            filters={
+                settings.NINJA_JWT["USER_ID_FIELD"]: reset_token.get(
+                    settings.NINJA_JWT["USER_ID_CLAIM"]
+                ),
+                "is_active": True,
+            }
+        )
+
+    except User.DoesNotExist as e:
         await sync_to_async(reset_token.blacklist)()
-        raise ex.BadResetPasswordTokenError("Invalid or malformed token.")
+        raise ex.BadResetPasswordTokenError("Invalid or malformed token.") from e
 
     return reset_token, user
 
@@ -502,10 +452,14 @@ async def _send_reset_password_email(user: User) -> None:
 
 
 async def request_reset_password(email: str) -> None:
-    user = await users_repositories.get_user(
-        filters={"username_or_email": email, "is_active": True}
-    )
-    if user:
+    try:
+        user = await users_repositories.get_user(
+            filters={"is_active": True},
+            q_filter=users_repositories.username_or_email_query(email),
+        )
+    except User.DoesNotExist:
+        pass
+    else:
         await _send_reset_password_email(user)
 
 
@@ -536,15 +490,6 @@ async def clean_expired_users() -> None:
 async def _accept_invitations_from_token(
     user: User, verify_token: VerifyUserToken
 ) -> tuple[ProjectInvitation | None, WorkspaceInvitation | None]:
-    project_invitation_token = verify_token.get("project_invitation_token", None)
-    if project_invitation_token:
-        project_invitation = await _accept_project_invitation_from_token(
-            invitation_token=project_invitation_token,
-            accept_invitation=verify_token.get("accept_project_invitation", False),
-            user=user,
-        )
-        return project_invitation, None
-
     workspace_invitation_token = verify_token.get("workspace_invitation_token", None)
     if workspace_invitation_token:
         workspace_invitation = await _accept_workspace_invitation_from_token(
@@ -553,6 +498,15 @@ async def _accept_invitations_from_token(
             user=user,
         )
         return None, workspace_invitation
+
+    project_invitation_token = verify_token.get("project_invitation_token", None)
+    if project_invitation_token:
+        project_invitation = await _accept_project_invitation_from_token(
+            invitation_token=project_invitation_token,
+            accept_invitation=verify_token.get("accept_project_invitation", False),
+            user=user,
+        )
+        return project_invitation, None
 
     return None, None
 
@@ -583,7 +537,7 @@ async def _accept_project_invitation_from_token(
             )
         except (
             invitations_ex.BadInvitationTokenError,
-            invitations_ex.InvitationDoesNotExistError,
+            ProjectInvitation.DoesNotExist,
         ):
             pass  # TODO: Logging invitation is invalid
     return invitation
@@ -615,41 +569,7 @@ async def _accept_workspace_invitation_from_token(
             )
         except (
             invitations_ex.BadInvitationTokenError,
-            invitations_ex.InvitationDoesNotExistError,
+            WorkspaceInvitation.DoesNotExist,
         ):
             pass  # TODO: Logging invitation is invalid
     return invitation
-
-
-async def _list_workspaces_delete_info(user: User) -> list[Workspace]:
-    # list workspaces where the user is the only ws member and ws has projects
-    return await workspaces_repositories.list_workspaces(
-        user=user, prefetch_related=["projects"], has_projects=True, is_only_user=True
-    )
-
-
-async def _list_projects_delete_info(
-    user: User, ws_list: list[Workspace]
-) -> list[Project]:
-    # list projects where the user is the only pj admin and is not the only ws member or is not ws member
-
-    # list projects where the user is the only ws member
-    pj_list_user_only_ws_member = []
-    for ws in ws_list:
-        pj_list_user_only_ws_member += (
-            await workspaces_repositories.list_workspace_projects(workspace=ws)
-        )
-
-    pj_list_user_only_admin = await projects_repositories.list_projects(
-        filters={
-            "memberships__user_id": user.id,
-            "memberships__role__is_admin": True,
-        },
-        is_individual_project=False,
-        num_admins=1,
-        select_related=["workspace"],
-    )
-
-    return [
-        pj for pj in pj_list_user_only_admin if pj not in pj_list_user_only_ws_member
-    ]

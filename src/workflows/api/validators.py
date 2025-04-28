@@ -17,17 +17,14 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import List
-from uuid import UUID
+from typing import List, Literal
 
 from pydantic import Field, StringConstraints, field_validator
 from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated
 
-from base.utils.uuid import decode_b64str_to_uuid
-from base.validators import B64UUID, BaseModel
 from commons.colors import NUM_COLORS
-from exceptions import api as ex
+from commons.validators import B64UUID, BaseModel
 
 WorkflowStatusName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)
@@ -42,6 +39,7 @@ WorkflowSlug = Annotated[
 
 class CreateWorkflowValidator(BaseModel):
     name: WorkflowName
+    project_id: B64UUID
 
 
 class DeleteWorkflowQuery(BaseModel):
@@ -62,21 +60,15 @@ class UpdateWorkflowStatusValidator(BaseModel):
 
 
 class ReorderValidator(BaseModel):
-    place: str
-    status: B64UUID
-
-    @field_validator("place")
-    @classmethod
-    def check_valid_place(cls, v: str, info: ValidationInfo) -> str:
-        assert v in ["before", "after"], "Place should be 'after' or 'before'"
-        return v
+    place: Literal["before", "after"]
+    status_id: B64UUID
 
 
 class ReorderWorkflowStatusesValidator(BaseModel):
-    statuses: Annotated[List[B64UUID], Field(min_length=1)]  # type: ignore[valid-type]
+    status_ids: Annotated[List[B64UUID], Field(min_length=1)]  # type: ignore[valid-type]
     reorder: ReorderValidator
 
-    @field_validator("statuses")
+    @field_validator("status_ids")
     @classmethod
     def return_unique_statuses(cls, v: list[str], info: ValidationInfo) -> list[str]:
         """
@@ -89,16 +81,4 @@ class ReorderWorkflowStatusesValidator(BaseModel):
 
 
 class DeleteWorkflowStatusQuery(BaseModel):
-    # TODO: fix to avoid double validation errors when using the B64UUID type (instead of str)
-    move_to: str | None = None
-
-    @field_validator("move_to")
-    @classmethod
-    def check_b64uuid_from_str(cls, v: str | None, info: ValidationInfo) -> UUID | None:
-        if v is None:
-            return None
-
-        try:
-            return decode_b64str_to_uuid(v)
-        except ValueError:
-            raise ex.ValidationError("Invalid 'move_to' workflow status")
+    move_to: B64UUID | None = None

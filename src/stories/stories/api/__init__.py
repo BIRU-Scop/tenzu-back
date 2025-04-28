@@ -19,22 +19,18 @@
 
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
 from django.http import HttpResponse
 from ninja import Path, Query, Router
 
 from base.api import Pagination, PaginationQuery, set_pagination
-from base.api.permissions import check_permissions
-from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
-    ERROR_RESPONSE_401,
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
-from permissions import HasPerm
+from commons.validators import B64UUID
+from permissions import check_permissions
 from stories.stories import services as stories_services
 from stories.stories.api.validators import (
     ReorderStoriesValidator,
@@ -42,23 +38,16 @@ from stories.stories.api.validators import (
     UpdateStoryValidator,
 )
 from stories.stories.models import Story
+from stories.stories.permissions import StoryPermissionsCheck
 from stories.stories.serializers import (
     ReorderStoriesSerializer,
     StoryDetailSerializer,
     StorySummarySerializer,
 )
 from stories.stories.services.exceptions import InvalidStatusError, InvalidStoryRefError
-from workflows.api import get_workflow_or_404
+from workflows.api import get_workflow_by_slug_or_404
 
-stories_router = Router(auth=AsyncJWTAuth())
-
-# PERMISSIONS
-LIST_STORIES = HasPerm("view_story")
-GET_STORY = HasPerm("view_story")
-CREATE_STORY = HasPerm("add_story")
-UPDATE_STORY = HasPerm("modify_story")
-REORDER_STORIES = HasPerm("modify_story")
-DELETE_STORY = HasPerm("delete_story")
+stories_router = Router()
 
 
 ################################################
@@ -67,7 +56,7 @@ DELETE_STORY = HasPerm("delete_story")
 
 
 @stories_router.post(
-    "/projects/{project_id}/workflows/{workflow_slug}/stories",
+    "/projects/{project_id}/stories",
     url_name="project.stories.create",
     summary="Create a story",
     response={
@@ -81,16 +70,17 @@ DELETE_STORY = HasPerm("delete_story")
 async def create_story(
     request,
     project_id: Path[B64UUID],
-    workflow_slug: str,
     form: StoryValidator,
 ) -> StoryDetailSerializer:
     """
     Creates a story in the given project workflow
     """
-    workflow = await get_workflow_or_404(
-        project_id=project_id, workflow_slug=workflow_slug
+    workflow = await get_workflow_by_slug_or_404(
+        project_id=project_id, workflow_slug=form.workflow_slug
     )
-    await check_permissions(permissions=CREATE_STORY, user=request.user, obj=workflow)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.CREATE.value, user=request.user, obj=workflow
+    )
     try:
         return await stories_services.create_story(
             title=form.title,
@@ -101,7 +91,7 @@ async def create_story(
             user=request.user,
         )
     except InvalidStatusError as e:
-        raise ex.BadRequest(e.__str__())
+        raise ex.BadRequest(str(e))
 
 
 ################################################
@@ -125,17 +115,19 @@ async def create_story(
 async def list_stories(
     request,
     project_id: Path[B64UUID],
-    workflow_slug: str,
+    workflow_slug: Path[str],
     pagination_params: Query[PaginationQuery],
     response: HttpResponse,
 ) -> list[StorySummarySerializer]:
     """
     List all the stories for a project workflow
     """
-    workflow = await get_workflow_or_404(
+    workflow = await get_workflow_by_slug_or_404(
         project_id=project_id, workflow_slug=workflow_slug
     )
-    await check_permissions(permissions=LIST_STORIES, user=request.user, obj=workflow)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=workflow
+    )
     pagination = Pagination(
         offset=pagination_params.offset, limit=pagination_params.limit
     )
@@ -156,7 +148,7 @@ async def list_stories(
 
 
 @stories_router.get(
-    "/projects/{project_id}/stories/{ref}",
+    "/projects/{project_id}/stories/{int:ref}",
     url_name="project.stories.get",
     summary="Get story",
     response={
@@ -170,13 +162,15 @@ async def list_stories(
 async def get_story(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
 ) -> StoryDetailSerializer:
     """
     Get the detailed information of a story.
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
-    await check_permissions(permissions=GET_STORY, user=request.user, obj=story)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=story
+    )
 
     return await stories_services.get_story_detail(project_id=project_id, ref=ref)
 
@@ -187,7 +181,7 @@ async def get_story(
 
 
 @stories_router.patch(
-    "/projects/{project_id}/stories/{ref}",
+    "/projects/{project_id}/stories/{int:ref}",
     url_name="project.stories.update",
     summary="Update story",
     response={
@@ -201,14 +195,16 @@ async def get_story(
 async def update_story(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     form: UpdateStoryValidator,
 ) -> StoryDetailSerializer:
     """
     Update a story from a project.
     """
     story = await get_story_or_404(project_id, ref)
-    await check_permissions(permissions=UPDATE_STORY, user=request.user, obj=story)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
+    )
 
     values = form.model_dump(exclude_unset=True)
     current_version = values.pop("version")
@@ -226,7 +222,7 @@ async def update_story(
 
 
 @stories_router.post(
-    "/projects/{project_id}/workflows/{workflow_slug}/stories/reorder",
+    "/projects/{project_id}/stories/reorder",
     url_name="project.stories.reorder",
     summary="Reorder stories",
     response={
@@ -240,17 +236,16 @@ async def update_story(
 async def reorder_stories(
     request,
     project_id: Path[B64UUID],
-    workflow_slug: str,
     form: ReorderStoriesValidator,
 ) -> ReorderStoriesSerializer:
     """
     Reorder one or more stories; it may change priority and/or status
     """
-    workflow = await get_workflow_or_404(
-        project_id=project_id, workflow_slug=workflow_slug
+    workflow = await get_workflow_by_slug_or_404(
+        project_id=project_id, workflow_slug=form.workflow_slug
     )
     await check_permissions(
-        permissions=REORDER_STORIES, user=request.user, obj=workflow
+        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=workflow
     )
     try:
         return await stories_services.reorder_stories(
@@ -262,7 +257,7 @@ async def reorder_stories(
             reorder=form.get_reorder_dict(),
         )
     except InvalidStoryRefError as e:
-        raise ex.BadRequest(e.__str__())
+        raise ex.BadRequest(str(e))
 
 
 ################################################
@@ -271,7 +266,7 @@ async def reorder_stories(
 
 
 @stories_router.delete(
-    "/projects/{project_id}/stories/{ref}",
+    "/projects/{project_id}/stories/{int:ref}",
     url_name="project.stories.delete",
     summary="Delete story",
     response={
@@ -285,13 +280,15 @@ async def reorder_stories(
 async def delete_story(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
 ) -> tuple[int, None]:
     """
     Delete a story
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
-    await check_permissions(permissions=DELETE_STORY, user=request.user, obj=story)
+    await check_permissions(
+        permissions=StoryPermissionsCheck.DELETE.value, user=request.user, obj=story
+    )
 
     await stories_services.delete_story(story=story, deleted_by=request.user)
     return 204, None

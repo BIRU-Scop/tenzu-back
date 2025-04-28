@@ -16,23 +16,73 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+import contextlib
+from unittest import mock
+from unittest.mock import patch
 
 import pytest
+from django.db import connections
 
 # import pytest_asyncio
-from django.core.management import call_command
-
 from .fixtures import *  # noqa
 
+# /!\ If you are using TransactionalTestCase (using "pytest.mark.django_db(transaction=True)" or "transactional_db" fixture)
+# initial data loaded in migrations will NOT be available (see https://docs.djangoproject.com/en/5.2/topics/testing/overview/#rollback-emulation)
+# If you need data migration in your test (like the ProjectTemplate instance required by "project_template" fixture)
+# Either use simple TestCase if you can, or add "serialized_rollback=True" or the "django_db_serialized_rollback" fixture
+# to make migrated data available in your tests
 
-#
-# Load initial tenzu fixtures
-#
-@pytest.fixture(scope="function")
-def django_db_setup(django_db_setup, django_db_blocker):
-    with django_db_blocker.unblock():
-        call_command("loaddata", "initial_project_templates.json", verbosity=0)
+
+@pytest.fixture(autouse=True)
+def fix_async_db(request):
+    """
+    If you don't use this fixture for async tests that use the ORM/database
+    you won't get proper teardown of the database.
+    This is a bug somewhere in pytest-django, pytest-asyncio or django itself.
+
+    Nobody knows how to solve it, or who should solve it.
+    Workaround here: https://github.com/pytest-dev/pytest-asyncio/issues/226#issuecomment-2225156564
+    More info:
+    https://github.com/pytest-dev/pytest-django/issues/580
+    https://github.com/pytest-dev/pytest-asyncio/issues/226
+
+
+    The actual implementation of this workaround consists on ensuring
+    Django always returns the same database connection independently of the thread
+    the code that requests a db connection is in.
+
+    We were unable to use better patching methods (the target is asgiref/local.py),
+    so we resorted to mocking the _lock_storage context manager so that it returns a Mock.
+    That mock contains the default connection of the main thread (instead of the connection
+    of the running thread).
+
+    This only works because our tests only ever use the default connection, which is the only thing our mock returns.
+    """
+    marker = request.node.get_closest_marker("django_db")
+    if (
+        marker is None or marker.kwargs.get("transaction", False)
+    ) or request.node.get_closest_marker("asyncio") is None:
+        # Only run for async tests that use the database and no transaction
+        yield
+        return
+
+    main_thread_local = connections._connections
+    for conn in connections.all():
+        conn.inc_thread_sharing()
+
+    main_thread_default_conn = main_thread_local._storage.default
+    main_thread_storage = main_thread_local._lock_storage
+
+    @contextlib.contextmanager
+    def _lock_storage():
+        yield mock.Mock(default=main_thread_default_conn)
+
+    try:
+        with patch.object(main_thread_default_conn, "close"):
+            object.__setattr__(main_thread_local, "_lock_storage", _lock_storage)
+            yield
+    finally:
+        object.__setattr__(main_thread_local, "_lock_storage", main_thread_storage)
 
 
 #
@@ -66,19 +116,23 @@ def pytest_collection_modifyitems(config, items):
     if config.getoption("--slow_only"):
         skip = pytest.mark.skip(reason="only execute slow test")
         for item in items:
-            # Only those with django_db(transaction=true)
+            # Only those with django_db(transaction=True or serialized_rollback=True)
             if "django_db" not in item.keywords:
                 item.add_marker(skip)
             else:
                 for marker in item.iter_markers(name="django_db"):
-                    if not marker.kwargs.get("transaction", False):
+                    if not marker.kwargs.get(
+                        "transaction", False
+                    ) and not marker.kwargs.get("serialized_rollback", False):
                         item.add_marker(skip)
                         break
     elif config.getoption("--fast_only"):
         skip = pytest.mark.skip(reason="exclude slow test")
         for item in items:
-            # Exclude those with django_db(transaction=true)
+            # Exclude those with django_db(transaction=True or serialized_rollback=True)
             for marker in item.iter_markers(name="django_db"):
-                if marker.kwargs.get("transaction", False):
+                if marker.kwargs.get("transaction", False) or marker.kwargs.get(
+                    "serialized_rollback", False
+                ):
                     item.add_marker(skip)
                     break

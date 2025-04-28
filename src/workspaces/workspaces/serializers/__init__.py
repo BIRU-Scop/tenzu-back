@@ -19,29 +19,31 @@
 
 from pydantic import ConfigDict
 
-from base.serializers import UUIDB64, BaseModel
-from projects.projects.serializers.nested import ProjectNestedSerializer
+from base.serializers import BaseModel
+from memberships.serializers import RoleSerializer
+from projects.projects.serializers.nested import (
+    ProjectNestedSerializer,
+)
+from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class WorkspaceDetailSerializer(BaseModel):
-    id: UUIDB64
-    name: str
-    slug: str
-    color: int
-    latest_projects: list[ProjectNestedSerializer]
-    invited_projects: list[ProjectNestedSerializer]
-    total_projects: int
-    has_projects: bool
-    user_role: str
+class _WorkspaceListProjectsSummarySerializer(BaseModel):
+    user_member_projects: list[ProjectNestedSerializer]
+    user_invited_projects: list[ProjectNestedSerializer]
     model_config = ConfigDict(from_attributes=True)
 
 
-class WorkspaceSerializer(BaseModel):
-    id: UUIDB64
-    name: str
-    slug: str
-    color: int
+class WorkspaceSummarySerializer(
+    WorkspaceNestedSerializer, _WorkspaceListProjectsSummarySerializer
+):
+    user_is_invited: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WorkspaceDetailSerializer(WorkspaceSummarySerializer):
+    user_role: RoleSerializer | None
     total_projects: int
-    has_projects: bool
-    user_role: str
+    # should always be empty, field are added to satisfy "detail inherit from summary" in the frontend
+    user_member_projects: list[ProjectNestedSerializer] = []
+    user_invited_projects: list[ProjectNestedSerializer] = []
     model_config = ConfigDict(from_attributes=True)

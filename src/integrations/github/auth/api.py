@@ -19,7 +19,7 @@
 
 from ninja import Router
 
-from exceptions.api.errors import ERROR_RESPONSE_400, ERROR_RESPONSE_422
+from commons.exceptions.api.errors import ERROR_RESPONSE_400, ERROR_RESPONSE_422
 from integrations.github.auth import services as auth_github_services
 from integrations.github.auth.validators import GithubLoginValidator
 from ninja_jwt.schema import TokenObtainPairOutputSchema
@@ -37,6 +37,7 @@ github_integration_router = Router()
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
+    auth=None,
 )
 async def github_login(
     request, form: GithubLoginValidator

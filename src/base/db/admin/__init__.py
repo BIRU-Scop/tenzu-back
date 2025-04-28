@@ -26,10 +26,10 @@ from django.contrib.contenttypes.admin import (  # noqa
     GenericStackedInline,
     GenericTabularInline,
 )
+from django.db.models import JSONField
 from nonrelated_inlines.admin import NonrelatedTabularInline  # type: ignore  # noqa
 
 from base.db.admin.forms import PrettyJSONWidget
-from base.db.models import JSONField
 
 
 class ModelAdmin(DjangoModelAdmin):

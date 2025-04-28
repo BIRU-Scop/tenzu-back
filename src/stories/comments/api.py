@@ -17,17 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from functools import partial
 from uuid import UUID
 
 from django.http import HttpResponse
 from ninja import Path, Query, Router
 
-from base.api import headers as api_headers
 from base.api import pagination as api_pagination
 from base.api.pagination import PaginationQuery
-from base.api.permissions import check_permissions
-from base.validators import B64UUID
 from comments import services as comments_services
 from comments.models import Comment
 from comments.serializers import CommentSerializer
@@ -36,29 +32,21 @@ from comments.validators import (
     CreateCommentValidator,
     UpdateCommentValidator,
 )
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
-from permissions import HasPerm, IsNotDeleted, IsProjectAdmin, IsRelatedToTheUser
-from stories.comments import events, notifications
+from commons.validators import B64UUID
+from permissions import (
+    check_permissions,
+)
+from stories.comments import services as services
+from stories.comments.permissions import CommentPermissionsCheck
 from stories.stories.api import get_story_or_404
-from stories.stories.models import Story
 
-# PERMISSIONS
-CREATE_STORY_COMMENT = HasPerm("comment_story")
-LIST_STORY_COMMENTS = HasPerm("view_story")
-UPDATE_STORY_COMMENT = (
-    IsNotDeleted() & IsRelatedToTheUser("created_by") & HasPerm("comment_story")
-)
-DELETE_STORY_COMMENT = IsNotDeleted() & (
-    IsProjectAdmin() | (IsRelatedToTheUser("created_by") & HasPerm("comment_story"))
-)
-
-comments_router = Router(auth=AsyncJWTAuth())
+comments_router = Router()
 
 
 ##########################################################
@@ -67,7 +55,7 @@ comments_router = Router(auth=AsyncJWTAuth())
 
 
 @comments_router.post(
-    "/projects/{project_id}/stories/{ref}/comments",
+    "/projects/{project_id}/stories/{int:ref}/comments",
     url_name="project.story.comments.create",
     summary="Create story comment",
     response={
@@ -81,7 +69,7 @@ comments_router = Router(auth=AsyncJWTAuth())
 async def create_story_comments(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     form: CreateCommentValidator,
 ) -> Comment:
     """
@@ -89,23 +77,12 @@ async def create_story_comments(
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
     await check_permissions(
-        permissions=CREATE_STORY_COMMENT, user=request.user, obj=story
+        permissions=CommentPermissionsCheck.CREATE.value, user=request.user, obj=story
     )
-
-    event_on_create = partial(
-        events.emit_event_when_story_comment_is_created,
-        project=story.project,
-    )
-    notification_on_create = partial(
-        notifications.notify_when_story_comment_is_created,
-        story=story,
-    )
-    return await comments_services.create_comment(
-        text=form.text,
-        content_object=story,
+    return await services.create_comment(
+        comment_text=form.text,
         created_by=request.user,
-        event_on_create=event_on_create,
-        notification_on_create=notification_on_create,
+        story=story,
     )
 
 
@@ -115,7 +92,7 @@ async def create_story_comments(
 
 
 @comments_router.get(
-    "/projects/{project_id}/stories/{ref}/comments",
+    "/projects/{project_id}/stories/{int:ref}/comments",
     url_name="project.story.comments.list",
     summary="List story comments",
     response={
@@ -128,11 +105,11 @@ async def create_story_comments(
 )
 # TODO : replace by django ninja paginate
 # TODO : check the benefit to have multiple sort ?
-# TODO : modify the schema between Query and Service too splited
+# TODO : modify the schema between Query and Service too split
 async def list_story_comments(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     response: HttpResponse,
     pagination_params: Query[PaginationQuery],
     order: Query[CommentOrderSortQuery],
@@ -142,7 +119,7 @@ async def list_story_comments(
     """
     story = await get_story_or_404(project_id=project_id, ref=ref)
     await check_permissions(
-        permissions=LIST_STORY_COMMENTS, user=request.user, obj=story
+        permissions=CommentPermissionsCheck.VIEW.value, user=request.user, obj=story
     )
     (
         pagination,
@@ -155,9 +132,7 @@ async def list_story_comments(
         order_by=order.model_dump(),
     )
     api_pagination.set_pagination(response=response, pagination=pagination)
-    api_headers.set_headers(
-        response=response, headers={"Total-Comments": total_comments}
-    )
+    response.headers["Tenzu-Total-Comments"] = total_comments
     return comments
 
 
@@ -167,7 +142,7 @@ async def list_story_comments(
 
 
 @comments_router.patch(
-    "/projects/{project_id}/stories/{ref}/comments/{comment_id}",
+    "/projects/{project_id}/stories/{int:ref}/comments/{comment_id}",
     url_name="project.story.comments.update",
     summary="Update story comment",
     response={
@@ -181,25 +156,23 @@ async def list_story_comments(
 async def update_story_comments(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     comment_id: Path[B64UUID],
     form: UpdateCommentValidator,
 ) -> Comment:
     """
     Update a story's comment
     """
-    story = await get_story_or_404(project_id=project_id, ref=ref)
-    comment = await get_story_comment_or_404(comment_id=comment_id, story=story)
+    comment = await get_story_comment_or_404(
+        comment_id=comment_id, project_id=project_id, ref=ref
+    )
     await check_permissions(
-        permissions=UPDATE_STORY_COMMENT, user=request.user, obj=comment
+        permissions=CommentPermissionsCheck.MODIFY.value, user=request.user, obj=comment
     )
 
     values = form.dict(exclude_unset=True)
-    event_on_update = partial(
-        events.emit_event_when_story_comment_is_updated, project=story.project
-    )
-    return await comments_services.update_comment(
-        story=story, comment=comment, values=values, event_on_update=event_on_update
+    return await services.update_comment(
+        comment=comment, project=comment.content_object.project, values=values
     )
 
 
@@ -209,7 +182,7 @@ async def update_story_comments(
 
 
 @comments_router.delete(
-    "/projects/{project_id}/stories/{ref}/comments/{comment_id}",
+    "/projects/{project_id}/stories/{int:ref}/comments/{comment_id}",
     url_name="project.story.comments.delete",
     summary="Delete story comment",
     response={
@@ -223,23 +196,21 @@ async def update_story_comments(
 async def delete_story_comment(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     comment_id: Path[B64UUID],
 ) -> Comment:
     """
     Delete a comment
     """
-    story = await get_story_or_404(project_id=project_id, ref=ref)
-    comment = await get_story_comment_or_404(comment_id=comment_id, story=story)
+    comment = await get_story_comment_or_404(
+        comment_id=comment_id, project_id=project_id, ref=ref
+    )
     await check_permissions(
-        permissions=DELETE_STORY_COMMENT, user=request.user, obj=comment
+        permissions=CommentPermissionsCheck.DELETE.value, user=request.user, obj=comment
     )
 
-    event_on_delete = partial(
-        events.emit_event_when_story_comment_is_deleted, project=story.project
-    )
-    return await comments_services.delete_comment(
-        comment=comment, deleted_by=request.user, event_on_delete=event_on_delete
+    return await services.delete_comment(
+        comment=comment, deleted_by=request.user, project=comment.content_object.project
     )
 
 
@@ -248,9 +219,17 @@ async def delete_story_comment(
 ################################################
 
 
-async def get_story_comment_or_404(comment_id: UUID, story: Story) -> Comment:
-    comment = await comments_services.get_comment(id=comment_id, content_object=story)
-    if comment is None:
-        raise ex.NotFoundError(f"Comment {comment_id} does not exist")
+async def get_story_comment_or_404(
+    comment_id: UUID,
+    project_id: Path[B64UUID],
+    ref: int,
+) -> Comment:
+    comment = await comments_services.get_comment(id=comment_id)
+    if (
+        comment is None
+        or comment.content_object.ref != ref
+        or comment.content_object.project_id != project_id
+    ):
+        raise ex.NotFoundError(f"Comment {comment_id} does not exist for given story")
 
     return comment

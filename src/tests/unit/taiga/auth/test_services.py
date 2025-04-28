@@ -26,6 +26,7 @@ from auth import services as auth_serv
 from auth.services import exceptions as ex
 from ninja_jwt.tokens import AccessToken, RefreshToken
 from tests.utils import factories as f
+from users.models import User
 
 ##########################################################
 # login
@@ -66,7 +67,7 @@ async def test_login_error_invalid_username():
     password = "test_password"
 
     with patch("auth.services.users_repositories", autospec=True) as fake_users_repo:
-        fake_users_repo.get_user.return_value = None
+        fake_users_repo.get_user.side_effect = User.DoesNotExist
 
         data = await auth_serv.login(username=invalid_username, password=password)
 
@@ -163,7 +164,7 @@ async def test_authenticate_error_inactive_user():
     token = AccessToken.for_user(user)
 
     with patch("auth.services.users_repositories", autospec=True) as fake_users_repo:
-        fake_users_repo.get_user.return_value = None
+        fake_users_repo.get_user.side_effect = User.DoesNotExist
 
         with pytest.raises(ex.UnauthorizedUserError):
             await auth_serv.authenticate(token=str(token))

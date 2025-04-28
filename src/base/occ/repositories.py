@@ -20,7 +20,9 @@
 from typing import Any, Type
 from uuid import UUID
 
-from base.db.models import BaseModel, F
+from django.db.models import F
+
+from base.db.models import BaseModel
 
 
 async def update(

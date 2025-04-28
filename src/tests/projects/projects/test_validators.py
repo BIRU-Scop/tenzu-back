@@ -17,13 +17,16 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from uuid import UUID
 
 import pytest
 from pydantic import ValidationError
 
-from projects.projects.api.validators import ProjectValidator, UpdateProjectValidator
+from projects.projects.api.validators import (
+    CreateProjectValidator,
+    UpdateProjectValidator,
+)
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_B64ID
 from tests.utils.utils import check_validation_errors
 
 ##########################################################
@@ -33,10 +36,10 @@ from tests.utils.utils import check_validation_errors
 
 def test_validate_create_user_wrong_not_all_required_fields():
     with pytest.raises(ValidationError) as validation_errors:
-        ProjectValidator()
+        CreateProjectValidator()
 
     expected_error_fields = ["name", "workspace_id"]
-    expected_error_messages = ["Field required"]
+    expected_error_messages = ["Field required", "Field required"]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
     )
@@ -50,17 +53,16 @@ def test_validate_project_with_empty_name():
         ValidationError, match=r"String should have at least 1 character"
     ):
         # noinspection PyArgumentList
-        ProjectValidator(name=name, color=color)
+        CreateProjectValidator(name=name, color=color)
 
 
 def test_validate_project_with_long_name():
     name = "Project ab c de f gh i jk l mn pw r st u vw x yz ab c de f gh i jk l mn pw r st u vw x yz"
     color = 1
-    workspace_id = "6JgsbGyoEe2VExhWgGrI2w"
     with pytest.raises(
         ValidationError, match=r"String should have at most 80 characters"
     ):
-        ProjectValidator(name=name, color=color, workspace_id=workspace_id)
+        CreateProjectValidator(name=name, color=color)
 
 
 def test_validate_project_with_long_description():
@@ -72,52 +74,46 @@ def test_validate_project_with_long_description():
         "aenean massa. Cum sociis natoque penatibus"
     )
     color = 1
-    workspace_id = "6JgsbGyoEe2VExhWgGrI2w"
 
     with pytest.raises(
         ValidationError, match=r"String should have at most 220 characters"
     ):
-        ProjectValidator(
-            name=name, description=description, color=color, workspace_id=workspace_id
-        )
+        CreateProjectValidator(name=name, description=description, color=color)
 
 
 def test_validate_project_with_invalid_color():
     name = "Project test"
     color = 9
-    workspace_id = "6JgsbGyoEe2VExhWgGrI2w"
 
     with pytest.raises(
         ValidationError, match=r"Input should be less than or equal to 8"
     ):
-        ProjectValidator(name=name, color=color, workspace_id=workspace_id)
+        CreateProjectValidator(name=name, color=color)
 
 
 def test_valid_project():
     name = "Project test"
-    workspace_b64id = "6JgsbGyoEe2VExhWgGrI2w"
-    workspace_UUIDid = UUID("e8982c6c-6ca8-11ed-9513-1856806ac8db")
     color = 1
 
-    project = ProjectValidator(workspace_id=workspace_b64id, name=name, color=color)
+    project = CreateProjectValidator(
+        name=name, color=color, workspace_id=NOT_EXISTING_B64ID
+    )
 
     assert project.name == name
-    assert project.workspace_id == workspace_UUIDid
     assert project.color == color
 
 
 def test_validate_logo_content_type():
-    name = "Project test"
     color = 1
     logo = f.build_string_uploadfile()
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        ProjectValidator(name=name, color=color, logo=logo)
+        CreateProjectValidator(color=color, logo=logo, workspace_id=NOT_EXISTING_B64ID)
 
     expected_error_fields = [
         "logo",
-        "workspace_id",
+        "name",
     ]
     expected_error_messages = [
         "Value error, Invalid image content type",
@@ -129,31 +125,29 @@ def test_validate_logo_content_type():
 
 
 def test_validate_logo_content():
-    name = "Project test"
     color = 1
     logo = f.build_string_uploadfile(content_type="image/png")
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        ProjectValidator(name=name, color=color, logo=logo)
+        CreateProjectValidator(color=color, logo=logo, workspace_id=NOT_EXISTING_B64ID)
 
-    expected_error_fields = ["logo", "workspace_id"]
+    expected_error_fields = ["logo", "name"]
     expected_error_messages = ["Value error, Invalid image content", "Field required"]
     check_validation_errors(
         validations_errors, expected_error_fields, expected_error_messages
     )
 
 
-def test_validate_logo_empty():
-    name = "Project test"
+def test_validate_logo_name_empty():
     color = 1
     logo = ""
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        ProjectValidator(name=name, color=color, logo=logo)
+        CreateProjectValidator(color=color, logo=logo, workspace_id=NOT_EXISTING_B64ID)
 
-    expected_error_fields = ["workspace_id"]
+    expected_error_fields = ["name"]
     expected_error_messages = ["Field required"]
     check_validation_errors(
         validations_errors, expected_error_fields, expected_error_messages
@@ -172,3 +166,45 @@ def test_validate_update_project_ok():
 
     assert patch.name == name
     assert patch.description == description
+
+
+def test_validate_update_project_ok_not_set():
+    patch = UpdateProjectValidator()
+
+    assert patch.name is None
+    assert patch.description is None
+    assert patch.model_dump(exclude_unset=True) == {}
+
+
+def test_validate_update_project_ko_empty():
+    name = ""
+    description = None
+
+    with pytest.raises(ValidationError) as validations_errors:
+        # noinspection PyArgumentList
+        UpdateProjectValidator(name=name, description=description)
+
+    expected_error_fields = ["name", "description"]
+    expected_error_messages = [
+        "String should have at least 1 character",
+        "Input should be a valid string",
+    ]
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
+    )
+
+
+def test_validate_update_project_ko_none():
+    name = None
+
+    with pytest.raises(ValidationError) as validations_errors:
+        # noinspection PyArgumentList
+        UpdateProjectValidator(name=name)
+
+    expected_error_fields = ["name"]
+    expected_error_messages = [
+        "Input should be a valid string",
+    ]
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
+    )

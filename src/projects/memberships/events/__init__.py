@@ -20,9 +20,11 @@
 from events import events_manager
 from projects.memberships.events.content import (
     DeleteProjectMembershipContent,
+    DeleteProjectRoleContent,
     ProjectMembershipContent,
+    ProjectRoleContent,
 )
-from projects.memberships.models import ProjectMembership
+from projects.memberships.models import ProjectMembership, ProjectRole
 
 CREATE_PROJECT_MEMBERSHIP = "projectmemberships.create"
 UPDATE_PROJECT_MEMBERSHIP = "projectmemberships.update"
@@ -69,7 +71,7 @@ async def emit_event_when_project_membership_is_deleted(
         project=membership.project,
         type=DELETE_PROJECT_MEMBERSHIP,
         content=DeleteProjectMembershipContent(
-            membership=membership, workspace=membership.project.workspace_id
+            membership=membership, workspace_id=membership.project.workspace_id
         ),
     )
 
@@ -78,15 +80,56 @@ async def emit_event_when_project_membership_is_deleted(
         user=membership.user,
         type=DELETE_PROJECT_MEMBERSHIP,
         content=DeleteProjectMembershipContent(
-            membership=membership, workspace=membership.project.workspace_id
+            membership=membership, workspace_id=membership.project.workspace_id
         ),
     )
 
-    # for ws-members in settings>people>non-members
-    await events_manager.publish_on_workspace_channel(
-        workspace=membership.project.workspace,
-        type=DELETE_PROJECT_MEMBERSHIP,
-        content=DeleteProjectMembershipContent(
-            membership=membership, workspace=membership.project.workspace_id
+
+CREATE_PROJECT_ROLE = "projectroles.create"
+UPDATE_PROJECT_ROLE = "projectroles.update"
+DELETE_PROJECT_ROLE = "projectroles.delete"
+
+
+async def emit_event_when_project_role_is_created(
+    role: ProjectRole,
+) -> None:
+    """
+    This event is emitted whenever the permissions list or name changes for a role
+    :param role: The project role affected by the permission change
+    """
+    await events_manager.publish_on_project_channel(
+        project=role.project,
+        type=CREATE_PROJECT_ROLE,
+        content=ProjectRoleContent.from_orm(role),
+    )
+
+
+async def emit_event_when_project_role_is_updated(
+    role: ProjectRole,
+) -> None:
+    """
+    This event is emitted whenever the permissions list or name changes for a role
+    :param role: The project role affected by the permission change
+    """
+    await events_manager.publish_on_project_channel(
+        project=role.project,
+        type=UPDATE_PROJECT_ROLE,
+        content=ProjectRoleContent.from_orm(role),
+    )
+
+
+async def emit_event_when_project_role_is_deleted(
+    role: ProjectRole, target_role: ProjectRole
+) -> None:
+    """
+    This event is emitted whenever the permissions list or name changes for a role
+    :param role: The project role affected by the permission change
+    """
+    await events_manager.publish_on_project_channel(
+        project=role.project,
+        type=DELETE_PROJECT_ROLE,
+        content=DeleteProjectRoleContent(
+            role=role,
+            target_role=target_role,
         ),
     )

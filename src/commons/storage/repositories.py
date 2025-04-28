@@ -21,9 +21,9 @@ from datetime import datetime
 from typing import TypedDict
 from uuid import UUID
 
+from django.db.models import QuerySet
 from django.db.models.deletion import RestrictedError
 
-from base.db.models import QuerySet
 from base.utils.datetime import aware_utcnow
 from base.utils.files import File
 from commons.storage.models import StoragedObject

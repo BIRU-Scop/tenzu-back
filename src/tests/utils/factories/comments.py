@@ -36,6 +36,10 @@ class CommentFactory(Factory):
 
 @sync_to_async
 def create_comment(content_object, **kwargs):
+    if "created_by" not in kwargs:
+        created_by = getattr(content_object, "created_by", None)
+        if created_by is not None:
+            kwargs["created_by"] = created_by
     return CommentFactory.create(content_object=content_object, **kwargs)
 
 

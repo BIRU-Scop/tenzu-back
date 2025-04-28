@@ -16,12 +16,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.db import models
 
-from base.db import models
-from base.db.mixins import CreatedMetaInfoMixin
+from base.db.models import BaseModel
+from base.db.models.mixins import CreatedMetaInfoMixin
 
 
-class Attachment(models.BaseModel, CreatedMetaInfoMixin):
+class Attachment(BaseModel, CreatedMetaInfoMixin):
     storaged_object = models.ForeignKey(
         "storage.StoragedObject",
         null=False,
@@ -55,7 +57,7 @@ class Attachment(models.BaseModel, CreatedMetaInfoMixin):
     )
     object_id = models.UUIDField(null=False, blank=False, verbose_name="object id")
     # NOTE: the content_object should have a project attribute.
-    content_object = models.GenericForeignKey(
+    content_object = GenericForeignKey(
         "object_content_type",
         "object_id",
     )

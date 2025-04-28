@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("projects", "0001_initial"),
-        ("projects_roles", "0001_initial"),
+        ("projects_memberships", "0001_initial"),
     ]
 
     operations = [
@@ -70,6 +70,7 @@ class Migration(migrations.Migration):
                             ("pending", "Pending"),
                             ("accepted", "Accepted"),
                             ("revoked", "Revoked"),
+                            ("denied", "Denied"),
                         ],
                         default="pending",
                         max_length=50,
@@ -135,9 +136,9 @@ class Migration(migrations.Migration):
                 (
                     "role",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
+                        on_delete=django.db.models.deletion.RESTRICT,
                         related_name="invitations",
-                        to="projects_roles.projectrole",
+                        to="projects_memberships.projectrole",
                         verbose_name="role",
                     ),
                 ),
@@ -159,10 +160,6 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "project invitations",
                 "ordering": ["project", "user", "email"],
             },
-        ),
-        migrations.AddIndex(
-            model_name="projectinvitation",
-            index=models.Index(fields=["email"], name="projects_in_email_07fdb9_idx"),
         ),
         migrations.AddIndex(
             model_name="projectinvitation",

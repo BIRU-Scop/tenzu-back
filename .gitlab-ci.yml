@@ -101,7 +101,9 @@ publish-demo-tag:
 
 test:
   stage: test
-  image: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
+  image:
+    name: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
+    pull_policy: [ always, if-not-present ]
   services:
     - name: postgres:17
       alias: db

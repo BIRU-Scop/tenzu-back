@@ -17,8 +17,9 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from asgiref.sync import sync_to_async
+from asgiref.sync import async_to_sync, sync_to_async
 
+from memberships.choices import InvitationStatus
 from permissions import choices
 from projects.projects import repositories as projects_repositories
 
@@ -34,7 +35,7 @@ class ProjectRoleFactory(Factory):
     project = factory.SubFactory("tests.utils.factories.ProjectFactory")
 
     class Meta:
-        model = "projects_roles.ProjectRole"
+        model = "projects_memberships.ProjectRole"
 
 
 @sync_to_async
@@ -52,7 +53,10 @@ def build_project_role(**kwargs):
 class ProjectMembershipFactory(Factory):
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     project = factory.SubFactory("tests.utils.factories.ProjectFactory")
-    role = factory.SubFactory("tests.utils.factories.ProjectRoleFactory")
+    role = factory.SubFactory(
+        "tests.utils.factories.ProjectRoleFactory",
+        project=factory.SelfAttribute("..project"),
+    )
 
     class Meta:
         model = "projects_memberships.ProjectMembership"
@@ -71,10 +75,14 @@ def build_project_membership(**kwargs):
 
 
 class ProjectInvitationFactory(Factory):
+    status = InvitationStatus.PENDING
     email = factory.Sequence(lambda n: f"user{n}@email.com")
     user = factory.SubFactory("tests.utils.factories.UserFactory")
     project = factory.SubFactory("tests.utils.factories.ProjectFactory")
-    role = factory.SubFactory("tests.utils.factories.ProjectRoleFactory")
+    role = factory.SubFactory(
+        "tests.utils.factories.ProjectRoleFactory",
+        project=factory.SelfAttribute("..project"),
+    )
     invited_by = factory.SubFactory("tests.utils.factories.UserFactory")
 
     class Meta:
@@ -97,7 +105,10 @@ class ProjectFactory(Factory):
     name = factory.Sequence(lambda n: f"Project {n}")
     description = factory.Sequence(lambda n: f"Description {n}")
     created_by = factory.SubFactory("tests.utils.factories.UserFactory")
-    workspace = factory.SubFactory("tests.utils.factories.WorkspaceFactory")
+    workspace = factory.SubFactory(
+        "tests.utils.factories.WorkspaceFactory",
+        created_by=factory.SelfAttribute("..created_by"),
+    )
 
     class Meta:
         model = "projects.Project"
@@ -111,14 +122,16 @@ def create_simple_project(**kwargs):
 @sync_to_async
 def create_project(template, **kwargs):
     """Create project and its dependencies"""
+    if "workspace" in kwargs and "created_by" not in kwargs:
+        kwargs["created_by"] = kwargs["workspace"].created_by
     project = ProjectFactory.create(**kwargs)
-    projects_repositories.apply_template_to_project_sync(
+    async_to_sync(projects_repositories.apply_template_to_project)(
         project=project, template=template
     )
 
-    admin_role = project.roles.get(is_admin=True)
+    owner_role = project.roles.get(is_owner=True)
     ProjectMembershipFactory.create(
-        user=project.created_by, project=project, role=admin_role
+        user=project.created_by, project=project, role=owner_role
     )
 
     return project
@@ -126,3 +139,21 @@ def create_project(template, **kwargs):
 
 def build_project(**kwargs):
     return ProjectFactory.build(**kwargs)
+
+
+# PROJECT
+
+
+class ProjectTemplateFactory(Factory):
+    name = factory.Sequence(lambda n: f"Project Template {n}")
+    slug = factory.Sequence(lambda n: f"template-{n}")
+    roles = []
+    workflows = [{"slug": "main", "name": "Main", "order": 1}]
+    workflow_statuses = []
+
+    class Meta:
+        model = "projects.ProjectTemplate"
+
+
+def build_project_template(**kwargs):
+    return ProjectTemplateFactory.build(**kwargs)

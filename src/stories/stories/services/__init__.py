@@ -23,6 +23,7 @@ from uuid import UUID
 
 from base.repositories.neighbors import Neighbor
 from base.utils.datetime import aware_utcnow
+from commons.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
 from projects.projects.models import Project
 from stories.stories import events as stories_events
 from stories.stories import notifications as stories_notifications
@@ -40,11 +41,6 @@ from users.models import User
 from workflows import repositories as workflows_repositories
 from workflows.models import Workflow, WorkflowStatus
 
-DEFAULT_ORDER_OFFSET = Decimal(100)  # default offset when adding a story
-DEFAULT_PRE_ORDER = Decimal(
-    0
-)  # default pre_position when adding a story at the beginning
-
 ##########################################################
 # create story
 ##########################################################
@@ -59,11 +55,12 @@ async def create_story(
     description: str | None,
 ) -> StoryDetailSerializer:
     # Validate data
-    workflow_status = await workflows_repositories.get_workflow_status(
-        status_id=status_id, filters={"workflow_id": workflow.id}
-    )
-    if not workflow_status:
-        raise ex.InvalidStatusError("The provided status is not valid.")
+    try:
+        workflow_status = await workflows_repositories.get_workflow_status(
+            status_id=status_id, filters={"workflow_id": workflow.id}
+        )
+    except WorkflowStatus.DoesNotExist as e:
+        raise ex.InvalidStatusError("The provided status is not valid.") from e
 
     latest_story_order = await get_latest_story_order(workflow_status.id)
     order = DEFAULT_ORDER_OFFSET + (latest_story_order if latest_story_order else 0)
@@ -101,18 +98,24 @@ async def list_stories(
     offset: int | None = None,
     limit: int | None = None,
     order_by: list | None = None,
+    get_assignees=True,
 ) -> list[StorySummarySerializer]:
     if order_by is None:
         order_by = ["order"]
-    qs = stories_repositories.list_stories(
+    qs = stories_repositories.list_stories_qs(
         filters={"project_id": project_id, "workflow__slug": workflow_slug},
         offset=offset,
         limit=limit,
         order_by=order_by,
-        prefetch_related=[ASSIGNEES_PREFETCH],
+        prefetch_related=[ASSIGNEES_PREFETCH] if get_assignees else [],
     )
 
-    return [serializers_services.serialize_story_list(story) async for story in qs]
+    return [
+        serializers_services.serialize_story_list(
+            story, list(story.assignees.all()) if get_assignees else []
+        )
+        async for story in qs
+    ]
 
 
 ##########################################################
@@ -155,16 +158,14 @@ async def get_story_detail(
             story=story, filters={"workflow_id": story.workflow_id}
         )
 
-    assignees = await stories_repositories.list_story_assignees(story=story)
-
     return serializers_services.serialize_story_detail(
-        story=story, neighbors=neighbors, assignees=assignees
+        story=story, neighbors=neighbors, assignees=list(story.assignees.all())
     )
 
 
 async def get_latest_story_order(status_id: UUID) -> int:
     return (
-        await stories_repositories.list_stories(
+        await stories_repositories.list_stories_qs(
             filters={"status_id": status_id}, order_by=["-order"]
         )
         .values_list("order", flat=True)
@@ -253,16 +254,14 @@ async def _validate_and_process_values_to_update(
 
     workflow_slug = output.pop("workflow_slug", None)
     if status_id := output.pop("status_id", None):
-        if (
-            not status_id
-            or workflow_slug
-            or not (
-                status := await workflows_repositories.get_workflow_status(
-                    status_id=status_id, filters={"workflow_id": story.workflow_id}
-                )
-            )
-        ):
+        if workflow_slug:
             raise ex.InvalidStatusError("The provided status is not valid.")
+        try:
+            status = await workflows_repositories.get_workflow_status(
+                status_id=status_id, filters={"workflow_id": story.workflow_id}
+            )
+        except WorkflowStatus.DoesNotExist as e:
+            raise ex.InvalidStatusError("The provided status is not valid.") from e
 
         if status.id != story.status_id:
             output.update(
@@ -270,12 +269,13 @@ async def _validate_and_process_values_to_update(
             )
 
     elif workflow_slug:
-        workflow = await workflows_repositories.get_workflow(
-            filters={"project_id": story.project_id, "slug": workflow_slug},
-            prefetch_related=["statuses"],
-        )
-        if not workflow:
-            raise ex.InvalidWorkflowError("The provided workflow is not valid.")
+        try:
+            workflow = await workflows_repositories.get_workflow(
+                filters={"project_id": story.project_id, "slug": workflow_slug},
+                prefetch_related=["statuses"],
+            )
+        except Workflow.DoesNotExist as e:
+            raise ex.InvalidWorkflowError("The provided workflow is not valid.") from e
 
         if workflow.slug != story.workflow.slug:
             # Set first status
@@ -311,41 +311,30 @@ async def _calculate_offset(
     total_stories_to_reorder: int,
     target_status: WorkflowStatus,
     reorder_place: str | None = None,
-    reorder_story: Story | None = None,
-) -> tuple[Decimal, Decimal]:
+    reorder_reference_story: Story | None = None,
+    reordered_stories_ref: list[int] = None,
+) -> tuple[int, int]:
     total_slots = total_stories_to_reorder + 1
 
-    if not reorder_story:
+    if not reorder_reference_story:
         latest_story_order = await get_latest_story_order(target_status.id)
 
         if latest_story_order:
             pre_order = latest_story_order
         else:
-            pre_order = DEFAULT_PRE_ORDER
+            pre_order = 0
         post_order = pre_order + (DEFAULT_ORDER_OFFSET * total_slots)
+        offset = (post_order - pre_order) // total_slots
+        return offset, pre_order
 
-    else:
-        neighbors = await stories_repositories.list_story_neighbors(
-            story=reorder_story, filters={"status_id": reorder_story.status_id}
-        )
-        if reorder_place == "after":
-            pre_order = reorder_story.order
-            if neighbors.next:
-                post_order = neighbors.next.order
-            else:
-                post_order = pre_order + (DEFAULT_ORDER_OFFSET * total_slots)
-
-        elif reorder_place == "before":
-            post_order = reorder_story.order
-            if neighbors.prev:
-                pre_order = neighbors.prev.order
-            else:
-                pre_order = DEFAULT_PRE_ORDER
-        else:
-            return NotImplemented
-
-    offset = (post_order - pre_order) / total_slots
-    return offset, pre_order
+    neighbors = await stories_repositories.list_story_neighbors(
+        story=reorder_reference_story,
+        filters={"status_id": reorder_reference_story.status_id},
+        excludes={"ref__in": reordered_stories_ref},
+    )
+    return calculate_offset(
+        reorder_reference_story, reorder_place, total_slots, neighbors
+    )
 
 
 async def reorder_stories(
@@ -357,17 +346,18 @@ async def reorder_stories(
     reorder: dict[str, Any] | None = None,
 ) -> ReorderStoriesSerializer:
     # check target_status exists
-    target_status = await workflows_repositories.get_workflow_status(
-        status_id=target_status_id,
-        filters={
-            "workflow__project_id": project.id,
-            "workflow__slug": workflow.slug,
-        },
-    )
-    if not target_status:
+    try:
+        target_status = await workflows_repositories.get_workflow_status(
+            status_id=target_status_id,
+            filters={
+                "workflow__project_id": project.id,
+                "workflow__slug": workflow.slug,
+            },
+        )
+    except WorkflowStatus.DoesNotExist as e:
         raise ex.InvalidStatusError(
             f"Status {target_status_id} doesn't exist in this project"
-        )
+        ) from e
 
     # check anchor story exists
     if reorder:
@@ -376,20 +366,20 @@ async def reorder_stories(
                 f"Ref {reorder['ref']} should not be part of the stories to reorder"
             )
 
-        reorder_story = await stories_repositories.get_story(
+        reorder_reference_story = await stories_repositories.get_story(
             ref=reorder["ref"],
             filters={
                 "workflow_id": workflow.id,
                 "status_id": target_status.id,
             },
         )
-        if not reorder_story:
+        if not reorder_reference_story:
             raise ex.InvalidStoryRefError(
                 f"Ref {reorder['ref']} doesn't exist in this project"
             )
         reorder_place = reorder["place"]
     else:
-        reorder_story = None
+        reorder_reference_story = None
         reorder_place = None
 
     # check all stories "to reorder" exist
@@ -403,17 +393,36 @@ async def reorder_stories(
     offset, pre_order = await _calculate_offset(
         total_stories_to_reorder=len(stories_to_reorder),
         target_status=target_status,
-        reorder_story=reorder_story,
+        reorder_reference_story=reorder_reference_story,
         reorder_place=reorder_place,
+        reordered_stories_ref=stories_refs,
     )
+    if offset == 0:
+        # There is not enough space left between the stories where stories_to_reorder need to be inserted
+        # We need to move more stories, this should happen very infrequently thanks to the offset
+        after_stories = stories_repositories.list_stories_qs(
+            filters={
+                "status_id": reorder_reference_story.status_id,
+                "order__gt": pre_order,
+            },
+            excludes={"ref__in": stories_refs},
+            order_by=["status", "order"],
+        )
+        total_slots = len(stories_to_reorder) + 1
+        async for nearby_after_story in after_stories:
+            if nearby_after_story.order - pre_order < total_slots:
+                stories_to_reorder.append(nearby_after_story)
+                total_slots += 1
+            else:
+                offset = (nearby_after_story.order - pre_order) // total_slots
+                break
+        else:
+            offset = DEFAULT_ORDER_OFFSET
 
     # update stories
-    stories_to_update_tmp = {s.ref: s for s in stories_to_reorder}
     stories_to_update = []
     stories_with_changed_status = []
-    for i, ref in enumerate(stories_refs):
-        story = stories_to_update_tmp[ref]
-
+    for i, story in enumerate(stories_to_reorder):
         if story.status != target_status:
             stories_with_changed_status.append(story)
 
@@ -446,7 +455,7 @@ async def reorder_stories(
     return reorder_story_serializer
 
 
-async def _calculate_next_order(status_id: UUID) -> Decimal:
+async def _calculate_next_order(status_id: UUID) -> int:
     latest_story_order = await get_latest_story_order(status_id)
 
     return DEFAULT_ORDER_OFFSET + (latest_story_order if latest_story_order else 0)

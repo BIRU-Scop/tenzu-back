@@ -19,21 +19,20 @@
 
 from typing import Any
 
+from django.db.models import ForeignKey
 from django.http.request import HttpRequest
 
 from base.db import admin
 from base.db.admin.forms import ModelChoiceField
-from base.db.models import ForeignKey
 from projects.invitations.models import ProjectInvitation
-from projects.memberships.models import ProjectMembership
+from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project, ProjectTemplate
-from projects.roles.models import ProjectRole
 from workflows.admin import WorkflowInline
 
 
 class ProjectRoleInline(admin.TabularInline):
     model = ProjectRole
-    fields = ("project", "name", "slug", "order", "is_admin", "permissions")
+    fields = ("project", "name", "slug", "order", "is_owner", "permissions")
     extra = 0
 
 
@@ -91,7 +90,6 @@ class ProjectAdmin(admin.ModelAdmin):
                 "fields": ("color", "logo", ("created_at", "modified_at")),
             },
         ),
-        ("Permissions", {"fields": ("public_permissions",)}),
     )
     readonly_fields = ("id", "b64id", "created_at", "modified_at")
     list_display = [
@@ -99,8 +97,6 @@ class ProjectAdmin(admin.ModelAdmin):
         "name",
         "workspace",
         "created_by",
-        "public_user_can_view",
-        "anon_user_can_view",
     ]
     list_filter = ("workspace", "created_by")
     search_fields = [
@@ -115,14 +111,6 @@ class ProjectAdmin(admin.ModelAdmin):
         ProjectInvitationInline,
         WorkflowInline,
     ]
-
-    @admin.display(description="allow public users", boolean=True)
-    def public_user_can_view(self, obj: Project) -> bool:
-        return obj.public_user_can_view
-
-    @admin.display(description="allow anonymous users", boolean=True)
-    def anon_user_can_view(self, obj: Project) -> bool:
-        return obj.anon_user_can_view
 
 
 @admin.register(ProjectTemplate)

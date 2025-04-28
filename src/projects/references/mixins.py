@@ -19,7 +19,8 @@
 
 from typing import Any
 
-from base.db import models
+from django.db import models
+
 from projects.references import get_new_project_reference_id
 
 

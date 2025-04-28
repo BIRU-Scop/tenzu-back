@@ -22,7 +22,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from exceptions.api.middlewares import UnexpectedExceptionMiddleware
+from commons.exceptions.api import UnexpectedExceptionMiddleware
 from tests.utils.testclient import TestClient
 
 CORS_ATTRS = {

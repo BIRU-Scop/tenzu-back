@@ -16,160 +16,113 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.db.models import QuerySet
 
-from typing import Literal, TypedDict
-from uuid import UUID
-
-from asgiref.sync import sync_to_async
-
-from base.db.models import QuerySet
+from memberships.repositories import (  # noqa
+    delete_membership,
+    exists_membership,
+    get_membership,
+    get_role,
+    has_other_owner_memberships,
+    list_members,
+    list_memberships,
+    list_roles,
+    only_owner_collective_queryset,
+    update_membership,
+    update_role,
+)
+from memberships.repositories import (
+    only_member_queryset as _only_member_queryset,
+)
+from memberships.services import exceptions as ex
+from permissions.choices import WorkspacePermissions
 from users.models import User
-from workspaces.memberships.models import WorkspaceMembership
+from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.workspaces.models import Workspace
-
-##########################################################
-# filters and querysets
-##########################################################
-
-
-DEFAULT_QUERYSET = WorkspaceMembership.objects.all()
-
-
-class WorkspaceMembershipFilters(TypedDict, total=False):
-    id: UUID
-    workspace_id: UUID
-    user_id: UUID
-    username: str
-
-
-def _apply_filters_to_queryset(
-    qs: QuerySet[WorkspaceMembership],
-    filters: WorkspaceMembershipFilters = {},
-) -> QuerySet[WorkspaceMembership]:
-    filter_data = dict(filters.copy())
-
-    if "username" in filters:
-        filter_data["user__username"] = filter_data.pop("username")
-
-    return qs.filter(**filter_data)
-
-
-WorkspaceMembershipSelectRelated = list[
-    Literal[
-        "user",
-        "workspace",
-    ]
-]
-
-
-def _apply_select_related_to_queryset(
-    qs: QuerySet[WorkspaceMembership],
-    select_related: WorkspaceMembershipSelectRelated,
-) -> QuerySet[WorkspaceMembership]:
-    return qs.select_related(*select_related)
-
-
-WorkspaceMembershipOrderBy = list[Literal["full_name",]]
-
-
-def _apply_order_by_to_queryset(
-    qs: QuerySet[WorkspaceMembership],
-    order_by: WorkspaceMembershipOrderBy,
-) -> QuerySet[WorkspaceMembership]:
-    order_by_data = []
-
-    for key in order_by:
-        if key == "full_name":
-            order_by_data.append("user__full_name")
-        else:
-            order_by_data.append(key)
-
-    return qs.order_by(*order_by_data)
-
+from workspaces.workspaces.repositories import WorkspacePrefetchRelated
 
 ##########################################################
 # create workspace membership
 ##########################################################
 
 
-@sync_to_async
-def create_workspace_membership(
-    user: User, workspace: Workspace
+async def create_workspace_membership(
+    user: User, workspace: Workspace, role: WorkspaceRole
 ) -> WorkspaceMembership:
-    return WorkspaceMembership.objects.create(user=user, workspace=workspace)
+    if workspace.id != role.workspace_id:
+        raise ex.MembershipWithRoleThatDoNotBelong(
+            "Can't create membership using a role not belonging to the given workspace"
+        )
+    return await WorkspaceMembership.objects.acreate(
+        user=user, workspace=workspace, role=role
+    )
 
 
 ##########################################################
-# list project memberships
+# misc membership
 ##########################################################
 
 
-@sync_to_async
-def list_workspace_memberships(
-    filters: WorkspaceMembershipFilters = {},
-    select_related: WorkspaceMembershipSelectRelated = [],
-    order_by: WorkspaceMembershipOrderBy = ["full_name"],
-    offset: int | None = None,
-    limit: int | None = None,
-) -> list[WorkspaceMembership]:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    qs = _apply_order_by_to_queryset(order_by=order_by, qs=qs)
-
-    if limit is not None and offset is not None:
-        limit += offset
-
-    return list(qs[offset:limit])
+def only_workspace_member_queryset(
+    user: User,
+    prefetch_related: WorkspacePrefetchRelated = [],
+) -> QuerySet[Workspace]:
+    return _only_member_queryset(Workspace, user).prefetch_related(*prefetch_related)
 
 
 ##########################################################
-# get workspace membership
+# create workspace role
 ##########################################################
 
 
-@sync_to_async
-def get_workspace_membership(
-    filters: WorkspaceMembershipFilters = {},
-    select_related: WorkspaceMembershipSelectRelated = [],
-) -> WorkspaceMembership | None:
-    qs = _apply_filters_to_queryset(filters=filters, qs=DEFAULT_QUERYSET)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    try:
-        return qs.get()
-    except WorkspaceMembership.DoesNotExist:
-        return None
-
-
-##########################################################
-# delete workspace memberships
-##########################################################
-
-
-@sync_to_async
-def delete_workspace_memberships(filters: WorkspaceMembershipFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    count, _ = qs.delete()
-    return count
-
-
-##########################################################
-# misc
-##########################################################
-
-
-@sync_to_async
-def list_workspace_members(workspace: Workspace) -> list[User]:
-    return list(workspace.members.all())
-
-
-@sync_to_async
-def list_workspace_members_excluding_user(
-    workspace: Workspace, exclude_user: User
-) -> list[User]:
-    return list(workspace.members.all().exclude(id=exclude_user.id))
-
-
-@sync_to_async
-def get_total_workspace_memberships(filters: WorkspaceMembershipFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    return qs.count()
+async def bulk_create_workspace_default_roles(workspace) -> list[WorkspaceRole]:
+    """
+    Order of returned object is important for calling functions
+    """
+    return await WorkspaceRole.objects.abulk_create(
+        [
+            WorkspaceRole(
+                workspace=workspace,
+                name="Owner",
+                slug="owner",
+                order=1,
+                editable=False,
+                is_owner=True,
+                permissions=list(WorkspacePermissions.values),
+            ),
+            WorkspaceRole(
+                workspace=workspace,
+                name="Admin",
+                slug="admin",
+                order=2,
+                editable=False,
+                is_owner=False,
+                permissions=[
+                    WorkspacePermissions.CREATE_MODIFY_MEMBER.value,
+                    WorkspacePermissions.DELETE_MEMBER.value,
+                    WorkspacePermissions.MODIFY_WORKSPACE.value,
+                    WorkspacePermissions.CREATE_PROJECT.value,
+                ],
+            ),
+            WorkspaceRole(
+                workspace=workspace,
+                name="Member",
+                slug="member",
+                order=3,
+                editable=False,
+                is_owner=False,
+                permissions=[
+                    WorkspacePermissions.CREATE_PROJECT.value,
+                ],
+            ),
+            WorkspaceRole(
+                workspace=workspace,
+                name="Readonly-member",
+                slug="readonly-member",
+                order=4,
+                editable=False,
+                is_owner=False,
+                permissions=[],
+            ),
+        ]
+    )

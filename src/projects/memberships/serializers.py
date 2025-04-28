@@ -20,14 +20,14 @@
 from pydantic import ConfigDict
 
 from base.serializers import BaseModel
+from memberships.serializers import RoleSerializer
 from projects.projects.serializers.nested import ProjectNestedSerializer
-from projects.roles.serializers.nested import ProjectRoleNestedSerializer
 from users.serializers.nested import UserNestedSerializer
 
 
 class ProjectMembershipSerializer(BaseModel):
     user: UserNestedSerializer
-    role: ProjectRoleNestedSerializer
+    role: RoleSerializer
     project: ProjectNestedSerializer
     model_config = ConfigDict(from_attributes=True)
 

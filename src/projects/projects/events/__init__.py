@@ -18,8 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 
 from events import events_manager
-from projects.projects.events.content import DeleteProjectContent
+from projects.projects.events.content import DeleteProjectContent, UpdateProjectContent
 from projects.projects.models import Project
+from projects.projects.serializers import ProjectDetailSerializer
 from users.models import AnyUser, User
 from workspaces.workspaces.models import Workspace
 
@@ -38,23 +39,28 @@ async def emit_event_when_project_permissions_are_updated(project: Project) -> N
     )
 
 
-async def emit_event_when_project_is_updated(project: Project) -> None:
+async def emit_event_when_project_is_updated(
+    project_detail: ProjectDetailSerializer, project_id: str, updated_by: User
+) -> None:
     """
-    This event is emitted whenever there's a change in the project's direct permissions (public / workspace permissions)
-    :param project: The project affected by the permission change
+    This event is emitted whenever there's a change in the project
+    :param project_detail: the detailed project affected by the changes
+    :param project_id: the project id in b64 since the one stored in project_detail is not well formatted
+    :param updated_by: The user responsible for the changes
     """
     await events_manager.publish_on_project_channel(
-        project=project, type=PROJECT_UPDATE
+        project=project_id,
+        type=PROJECT_UPDATE,
+        content=UpdateProjectContent(project=project_detail, updated_by=updated_by),
     )
 
 
 async def emit_event_when_project_is_deleted(
     workspace: Workspace,
     project: Project,
-    deleted_by: AnyUser,
-    guests: list[User],
+    deleted_by: User,
 ) -> None:
-    # for ws-members, both in the home page and in the ws-detail
+    # for ws-authorised readers (members in invitees), both in the home page and in the ws-detail
     await events_manager.publish_on_workspace_channel(
         workspace=workspace,
         type=PROJECT_DELETE,
@@ -77,17 +83,3 @@ async def emit_event_when_project_is_deleted(
             workspace=workspace.id,
         ),
     )
-
-    # for ws-guests (pj-members or pj-invitees) in the home page,
-    # this is the only way we can notify the change
-    for guest in guests:
-        await events_manager.publish_on_user_channel(
-            user=guest,
-            type=PROJECT_DELETE,
-            content=DeleteProjectContent(
-                project=project.id,
-                name=project.name,
-                deleted_by=deleted_by,
-                workspace=workspace.id,
-            ),
-        )

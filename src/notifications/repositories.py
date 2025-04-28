@@ -19,10 +19,11 @@
 
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 from uuid import UUID
 
-from base.db.models import QuerySet
+from django.db.models import Count, Q
+
 from base.utils.datetime import aware_utcnow
 from notifications.models import Notification
 from users.models import User
@@ -31,30 +32,15 @@ from users.models import User
 # filters and querysets
 ##########################################################
 
-DEFAULT_QUERYSET = Notification.objects.select_related("created_by").all()
-
 
 class NotificationFilters(TypedDict, total=False):
     id: UUID
     owner: User
-    is_read: bool
-    read_before: datetime
+    read_at__isnull: bool
+    read_at__lt: datetime
 
 
-async def _apply_filters_to_queryset(
-    qs: QuerySet[Notification],
-    filters: NotificationFilters = {},
-) -> QuerySet[Notification]:
-    filter_data = dict(filters.copy())
-
-    if "is_read" in filter_data:
-        is_read = filter_data.pop("is_read")
-        filter_data["read_at__isnull"] = not is_read
-    if "read_before" in filter_data:
-        read_before = filter_data.pop("read_before")
-        filter_data["read_at__lt"] = read_before
-
-    return qs.filter(**filter_data)
+NotificationSelectRelated = list[Literal["owner", "created_by"]]
 
 
 ##########################################################
@@ -90,8 +76,9 @@ async def list_notifications(
     filters: NotificationFilters = {},
     offset: int | None = None,
     limit: int | None = None,
+    select_related: NotificationSelectRelated = ["created_by"],
 ) -> list[Notification]:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
+    qs = Notification.objects.all().filter(**filters).select_related(*select_related)
 
     if limit is not None and offset is not None:
         limit += offset
@@ -106,8 +93,9 @@ async def list_notifications(
 
 async def get_notification(
     filters: NotificationFilters = {},
+    select_related: NotificationSelectRelated = ["created_by"],
 ) -> Notification | None:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
+    qs = Notification.objects.all().filter(**filters).select_related(*select_related)
 
     try:
         return await qs.aget()
@@ -122,8 +110,9 @@ async def get_notification(
 
 async def mark_notifications_as_read(
     filters: NotificationFilters = {},
+    select_related: NotificationSelectRelated = ["created_by"],
 ) -> list[Notification]:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
+    qs = Notification.objects.all().filter(**filters).select_related(*select_related)
     await qs.aupdate(read_at=aware_utcnow())
     return [a async for a in qs.all()]
 
@@ -134,7 +123,7 @@ async def mark_notifications_as_read(
 
 
 async def delete_notifications(filters: NotificationFilters = {}) -> int:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
+    qs = Notification.objects.all().filter(**filters)
     count, _ = await qs.adelete()
     return count
 
@@ -146,7 +135,8 @@ async def delete_notifications(filters: NotificationFilters = {}) -> int:
 
 async def count_notifications(
     filters: NotificationFilters = {},
-) -> int:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-
-    return await qs.acount()
+) -> dict[str, int]:
+    return await Notification.objects.filter(**filters).aaggregate(
+        read=Count("pk", filter=Q(read_at__isnull=False)),
+        unread=Count("pk", filter=Q(read_at__isnull=True)),
+    )

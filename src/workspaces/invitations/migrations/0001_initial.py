@@ -32,6 +32,7 @@ class Migration(migrations.Migration):
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("workspaces", "0001_initial"),
+        ("workspaces_memberships", "0001_initial"),
     ]
 
     operations = [
@@ -69,6 +70,7 @@ class Migration(migrations.Migration):
                             ("pending", "Pending"),
                             ("accepted", "Accepted"),
                             ("revoked", "Revoked"),
+                            ("denied", "Denied"),
                         ],
                         default="pending",
                         max_length=50,
@@ -123,6 +125,15 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
+                    "role",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.RESTRICT,
+                        related_name="invitations",
+                        to="workspaces_memberships.workspacerole",
+                        verbose_name="role",
+                    ),
+                ),
+                (
                     "user",
                     models.ForeignKey(
                         blank=True,
@@ -149,10 +160,6 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "workspace invitations",
                 "ordering": ["workspace", "user", "email"],
             },
-        ),
-        migrations.AddIndex(
-            model_name="workspaceinvitation",
-            index=models.Index(fields=["email"], name="workspaces__email_b0bc4c_idx"),
         ),
         migrations.AddIndex(
             model_name="workspaceinvitation",

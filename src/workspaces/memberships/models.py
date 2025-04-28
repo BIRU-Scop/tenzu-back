@@ -16,45 +16,22 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from uuid import UUID
 
-from base.db import models
-from base.db.mixins import CreatedAtMetaInfoMixin
+from django.db import models
+
+from memberships.models import Membership, Role
+from permissions.choices import WorkspacePermissions
+from workspaces.workspaces.models import Workspace
 
 
-class WorkspaceMembership(models.BaseModel, CreatedAtMetaInfoMixin):
-    user = models.ForeignKey(
-        "users.User",
-        null=False,
-        blank=False,
-        related_name="workspace_memberships",
-        on_delete=models.CASCADE,
-        verbose_name="user",
-    )
-    workspace = models.ForeignKey(
-        "workspaces.Workspace",
-        null=False,
-        blank=False,
-        related_name="memberships",
-        on_delete=models.CASCADE,
-        verbose_name="workspace",
-    )
+class WorkspaceRole(
+    Role, reference_model=Workspace, permissions_choices=WorkspacePermissions.choices
+):
+    workspace: models.ForeignKey
+    workspace_id: UUID
 
-    class Meta:
-        verbose_name = "workspace membership"
-        verbose_name_plural = "workspace memberships"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["workspace", "user"],
-                name="%(app_label)s_%(class)s_unique_workspace_user",
-            ),
-        ]
-        indexes = [
-            models.Index(fields=["workspace", "user"]),
-        ]
-        ordering = ["workspace", "user"]
 
-    def __str__(self) -> str:
-        return f"{self.workspace} - {self.user}"
-
-    def __repr__(self) -> str:
-        return f"<WorkspaceMembership {self.workspace} {self.user}>"
+class WorkspaceMembership(Membership, reference_model=Workspace):
+    workspace: models.ForeignKey
+    workspace_id: UUID

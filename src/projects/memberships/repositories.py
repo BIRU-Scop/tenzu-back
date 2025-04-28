@@ -16,202 +16,116 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from typing import Any, Literal, TypedDict
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
+from django.db.models import QuerySet
 
-from base.db.models import QuerySet
-from projects.memberships.models import ProjectMembership
+from memberships.repositories import (  # noqa
+    delete_membership,
+    exists_membership,
+    get_membership,
+    get_role,
+    has_other_owner_memberships,
+    list_members,
+    list_memberships,
+    list_roles,
+    only_owner_collective_queryset,
+    update_membership,
+    update_role,
+)
+from memberships.repositories import (
+    only_member_queryset as _only_member_queryset,
+)
+from memberships.services import exceptions as ex
+from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project
-from projects.roles.models import ProjectRole
+from projects.projects.repositories import ProjectFilters
 from users.models import User
-
-##########################################################
-# filters and querysets
-##########################################################
-
-DEFAULT_QUERYSET = ProjectMembership.objects.all()
-
-
-class ProjectMembershipFilters(TypedDict, total=False):
-    id: UUID
-    project_id: UUID
-    username: str
-    user_id: UUID
-    workspace_id: UUID
-    role_id: UUID
-    permissions: list[str]
-
-
-def _apply_filters_to_queryset(
-    qs: QuerySet[ProjectMembership],
-    filters: ProjectMembershipFilters = {},
-) -> QuerySet[ProjectMembership]:
-    filter_data = dict(filters.copy())
-
-    if "username" in filter_data:
-        filter_data["user__username"] = filter_data.pop("username")
-
-    if "workspace_id" in filter_data:
-        filter_data["project__workspace_id"] = filter_data.pop("workspace_id")
-
-    if "permissions" in filter_data:
-        filter_data["role__permissions__contains"] = filter_data.pop("permissions")
-
-    return qs.filter(**filter_data)
-
-
-ProjectMembershipSelectRelated = list[
-    Literal[
-        "project",
-        "role",
-        "user",
-        "workspace",
-    ]
-]
-
-
-def _apply_select_related_to_queryset(
-    qs: QuerySet[ProjectMembership],
-    select_related: ProjectMembershipSelectRelated,
-) -> QuerySet[ProjectMembership]:
-    select_related_data = []
-
-    for key in select_related:
-        if key == "workspace":
-            select_related_data.append("project__workspace")
-        else:
-            select_related_data.append(key)
-
-    return qs.select_related(*select_related_data)
-
-
-ProjectMembershipOrderBy = list[Literal["full_name",]]
-
-
-def _apply_order_by_to_queryset(
-    qs: QuerySet[ProjectMembership],
-    order_by: ProjectMembershipOrderBy,
-) -> QuerySet[ProjectMembership]:
-    order_by_data = []
-
-    for key in order_by:
-        if key == "full_name":
-            order_by_data.append("user__full_name")
-        else:
-            order_by_data.append(key)
-
-    return qs.order_by(*order_by_data)
-
+from workspaces.memberships.models import WorkspaceMembership
 
 ##########################################################
 # create project membership
 ##########################################################
 
 
-@sync_to_async
-def create_project_membership(
+async def create_project_membership(
     user: User, project: Project, role: ProjectRole
 ) -> ProjectMembership:
-    return ProjectMembership.objects.create(user=user, project=project, role=role)
+    if project.id != role.project_id:
+        raise ex.MembershipWithRoleThatDoNotBelong(
+            "Can't create membership using a role not belonging to the given project"
+        )
+    if not await exists_membership(
+        WorkspaceMembership,
+        filters={
+            "workspace_id": project.workspace_id,
+            "user_id": user.id,
+        },
+    ):
+        raise ex.NoRelatedWorkspaceMembershipsError(
+            "Can't create project membership when user is not member of the related workspace"
+        )
+    return await ProjectMembership.objects.acreate(
+        user=user, project=project, role=role
+    )
 
 
 ##########################################################
-# list project memberships
+# misc membership
 ##########################################################
 
 
-@sync_to_async
-def list_project_memberships(
-    filters: ProjectMembershipFilters = {},
-    select_related: ProjectMembershipSelectRelated = [],
-    order_by: ProjectMembershipOrderBy = ["full_name"],
-    offset: int | None = None,
-    limit: int | None = None,
-) -> list[ProjectMembership]:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    qs = _apply_order_by_to_queryset(order_by=order_by, qs=qs)
-
-    if limit is not None and offset is not None:
-        limit += offset
-
-    return list(qs[offset:limit])
+def only_project_member_queryset(
+    user: User,
+    excludes: ProjectFilters = {},
+) -> QuerySet[Project]:
+    return _only_member_queryset(Project, user).exclude(**excludes)
 
 
 ##########################################################
-# get project membership
+# create project role
 ##########################################################
 
 
-@sync_to_async
-def get_project_membership(
-    filters: ProjectMembershipFilters = {},
-    select_related: ProjectMembershipSelectRelated = ["user", "role"],
-) -> ProjectMembership | None:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-
-    try:
-        return qs.get()
-    except ProjectMembership.DoesNotExist:
-        return None
-
-
-##########################################################
-# update project membership
-##########################################################
+async def create_project_role(
+    name: str,
+    permissions: list[str],
+    project_id: UUID,
+) -> ProjectRole:
+    return await ProjectRole.objects.acreate(
+        name=name,
+        permissions=permissions,
+        project_id=project_id,
+        is_owner=False,
+        editable=True,
+    )
 
 
-@sync_to_async
-def update_project_membership(
-    membership: ProjectMembership, values: dict[str, Any] = {}
-) -> ProjectMembership:
-    for attr, value in values.items():
-        setattr(membership, attr, value)
-
-    membership.save()
-    return membership
+async def bulk_create_project_roles(roles: list[ProjectRole]) -> list[ProjectRole]:
+    return await ProjectRole.objects.abulk_create(roles)
 
 
 ##########################################################
-# delete project membership
+# delete project role
 ##########################################################
 
 
-@sync_to_async
-def delete_project_membership(filters: ProjectMembershipFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    count, _ = qs.delete()
+async def delete_project_role(role: ProjectRole) -> int:
+    count, _ = await role.adelete()
     return count
 
 
 ##########################################################
-# misc
+# misc project role
 ##########################################################
 
 
-@sync_to_async
-def list_project_members(project: Project) -> list[User]:
-    return list(project.members.all())
-
-
-@sync_to_async
-def list_project_members_excluding_user(
-    project: Project, exclude_user: User
-) -> list[User]:
-    return list(project.members.all().exclude(id=exclude_user.id))
-
-
-@sync_to_async
-def get_total_project_memberships(filters: ProjectMembershipFilters = {}) -> int:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    return qs.count()
-
-
-@sync_to_async
-def exist_project_membership(filters: ProjectMembershipFilters = {}) -> bool:
-    qs = _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    return qs.exists()
+async def move_project_role_of_related(
+    role: ProjectRole, target_role: ProjectRole
+) -> None:
+    if role.project_id != target_role.project_id:
+        raise ex.RoleWithTargetThatDoNotBelong(
+            "role and target role must be from the same project"
+        )
+    await role.memberships.aupdate(role=target_role)
+    await role.invitations.aupdate(role=target_role)

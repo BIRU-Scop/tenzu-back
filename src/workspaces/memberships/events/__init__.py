@@ -18,10 +18,47 @@
 # You can contact BIRU at ask@biru.sh
 
 from events import events_manager
-from workspaces.memberships.events.content import DeleteWorkspaceMembershipContent
+from workspaces.memberships.events.content import (
+    DeleteWorkspaceMembershipContent,
+    WorkspaceMembershipContent,
+)
 from workspaces.memberships.models import WorkspaceMembership
 
+CREATE_WORKSPACE_MEMBERSHIP = "workspacememberships.create"
+UPDATE_WORKSPACE_MEMBERSHIP = "workspacememberships.update"
 DELETE_WORKSPACE_MEMBERSHIP = "workspacememberships.delete"
+
+
+async def emit_event_when_workspace_membership_is_created(
+    membership: WorkspaceMembership,
+) -> None:
+    await events_manager.publish_on_user_channel(
+        user=membership.user,
+        type=CREATE_WORKSPACE_MEMBERSHIP,
+        content=WorkspaceMembershipContent(membership=membership),
+    )
+
+    await events_manager.publish_on_workspace_channel(
+        workspace=membership.workspace,
+        type=CREATE_WORKSPACE_MEMBERSHIP,
+        content=WorkspaceMembershipContent(membership=membership),
+    )
+
+
+async def emit_event_when_workspace_membership_is_updated(
+    membership: WorkspaceMembership,
+) -> None:
+    await events_manager.publish_on_user_channel(
+        user=membership.user,
+        type=UPDATE_WORKSPACE_MEMBERSHIP,
+        content=WorkspaceMembershipContent(membership=membership),
+    )
+
+    await events_manager.publish_on_workspace_channel(
+        workspace=membership.workspace,
+        type=UPDATE_WORKSPACE_MEMBERSHIP,
+        content=WorkspaceMembershipContent(membership=membership),
+    )
 
 
 async def emit_event_when_workspace_membership_is_deleted(

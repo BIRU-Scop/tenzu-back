@@ -20,11 +20,12 @@
 from typing import Literal, TypedDict, cast
 from uuid import UUID
 
+from django.db.models import Model, QuerySet
 from ninja import UploadedFile
 
 from attachments.models import Attachment
-from base.db.models import BaseModel, Model, QuerySet, get_contenttype_for_model
-from base.utils.files import get_size, uploadfile_to_file
+from base.db.models import BaseModel, get_contenttype_for_model
+from base.utils.files import get_size
 from commons.storage import repositories as storage_repositories
 from users.models import User
 
@@ -39,6 +40,8 @@ DEFAULT_QUERYSET = Attachment.objects.select_related("storaged_object").all()
 class AttachmentFilters(TypedDict, total=False):
     id: UUID
     content_object: Model
+    content_object__ref: int
+    content_object__project_id: UUID
 
 
 async def _apply_filters_to_queryset(

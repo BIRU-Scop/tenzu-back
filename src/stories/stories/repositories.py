@@ -44,6 +44,8 @@ class StoryFilters(TypedDict, total=False):
     workflow_id: UUID
     workflow__slug: str
     status_id: UUID
+    order__gt: int
+    ref__in: list[int]
 
 
 StorySelectRelated = list[
@@ -101,8 +103,9 @@ async def create_story(
 ##########################################################
 
 
-def list_stories(
+def list_stories_qs(
     filters: StoryFilters = None,
+    excludes: StoryFilters = None,
     order_by: StoryOrderBy = None,
     offset: int | None = None,
     limit: int | None = None,
@@ -111,6 +114,8 @@ def list_stories(
 ) -> QuerySet[Story]:
     if filters is None:
         filters = {}
+    if excludes is None:
+        excludes = {}
     if select_related is None:
         select_related = []
     if prefetch_related is None:
@@ -119,6 +124,7 @@ def list_stories(
     qs = (
         Story.objects.all()
         .filter(**filters)
+        .exclude(**excludes)
         .select_related(*select_related)
         .prefetch_related(*prefetch_related)
     )
@@ -205,9 +211,14 @@ async def delete_story(story_id: UUID) -> int:
 
 
 async def list_story_neighbors(
-    story: Story, filters: StoryFilters = {}
+    story: Story, filters: StoryFilters = {}, excludes: dict = {}
 ) -> Neighbor[Story]:
-    qs = Story.objects.all().filter(**filters).order_by("status", "order")
+    qs = (
+        Story.objects.all()
+        .filter(**filters)
+        .exclude(**excludes)
+        .order_by("status", "order")
+    )
 
     return await neighbors_repositories.get_neighbors(obj=story, model_queryset=qs)
 
@@ -229,15 +240,6 @@ async def list_stories_to_reorder(
     # keep ref order
     order = {ref: index for index, ref in enumerate(ref__in)}
     return sorted([s async for s in qs], key=lambda s: order[s.ref])
-
-
-async def list_story_assignees(story: Story) -> list[User]:
-    return [
-        user
-        async for user in story.assignees.all().order_by(
-            "-story_assignments__created_at"
-        )
-    ]
 
 
 async def bulk_update_workflow_to_stories(

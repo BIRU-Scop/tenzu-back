@@ -19,30 +19,27 @@
 
 from pydantic import ConfigDict, EmailStr
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import BaseModel
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from projects.invitations.serializers.nested import ProjectInvitationNestedSerializer
-from projects.projects.serializers.mixins import ProjectLogoBaseSerializer
-from projects.projects.serializers.nested import ProjectNestedSerializer
+from projects.projects.serializers.nested import (
+    ProjectLinkNestedSerializer,
+    ProjectNestedSerializer,
+)
+from users.serializers.nested import UserNestedSerializer
 from workspaces.invitations.serializers.nested import (
     WorkspaceInvitationNestedSerializer,
 )
-from workspaces.workspaces.serializers.nested import WorkspaceSmallNestedSerializer
+from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class UserBaseSerializer(BaseModel):
-    username: str
-    full_name: str
-    color: int
-
-
-class UserSerializer(UserBaseSerializer):
+class UserSerializer(UserNestedSerializer):
     email: EmailStr
     lang: str
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserSearchSerializer(UserBaseSerializer):
+class UserSearchSerializer(UserNestedSerializer):
     user_is_member: bool | None = None
     user_has_pending_invitation: bool | None = None
     model_config = ConfigDict(from_attributes=True)
@@ -55,26 +52,14 @@ class VerificationInfoSerializer(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class _WorkspaceWithProjectsNestedSerializer(BaseModel):
-    id: UUIDB64
-    name: str
-    slug: str
-    color: int
-    projects: list[ProjectNestedSerializer]
-    model_config = ConfigDict(from_attributes=True)
-
-
-class _ProjectWithWorkspaceNestedSerializer(ProjectLogoBaseSerializer):
-    id: UUIDB64
-    name: str
-    slug: str
-    description: str
-    color: int
-    workspace: WorkspaceSmallNestedSerializer
+class _WorkspaceForDeleteWithProjectsNestedSerializer(WorkspaceNestedSerializer):
+    projects: list[ProjectLinkNestedSerializer]
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserDeleteInfoSerializer(BaseModel):
-    workspaces: list[_WorkspaceWithProjectsNestedSerializer]
-    projects: list[_ProjectWithWorkspaceNestedSerializer]
+    only_owner_collective_workspaces: list[WorkspaceNestedSerializer]
+    only_owner_collective_projects: list[ProjectNestedSerializer]
+    only_member_workspaces: list[_WorkspaceForDeleteWithProjectsNestedSerializer]
+    only_member_projects: list[ProjectNestedSerializer]
     model_config = ConfigDict(from_attributes=True)

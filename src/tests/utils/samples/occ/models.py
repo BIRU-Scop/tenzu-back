@@ -17,11 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.db import models
+from django.db import models
+
+from base.db.models import BaseModel
 from base.occ.models import VersionedMixin
 
 
-class SampleOCCItem(models.BaseModel, VersionedMixin):
+class SampleOCCItem(BaseModel, VersionedMixin):
     name = models.CharField(max_length=80, null=False, blank=False)
     description = models.CharField(max_length=220, null=True, blank=True)
     is_active = models.BooleanField(default=True, null=False, blank=False)
