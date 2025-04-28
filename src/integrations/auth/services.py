@@ -24,11 +24,9 @@ from base.utils import datetime
 from emails.emails import Emails
 from emails.tasks import send_email
 from ninja_jwt.schema import TokenObtainPairOutputSchema
-from projects.invitations import services as project_invitations_services
 from users import repositories as users_repositories
 from users import services as users_services
 from users.models import User
-from workspaces.invitations import services as workspace_invitations_services
 
 
 async def social_login(
@@ -58,12 +56,6 @@ async def social_login(
                 email=email, full_name=full_name, password=None, lang=lang
             )
             await users_services.verify_user(user)
-            await project_invitations_services.update_user_projects_invitations(
-                user=user
-            )
-            await workspace_invitations_services.update_user_workspaces_invitations(
-                user=user
-            )
         elif not user.is_active:
             # update existing (but not verified) user with social login data and verify it
             # username and email are the same
@@ -73,12 +65,6 @@ async def social_login(
             user.lang = lang
             user = await users_repositories.update_user(user=user)
             await users_services.verify_user(user)
-            await project_invitations_services.update_user_projects_invitations(
-                user=user
-            )
-            await workspace_invitations_services.update_user_workspaces_invitations(
-                user=user
-            )
         else:
             # the user existed and now is adding a new login method
             # so we send her a warning email

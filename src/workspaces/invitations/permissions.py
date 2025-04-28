@@ -17,19 +17,49 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any
+from enum import Enum
+from typing import TYPE_CHECKING
 
-from base.api.permissions import PermissionComponent
-from users.models import AnyUser
+from memberships.permissions import (
+    CanModifyAssociatedRole,
+    HasPermission,
+    IsInvitationRecipient,
+)
+from permissions import IsAuthenticated, PermissionComponent
+from permissions.choices import WorkspacePermissions
+from workspaces.workspaces.models import Workspace
+
+if TYPE_CHECKING:
+    from users.models import AnyUser
 
 
-class IsWorkspaceInvitationRecipient(PermissionComponent):
-    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
+class HasPendingInnerProjectsInvitation(PermissionComponent):
+    async def is_authorized(self, user: "AnyUser", obj: Workspace = None) -> bool:
         from workspaces.invitations import services as invitations_services
 
-        if not obj or user.is_anonymous or not user.is_active:
+        if not obj:
             return False
 
-        return invitations_services.is_workspace_invitation_for_this_user(
-            invitation=obj, user=user
+        return await invitations_services.has_pending_inner_projects_invitation(
+            user=user, workspace=obj
         )
+
+
+class WorkspaceInvitationPermissionsCheck(Enum):
+    VIEW = IsAuthenticated() & HasPermission(
+        "workspace", WorkspacePermissions.CREATE_MODIFY_MEMBER
+    )
+    ANSWER_SELF = IsAuthenticated()
+    ANSWER = IsAuthenticated() & IsInvitationRecipient()
+    CREATE = IsAuthenticated() & HasPermission(
+        "workspace", WorkspacePermissions.CREATE_MODIFY_MEMBER
+    )
+    MODIFY = (
+        IsAuthenticated()
+        & HasPermission(
+            "workspace",
+            WorkspacePermissions.CREATE_MODIFY_MEMBER,
+            access_fields="workspace",
+        )
+        & CanModifyAssociatedRole("workspace")
+    )

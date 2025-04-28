@@ -17,62 +17,24 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any
 
-from pydantic import ConfigDict, EmailStr, validator
+from pydantic import ConfigDict
 
 from base.serializers import UUIDB64, BaseModel
-from projects.invitations.choices import ProjectInvitationStatus
-from projects.projects.serializers.nested import ProjectSmallNestedSerializer
-from projects.roles.serializers.nested import ProjectRoleNestedSerializer
-from users.serializers.nested import UserNestedSerializer
+from memberships.serializers import (
+    CreateInvitationsSerializer,  # noqa
+    InvitationBaseSerializer,
+    PublicPendingInvitationBaseSerializer,
+)
+from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 
 
-class PublicProjectInvitationSerializer(BaseModel):
-    status: ProjectInvitationStatus
-    email: EmailStr
-    existing_user: bool
-    available_logins: list[str]
-    project: ProjectSmallNestedSerializer
+class PublicProjectPendingInvitationSerializer(PublicPendingInvitationBaseSerializer):
+    project: ProjectLinkNestedSerializer
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjectInvitationSerializer(BaseModel):
-    id: UUIDB64
-    project: ProjectSmallNestedSerializer
-    user: UserNestedSerializer | None = None
-    role: ProjectRoleNestedSerializer
-    email: EmailStr
-    workspace_id: UUIDB64
+class ProjectInvitationSerializer(InvitationBaseSerializer):
+    project: ProjectLinkNestedSerializer
 
-    @staticmethod
-    def resolve_workspace_id(obj):
-        return obj.project.workspace_id
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class PrivateEmailProjectInvitationSerializer(BaseModel):
-    id: UUIDB64
-    user: UserNestedSerializer | None = None
-    role: ProjectRoleNestedSerializer
-    email: EmailStr | None = None
-    model_config = ConfigDict(from_attributes=True)
-
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("email")
-    def avoid_to_publish_email_if_user(
-        cls, email: str, values: dict[str, Any]
-    ) -> str | None:
-        user = values.get("user")
-        if user:
-            return None
-        else:
-            return email
-
-
-class CreateProjectInvitationsSerializer(BaseModel):
-    invitations: list[PrivateEmailProjectInvitationSerializer]
-    already_members: int
     model_config = ConfigDict(from_attributes=True)

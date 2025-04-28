@@ -19,12 +19,12 @@
 
 from uuid import UUID
 
+from django.db.models import Model
 from ninja import UploadedFile
 
 from attachments import repositories as attachments_repositories
 from attachments.events import EventOnCreateCallable, EventOnDeleteCallable
 from attachments.models import Attachment
-from base.db.models import Model
 from users.models import User
 
 ##########################################################
@@ -69,9 +69,11 @@ async def list_attachments(
 ##########################################################
 
 
-async def get_attachment(id: UUID, content_object: Model) -> Attachment | None:
+async def get_attachment(
+    attachment_id: UUID,
+) -> Attachment | None:
     return await attachments_repositories.get_attachment(
-        filters={"id": id, "content_object": content_object},
+        filters={"id": attachment_id},
         prefetch_related=["content_object", "project"],
     )
 

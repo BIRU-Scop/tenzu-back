@@ -16,53 +16,22 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from uuid import UUID
 
-from base.db import models
-from base.db.mixins import CreatedAtMetaInfoMixin
+from django.db import models
+
+from memberships.models import Membership, Role
+from permissions.choices import ProjectPermissions
+from projects.projects.models import Project
 
 
-class ProjectMembership(models.BaseModel, CreatedAtMetaInfoMixin):
-    user = models.ForeignKey(
-        "users.User",
-        null=False,
-        blank=False,
-        related_name="project_memberships",
-        on_delete=models.CASCADE,
-        verbose_name="user",
-    )
-    project = models.ForeignKey(
-        "projects.Project",
-        null=False,
-        blank=False,
-        related_name="memberships",
-        on_delete=models.CASCADE,
-        verbose_name="project",
-    )
-    role = models.ForeignKey(
-        "projects_roles.ProjectRole",
-        null=False,
-        blank=False,
-        related_name="memberships",
-        on_delete=models.CASCADE,
-        verbose_name="role",
-    )
+class ProjectRole(
+    Role, reference_model=Project, permissions_choices=ProjectPermissions.choices
+):
+    project: models.ForeignKey
+    project_id: UUID
 
-    class Meta:
-        verbose_name = "project membership"
-        verbose_name_plural = "project memberships"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["project", "user"],
-                name="%(app_label)s_%(class)s_unique_project_user",
-            ),
-        ]
-        indexes = [
-            models.Index(fields=["project", "user"]),
-        ]
-        ordering = ["project", "user"]
 
-    def __str__(self) -> str:
-        return f"{self.project} - {self.user}"
-
-    def __repr__(self) -> str:
-        return f"<ProjectMembership {self.project} {self.user}>"
+class ProjectMembership(Membership, reference_model=Project):
+    project: models.ForeignKey
+    project_id: UUID

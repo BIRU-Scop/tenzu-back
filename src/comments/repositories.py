@@ -21,8 +21,9 @@ from typing import Any, Literal, TypedDict, cast
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.db.models import Model, QuerySet
 
-from base.db.models import BaseModel, Model, QuerySet, get_contenttype_for_model
+from base.db.models import BaseModel, get_contenttype_for_model
 from base.utils.datetime import aware_utcnow
 from comments.models import Comment
 from users.models import User
@@ -176,8 +177,10 @@ async def get_comment(
     filters: CommentFilters = {},
     select_related: CommentSelectRelated = [],
     prefetch_related: CommentPrefetchRelated = [],
+    excludes: CommentExcludes = {},
 ) -> Comment | None:
     qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
+    qs = await _apply_excludes_to_queryset(qs=qs, excludes=excludes)
     qs = await _apply_select_related_to_queryset(qs=qs, select_related=select_related)
     qs = await _apply_prefetch_related_to_queryset(
         qs=qs, prefetch_related=prefetch_related

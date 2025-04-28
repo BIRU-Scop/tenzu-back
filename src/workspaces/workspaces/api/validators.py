@@ -20,8 +20,8 @@
 from pydantic import Field, StringConstraints
 from typing_extensions import Annotated
 
-from base.validators import BaseModel
 from commons.colors import NUM_COLORS
+from commons.validators import BaseModel
 
 Name = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)

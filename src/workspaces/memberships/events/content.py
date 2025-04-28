@@ -18,8 +18,20 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.serializers import BaseModel
-from workspaces.memberships.serializers import WorkspaceMembershipDeletedSerializer
+from memberships.serializers import RoleSerializer
+from workspaces.memberships.serializers import (
+    WorkspaceMembershipDeletedSerializer,
+    WorkspaceMembershipSerializer,
+)
 
 
 class DeleteWorkspaceMembershipContent(BaseModel):
     membership: WorkspaceMembershipDeletedSerializer
+
+
+class WorkspaceMembershipContent(BaseModel):
+    membership: WorkspaceMembershipSerializer
+
+
+class WorkspaceRoleContent(RoleSerializer):
+    pass

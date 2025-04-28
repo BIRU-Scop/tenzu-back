@@ -17,19 +17,30 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any
+from enum import Enum
 
-from base.api.permissions import PermissionComponent
-from users.models import AnyUser
+from memberships.permissions import (
+    CanModifyAssociatedRole,
+    HasPermission,
+    IsInvitationRecipient,
+)
+from permissions import IsAuthenticated
+from permissions.choices import ProjectPermissions
 
 
-class IsProjectInvitationRecipient(PermissionComponent):
-    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
-        from projects.invitations import services as invitations_services
-
-        if not obj or user.is_anonymous or not user.is_active:
-            return False
-
-        return invitations_services.is_project_invitation_for_this_user(
-            invitation=obj, user=user
+class ProjectInvitationPermissionsCheck(Enum):
+    VIEW = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.CREATE_MODIFY_MEMBER
+    )
+    ANSWER_SELF = IsAuthenticated()
+    ANSWER = IsAuthenticated() & IsInvitationRecipient()
+    CREATE = IsAuthenticated() & HasPermission(
+        "project", ProjectPermissions.CREATE_MODIFY_MEMBER
+    )
+    MODIFY = (
+        IsAuthenticated()
+        & HasPermission(
+            "project", ProjectPermissions.CREATE_MODIFY_MEMBER, access_fields="project"
         )
+        & CanModifyAssociatedRole("project")
+    )

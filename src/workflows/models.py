@@ -20,24 +20,22 @@
 from typing import Any
 
 from django.core.validators import MaxValueValidator
+from django.db import models
 
-from base.db import models
+from base.db.models import BaseModel, LowerSlugField
 from base.utils.slug import (
-    generate_incremental_int_suffix,
-    slugify_uniquely_for_queryset,
+    sync_slug_on_save,
 )
 from commons.colors import NUM_COLORS
 from commons.ordering import OrderedMixin
 from projects.projects.models import Project
 
 
-class Workflow(models.BaseModel, OrderedMixin):
+class Workflow(BaseModel, OrderedMixin):
     name = models.CharField(
         max_length=250, null=False, blank=False, verbose_name="name"
     )
-    slug = models.LowerSlugField(
-        max_length=250, null=False, blank=False, verbose_name="slug"
-    )
+    slug = LowerSlugField(max_length=250, null=False, blank=False, verbose_name="slug")
     project = models.ForeignKey(
         "projects.Project",
         null=False,
@@ -68,17 +66,12 @@ class Workflow(models.BaseModel, OrderedMixin):
         return f"<Workflow {self.name}>"
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        self.slug = slugify_uniquely_for_queryset(
-            value=self.name,
-            queryset=self.project.workflows.all(),
-            generate_suffix=generate_incremental_int_suffix(),
-            use_always_suffix=False,
-        )
-
+        unique_qs = self.project.workflows.all()
+        sync_slug_on_save(self, unique_qs, self.name, **kwargs)
         super().save(*args, **kwargs)
 
 
-class WorkflowStatus(models.BaseModel, OrderedMixin):
+class WorkflowStatus(BaseModel, OrderedMixin):
     name = models.CharField(max_length=30, null=False, blank=False, verbose_name="name")
     color = models.IntegerField(
         null=False,

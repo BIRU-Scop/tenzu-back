@@ -21,18 +21,22 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
-from django.db import transaction
+from django.db.models import Exists, OuterRef, Q
 
-from base.db.models import Case, Count, When
+from base.db.utils import Q_for_related
 from base.utils.datetime import aware_utcnow
 from base.utils.files import File
 from commons.utils import transaction_atomic_async
+from memberships import repositories as memberships_repositories
+from memberships.choices import InvitationStatus
 from projects import references
-from projects.invitations.choices import ProjectInvitationStatus
+from projects.invitations.models import ProjectInvitation
+from projects.memberships import repositories as pj_memberships_repositories
+from projects.memberships.models import ProjectRole
 from projects.projects.models import Project, ProjectTemplate
-from projects.roles import repositories as pj_roles_repositories
 from users.models import User
 from workflows import repositories as workflows_repositories
+from workflows.models import Workflow, WorkflowStatus
 from workspaces.workspaces.models import Workspace
 
 ##########################################################
@@ -42,10 +46,11 @@ from workspaces.workspaces.models import Workspace
 
 class ProjectFilters(TypedDict, total=False):
     workspace_id: UUID
+    workspace__in: list[Workspace]
     invitations__user_id: UUID
-    invitations__status: ProjectInvitationStatus
+    invitations__status: InvitationStatus
     memberships__user_id: UUID
-    memberships__role__is_admin: bool
+    memberships__role__is_owner: bool
 
 
 ProjectSelectRelated = list[Literal["workspace",]]
@@ -91,42 +96,34 @@ async def create_project(
 ##########################################################
 
 
-async def list_projects(
-    filters: ProjectFilters = {},
-    select_related: ProjectSelectRelated = [],
-    prefetch_related: ProjectPrefetchRelated = [],
-    order_by: ProjectOrderBy = ["-created_at"],
-    offset: int | None = None,
-    limit: int | None = None,
-    num_admins: int | None = None,
-    is_individual_project: bool | None = None,
+async def list_workspace_projects_for_user(
+    workspace: Workspace, user: User
 ) -> list[Project]:
-    qs = Project.objects.all()
-    if num_admins is not None:
-        qs = qs.annotate(
-            num_admins=Count(Case(When(memberships__role__is_admin=True, then=1)))
-        ).filter(num_admins=num_admins)
+    # search user in workspace or project queryset through their invitations
+    user_invited_query = Q_for_related(
+        memberships_repositories.pending_user_invitation_query(user), "invitations"
+    )
+    # search user in workspace or project queryset through their membership
+    user_member_query = Q(memberships__user_id=user.id)
 
-    # filters for those projects where the user is the only project member
-    if is_individual_project is not None:
-        qs = qs.annotate(num_members=Count("members"))
-        qs = (
-            qs.filter(num_members=1)
-            if is_individual_project
-            else qs.filter(num_members__gt=1)
-        )
     qs = (
-        qs.filter(**filters)
-        .select_related(*select_related)
-        .prefetch_related(*prefetch_related)
-        .order_by(*order_by)
+        Project.objects.filter(
+            user_invited_query | user_member_query,
+            workspace=workspace,
+        )
+        .annotate(
+            user_is_invited=Exists(
+                ProjectInvitation.objects.filter(
+                    memberships_repositories.pending_user_invitation_query(user),
+                    project_id=OuterRef("pk"),
+                )
+            ),
+        )
         .distinct()
+        .order_by("-user_is_invited", "-created_at")
     )
 
-    if limit is not None and offset is not None:
-        limit += offset
-
-    return [p async for p in qs[offset:limit]]
+    return [pj async for pj in qs]
 
 
 ##########################################################
@@ -138,17 +135,14 @@ async def get_project(
     project_id: UUID,
     select_related: ProjectSelectRelated = ["workspace"],
     prefetch_related: ProjectPrefetchRelated = [],
-) -> Project | None:
+) -> Project:
     qs = (
         Project.objects.all()
         .select_related(*select_related)
         .prefetch_related(*prefetch_related)
     )
 
-    try:
-        return await qs.aget(id=project_id)
-    except Project.DoesNotExist:
-        return None
+    return await qs.aget(id=project_id)
 
 
 ##########################################################
@@ -231,32 +225,48 @@ async def get_project_template(
 ##########################################################
 
 
-@transaction.atomic
-def apply_template_to_project_sync(template: ProjectTemplate, project: Project) -> None:
-    for role in template.roles:
-        pj_roles_repositories.create_project_role_sync(
-            name=role["name"],
-            slug=role["slug"],
-            order=role["order"],
-            project=project,
-            permissions=role["permissions"],
-            is_admin=role["is_admin"],
-        )
+@transaction_atomic_async
+async def apply_template_to_project(
+    template: ProjectTemplate, project: Project
+) -> list[ProjectRole]:
+    roles = await pj_memberships_repositories.bulk_create_project_roles(
+        [
+            ProjectRole(
+                name=role["name"],
+                order=role["order"],
+                slug=role["slug"],
+                project=project,
+                permissions=role["permissions"],
+                is_owner=role["is_owner"],
+                editable=role["editable"],
+            )
+            for role in template.roles
+        ]
+    )
 
-    for workflow in template.workflows:
-        wf = workflows_repositories.create_workflow_sync(
-            name=workflow["name"],
-            slug=workflow["slug"],
-            order=workflow["order"],
-            project=project,
-        )
-        for status in template.workflow_statuses:
-            workflows_repositories.create_workflow_status_sync(
+    workflows = await workflows_repositories.bulk_create_workflows(
+        [
+            Workflow(
+                name=workflow["name"],
+                slug=workflow["slug"],
+                order=workflow["order"],
+                project=project,
+            )
+            for workflow in template.workflows
+        ]
+    )
+    await workflows_repositories.bulk_create_workflow_statuses(
+        [
+            WorkflowStatus(
                 name=status["name"],
                 color=status["color"],
                 order=status["order"],
                 workflow=wf,
             )
-
-
-apply_template_to_project = sync_to_async(apply_template_to_project_sync)
+            for status in template.workflow_statuses
+            for wf in workflows
+        ]
+    )
+    # do not return workflows, they can't be used as-is
+    # because statuses are created separately so they're not put in prefetched_cache
+    return roles

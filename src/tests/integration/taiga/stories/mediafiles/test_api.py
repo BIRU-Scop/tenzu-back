@@ -18,17 +18,16 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
-from fastapi import status
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from tests.utils import factories as f
 from tests.utils.bad_params import (
     INVALID_B64ID,
-    INVALID_REF,
     NOT_EXISTING_B64ID,
     NOT_EXISTING_REF,
 )
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################
@@ -36,8 +35,8 @@ pytestmark = pytest.mark.django_db(transaction=True)
 ##########################################################
 
 
-async def test_create_story_mediafile_200_ok(client):
-    project = await f.create_project()
+async def test_create_story_mediafile_200_ok(client, project_template):
+    project = await f.create_project(project_template)
     story = await f.create_story(project=project)
     user = project.created_by
     file1 = f.build_image_file("image1")
@@ -51,109 +50,84 @@ async def test_create_story_mediafile_200_ok(client):
     ]
 
     client.login(user)
-    response = client.post(
+    response = await client.post(
         f"/projects/{project.b64id}/stories/{story.ref}/mediafiles",
-        files=files,
+        FILES=files,
     )
-    assert response.status_code == status.HTTP_200_OK, response.text
+    assert response.status_code == 200, response.data
     assert len(response.json()) == 3
 
 
-async def test_create_story_mediafile_403_forbidden_error_no_permissions(client):
-    project = await f.create_project(public_permissions=[])
+async def test_create_story_mediafile_403_forbidden_error_no_permissions(
+    client, project_template
+):
+    project = await f.create_project(project_template)
     story = await f.create_story(project=project)
     user = await f.create_user()
-    file = f.build_image_file("image")
-
-    files = [
-        ("files", (file.name, file, "image/png")),
-    ]
+    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
 
     client.login(user)
-    response = client.post(
+    response = await client.post(
         f"/projects/{project.b64id}/stories/{story.ref}/mediafiles",
-        files=files,
+        FILES=files,
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
+    assert response.status_code == 403, response.data
 
 
-async def test_create_story_mediafile_404_not_found_project_b64id(client):
-    project = await f.create_project()
+async def test_create_story_mediafile_404_not_found_project_b64id(
+    client, project_template
+):
+    project = await f.create_project(project_template)
     story = await f.create_story(project=project)
     user = project.created_by
-    file = f.build_image_file("image")
-
-    files = [
-        ("files", (file.name, file, "image/png")),
-    ]
+    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
 
     client.login(user)
-    response = client.post(
+    response = await client.post(
         f"/projects/{NOT_EXISTING_B64ID}/stories/{story.ref}/mediafiles",
-        files=files,
+        FILES=files,
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
+    assert response.status_code == 404, response.data
 
 
-async def test_create_story_mediafile_404_not_found_story_ref(client):
-    project = await f.create_project()
+async def test_create_story_mediafile_404_not_found_story_ref(client, project_template):
+    project = await f.create_project(project_template)
     user = project.created_by
-    file = f.build_image_file("image")
-
-    files = [
-        ("files", (file.name, file, "image/png")),
-    ]
+    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
 
     client.login(user)
-    response = client.post(
+    response = await client.post(
         f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/mediafiles",
-        files=files,
+        FILES=files,
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
+    assert response.status_code == 404, response.data
 
 
-async def test_create_story_mediafile_422_unprocessable_entity_project_b64id(client):
-    project = await f.create_project()
+async def test_create_story_mediafile_422_unprocessable_entity_project_b64id(
+    client, project_template
+):
+    project = await f.create_project(project_template)
     story = await f.create_story(project=project)
     user = project.created_by
-    file = f.build_image_file("image")
-
-    files = [
-        ("files", (file.name, file, "image/png")),
-    ]
+    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
 
     client.login(user)
-    response = client.post(
+    response = await client.post(
         f"/projects/{INVALID_B64ID}/stories/{story.ref}/mediafiles",
-        files=files,
+        FILES=files,
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
+    assert response.status_code == 422, response.data
 
 
-async def test_create_story_mediafile_422_unprocessable_entity_story_ref(client):
-    project = await f.create_project()
-    user = project.created_by
-    file = f.build_image_file("image")
-
-    files = [
-        ("files", (file.name, file, "image/png")),
-    ]
-
-    client.login(user)
-    response = client.post(
-        f"/projects/{project.b64id}/stories/{INVALID_REF}/mediafiles",
-        files=files,
-    )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
-
-
-async def test_create_story_mediafile_422_unprocessable_entity_bad_request(client):
-    project = await f.create_project()
+async def test_create_story_mediafile_422_unprocessable_entity_bad_request(
+    client, project_template
+):
+    project = await f.create_project(project_template)
     story = await f.create_story(project=project)
     user = project.created_by
 
     client.login(user)
-    response = client.post(
+    response = await client.post(
         f"/projects/{project.b64id}/stories/{story.ref}/mediafiles",
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY, response.text
+    assert response.status_code == 422, response.data

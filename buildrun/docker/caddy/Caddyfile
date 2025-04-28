@@ -4,6 +4,9 @@
 
 local-tenzu.biru.ovh {
    tls {
+    # hack needed to solve the following issue: https://caddy.community/t/caddy-dns-challenge-not-working/26530/
+    # encountered on a Linux using NetworkManager
+    # resolvers 8.8.8.8 8.8.4.4
     dns ovh {
         endpoint {$OVH_ENDPOINT}
         application_key {$OVH_APPLICATION_KEY}

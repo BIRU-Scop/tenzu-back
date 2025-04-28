@@ -20,7 +20,7 @@
 from fastapi.params import Query
 from pydantic.alias_generators import to_camel, to_snake
 
-from exceptions import api as ex
+from commons.exceptions import api as ex
 
 ORDER_DESC = """
 List of fields to specify the ordering criteria. By default it will assume an ascending order, use the - sign

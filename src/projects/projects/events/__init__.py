@@ -59,9 +59,8 @@ async def emit_event_when_project_is_deleted(
     workspace: Workspace,
     project: Project,
     deleted_by: User,
-    guests: list[User],
 ) -> None:
-    # for ws-members, both in the home page and in the ws-detail
+    # for ws-authorised readers (members in invitees), both in the home page and in the ws-detail
     await events_manager.publish_on_workspace_channel(
         workspace=workspace,
         type=PROJECT_DELETE,
@@ -84,17 +83,3 @@ async def emit_event_when_project_is_deleted(
             workspace=workspace.id,
         ),
     )
-
-    # for ws-guests (pj-members or pj-invitees) in the home page,
-    # this is the only way we can notify the change
-    for guest in guests:
-        await events_manager.publish_on_user_channel(
-            user=guest,
-            type=PROJECT_DELETE,
-            content=DeleteProjectContent(
-                project=project.id,
-                name=project.name,
-                deleted_by=deleted_by,
-                workspace=workspace.id,
-            ),
-        )

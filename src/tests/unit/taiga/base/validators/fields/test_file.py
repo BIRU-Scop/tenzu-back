@@ -19,7 +19,7 @@
 
 import pytest
 
-from base.validators.fields.file import MaxFileSizeExcededError, MaxFileSizeValidator
+from commons.validators.fields import MaxFileSizeExcededError, MaxFileSizeValidator
 from tests.utils import factories as f
 
 ###########################################################

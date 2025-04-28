@@ -19,7 +19,7 @@
 
 from ninja import Router
 
-from exceptions.api.errors import ERROR_RESPONSE_400, ERROR_RESPONSE_422
+from commons.exceptions.api.errors import ERROR_RESPONSE_400, ERROR_RESPONSE_422
 from integrations.gitlab.auth import services as auth_gitlab_services
 from integrations.gitlab.auth.validators import GitlabLoginValidator
 from ninja_jwt.schema import TokenObtainPairOutputSchema
@@ -37,6 +37,7 @@ gitlab_integration_router = Router()
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
+    auth=None,
 )
 async def gitlab_login(
     request, form: GitlabLoginValidator

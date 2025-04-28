@@ -16,10 +16,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from django.db.models import Model
 from ninja import UploadedFile
 
-from base.db.models import Model
 from mediafiles import repositories as mediafiles_repositories
 from mediafiles.models import Mediafile
 from projects.projects.models import Project

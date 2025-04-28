@@ -17,8 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.db import models
-from base.db.mixins import CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin
+from django.db import models
+from django.db.models.functions import TruncDate
+
+from base.db.models import BaseModel
+from base.db.models.mixins import CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin
 from base.utils.files import get_obfuscated_file_path
 
 
@@ -26,7 +29,7 @@ def get_storaged_object_file_patch(instance: "StoragedObject", filename: str) ->
     return get_obfuscated_file_path(instance, filename, "storagedobjets")
 
 
-class StoragedObject(models.BaseModel, CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin):
+class StoragedObject(BaseModel, CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin):
     file = models.FileField(
         upload_to=get_storaged_object_file_patch,
         max_length=500,
@@ -40,10 +43,10 @@ class StoragedObject(models.BaseModel, CreatedAtMetaInfoMixin, DeletedAtMetaInfo
         verbose_name_plural = "storaged_objects"
         indexes = [
             models.Index(
-                models.TruncDate("created_at"), "created_at", name="created_at_date_idx"
+                TruncDate("created_at"), "created_at", name="created_at_date_idx"
             ),
             models.Index(
-                models.TruncDate("deleted_at"), "deleted_at", name="deleted_at_date_idx"
+                TruncDate("deleted_at"), "deleted_at", name="deleted_at_date_idx"
             ),
         ]
         ordering = [

@@ -25,7 +25,7 @@ from base.repositories import neighbors as neighbors_repositories
 from stories.stories.models import Story
 from tests.utils import factories as f
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 ##########################################################
 # get_neighbors_sync

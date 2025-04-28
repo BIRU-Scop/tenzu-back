@@ -19,24 +19,20 @@
 
 from ninja import File, Path, Router, UploadedFile
 
-from base.api.permissions import check_permissions
-from base.validators import B64UUID
-from exceptions.api.errors import (
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from commons.validators import B64UUID
 from mediafiles import services as mediafiles_services
 from mediafiles.models import Mediafile
 from mediafiles.serializers import MediafileSerializer
-from ninja_jwt.authentication import AsyncJWTAuth
-from permissions import HasPerm
+from permissions import check_permissions
 from stories.stories.api import get_story_or_404
+from stories.stories.permissions import StoryPermissionsCheck
 
-mediafiles_router = Router(auth=AsyncJWTAuth())
-
-# PERMISSIONS
-CREATE_STORY_MEDIAFILES = HasPerm("modify_story") | HasPerm("comment_story")
+mediafiles_router = Router()
 
 
 ################################################
@@ -45,7 +41,7 @@ CREATE_STORY_MEDIAFILES = HasPerm("modify_story") | HasPerm("comment_story")
 
 
 @mediafiles_router.post(
-    "/projects/{project_id}/stories/{ref}/mediafiles",
+    "/projects/{project_id}/stories/{int:ref}/mediafiles",
     url_name="project.story.mediafiles.create",
     summary="Create mediafiles and attach to a story",
     response={
@@ -59,7 +55,7 @@ CREATE_STORY_MEDIAFILES = HasPerm("modify_story") | HasPerm("comment_story")
 async def create_story_mediafiles(
     request,
     project_id: Path[B64UUID],
-    ref: int,
+    ref: Path[int],
     files: list[UploadedFile] = File(...),
 ) -> list[Mediafile]:
     """
@@ -67,7 +63,7 @@ async def create_story_mediafiles(
     """
     story = await get_story_or_404(project_id, ref)
     await check_permissions(
-        permissions=CREATE_STORY_MEDIAFILES, user=request.user, obj=story
+        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
     )
 
     return await mediafiles_services.create_mediafiles(

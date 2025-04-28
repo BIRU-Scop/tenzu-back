@@ -17,9 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.db import models
+
 from attachments.mixins import RelatedAttachmentsMixin
-from base.db import models
-from base.db.mixins import (
+from base.db.models import BaseModel
+from base.db.models.mixins import (
     CreatedMetaInfoMixin,
     DescriptionUpdatedMetaInfoMixin,
     TitleUpdatedMetaInfoMixin,
@@ -32,7 +34,7 @@ from projects.references.mixins import ProjectReferenceMixin
 
 
 class Story(
-    models.BaseModel,
+    BaseModel,
     ProjectReferenceMixin,
     VersionedMixin,
     OrderedMixin,

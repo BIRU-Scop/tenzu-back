@@ -55,11 +55,12 @@ async def create_story(
     description: str | None,
 ) -> StoryDetailSerializer:
     # Validate data
-    workflow_status = await workflows_repositories.get_workflow_status(
-        status_id=status_id, filters={"workflow_id": workflow.id}
-    )
-    if not workflow_status:
-        raise ex.InvalidStatusError("The provided status is not valid.")
+    try:
+        workflow_status = await workflows_repositories.get_workflow_status(
+            status_id=status_id, filters={"workflow_id": workflow.id}
+        )
+    except WorkflowStatus.DoesNotExist as e:
+        raise ex.InvalidStatusError("The provided status is not valid.") from e
 
     latest_story_order = await get_latest_story_order(workflow_status.id)
     order = DEFAULT_ORDER_OFFSET + (latest_story_order if latest_story_order else 0)
@@ -101,7 +102,7 @@ async def list_stories(
 ) -> list[StorySummarySerializer]:
     if order_by is None:
         order_by = ["order"]
-    qs = stories_repositories.list_stories(
+    qs = stories_repositories.list_stories_qs(
         filters={"project_id": project_id, "workflow__slug": workflow_slug},
         offset=offset,
         limit=limit,
@@ -164,7 +165,7 @@ async def get_story_detail(
 
 async def get_latest_story_order(status_id: UUID) -> int:
     return (
-        await stories_repositories.list_stories(
+        await stories_repositories.list_stories_qs(
             filters={"status_id": status_id}, order_by=["-order"]
         )
         .values_list("order", flat=True)
@@ -253,16 +254,14 @@ async def _validate_and_process_values_to_update(
 
     workflow_slug = output.pop("workflow_slug", None)
     if status_id := output.pop("status_id", None):
-        if (
-            not status_id
-            or workflow_slug
-            or not (
-                status := await workflows_repositories.get_workflow_status(
-                    status_id=status_id, filters={"workflow_id": story.workflow_id}
-                )
-            )
-        ):
+        if workflow_slug:
             raise ex.InvalidStatusError("The provided status is not valid.")
+        try:
+            status = await workflows_repositories.get_workflow_status(
+                status_id=status_id, filters={"workflow_id": story.workflow_id}
+            )
+        except WorkflowStatus.DoesNotExist as e:
+            raise ex.InvalidStatusError("The provided status is not valid.") from e
 
         if status.id != story.status_id:
             output.update(
@@ -270,12 +269,13 @@ async def _validate_and_process_values_to_update(
             )
 
     elif workflow_slug:
-        workflow = await workflows_repositories.get_workflow(
-            filters={"project_id": story.project_id, "slug": workflow_slug},
-            prefetch_related=["statuses"],
-        )
-        if not workflow:
-            raise ex.InvalidWorkflowError("The provided workflow is not valid.")
+        try:
+            workflow = await workflows_repositories.get_workflow(
+                filters={"project_id": story.project_id, "slug": workflow_slug},
+                prefetch_related=["statuses"],
+            )
+        except Workflow.DoesNotExist as e:
+            raise ex.InvalidWorkflowError("The provided workflow is not valid.") from e
 
         if workflow.slug != story.workflow.slug:
             # Set first status
@@ -346,17 +346,18 @@ async def reorder_stories(
     reorder: dict[str, Any] | None = None,
 ) -> ReorderStoriesSerializer:
     # check target_status exists
-    target_status = await workflows_repositories.get_workflow_status(
-        status_id=target_status_id,
-        filters={
-            "workflow__project_id": project.id,
-            "workflow__slug": workflow.slug,
-        },
-    )
-    if not target_status:
+    try:
+        target_status = await workflows_repositories.get_workflow_status(
+            status_id=target_status_id,
+            filters={
+                "workflow__project_id": project.id,
+                "workflow__slug": workflow.slug,
+            },
+        )
+    except WorkflowStatus.DoesNotExist as e:
         raise ex.InvalidStatusError(
             f"Status {target_status_id} doesn't exist in this project"
-        )
+        ) from e
 
     # check anchor story exists
     if reorder:
@@ -399,7 +400,7 @@ async def reorder_stories(
     if offset == 0:
         # There is not enough space left between the stories where stories_to_reorder need to be inserted
         # We need to move more stories, this should happen very infrequently thanks to the offset
-        after_stories = stories_repositories.list_stories(
+        after_stories = stories_repositories.list_stories_qs(
             filters={
                 "status_id": reorder_reference_story.status_id,
                 "order__gt": pre_order,

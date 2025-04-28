@@ -26,7 +26,11 @@ share knowledge and learnings to make informed decisions.
 - *KANBAN*: Unlimited kanban board with custom statuses
 - More coming
 
-To check what we are working on, see our [Roadmap](ROADMAP.md).
+### Roadmap
+
+We keep the [roadmap section on our website](https://tenzu.net/#roadmap) up-to-date with our goals & ongoing work.
+
+For more details on the process we follow and current news, follow [our blog](https://tenzu.net/blog)
 
 ## Built with
 

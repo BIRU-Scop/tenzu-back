@@ -59,23 +59,9 @@ WorkflowOrderBy = list[Literal["order", "-order"]]
 ##########################################################
 
 
-def create_workflow_sync(
-    name: str,
-    slug: str,
-    order: Decimal,
-    project: Project,
-) -> Workflow:
-    return Workflow.objects.create(
-        name=name,
-        slug=slug,
-        order=order,
-        project=project,
-    )
-
-
 async def create_workflow(
     name: str,
-    order: Decimal,
+    order: int,
     project: Project,
 ) -> Workflow:
     return await Workflow.objects.acreate(
@@ -83,6 +69,10 @@ async def create_workflow(
         order=order,
         project=project,
     )
+
+
+async def bulk_create_workflows(workflows: list[Workflow]) -> list[Workflow]:
+    return await Workflow.objects.abulk_create(workflows)
 
 
 ##########################################################
@@ -123,10 +113,7 @@ async def get_workflow(
         .prefetch_related(*prefetch_related)
     )
 
-    try:
-        return await qs.aget()
-    except Workflow.DoesNotExist:
-        return None
+    return await qs.aget()
 
 
 ##########################################################
@@ -189,13 +176,13 @@ WorkflowStatusOrderBy = list[
 ##########################################################
 
 
-def create_workflow_status_sync(
+async def create_workflow_status(
     name: str,
     color: int,
     order: Decimal,
     workflow: Workflow,
 ) -> WorkflowStatus:
-    return WorkflowStatus.objects.create(
+    return await WorkflowStatus.objects.acreate(
         name=name,
         color=color,
         order=order,
@@ -203,7 +190,10 @@ def create_workflow_status_sync(
     )
 
 
-create_workflow_status = sync_to_async(create_workflow_status_sync)
+async def bulk_create_workflow_statuses(
+    workflow_statuses: list[WorkflowStatus],
+) -> list[WorkflowStatus]:
+    return await WorkflowStatus.objects.abulk_create(workflow_statuses)
 
 
 ##########################################################
@@ -278,10 +268,7 @@ async def get_workflow_status(
 ) -> WorkflowStatus | None:
     qs = WorkflowStatus.objects.all().filter(**filters).select_related(*select_related)
 
-    try:
-        return await qs.aget(id=status_id)
-    except WorkflowStatus.DoesNotExist:
-        return None
+    return await qs.aget(id=status_id)
 
 
 ##########################################################

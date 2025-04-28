@@ -23,16 +23,17 @@ from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Field
 from typing_extensions import Annotated
 
-from base.api.permissions import check_permissions
 from base.utils.uuid import decode_b64str_to_uuid
+from commons.exceptions.api import ForbiddenError
 from events import channels
 from events.events import Event
-from exceptions.api import ForbiddenError
 from ninja_jwt.authentication import JWTBaseAuthentication
 from ninja_jwt.exceptions import AuthenticationFailed
-from permissions import CanViewProject, HasPerm
+from permissions import check_permissions
 from projects.projects.models import Project
+from projects.projects.permissions import ProjectPermissionsCheck
 from workspaces.workspaces.models import Workspace
+from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 
 if TYPE_CHECKING:
     from events.consumers import EventConsumer
@@ -103,14 +104,13 @@ class PingAction(PydanticBaseModel):
 # Project
 
 
-PROJECT_PERMISSIONS = CanViewProject()
-
-
 async def can_user_subscribe_to_project_channel(
     user: AbstractUser, project: Project
 ) -> bool:
     try:
-        await check_permissions(permissions=PROJECT_PERMISSIONS, user=user, obj=project)
+        await check_permissions(
+            permissions=ProjectPermissionsCheck.VIEW.value, user=user, obj=project
+        )
         return True
     except ForbiddenError:
         return False
@@ -124,29 +124,30 @@ class SubscribeToProjectEventsAction(PydanticBaseModel):
         from projects.projects import services as projects_services
 
         project_id = decode_b64str_to_uuid(self.project)
-        project = await projects_services.get_project(id=project_id)
-        if project:
-            if await can_user_subscribe_to_project_channel(
-                user=consumer.scope["user"], project=project
-            ):
-                channel = channels.project_channel(self.project)
-                content = {"channel": channel}
-                await consumer.subscribe(channel)
-                await consumer.broadcast_action_response(
-                    channel=channel, action=ActionResponse(action=self, content=content)
-                )
-            else:
-                # Not enough permissions
-                await consumer.send_without_broadcast_action_response(
-                    ActionResponse(
-                        action=self, status="error", content={"detail": "not-allowed"}
-                    ).model_dump()
-                )
-        else:
+        try:
+            project = await projects_services.get_project(id=project_id)
+        except Project.DoesNotExist:
             # Project does not exist
             await consumer.send_without_broadcast_action_response(
                 ActionResponse(
                     action=self, status="error", content={"detail": "not-found"}
+                ).model_dump()
+            )
+            return
+        if await can_user_subscribe_to_project_channel(
+            user=consumer.scope["user"], project=project
+        ):
+            channel = channels.project_channel(self.project)
+            content = {"channel": channel}
+            await consumer.subscribe(channel)
+            await consumer.broadcast_action_response(
+                channel=channel, action=ActionResponse(action=self, content=content)
+            )
+        else:
+            # Not enough permissions
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "not-allowed"}
                 ).model_dump()
             )
 
@@ -189,9 +190,12 @@ class CheckProjectEventsSubscriptionAction(PydanticBaseModel):
         from projects.projects import services as projects_services
 
         project_id = decode_b64str_to_uuid(self.project)
-        project = await projects_services.get_project(id=project_id)
+        try:
+            project = await projects_services.get_project(id=project_id)
+        except Project.DoesNotExist:
+            return
 
-        if project and not await can_user_subscribe_to_project_channel(
+        if not await can_user_subscribe_to_project_channel(
             user=consumer.scope["user"], project=project
         ):
             channel = channels.project_channel(self.project)
@@ -205,15 +209,13 @@ class CheckProjectEventsSubscriptionAction(PydanticBaseModel):
 
 # workspace
 
-WORKSPACE_PERMISSIONS = HasPerm("view_workspace")
-
 
 async def can_user_subscribe_to_workspace_channel(
     user: AbstractUser, workspace: Workspace
 ) -> bool:
     try:
         await check_permissions(
-            permissions=WORKSPACE_PERMISSIONS, user=user, obj=workspace
+            permissions=WorkspacePermissionsCheck.VIEW.value, user=user, obj=workspace
         )
         return True
     except ForbiddenError:
@@ -228,30 +230,33 @@ class SubscribeToWorkspaceEventsAction(PydanticBaseModel):
         from workspaces.workspaces import services as workspaces_services
 
         workspace_id = decode_b64str_to_uuid(self.workspace)
-        workspace = await workspaces_services.get_workspace(workspace_id=workspace_id)
-
-        if workspace:
-            if await can_user_subscribe_to_workspace_channel(
-                user=consumer.scope["user"], workspace=workspace
-            ):
-                channel = channels.workspace_channel(self.workspace)
-                content = {"channel": channel}
-                await consumer.subscribe(channel=channel)
-                await consumer.broadcast_action_response(
-                    channel=channel, action=ActionResponse(action=self, content=content)
-                )
-            else:
-                # Not enough permissions
-                await consumer.send_without_broadcast_action_response(
-                    ActionResponse(
-                        action=self, status="error", content={"detail": "not-allowed"}
-                    ).model_dump()
-                )
-        else:
+        try:
+            workspace = await workspaces_services.get_workspace(
+                workspace_id=workspace_id
+            )
+        except Workspace.DoesNotExist:
             # Workspace does not exist
             await consumer.send_without_broadcast_action_response(
                 ActionResponse(
                     action=self, status="error", content={"detail": "not-found"}
+                ).model_dump()
+            )
+            return
+
+        if await can_user_subscribe_to_workspace_channel(
+            user=consumer.scope["user"], workspace=workspace
+        ):
+            channel = channels.workspace_channel(self.workspace)
+            content = {"channel": channel}
+            await consumer.subscribe(channel=channel)
+            await consumer.broadcast_action_response(
+                channel=channel, action=ActionResponse(action=self, content=content)
+            )
+        else:
+            # Not enough permissions
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self, status="error", content={"detail": "not-allowed"}
                 ).model_dump()
             )
 
@@ -301,9 +306,14 @@ class CheckWorkspaceEventsSubscriptionAction(PydanticBaseModel):
         from workspaces.workspaces import services as workspaces_services
 
         workspace_id = decode_b64str_to_uuid(self.workspace)
-        workspace = await workspaces_services.get_workspace(workspace_id=workspace_id)
+        try:
+            workspace = await workspaces_services.get_workspace(
+                workspace_id=workspace_id
+            )
+        except Workspace.DoesNotExist:
+            return
 
-        if workspace and not await can_user_subscribe_to_workspace_channel(
+        if not await can_user_subscribe_to_workspace_channel(
             user=consumer.scope["user"], workspace=workspace
         ):
             channel = channels.workspace_channel(self.workspace)

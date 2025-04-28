@@ -28,21 +28,5 @@ class BadVerifyUserTokenError(TenzuServiceException):
     pass
 
 
-class ExpiredVerifyUserTokenError(TenzuServiceException):
-    pass
-
-
-class UsedVerifyUserTokenError(TenzuServiceException):
-    pass
-
-
-class UsedResetPasswordTokenError(TenzuServiceException):
-    pass
-
-
-class ExpiredResetPassswordTokenError(TenzuServiceException):
-    pass
-
-
 class BadResetPasswordTokenError(TenzuServiceException):
     pass

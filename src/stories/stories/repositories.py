@@ -103,7 +103,7 @@ async def create_story(
 ##########################################################
 
 
-def list_stories(
+def list_stories_qs(
     filters: StoryFilters = None,
     excludes: StoryFilters = None,
     order_by: StoryOrderBy = None,

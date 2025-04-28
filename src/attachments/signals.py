@@ -19,11 +19,11 @@
 
 from typing import Any
 
+from django.db.models import Model
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
 from attachments.models import Attachment
-from base.db.models import Model
 from commons.storage import repositories as storage_repositories
 
 

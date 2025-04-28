@@ -19,31 +19,38 @@
 
 from uuid import UUID
 
-from ninja import Path, Router
+from ninja import Path, Query, Router
 
-from base.api.permissions import check_permissions
-from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
-from permissions import CanViewProject, IsProjectAdmin, IsRelatedToTheUser
+from commons.validators import B64UUID
+from memberships.api.validators import MembershipValidator
+from memberships.serializers import RoleSerializer
+from memberships.services.exceptions import (
+    NonEditableRoleError,
+    OwnerRoleNotAuthorisedError,
+)
+from permissions import check_permissions
 from projects.memberships import services as memberships_services
-from projects.memberships.api.validators import ProjectMembershipValidator
-from projects.memberships.models import ProjectMembership
+from projects.memberships.api.validators import (
+    CreateRoleValidator,
+    DeleteRoleQuery,
+    UpdateRoleValidator,
+)
+from projects.memberships.models import ProjectMembership, ProjectRole
+from projects.memberships.permissions import (
+    ProjectMembershipPermissionsCheck,
+    ProjectRolePermissionsCheck,
+)
 from projects.memberships.serializers import ProjectMembershipSerializer
 from projects.projects.api import get_project_or_404
 
-membership_router = Router(auth=AsyncJWTAuth())
-
-# PERMISSIONS
-LIST_PROJECT_MEMBERSHIPS = CanViewProject()
-UPDATE_PROJECT_MEMBERSHIP = IsProjectAdmin()
-DELETE_PROJECT_MEMBERSHIP = IsProjectAdmin() | IsRelatedToTheUser("user")
+project_membership_router = Router()
 
 
 ##########################################################
@@ -51,8 +58,8 @@ DELETE_PROJECT_MEMBERSHIP = IsProjectAdmin() | IsRelatedToTheUser("user")
 ##########################################################
 
 
-@membership_router.get(
-    "/projects/{id}/memberships",
+@project_membership_router.get(
+    "/projects/{project_id}/memberships",
     url_name="project.memberships.list",
     summary="List project memberships",
     response={
@@ -64,15 +71,16 @@ DELETE_PROJECT_MEMBERSHIP = IsProjectAdmin() | IsRelatedToTheUser("user")
 )
 async def list_project_memberships(
     request,
-    id: Path[B64UUID],
+    project_id: Path[B64UUID],
 ) -> list[ProjectMembership]:
     """
     List project memberships
     """
-
-    project = await get_project_or_404(id)
+    project = await get_project_or_404(project_id)
     await check_permissions(
-        permissions=LIST_PROJECT_MEMBERSHIPS, user=request.user, obj=project
+        permissions=ProjectMembershipPermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=project,
     )
     return await memberships_services.list_project_memberships(project=project)
 
@@ -82,8 +90,8 @@ async def list_project_memberships(
 ##########################################################
 
 
-@membership_router.patch(
-    "/projects/{id}/memberships/{username}",
+@project_membership_router.patch(
+    "/projects/{project_id}/memberships/{username}",
     url_name="project.memberships.update",
     summary="Update project membership",
     response={
@@ -97,22 +105,29 @@ async def list_project_memberships(
 )
 async def update_project_membership(
     request,
-    id: Path[B64UUID],
-    username: str,
-    form: ProjectMembershipValidator,
+    project_id: Path[B64UUID],
+    username: Path[str],
+    form: MembershipValidator,
 ) -> ProjectMembership:
     """
     Update project membership
     """
-    membership = await get_project_membership_or_404(project_id=id, username=username)
+    membership = await get_project_membership_or_404(
+        project_id=project_id, username=username
+    )
 
     await check_permissions(
-        permissions=UPDATE_PROJECT_MEMBERSHIP, user=request.user, obj=membership
+        permissions=ProjectMembershipPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=membership,
     )
 
-    return await memberships_services.update_project_membership(
-        membership=membership, role_slug=form.role_slug
-    )
+    try:
+        return await memberships_services.update_project_membership(
+            membership=membership, role_slug=form.role_slug, user=request.user
+        )
+    except OwnerRoleNotAuthorisedError as e:
+        raise ex.ForbiddenError(str(e))
 
 
 ##########################################################
@@ -120,8 +135,8 @@ async def update_project_membership(
 ##########################################################
 
 
-@membership_router.delete(
-    "/projects/{id}/memberships/{username}",
+@project_membership_router.delete(
+    "/projects/{project_id}/memberships/{username}",
     url_name="project.memberships.delete",
     summary="Delete project membership",
     response={
@@ -134,18 +149,181 @@ async def update_project_membership(
     by_alias=True,
 )
 async def delete_project_membership(
-    request, id: Path[B64UUID], username: str
+    request, project_id: Path[B64UUID], username: Path[str]
 ) -> tuple[int, None]:
     """
     Delete a project membership
     """
-    membership = await get_project_membership_or_404(project_id=id, username=username)
+    membership = await get_project_membership_or_404(
+        project_id=project_id, username=username
+    )
 
     await check_permissions(
-        permissions=DELETE_PROJECT_MEMBERSHIP, user=request.user, obj=membership
+        permissions=ProjectMembershipPermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=membership,
     )
 
     await memberships_services.delete_project_membership(membership=membership)
+    return 204, None
+
+
+##########################################################
+# list roles
+##########################################################
+
+
+@project_membership_router.get(
+    "/projects/{project_id}/roles",
+    url_name="project.roles.list",
+    summary="List project roles",
+    response={
+        200: list[RoleSerializer],
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def list_project_roles(request, project_id: Path[B64UUID]):
+    """
+    Get project roles and permissions
+    """
+
+    project = await get_project_or_404(project_id)
+    await check_permissions(
+        permissions=ProjectRolePermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=project,
+    )
+    return await memberships_services.list_project_roles(project=project)
+
+
+##########################################################
+# create project role
+##########################################################
+
+
+@project_membership_router.post(
+    "/projects/{project_id}/roles",
+    url_name="project.roles.create",
+    summary="Create project roles",
+    response={
+        200: RoleSerializer,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def create_project_role(
+    request,
+    project_id: Path[B64UUID],
+    form: CreateRoleValidator,
+) -> ProjectRole:
+    """
+    Create project roles
+    """
+    project = await get_project_or_404(project_id)
+    await check_permissions(
+        permissions=ProjectRolePermissionsCheck.CREATE.value,
+        user=request.user,
+        obj=project,
+    )
+    values = form.model_dump(exclude_unset=True)
+
+    return await memberships_services.create_project_role(
+        project_id=project.id, **values
+    )
+
+
+##########################################################
+# update project role
+##########################################################
+
+
+@project_membership_router.put(
+    "/projects/{project_id}/roles/{role_slug}",
+    url_name="project.roles.put",
+    summary="Edit project roles",
+    response={
+        200: RoleSerializer,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def update_project_role(
+    request,
+    project_id: Path[B64UUID],
+    role_slug: Path[str],
+    form: UpdateRoleValidator,
+) -> ProjectRole:
+    """
+    Edit project roles
+    """
+
+    role = await get_project_role_or_404(project_id=project_id, slug=role_slug)
+    await check_permissions(
+        permissions=ProjectRolePermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=role,
+    )
+    values = form.model_dump(exclude_unset=True)
+
+    try:
+        return await memberships_services.update_project_role(role, values)
+    except NonEditableRoleError as exc:
+        # change the bad-request into a forbidden error
+        raise ex.ForbiddenError(str(exc))
+
+
+##########################################################
+# delete project role
+##########################################################
+
+
+@project_membership_router.delete(
+    "/projects/{project_id}/roles/{role_slug}",
+    url_name="project.roles.delete",
+    summary="Delete project roles",
+    response={
+        204: None,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def delete_project_role(
+    request,
+    project_id: Path[B64UUID],
+    role_slug: Path[str],
+    query_params: Query[DeleteRoleQuery],
+) -> tuple[int, None]:
+    """
+    Delete project roles
+    """
+
+    role = await get_project_role_or_404(project_id=project_id, slug=role_slug)
+    await check_permissions(
+        permissions=ProjectRolePermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=role,
+    )
+    try:
+        await memberships_services.delete_project_role(
+            user=request.user,
+            role=role,
+            target_role_slug=query_params.move_to,
+        )
+    except (NonEditableRoleError, OwnerRoleNotAuthorisedError) as exc:
+        # change the bad-request into a forbidden error
+        raise ex.ForbiddenError(str(exc))
     return 204, None
 
 
@@ -157,10 +335,24 @@ async def delete_project_membership(
 async def get_project_membership_or_404(
     project_id: UUID, username: str
 ) -> ProjectMembership:
-    membership = await memberships_services.get_project_membership(
-        project_id=project_id, username=username
-    )
-    if not membership:
-        raise ex.NotFoundError("Membership not found")
+    try:
+        membership = await memberships_services.get_project_membership(
+            project_id=project_id, username=username
+        )
+    except ProjectMembership.DoesNotExist as e:
+        raise ex.NotFoundError(
+            f"User {username} is not a member of project {project_id}"
+        ) from e
 
     return membership
+
+
+async def get_project_role_or_404(project_id: UUID, slug: str) -> ProjectRole:
+    try:
+        role = await memberships_services.get_project_role(
+            project_id=project_id, slug=slug
+        )
+    except ProjectRole.DoesNotExist as e:
+        raise ex.NotFoundError(f"Role {slug} does not exist") from e
+
+    return role

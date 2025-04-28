@@ -20,11 +20,11 @@
 import pytest
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
-from permissions import choices
+from permissions.choices import ProjectPermissions
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
 
-pytestmark = pytest.mark.django_db(transaction=True)
+pytestmark = pytest.mark.django_db
 
 
 ##########################################################
@@ -39,17 +39,20 @@ async def test_create_project_200_ok_being_workspace_member(client):
 
     client.login(workspace.created_by)
     response = await client.post("/projects", data=data, files=files)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["userRole"]["isOwner"] is True
+    assert res["userIsInvited"] is False
+    assert len(res["workflows"]) > 0
 
 
 async def test_create_project_400_bad_request_invalid_workspace_error(client):
     workspace = await f.create_workspace()
-    non_existing_uuid = "6JgsbGyoEe2VExhWgGrI2w"
-    data = {"name": "My pro#%&乕شject", "color": 1, "workspaceId": non_existing_uuid}
+    data = {"name": "My pro#%&乕شject", "color": 1, "workspaceId": NOT_EXISTING_B64ID}
 
     client.login(workspace.created_by)
     response = await client.post("/projects", data=data)
-    assert response.status_code == 400, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_create_project_403_being_no_workspace_member(client):
@@ -60,7 +63,7 @@ async def test_create_project_403_being_no_workspace_member(client):
 
     client.login(user2)
     response = await client.post("/projects", data=data, files=files)
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_create_project_401_being_anonymous(client):
@@ -69,7 +72,7 @@ async def test_create_project_401_being_anonymous(client):
     files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
 
     response = await client.post("/projects", data=data, files=files)
-    assert response.status_code == 401, response.text
+    assert response.status_code == 401, response.data
 
 
 async def test_create_project_422_unprocessable_color(client):
@@ -78,7 +81,16 @@ async def test_create_project_422_unprocessable_color(client):
 
     client.login(workspace.created_by)
     response = await client.post("/projects", data=data)
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
+
+
+async def test_create_project_422_unprocessable_uuid(client):
+    workspace = await f.create_workspace()
+    data = {"name": "My project", "color": 12, "workspaceId": INVALID_B64ID}
+
+    client.login(workspace.created_by)
+    response = await client.post("/projects", data=data)
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -86,16 +98,42 @@ async def test_create_project_422_unprocessable_color(client):
 ##########################################################
 
 
-async def test_list_workspace_projects_200_ok(client, project_template):
+async def test_list_workspace_projects_200_ok_owner_no_project(client):
     workspace = await f.create_workspace()
-    await f.create_project(
-        template=project_template, workspace=workspace, created_by=workspace.created_by
-    )
+    client.login(workspace.created_by)
+    response = await client.get(f"/workspaces/{workspace.b64id}/projects")
+    assert response.status_code == 200, response.text
+    res = response.json()
+    assert res == []
+
+
+async def test_list_workspace_projects_200_ok_owner_one_project(
+    client, project_template
+):
+    workspace = await f.create_workspace()
+    project = await f.create_project(template=project_template, workspace=workspace)
 
     client.login(workspace.created_by)
     response = await client.get(f"/workspaces/{workspace.b64id}/projects")
     assert response.status_code == 200, response.text
-    assert len(response.json()) == 1
+    res = response.json()
+    assert len(res) == 1
+    assert res[0]["name"] == project.name
+    assert not res[0]["userIsInvited"]
+
+
+async def test_list_workspace_projects_200_ok_invitee(client, project_template):
+    pj_invitation = await f.create_project_invitation()
+
+    client.login(pj_invitation.user)
+    response = await client.get(
+        f"/workspaces/{pj_invitation.project.workspace.b64id}/projects"
+    )
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert len(res) == 1
+    assert res[0]["name"] == pj_invitation.project.name
+    assert res[0]["userIsInvited"]
 
 
 async def test_list_workspace_projects_404_not_found_workspace_b64id(client):
@@ -113,106 +151,103 @@ async def test_list_workspace_projects_422_unprocessable_workspace_b64id(client)
 
 
 ##########################################################
-# GET /workspaces/<id>/invited-projects
-##########################################################
-
-
-async def test_list_workspace_invited_projects_200_ok(client, project_template):
-    workspace = await f.create_workspace()
-    project = await f.create_project(
-        template=project_template, workspace=workspace, created_by=workspace.created_by
-    )
-    user2 = await f.create_user()
-    await f.create_workspace_membership(user=user2, workspace=workspace)
-    await f.create_project_invitation(
-        email=user2.email, user=user2, project=project, invited_by=workspace.created_by
-    )
-
-    client.login(user2)
-    response = await client.get(f"/workspaces/{workspace.b64id}/invited-projects")
-    assert response.status_code == 200, response.text
-    assert len(response.json()) == 1
-
-
-async def test_list_workspace_invited_projects_404_not_found_workspace_b64id(client):
-    user = await f.create_user()
-    client.login(user)
-    response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}/invited-projects")
-    assert response.status_code == 404, response.text
-
-
-async def test_list_workspace_invited_projects_422_unproccessable_workspace_b64id(
-    client,
-):
-    user = await f.create_user()
-    client.login(user)
-    response = await client.get(f"/workspaces/{INVALID_B64ID}/invited-projects")
-    assert response.status_code == 422, response.text
-
-
-##########################################################
 # GET /projects/<id>
 ##########################################################
 
 
-async def test_get_project_200_ok_being_project_admin(client, project_template):
+async def test_get_project_200_ok_being_project_owner(client, project_template):
     project = await f.create_project(project_template)
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["userRole"]["isOwner"] is True
+    assert res["userIsInvited"] is False
+    assert len(res["workflows"]) > 0
+
+
+async def test_get_project_200_ok_being_project_member_without_view_workflows(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    general_member_role = await f.create_project_role(
+        permissions=[],
+        is_owner=False,
+        project=project,
+    )
+
+    user = await f.create_user()
+    await f.create_project_membership(
+        user=user, project=project, role=general_member_role
+    )
+
+    client.login(user)
+    response = await client.get(f"/projects/{project.b64id}")
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["userRole"]["isOwner"] is False
+    assert res["userIsInvited"] is False
+    assert res["workflows"] == []
 
 
 async def test_get_project_200_ok_being_project_member(client, project_template):
     project = await f.create_project(project_template)
     general_member_role = await f.create_project_role(
-        permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        permissions=[ProjectPermissions.VIEW_WORKFLOW.value],
+        is_owner=False,
         project=project,
     )
 
-    user2 = await f.create_user()
+    pj_member = await f.create_user()
     await f.create_project_membership(
-        user=user2, project=project, role=general_member_role
+        user=pj_member, project=project, role=general_member_role
     )
 
-    client.login(user2)
+    client.login(pj_member)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["userRole"]["isOwner"] is False
+    assert res["userIsInvited"] is False
+    assert len(res["workflows"]) > 0
 
 
 async def test_get_project_200_ok_being_invited_user(client, project_template):
     project = await f.create_project(project_template)
     general_member_role = await f.create_project_role(
-        permissions=choices.ProjectPermissions.values,
-        is_admin=False,
+        is_owner=False,
         project=project,
     )
 
-    user2 = await f.create_user()
+    user = await f.create_user()
     await f.create_project_invitation(
-        user=user2, project=project, role=general_member_role
+        user=user, project=project, role=general_member_role
     )
 
-    client.login(user2)
+    client.login(user)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
+    res = response.json()
+    assert res["userRole"] is None
+    assert res["userIsInvited"] is True
+    assert res["workflows"] == []
 
 
 async def test_get_project_403_forbidden_not_project_member(client, project_template):
     project = await f.create_project(project_template)
-    user2 = await f.create_user()
+    user = await f.create_user()
 
-    client.login(user2)
+    client.login(user)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_get_project_401_forbidden_being_anonymous(client, project_template):
     project = await f.create_project(project_template)
 
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 401, response.text
+    assert response.status_code == 401, response.data
 
 
 async def test_get_project_404_not_found_project_b64id(
@@ -221,7 +256,7 @@ async def test_get_project_404_not_found_project_b64id(
     user = await f.create_user()
     client.login(user)
     response = await client.get(f"/projects/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_get_project_422_unprocessable_project_b64id(
@@ -230,69 +265,7 @@ async def test_get_project_422_unprocessable_project_b64id(
     user = await f.create_user()
     client.login(user)
     response = await client.get(f"/projects/{INVALID_B64ID}")
-    assert response.status_code == 422, response.text
-
-
-##########################################################
-# GET /projects/<id>/public-permissions
-##########################################################
-
-
-async def test_get_project_public_permissions_200_ok(client, project_template):
-    project = await f.create_project(project_template)
-
-    client.login(project.created_by)
-    response = await client.get(f"/projects/{project.b64id}/public-permissions")
-    assert response.status_code == 200, response.text
-
-
-async def test_get_project_public_permissions_403_forbidden_no_admin(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    user2 = await f.create_user()
-
-    client.login(user2)
-    response = await client.get(f"/projects/{project.b64id}/public-permissions")
-    assert response.status_code == 403, response.text
-
-
-async def test_get_project_public_permissions_403_forbidden_no_member(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    user = await f.create_user()
-
-    client.login(user)
-    response = await client.get(f"/projects/{project.b64id}/public-permissions")
-    assert response.status_code == 403, response.text
-
-
-async def test_get_project_public_permissions_401_forbidden_anonymous_user(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-
-    response = await client.get(f"/projects/{project.b64id}/public-permissions")
-    assert response.status_code == 401, response.text
-
-
-async def test_get_project_public_permissions_404_not_found_project_b64id(
-    client, project_template
-):
-    user = await f.create_user()
-    client.login(user)
-    response = await client.get(f"/projects/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.text
-
-
-async def test_get_project_public_permissions_422_unprocessable_project_b64id(
-    client, project_template
-):
-    user = await f.create_user()
-    client.login(user)
-    response = await client.get(f"/projects/{INVALID_B64ID}")
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -315,11 +288,14 @@ async def test_update_project_files_200_ok(client, project_template):
         data=data,
         FILES={"logo": logo},
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
     assert "new-logo.png" in updated_project["logo"]
+    assert updated_project["userRole"]["isOwner"] is True
+    assert updated_project["userIsInvited"] is False
+    assert len(updated_project["workflows"]) > 0
 
 
 async def test_update_project_files_200_ok_no_logo_change(client, project_template):
@@ -334,7 +310,7 @@ async def test_update_project_files_200_ok_no_logo_change(client, project_templa
         data=data,
         FILES={},
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
@@ -353,7 +329,7 @@ async def test_update_project_files_200_ok_delete_logo(client, project_template)
         data=data,
         FILES={"logo": None},
     )
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
@@ -367,20 +343,82 @@ async def test_update_project_200_ok_delete_description(client, project_template
 
     client.login(project.created_by)
     response = await client.post(f"/projects/{project.b64id}", data=data)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["name"] == project.name
     assert updated_project["description"] == ""
 
 
-async def test_update_project_403_forbidden_no_admin(client, project_template):
+async def test_update_project_422_empty_name(client, project_template):
+    project = await f.create_project(project_template)
+
+    data = {"name": ""}
+
+    client.login(project.created_by)
+    response = await client.post(f"/projects/{project.b64id}", data=data)
+    assert response.status_code == 422, response.data
+
+    data = {"name": None}
+
+    client.login(project.created_by)
+    response = await client.post(f"/projects/{project.b64id}", data=data)
+    assert response.status_code == 200, response.data
+    assert response.json()["name"] == project.name
+
+
+async def test_update_project_200_ok_member(client, project_template):
+    project = await f.create_project(project_template)
+    general_member_role = await f.create_project_role(
+        permissions=[ProjectPermissions.MODIFY_PROJECT.value],
+        is_owner=False,
+        project=project,
+    )
+
+    user = await f.create_user()
+    await f.create_project_membership(
+        user=user, project=project, role=general_member_role
+    )
+
+    data = {"name": "new name"}
+
+    client.login(user)
+    response = await client.post(f"/projects/{project.b64id}", data=data)
+    assert response.status_code == 200, response.data
+    updated_project = response.json()
+    assert updated_project["userRole"]["isOwner"] is False
+    assert updated_project["userIsInvited"] is False
+    assert updated_project["workflows"] == []
+
+
+async def test_update_project_403_forbidden_member_without_permissions(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    general_member_role = await f.create_project_role(
+        permissions=[],
+        is_owner=False,
+        project=project,
+    )
+
+    user = await f.create_user()
+    await f.create_project_membership(
+        user=user, project=project, role=general_member_role
+    )
+
+    data = {"name": "new name"}
+    client.login(user)
+    response = await client.post(f"/projects/{project.b64id}", data=data)
+    assert response.status_code == 403, response.data
+
+
+async def test_update_project_403_forbidden_not_member(client, project_template):
     other_user = await f.create_user()
     project = await f.create_project(project_template)
 
     data = {"name": "new name"}
     client.login(other_user)
     response = await client.post(f"/projects/{project.b64id}", data=data)
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_update_project_404_not_found_project_b64id(
@@ -391,7 +429,7 @@ async def test_update_project_404_not_found_project_b64id(
 
     client.login(user)
     response = await client.post(f"/projects/{NOT_EXISTING_B64ID}", data=data)
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_update_project_422_unprocessable_project_b64id(client):
@@ -400,129 +438,7 @@ async def test_update_project_422_unprocessable_project_b64id(client):
 
     client.login(user)
     response = await client.post(f"/projects/{INVALID_B64ID}", data=data)
-    assert response.status_code == 422, response.text
-
-
-##########################################################
-# PUT /projects/<id>/public-permissions
-##########################################################
-
-
-@pytest.mark.parametrize(
-    "permissions",
-    [
-        (["view_story"]),
-        (["view_story", "modify_story"]),
-    ],
-)
-async def test_update_project_public_permissions_200_ok(
-    client, permissions, project_template
-):
-    project = await f.create_project(project_template)
-    data = {"permissions": permissions}
-
-    client.login(project.created_by)
-    response = await client.put(
-        f"/projects/{project.b64id}/public-permissions", json=data
-    )
-    assert response.status_code == 200, response.text
-
-
-async def test_update_project_public_permissions_403_forbidden_no_admin(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    user2 = await f.create_user()
-    data = {"permissions": []}
-
-    client.login(user2)
-    response = await client.put(
-        f"/projects/{project.b64id}/public-permissions", json=data
-    )
-    assert response.status_code == 403, response.text
-
-
-async def test_update_project_public_permissions_403_forbidden_no_member(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    user = await f.create_user()
-    data = {"permissions": []}
-
-    client.login(user)
-    response = await client.put(
-        f"/projects/{project.b64id}/public-permissions", json=data
-    )
-    assert response.status_code == 403, response.text
-
-
-async def test_update_project_public_permissions_401_forbidden_anonymous_user(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    data = {"permissions": []}
-
-    response = await client.put(
-        f"/projects/{project.b64id}/public-permissions", json=data
-    )
-    assert response.status_code == 401, response.text
-
-
-async def test_update_project_public_permissions_404_not_found_project_b64id(client):
-    user = await f.create_user()
-    data = {"permissions": ["view_story"]}
-
-    client.login(user)
-    response = await client.put(
-        f"/projects/{NOT_EXISTING_B64ID}/public-permissions", json=data
-    )
-    assert response.status_code == 404, response.text
-
-
-@pytest.mark.parametrize(
-    "permissions",
-    [
-        (["modify_story"]),
-        (["delete_story"]),
-    ],
-)
-async def test_update_project_public_permissions_422_unprocessable_incompatible(
-    client, permissions, project_template
-):
-    project = await f.create_project(project_template)
-    data = {"permissions": permissions}
-
-    client.login(project.created_by)
-    response = await client.put(
-        f"/projects/{project.b64id}/public-permissions", json=data
-    )
-    assert response.status_code == 422, response.text
-
-
-async def test_update_project_public_permissions_422_unprocessable_not_valid(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    data = {"permissions": ["not_valid"]}
-
-    client.login(project.created_by)
-    response = await client.put(
-        f"/projects/{project.b64id}/public-permissions", json=data
-    )
-    assert response.status_code == 422, response.text
-
-
-async def test_update_project_public_permissions_422_unprocessable_project_b64id(
-    client,
-):
-    user = await f.create_user()
-    data = {"permissions": []}
-
-    client.login(user)
-    response = await client.put(
-        f"/projects/{INVALID_B64ID}/public-permissions", json=data
-    )
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -530,72 +446,71 @@ async def test_update_project_public_permissions_422_unprocessable_project_b64id
 ##########################################################
 
 
-async def test_delete_project_204_no_content_being_proj_admin(client, project_template):
+async def test_delete_project_204_no_content_being_proj_owner(client, project_template):
     project = await f.create_project(project_template)
 
     client.login(project.created_by)
     response = await client.delete(f"/projects/{project.b64id}")
-    assert response.status_code == 204, response.text
+    assert response.status_code == 204, response.data
 
 
-async def test_delete_project_204_no_content_being_ws_admin(client, project_template):
-    ws = await f.create_workspace()
-    project = await f.create_project(template=project_template, workspace=ws)
-
-    client.login(ws.created_by)
-    response = await client.delete(f"/projects/{project.b64id}")
-    assert response.status_code == 204, response.text
-
-
-async def test_delete_project_403_forbidden_user_without_permissions(
+async def test_delete_project_204_no_content_being_proj_member(
     client, project_template
 ):
     project = await f.create_project(project_template)
+    general_member_role = await f.create_project_role(
+        permissions=[ProjectPermissions.DELETE_PROJECT.value],
+        is_owner=False,
+        project=project,
+    )
+
+    user = await f.create_user()
+    await f.create_project_membership(
+        user=user, project=project, role=general_member_role
+    )
+    client.login(user)
+    response = await client.delete(f"/projects/{project.b64id}")
+    assert response.status_code == 204, response.data
+
+
+async def test_delete_project_403_forbidden_member_without_permissions(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    general_member_role = await f.create_project_role(
+        permissions=[],
+        is_owner=False,
+        project=project,
+    )
+
+    user = await f.create_user()
+    await f.create_project_membership(
+        user=user, project=project, role=general_member_role
+    )
+
+    client.login(user)
+    response = await client.delete(f"/projects/{project.b64id}")
+    assert response.status_code == 403, response.data
+
+
+async def test_delete_project_403_forbidden_not_member(client, project_template):
+    project = await f.create_project(project_template)
     user = await f.create_user()
 
     client.login(user)
     response = await client.delete(f"/projects/{project.b64id}")
-    assert response.status_code == 403, response.text
+    assert response.status_code == 403, response.data
 
 
 async def test_delete_project_404_not_found_project_b64id(client):
-    pj_admin = await f.create_user()
-    client.login(pj_admin)
+    pj_owner = await f.create_user()
+    client.login(pj_owner)
     response = await client.delete(f"/projects/{NOT_EXISTING_B64ID}")
-    assert response.status_code == 404, response.text
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_project_422_unprocessable_project_b64id(client):
-    pj_admin = await f.create_user()
-    client.login(pj_admin)
+    pj_owner = await f.create_user()
+    client.login(pj_owner)
     response = await client.delete(f"/projects/{INVALID_B64ID}")
-    assert response.status_code == 422, response.text
-
-
-##########################################################
-# GET /my/projects/<id>/permissions
-##########################################################
-
-
-async def test_get_my_project_permissions_200_ok(client, project_template):
-    project = await f.create_project(project_template)
-
-    client.login(project.created_by)
-    response = await client.get(f"/my/projects/{project.b64id}/permissions")
-    assert response.status_code == 200, response.text
-
-
-async def test_get_my_project_permissions_404_not_found_project_b64id(client):
-    user = await f.create_user()
-
-    client.login(user)
-    response = await client.get(f"/my/projects/{NOT_EXISTING_B64ID}/permissions")
-    assert response.status_code == 404, response.text
-
-
-async def test_get_my_project_permissions_422_unprocessable_project_b64id(client):
-    user = await f.create_user()
-
-    client.login(user)
-    response = await client.get(f"/my/projects/{INVALID_B64ID}/permissions")
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data

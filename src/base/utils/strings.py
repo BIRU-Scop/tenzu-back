@@ -31,3 +31,8 @@ def dict_to_camel(value: Mapping | list | str):
     if isinstance(value, list):
         return [dict_to_camel(k) for k in value]
     return value
+
+
+def orderby_to_snake(data: str):
+    snake_data = to_snake(data)
+    return f"-{snake_data[1:]}" if data.startswith("-") else snake_data

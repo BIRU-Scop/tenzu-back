@@ -16,11 +16,10 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Model
 from django.urls import reverse
 from django.utils.html import format_html
-
-from base.db.models import ContentType, Model
 
 
 def linkify(object: Model, field_name: str) -> str:

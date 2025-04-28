@@ -15,6 +15,10 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from channels.layers import get_channel_layer
 from redis import AuthenticationError, ConnectionError
 from sentry_sdk import capture_exception
@@ -23,8 +27,10 @@ from events import channels
 from events.actions import EventResponse
 from events.events import Event, EventContent
 from projects.projects.models import Project
-from users.models import AnyUser
 from workspaces.workspaces.models import Workspace
+
+if TYPE_CHECKING:
+    from users.models import AnyUser
 
 
 class EventsManager:

@@ -18,24 +18,17 @@
 # You can contact BIRU at ask@biru.sh
 
 from asgiref.sync import sync_to_async
-from django.http import HttpResponse
-from ninja import Query, Router
+from ninja import Router
 
-from base.api import pagination as api_pagination
-from base.api.pagination import PaginationQuery
-from base.api.permissions import check_permissions
-from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_401,
-    ERROR_RESPONSE_403,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from ninja_jwt.tokens import RefreshToken
-from permissions import IsAuthenticated
+from permissions import check_permissions
 from users import services as users_services
 from users.api.validators import (
     CreateUserValidator,
@@ -45,17 +38,14 @@ from users.api.validators import (
     VerifyTokenValidator,
 )
 from users.models import User
+from users.permissions import UserPermissionsCheck
 from users.serializers import (
     UserDeleteInfoSerializer,
-    UserSearchSerializer,
     UserSerializer,
     VerificationInfoSerializer,
 )
 
-users_router = Router(auth=AsyncJWTAuth())
-
-# PERMISSIONS
-LIST_USERS_BY_TEXT = IsAuthenticated()
+users_router = Router()
 
 
 #####################################################################
@@ -115,74 +105,24 @@ async def verify_user(
 
 
 #####################################################################
-# list users (search)
-#####################################################################
-
-
-@users_router.get(
-    "/users/search",
-    url_name="users.search",
-    summary="List all users matching a full text search, ordered (when provided) by their closeness"
-    " to a project or a workspace.",
-    response={
-        200: list[UserSearchSerializer],
-        403: ERROR_RESPONSE_403,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-# TODO @paginate
-async def list_users_by_text(
-    request,
-    response: HttpResponse,
-    pagination_params: Query[PaginationQuery],
-    text: str = None,
-    project: Query[B64UUID] = None,
-    workspace: Query[B64UUID] = None,
-) -> list[User]:
-    """
-    List all the users matching the full-text search criteria in their usernames and/or full names. The response will be
-    ***alphabetically ordered in blocks***, according to their proximity to a *<project/workspace>* when any of
-    these two parameters are received:
-      - 1st ordering block: *<project / workspace>* members,
-      - 2nd ordering block: *<members of the project's workspace / members of the workspace's projects>*
-      - 3rd ordering block: rest of the users
-    """
-    await check_permissions(permissions=LIST_USERS_BY_TEXT, user=request.user)
-
-    pagination, users = await users_services.list_paginated_users_by_text(
-        text=text,
-        project_id=project,
-        workspace_id=workspace,
-        offset=pagination_params.offset,
-        limit=pagination_params.limit,
-    )
-
-    api_pagination.set_pagination(response=response, pagination=pagination)
-
-    return users
-
-
-#####################################################################
 # get user
 #####################################################################
 
 
 @users_router.get(
-    "/my/user",
-    url_name="my.user",
+    "/users/me",
+    url_name="user.get.me",
     summary="Get authenticated user",
     response=UserSerializer,
     by_alias=True,
 )
-async def get_my_user(request) -> User:
+async def get_current_user(request) -> User:
     """
     Get the current authenticated user (according to the auth token in the request headers).
     """
-
-    if request.user.is_anonymous:
-        # NOTE: We force a 401 instead of using the permissions system (which would return a 403)
-        raise ex.AuthorizationError("User is anonymous")
+    await check_permissions(
+        permissions=UserPermissionsCheck.ACCESS_SELF.value, user=request.user
+    )
 
     return request.user
 
@@ -193,8 +133,8 @@ async def get_my_user(request) -> User:
 
 
 @users_router.put(
-    "/my/user",
-    url_name="my.user.update",
+    "/users/me",
+    url_name="user.update.me",
     summary="Update authenticated user",
     response={
         200: UserSerializer,
@@ -204,13 +144,13 @@ async def get_my_user(request) -> User:
     },
     by_alias=True,
 )
-async def update_my_user(request, form: UpdateUserValidator) -> User:
+async def update_current_user(request, form: UpdateUserValidator) -> User:
     """
     Update the current authenticated user (according to the auth token in the request headers).
     """
-    if request.user.is_anonymous:
-        # NOTE: We force a 401 instead of using the permissions system (which would return a 403)
-        raise ex.AuthorizationError("User is anonymous")
+    await check_permissions(
+        permissions=UserPermissionsCheck.ACCESS_SELF.value, user=request.user
+    )
 
     return await users_services.update_user(
         user=request.user,
@@ -226,28 +166,28 @@ async def update_my_user(request, form: UpdateUserValidator) -> User:
 
 
 @users_router.delete(
-    "/my/user",
-    url_name="my.user.delete",
+    "/users/me",
+    url_name="user.delete.me",
     summary="Delete user",
-    response={204: None, 401: ERROR_RESPONSE_401},
+    response={204: None, 400: ERROR_RESPONSE_400, 401: ERROR_RESPONSE_401},
     by_alias=True,
 )
-async def delete_user(request) -> tuple[int, None]:
+async def delete_current_user(request) -> tuple[int, None]:
     """
     Delete a user.
 
     In this endpoint:
     - All workspaces where the user is the only workspace member are deleted (cascade)
     - All projects where the user is the only project member are deleted (cascade)
-    - All projects where the user is the only project admin and is not the only workspace member
-    or is not workspace member are updated with a new project admin (a workspace member)
+    - If there are any workspace or project with other members where user is the only owner
+      an error is raised and the deletion is canceled
     - All memberships related with this user in workspaces and projects are deleted
     - All invitations related with this user in workspaces and projects are deleted
     - User is deleted
     """
-    if request.user.is_anonymous:
-        # NOTE: We force a 401 instead of using the permissions system (which would return a 403)
-        raise ex.AuthorizationError("User is anonymous")
+    await check_permissions(
+        permissions=UserPermissionsCheck.ACCESS_SELF.value, user=request.user
+    )
 
     await users_services.delete_user(user=request.user)
     return 204, None
@@ -259,24 +199,24 @@ async def delete_user(request) -> tuple[int, None]:
 
 
 @users_router.get(
-    "/my/user/delete-info",
-    url_name="my.user.delete-info",
+    "/users/me/delete-info",
+    url_name="user.me.delete-info",
     summary="Get user delete info",
     response={200: UserDeleteInfoSerializer, 401: ERROR_RESPONSE_401},
     by_alias=True,
 )
-async def get_user_delete_info(request) -> UserDeleteInfoSerializer:
+async def get_current_user_delete_info(request) -> UserDeleteInfoSerializer:
     """
     Get some info before deleting a user.
 
     This endpoint returns:
     - A list of workspaces where the user is the only workspace member and the workspace has projects
-    - A list projects where the user is the only project admin and is not the only workspace member
+    - A list projects where the user is the only project owner and is not the only workspace member
     or is not workspace member
     """
-    if request.user.is_anonymous:
-        # NOTE: We force a 401 instead of using the permissions system (which would return a 403)
-        raise ex.AuthorizationError("User is anonymous")
+    await check_permissions(
+        permissions=UserPermissionsCheck.ACCESS_SELF.value, user=request.user
+    )
 
     return await users_services.get_user_delete_info(user=request.user)
 

@@ -19,8 +19,11 @@
 
 from os import path
 
-from base.db import models
-from base.db.mixins import CreatedMetaInfoMixin
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.db import models
+
+from base.db.models import BaseModel
+from base.db.models.mixins import CreatedMetaInfoMixin
 from base.utils.files import get_obfuscated_file_path
 
 
@@ -38,7 +41,7 @@ def get_mediafile_file_path(instance: "Mediafile", filename: str) -> str:
     return get_obfuscated_file_path(instance, filename, base_path)
 
 
-class Mediafile(models.BaseModel, CreatedMetaInfoMixin):
+class Mediafile(BaseModel, CreatedMetaInfoMixin):
     # TODO: We need to remove file on delete project and content_object. It may depend on the real life that
     #       the files have beyond their content object (especially with history or activity timelines).
     #       (Some inspiration https://github.com/un1t/django-cleanup)
@@ -81,7 +84,7 @@ class Mediafile(models.BaseModel, CreatedMetaInfoMixin):
         verbose_name="object content type",
     )
     object_id = models.UUIDField(null=True, blank=True, verbose_name="object id")
-    content_object = models.GenericForeignKey(
+    content_object = GenericForeignKey(
         "object_content_type",
         "object_id",
     )

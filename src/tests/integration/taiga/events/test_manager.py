@@ -24,8 +24,8 @@ from fastapi.websockets import WebSocket
 
 from base.serializers import BaseModel
 from events import channels
+from events.event_manager import EventsManager
 from events.events import Event
-from events.manager import EventsManager
 from events.pubsub import RedisPubSubBackend
 from tests.utils import factories as f
 

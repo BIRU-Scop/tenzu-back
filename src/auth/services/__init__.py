@@ -31,11 +31,11 @@ async def create_auth_credentials(user: User) -> TokenObtainPairOutputSchema:
     This function create new auth credentiasl (an access token and a refresh token) for one user.
     It will also update the date of the user's last login.
     """
-    await users_repositories.update_last_login(user=user)
     if not api_settings.USER_AUTHENTICATION_RULE(user):
         raise exceptions.AuthenticationFailed(
             TokenObtainPairInputSchema._default_error_messages["no_active_account"]
         )
+    await users_repositories.update_last_login(user=user)
 
     refresh: RefreshToken = await sync_to_async(RefreshToken.for_user)(user)
     username_field = User.USERNAME_FIELD

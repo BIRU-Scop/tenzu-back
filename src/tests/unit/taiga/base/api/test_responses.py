@@ -18,9 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.api import responses
-from workspaces.workspaces.serializers import WorkspaceDetailSerializer
+from workspaces.workspaces.serializers import WorkspaceSummarySerializer
 
 
 def test_validate_200_response_ok(client):
-    result = responses.http_status_200(model=WorkspaceDetailSerializer)
-    assert result[200]["model"] == WorkspaceDetailSerializer
+    result = responses.http_status_200(model=WorkspaceSummarySerializer)
+    assert result[200]["model"] == WorkspaceSummarySerializer

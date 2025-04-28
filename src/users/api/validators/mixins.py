@@ -23,7 +23,7 @@ from collections import Counter
 from pydantic import StringConstraints, field_validator
 from typing_extensions import Annotated
 
-from base.validators import BaseModel
+from commons.validators import BaseModel
 
 
 class PasswordMixin(BaseModel):

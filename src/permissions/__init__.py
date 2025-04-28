@@ -17,12 +17,114 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+import abc
 from typing import TYPE_CHECKING, Any
 
-from base.api.permissions import PermissionComponent
+from base.db.models.mixins import DeletedAtMetaInfoMixin
+from commons.exceptions import api as ex
 
 if TYPE_CHECKING:
     from users.models import AnyUser
+
+######################################################################
+# Permission components - basic class
+######################################################################
+
+
+class PermissionComponent(metaclass=abc.ABCMeta):
+    error = ex.ForbiddenError("User doesn't have permissions to perform this action")
+
+    @abc.abstractmethod
+    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+        raise NotImplementedError
+
+    def __invert__(self) -> "Not":
+        return Not(self)
+
+    def __and__(self, component: "PermissionComponent") -> "And":
+        return And(self, component)
+
+    def __or__(self, component: "PermissionComponent") -> "Or":
+        return Or(self, component)
+
+
+######################################################################
+# Permission components - operators
+######################################################################
+
+
+class PermissionOperator(PermissionComponent):
+    """
+    Base class for all logical operators for compose components.
+    """
+
+    def __init__(self, *components: "PermissionComponent") -> None:
+        self.components = tuple(components)
+
+
+class Not(PermissionOperator):
+    """
+    Negation operator as permission component.
+    """
+
+    # Overwrites the default constructor for fix
+    # to one parameter instead of variable list of them.
+    def __init__(self, component: "PermissionComponent") -> None:
+        super().__init__(component)
+
+    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+        component = self.components[0]
+        return not await component.is_authorized(user, obj)
+
+
+class Or(PermissionOperator):
+    """
+    Or logical operator as permission component.
+    """
+
+    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+        valid = False
+
+        for component in self.components:
+            if await component.is_authorized(user, obj):
+                valid = True
+                break
+
+        return valid
+
+
+class And(PermissionOperator):
+    """
+    And logical operator as permission component.
+    """
+
+    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+        valid = True
+
+        for component in self.components:
+            if not await component.is_authorized(user, obj):
+                self.error = component.error
+                valid = False
+                break
+
+        return valid
+
+
+######################################################################
+# check_permissions - main function
+######################################################################
+
+
+async def check_permissions(
+    permissions: PermissionComponent,
+    user: "AnyUser",
+    obj: object = None,
+) -> None:
+    if user.is_authenticated and user.is_superuser:
+        return
+
+    if not await permissions.is_authorized(user=user, obj=obj):
+        raise permissions.error
 
 
 ############################################################
@@ -31,49 +133,35 @@ if TYPE_CHECKING:
 
 
 class AllowAny(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
         return True
 
 
 class DenyAll(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
         return False
 
 
 class IsSuperUser(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
-        return bool(user and user.is_authenticated and user.is_superuser)
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
+        return bool(user and user.is_superuser)
 
 
 class IsAuthenticated(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    # NOTE: We force a 401 instead of using the default (which would return a 403)
+    error = ex.AuthorizationError("User is anonymous")
+
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
         return bool(user and user.is_authenticated)
 
 
-class HasPerm(PermissionComponent):
-    def __init__(self, perm: str, *components: "PermissionComponent") -> None:
-        self.object_perm = perm
-        super().__init__(*components)
-
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
-        from permissions import services as permissions_services
-
-        return await permissions_services.user_has_perm(
-            user=user, perm=self.object_perm, obj=obj
-        )
-
-
 class IsRelatedToTheUser(PermissionComponent):
-    def __init__(self, field: str, *components: "PermissionComponent") -> None:
+    def __init__(self, field: str = "user", *components: "PermissionComponent") -> None:
         self.related_field = field
         super().__init__(*components)
 
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
-        from permissions import services as permissions_services
-
-        return await permissions_services.is_an_object_related_to_the_user(
-            user=user, obj=obj, field=self.related_field
-        )
+    async def is_authorized(self, user: "AnyUser", obj: object = None) -> bool:
+        return obj and getattr(obj, self.related_field) == user
 
 
 class IsNotDeleted(PermissionComponent):
@@ -83,36 +171,7 @@ class IsNotDeleted(PermissionComponent):
     `base.db.mixins.DeletedMetaInfoMixin`.
     """
 
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(
+        self, user: "AnyUser", obj: DeletedAtMetaInfoMixin = None
+    ) -> bool:
         return not hasattr(obj, "deleted_at") or obj.deleted_at is None
-
-
-############################################################
-# Project permissions
-############################################################
-
-
-class CanViewProject(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
-        from permissions import services as permissions_services
-
-        return await permissions_services.user_can_view_project(user=user, obj=obj)
-
-
-class IsProjectAdmin(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
-        from permissions import services as permissions_services
-
-        return await permissions_services.is_project_admin(user=user, obj=obj)
-
-
-############################################################
-# Workspace permissions
-############################################################
-
-
-class IsWorkspaceMember(PermissionComponent):
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
-        from permissions import services as permissions_services
-
-        return await permissions_services.is_workspace_member(user=user, obj=obj)

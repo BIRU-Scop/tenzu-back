@@ -19,7 +19,9 @@
 
 from uuid import UUID
 
+from permissions.choices import ProjectPermissions
 from projects.memberships import repositories as pj_memberships_repositories
+from projects.memberships.models import ProjectMembership
 from stories.assignments import events as stories_assignments_events
 from stories.assignments import notifications as stories_assignments_notifications
 from stories.assignments import repositories as story_assignments_repositories
@@ -36,16 +38,18 @@ from users.models import User
 async def create_story_assignment(
     project_id: UUID, story: Story, username: str, created_by: User
 ) -> StoryAssignment:
-    pj_membership = await pj_memberships_repositories.get_project_membership(
-        filters={
-            "project_id": project_id,
-            "username": username,
-            "permissions": ["view_story"],
-        }
-    )
-    if pj_membership is None:
+    try:
+        pj_membership = await pj_memberships_repositories.get_membership(
+            ProjectMembership,
+            filters={
+                "project_id": project_id,
+                "user__username": username,
+                "role__permissions__contains": [ProjectPermissions.VIEW_STORY.value],
+            },
+        )
+    except ProjectMembership.DoesNotExist:
         raise ex.InvalidAssignmentError(
-            f"{username} is not member or not have permissions"
+            f"{username} is not member or does not have permissions"
         )
 
     user = pj_membership.user

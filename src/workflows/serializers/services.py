@@ -58,8 +58,8 @@ def serialize_delete_workflow_detail(
 
 
 def serialize_reorder_workflow_statuses(
-    workflow: Workflow, statuses: list[UUID], reorder: dict[str, Any] | None = None
+    workflow: Workflow, status_ids: list[UUID], reorder: dict[str, Any] | None = None
 ) -> ReorderWorkflowStatusesSerializer:
     return ReorderWorkflowStatusesSerializer(
-        workflow=workflow, statuses=statuses, reorder=reorder
+        workflow=workflow, status_ids=status_ids, reorder=reorder
     )

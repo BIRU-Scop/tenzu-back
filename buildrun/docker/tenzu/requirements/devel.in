@@ -5,6 +5,7 @@ pytest
 pytest-cov
 pytest-django
 pytest-asyncio
+pytest-xdist[psutil]
 factory-boy
 freezegun
 validators

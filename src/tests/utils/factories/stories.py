@@ -27,7 +27,10 @@ from .base import Factory, factory
 
 
 class StoryAssignmentFactory(Factory):
-    story = factory.SubFactory("tests.utils.factories.StoryFactory")
+    story = factory.SubFactory(
+        "tests.utils.factories.StoryFactory",
+        created_by=factory.SelfAttribute("..user"),
+    )
     user = factory.SubFactory("tests.utils.factories.UserFactory")
 
     class Meta:
@@ -51,9 +54,18 @@ def build_story_assignment(**kwargs):
 class StoryFactory(Factory):
     title = factory.Sequence(lambda n: f"Story {n}")
     description = factory.Sequence(lambda n: f"Description {n}")
-    project = factory.SubFactory("tests.utils.factories.ProjectFactory")
-    workflow = factory.SubFactory("tests.utils.factories.WorkflowFactory")
-    status = factory.SubFactory("tests.utils.factories.WorkflowStatusFactory")
+    project = factory.SubFactory(
+        "tests.utils.factories.ProjectFactory",
+        created_by=factory.SelfAttribute("..created_by"),
+    )
+    workflow = factory.SubFactory(
+        "tests.utils.factories.WorkflowFactory",
+        project=factory.SelfAttribute("..project"),
+    )
+    status = factory.SubFactory(
+        "tests.utils.factories.WorkflowStatusFactory",
+        workflow=factory.SelfAttribute("..workflow"),
+    )
     created_by = factory.SubFactory("tests.utils.factories.UserFactory")
     order = factory.Sequence(lambda n: n + 1)
 

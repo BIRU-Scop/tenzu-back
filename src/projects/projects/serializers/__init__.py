@@ -19,37 +19,21 @@
 
 from pydantic import ConfigDict
 
-from base.serializers import UUIDB64, BaseModel
-from projects.projects.serializers.mixins import ProjectLogoBaseSerializer
+from memberships.serializers import RoleSerializer
+from projects.projects.serializers.mixins import ProjectLogoBaseSerializer  # noqa
+from projects.projects.serializers.nested import ProjectNestedSerializer
 from workflows.serializers.nested import WorkflowNestedSerializer
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class ProjectSummarySerializer(ProjectLogoBaseSerializer):
-    id: UUIDB64
-    name: str
-    slug: str
-    description: str
-    color: int
-    workspace_id: UUIDB64
-    landing_page: str
+class ProjectSummarySerializer(ProjectNestedSerializer):
+    user_is_invited: bool
     model_config = ConfigDict(from_attributes=True)
 
 
-class ProjectDetailSerializer(ProjectLogoBaseSerializer):
-    id: UUIDB64
-    name: str
-    slug: str
-    description: str
-    color: int
-    landing_page: str
-    workspace_id: UUIDB64
+class ProjectDetailSerializer(ProjectSummarySerializer):
     workspace: WorkspaceNestedSerializer
     workflows: list[WorkflowNestedSerializer]
 
-    # User related fields
-    user_is_admin: bool
-    user_is_member: bool
-    user_has_pending_invitation: bool
-    user_permissions: list[str]
+    user_role: RoleSerializer | None
     model_config = ConfigDict(from_attributes=True)

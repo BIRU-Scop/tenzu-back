@@ -21,36 +21,29 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.api.permissions import check_permissions
-from base.validators import B64UUID
-from exceptions import api as ex
-from exceptions.api.errors import (
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
+    ERROR_RESPONSE_401,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
-from ninja_jwt.authentication import AsyncJWTAuth
-from permissions import HasPerm, IsAuthenticated, IsWorkspaceMember
+from commons.validators import B64UUID
+from permissions import IsAuthenticated, check_permissions
 from workspaces.workspaces import services as workspaces_services
 from workspaces.workspaces.api.validators import (
     UpdateWorkspaceValidator,
     WorkspaceValidator,
 )
 from workspaces.workspaces.models import Workspace
+from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 from workspaces.workspaces.serializers import (
     WorkspaceDetailSerializer,
-    WorkspaceSerializer,
+    WorkspaceSummarySerializer,
 )
 
-# PERMISSIONS
-LIST_MY_WORKSPACES = IsAuthenticated()
-GET_MY_WORKSPACE = IsAuthenticated()
-GET_WORKSPACE = HasPerm("view_workspace")
-DELETE_WORKSPACE = IsWorkspaceMember()
-UPDATE_WORKSPACE = IsWorkspaceMember()
-
-workspace_router = Router(auth=AsyncJWTAuth())
+workspace_router = Router()
 
 
 ##########################################################
@@ -63,16 +56,22 @@ workspace_router = Router(auth=AsyncJWTAuth())
     url_name="workspaces.post",
     summary="Create workspace",
     response={
-        200: WorkspaceSerializer,
+        200: WorkspaceDetailSerializer,
         403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
 )
-async def create_workspace(request, data: WorkspaceValidator) -> WorkspaceSerializer:
+async def create_workspace(
+    request, data: WorkspaceValidator
+) -> WorkspaceDetailSerializer:
     """
     Create a new workspace for the logged user.
     """
+    await check_permissions(
+        permissions=WorkspacePermissionsCheck.CREATE.value,
+        user=request.user,
+    )
     return await workspaces_services.create_workspace(
         name=data.name, color=data.color, created_by=request.user
     )
@@ -84,50 +83,32 @@ async def create_workspace(request, data: WorkspaceValidator) -> WorkspaceSerial
 
 
 @workspace_router.get(
-    "/my/workspaces",
-    url_name="workspaces.post",
+    "/workspaces",
+    url_name="workspaces.list",
     summary="List the overview of the workspaces to which I belong",
-    response={200: list[WorkspaceDetailSerializer], 403: ERROR_RESPONSE_403},
+    response={200: list[WorkspaceSummarySerializer], 401: ERROR_RESPONSE_401},
     by_alias=True,
 )
-async def list_my_workspaces(request) -> list[WorkspaceDetailSerializer]:
+async def list_my_workspaces(request) -> list[Workspace]:
     """
     List the workspaces overviews of the logged user.
     """
-    await check_permissions(permissions=LIST_MY_WORKSPACES, user=request.user, obj=None)
+    await check_permissions(
+        permissions=WorkspacePermissionsCheck.VIEW_SELF.value,
+        user=request.user,
+    )
     return await workspaces_services.list_user_workspaces(user=request.user)
 
 
 ##########################################################
 # get workspace
 ##########################################################
+
+
 @workspace_router.get(
-    "/workspaces/{id}",
-    url_name="workspaces.get",
+    "/workspaces/{workspace_id}",
+    url_name="workspace.get",
     summary="Get workspace",
-    response={
-        200: WorkspaceSerializer,
-        403: ERROR_RESPONSE_403,
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-async def get_workspace(request, id: Path[B64UUID]) -> WorkspaceSerializer:
-    """
-    Get workspace detail by id.
-    """
-    workspace = await get_workspace_or_404(id=id)
-    await check_permissions(permissions=GET_WORKSPACE, user=request.user, obj=workspace)
-    return await workspaces_services.get_workspace_detail(
-        id=workspace.id, user_id=request.user.id
-    )
-
-
-@workspace_router.get(
-    "/my/workspaces/{id}",
-    url_name="my.workspaces.get",
-    summary="Get the overview of a workspace to which I belong",
     response={
         200: WorkspaceDetailSerializer,
         403: ERROR_RESPONSE_403,
@@ -136,17 +117,21 @@ async def get_workspace(request, id: Path[B64UUID]) -> WorkspaceSerializer:
     },
     by_alias=True,
 )
-async def get_my_workspace(request, id: Path[B64UUID]) -> WorkspaceDetailSerializer:
+async def get_workspace(
+    request, workspace_id: Path[B64UUID]
+) -> WorkspaceDetailSerializer:
     """
-    Get the workspaces overview for the logged user.
+    Get workspace detail by id.
     """
-    await check_permissions(permissions=GET_MY_WORKSPACE, user=request.user, obj=None)
-    workspace_overview = await workspaces_services.get_user_workspace(
-        user=request.user, workspace_id=id
+    workspace = await get_workspace_or_404(workspace_id=workspace_id)
+    await check_permissions(
+        permissions=WorkspacePermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workspace,
     )
-    if workspace_overview is None:
-        raise ex.NotFoundError(f"Workspace {id} does not exist")
-    return workspace_overview
+    return await workspaces_services.get_user_workspace(
+        user=request.user, workspace=workspace
+    )
 
 
 ##########################################################
@@ -155,11 +140,11 @@ async def get_my_workspace(request, id: Path[B64UUID]) -> WorkspaceDetailSeriali
 
 
 @workspace_router.patch(
-    "/workspaces/{id}",
+    "/workspaces/{workspace_id}",
     url_name="workspace.update",
     summary="Update workspace",
     response={
-        200: WorkspaceSerializer,
+        200: WorkspaceDetailSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -169,15 +154,17 @@ async def get_my_workspace(request, id: Path[B64UUID]) -> WorkspaceDetailSeriali
 )
 async def update_workspace(
     request,
-    id: Path[B64UUID],
+    workspace_id: Path[B64UUID],
     form: UpdateWorkspaceValidator,
-) -> WorkspaceSerializer:
+) -> WorkspaceDetailSerializer:
     """
     Update workspace
     """
-    workspace = await get_workspace_or_404(id)
+    workspace = await get_workspace_or_404(workspace_id)
     await check_permissions(
-        permissions=UPDATE_WORKSPACE, user=request.user, obj=workspace
+        permissions=WorkspacePermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=workspace,
     )
 
     values = form.dict(exclude_unset=True)
@@ -192,7 +179,7 @@ async def update_workspace(
 
 
 @workspace_router.delete(
-    "/workspaces/{id}",
+    "/workspaces/{workspace_id}",
     url_name="workspace.delete",
     summary="Delete workspace",
     response={
@@ -204,13 +191,15 @@ async def update_workspace(
     },
     by_alias=True,
 )
-async def delete_workspace(request, id: Path[B64UUID]) -> tuple[int, None]:
+async def delete_workspace(request, workspace_id: Path[B64UUID]) -> tuple[int, None]:
     """
     Delete a workspace
     """
-    workspace = await get_workspace_or_404(id=id)
+    workspace = await get_workspace_or_404(workspace_id=workspace_id)
     await check_permissions(
-        permissions=DELETE_WORKSPACE, user=request.user, obj=workspace
+        permissions=WorkspacePermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=workspace,
     )
 
     await workspaces_services.delete_workspace(
@@ -224,9 +213,10 @@ async def delete_workspace(request, id: Path[B64UUID]) -> tuple[int, None]:
 ##########################################################
 
 
-async def get_workspace_or_404(id: UUID) -> Workspace:
-    workspace = await workspaces_services.get_workspace(workspace_id=id)
-    if workspace is None:
-        raise ex.NotFoundError(f"Workspace {id} does not exist")
+async def get_workspace_or_404(workspace_id: UUID) -> Workspace:
+    try:
+        workspace = await workspaces_services.get_workspace(workspace_id=workspace_id)
+    except Workspace.DoesNotExist:
+        raise ex.NotFoundError(f"Workspace {workspace_id} does not exist")
 
     return workspace
