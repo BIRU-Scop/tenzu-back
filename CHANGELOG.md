@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.14](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.13...v0.0.1-staging.14) (2025-04-28)
+
+
+### Features
+
+* absolute path for public folders instead of relatives ([71ac9e9](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/71ac9e9b0599e9ce2df437168213eefb4804a29b))
+* add project role name edition to update role endpoint ([50fdebf](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/50fdebf02d9c14fc8dfdbb30092a4975f4c7618b))
+* add total_project field to workspace detail ([00c9099](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/00c9099de7bbe1e2340532290e4ecece80d5c716))
+* create project role api ([f9a91d8](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/f9a91d895b7b26fcf902826f0369e759978d634c))
+* delete project role api ([b1ce025](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/b1ce025b1f84c5906917a810fa15eaf4ceec3e6b))
+* in workflow, rename status fields that actually only contains id to an explicit name ([b353a32](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/b353a3270465935b65480b7fb0bfe74dae145596))
+* **invitations:** deny project invitation ([eccb418](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/eccb418ac9bc01207a5efac3a851d8627c291eaa))
+* make list project returns invited and member project in one list with a differentiating attribute ([0cdbcc7](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/0cdbcc77cc79536830c097e836fdd1b5ce8ab295))
+* make public invitation only returns pending ones and refactor some serializer classes ([3b859cf](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/3b859cf9d7ae029f0bece15b35bb45c45daec30f))
+* make workspace and project invitation follow frontend constraints ([d3556b1](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/d3556b186bbd0300c7853110c00f7722b8ed968d))
+* remove unneeded guest event now that invited user can read workspace channel and add needed select_related ([bda08a5](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/bda08a5127537c17f6359a2ddca3e27c16de932c))
+* some more info from project's invitation endpoints and add apis for workspace's update invitation membership role, accept by workspace, deny, revoke and resend ([0f45dd7](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/0f45dd7ee0879a109fa55aad7b9bb1287aae8b84))
+* standardise project creation url path ([112c9d8](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/112c9d8405c207c55e5e23f84905bdadccd8bc7e))
+* standardise story url path and only accept number story ref in path resolution ([d59cbb6](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/d59cbb6c86ba66ec1ec8ff6edea47bd7d8f8254b))
+* standardise workflow url to use id without needing project ([6edf27a](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/6edf27ac8468021fcdee74929eedcba946d38c93))
+* switch all order fields to int and handle edge case when reorder space is not enough ([8734490](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/8734490b46f05255e8488715c3aef717282f0962))
+
+
+### Bug Fixes
+
+* add assignees in list view ([a77723a](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/a77723aa3cc96c313545522f630ef20ae22f5edf))
+* prevent changing slug on each update even when name has not changed ([ededbd8](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/ededbd87b6d6fadf67b0f55eef32814c1c1e4cfb))
+* prevent pydantic warning about email folder path type ([50a7606](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/50a7606142b5158f0455e399679b874a8ca9e3ef))
+
 ## [0.0.1-staging.13](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.12...v0.0.1-staging.13) (2025-02-27)
 
 
