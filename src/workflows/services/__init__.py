@@ -27,7 +27,7 @@ from commons.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from projects.projects import repositories as projects_repositories
 from projects.projects import services as projects_services
-from projects.projects.models import Project
+from projects.projects.models import Project, ProjectTemplate
 from stories.stories import repositories as stories_repositories
 from stories.stories import services as stories_services
 from users.models import User
@@ -75,18 +75,19 @@ async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
         )
 
     # apply default workflow statuses from project template
-    if template := await projects_repositories.get_project_template(
-        filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
-    ):
-        await workflows_repositories.apply_default_workflow_statuses(
-            template=template, workflow=workflow
+    try:
+        template = await projects_repositories.get_project_template(
+            filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
         )
-    else:
+    except ProjectTemplate.DoesNotExist as e:
         raise Exception(
             f"Default project template '{settings.DEFAULT_PROJECT_TEMPLATE}' not found. "
-            "Try to load fixtures again and check if the error persist."
-        )
+            "Try to run migrations again and check if the error persist."
+        ) from e
 
+    await workflows_repositories.apply_default_workflow_statuses(
+        template=template, workflow=workflow
+    )
     workflow_statuses = await workflows_repositories.list_workflow_statuses(
         workflow_id=workflow.id
     )
