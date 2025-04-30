@@ -35,7 +35,7 @@ from stories.stories.models import Story
 
 ASSIGNEE_IDS_ANNOTATION = ArrayAgg(
     "assignees",
-    ordering="-story_assignments__created_at",  # TODO replace ordering with order_by once in django 5.2
+    order_by="-story_assignments__created_at",
     filter=Q(assignees__isnull=False),
     default=[],
 )

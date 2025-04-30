@@ -22,5 +22,5 @@ from projects.projects.models import ProjectTemplate
 
 
 @pytest.fixture
-def project_template():
-    return ProjectTemplate.objects.first()
+async def project_template():
+    return await ProjectTemplate.objects.afirst()
