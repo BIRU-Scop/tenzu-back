@@ -19,10 +19,11 @@
 
 from pydantic import ConfigDict
 
-from base.serializers import BaseModel
+from base.serializers import UUIDB64, BaseModel
 
 
 class UserNestedSerializer(BaseModel):
+    id: UUIDB64
     username: str
     full_name: str
     color: int

@@ -21,6 +21,8 @@ from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
+from django.db.models import QuerySet
+
 from base.repositories.neighbors import Neighbor
 from base.utils.datetime import aware_utcnow
 from commons.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
@@ -29,13 +31,12 @@ from stories.stories import events as stories_events
 from stories.stories import notifications as stories_notifications
 from stories.stories import repositories as stories_repositories
 from stories.stories.models import Story
-from stories.stories.repositories import ASSIGNEES_PREFETCH
+from stories.stories.repositories import ASSIGNEE_IDS_ANNOTATION
 from stories.stories.serializers import (
     ReorderStoriesSerializer,
     StoryDetailSerializer,
     StorySummarySerializer,
 )
-from stories.stories.serializers import services as serializers_services
 from stories.stories.services import exceptions as ex
 from users.models import User
 from workflows import repositories as workflows_repositories
@@ -102,19 +103,20 @@ async def list_stories(
 ) -> list[StorySummarySerializer]:
     if order_by is None:
         order_by = ["order"]
-    qs = stories_repositories.list_stories_qs(
+    keys = ["ref", "title", "workflow_id", "project_id", "status_id", "version"]
+    annotations = {"assignee_ids": ASSIGNEE_IDS_ANNOTATION} if get_assignees else {}
+    qs: QuerySet[dict] = stories_repositories.list_stories_qs(
         filters={"project_id": project_id, "workflow__slug": workflow_slug},
         offset=offset,
         limit=limit,
         order_by=order_by,
-        prefetch_related=[ASSIGNEES_PREFETCH] if get_assignees else [],
-    )
+    ).values(*keys, **annotations)
 
     return [
-        serializers_services.serialize_story_list(
-            story, list(story.assignees.all()) if get_assignees else []
+        StorySummarySerializer(
+            **{key: value for key, value in story_dict.items()},
         )
-        async for story in qs
+        async for story_dict in qs
     ]
 
 
@@ -128,29 +130,25 @@ async def get_story(project_id: UUID, ref: int) -> Story | None:
         ref=ref,
         filters={"project_id": project_id},
         select_related=["project", "project__workspace", "workflow", "created_by"],
-        prefetch_related=[ASSIGNEES_PREFETCH],
     )
 
 
 async def get_story_detail(
     project_id: UUID, ref: int, neighbors: Neighbor[Story] | None = None
 ) -> StoryDetailSerializer:
-    story = cast(
-        Story,
-        await stories_repositories.get_story(
-            ref=ref,
-            filters={"project_id": project_id},
-            select_related=[
-                "created_by",
-                "project",
-                "workflow",
-                "status",
-                "project__workspace",
-                "title_updated_by",
-                "description_updated_by",
-            ],
-            prefetch_related=[ASSIGNEES_PREFETCH],
-        ),
+    story = await stories_repositories.get_story(
+        ref=ref,
+        filters={"project_id": project_id},
+        select_related=[
+            "created_by",
+            "project",
+            "workflow",
+            "status",
+            "project__workspace",
+            "title_updated_by",
+            "description_updated_by",
+        ],
+        get_assignees=True,
     )
 
     if not neighbors:
@@ -158,8 +156,25 @@ async def get_story_detail(
             story=story, filters={"workflow_id": story.workflow_id}
         )
 
-    return serializers_services.serialize_story_detail(
-        story=story, neighbors=neighbors, assignees=list(story.assignees.all())
+    return StoryDetailSerializer(
+        ref=story.ref,
+        title=story.title,
+        description=story.description,
+        status_id=story.status_id,
+        status=story.status,
+        workflow_id=story.workflow_id,
+        project_id=story.project_id,
+        workflow=story.workflow,
+        created_by=story.created_by,
+        created_at=story.created_at,
+        version=story.version,
+        assignee_ids=story.assignee_ids,
+        prev=neighbors.prev,
+        next=neighbors.next,
+        title_updated_by=story.title_updated_by,
+        title_updated_at=story.title_updated_at,
+        description_updated_by=story.description_updated_by,
+        description_updated_at=story.description_updated_at,
     )
 
 
@@ -435,8 +450,11 @@ async def reorder_stories(
         objs_to_update=stories_to_update, fields_to_update=["status", "order"]
     )
 
-    reorder_story_serializer = serializers_services.serialize_reorder_story(
-        status=target_status, stories=stories_refs, reorder=reorder
+    reorder_story_serializer = ReorderStoriesSerializer(
+        status_id=target_status.id,
+        status=target_status,
+        stories=stories_refs,
+        reorder=reorder,
     )
 
     # event
