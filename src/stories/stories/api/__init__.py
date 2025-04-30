@@ -300,8 +300,9 @@ async def delete_story(
 
 
 async def get_story_or_404(project_id: UUID, ref: int) -> Story:
-    story = await stories_services.get_story(project_id=project_id, ref=ref)
-    if story is None:
-        raise ex.NotFoundError(f"Story {ref} does not exist in the project")
+    try:
+        story = await stories_services.get_story(project_id=project_id, ref=ref)
+    except Story.DoesNotExist as e:
+        raise ex.NotFoundError(f"Story {ref} does not exist in the project") from e
 
     return story

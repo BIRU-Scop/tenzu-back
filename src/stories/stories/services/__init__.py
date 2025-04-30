@@ -125,7 +125,7 @@ async def list_stories(
 ##########################################################
 
 
-async def get_story(project_id: UUID, ref: int) -> Story | None:
+async def get_story(project_id: UUID, ref: int) -> Story:
     return await stories_repositories.get_story(
         ref=ref,
         filters={"project_id": project_id},
@@ -381,17 +381,18 @@ async def reorder_stories(
                 f"Ref {reorder['ref']} should not be part of the stories to reorder"
             )
 
-        reorder_reference_story = await stories_repositories.get_story(
-            ref=reorder["ref"],
-            filters={
-                "workflow_id": workflow.id,
-                "status_id": target_status.id,
-            },
-        )
-        if not reorder_reference_story:
+        try:
+            reorder_reference_story = await stories_repositories.get_story(
+                ref=reorder["ref"],
+                filters={
+                    "workflow_id": workflow.id,
+                    "status_id": target_status.id,
+                },
+            )
+        except Story.DoesNotExist as e:
             raise ex.InvalidStoryRefError(
                 f"Ref {reorder['ref']} doesn't exist in this project"
-            )
+            ) from e
         reorder_place = reorder["place"]
     else:
         reorder_reference_story = None

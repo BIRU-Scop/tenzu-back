@@ -143,7 +143,7 @@ async def get_story(
     filters: StoryFilters = {},
     select_related: StorySelectRelated = None,
     get_assignees=False,
-) -> Story | None:
+) -> Story:
     if select_related is None:
         select_related = ["status"]
     annotations = {"assignee_ids": ASSIGNEE_IDS_ANNOTATION} if get_assignees else {}
@@ -153,11 +153,7 @@ async def get_story(
         .select_related(*select_related)
         .annotate(**annotations)
     )
-
-    try:
-        return await qs.aget()
-    except Story.DoesNotExist:
-        return None
+    return await qs.aget()
 
 
 ##########################################################
