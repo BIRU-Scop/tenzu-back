@@ -214,10 +214,7 @@ async def get_project_template(
 ) -> ProjectTemplate | None:
     qs = ProjectTemplate.objects.all().filter(**filters)
 
-    try:
-        return await qs.aget()
-    except ProjectTemplate.DoesNotExist:
-        return None
+    return await qs.aget()
 
 
 ##########################################################

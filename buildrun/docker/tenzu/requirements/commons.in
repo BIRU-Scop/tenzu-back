@@ -31,7 +31,7 @@ django-nonrelated-inlines # admin
 jinja2 # Templates system
 
 # Task Queue Module
-procrastinate[django]==2.6.0
+procrastinate[django]
 
 # Events Module
 redis[hiredis]

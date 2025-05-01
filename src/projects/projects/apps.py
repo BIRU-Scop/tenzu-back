@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 BIRU
 #
 # This file is part of Tenzu.
@@ -17,14 +16,19 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
+from django.apps import AppConfig
+from django.db.models.signals import post_migrate
 
-from base.serializers import UUIDB64, BaseModel
 
+class ProjectsConfig(AppConfig):
+    name = "projects.projects"
+    label = "projects"
+    verbose_name = "Projects"
 
-class UserNestedSerializer(BaseModel):
-    id: UUIDB64
-    username: str
-    full_name: str
-    color: int
-    model_config = ConfigDict(from_attributes=True)
+    def ready(self):
+        from . import signals  # noqa
+        from .signals import fill_project_template
+
+        post_migrate.connect(
+            fill_project_template, dispatch_uid="fill_project_template", sender=self
+        )

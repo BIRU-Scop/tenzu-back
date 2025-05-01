@@ -33,7 +33,7 @@ from projects.memberships import repositories as memberships_repositories
 from projects.projects import events as projects_events
 from projects.projects import repositories as projects_repositories
 from projects.projects import tasks as projects_tasks
-from projects.projects.models import Project
+from projects.projects.models import Project, ProjectTemplate
 from projects.projects.serializers import (
     ProjectDetailSerializer,
 )
@@ -83,9 +83,15 @@ async def _create_project(
     """
     Create project and set user cache property for role
     """
-    template = await projects_repositories.get_project_template(
-        filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
-    )
+    try:
+        template = await projects_repositories.get_project_template(
+            filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
+        )
+    except ProjectTemplate.DoesNotExist as e:
+        raise Exception(
+            f"Default project template '{settings.DEFAULT_PROJECT_TEMPLATE}' not found. "
+            "Try to run migrations again and check if the error persist."
+        ) from e
 
     landing_page = (
         get_landing_page_for_workflow(template.workflows[0]["slug"])
@@ -103,12 +109,6 @@ async def _create_project(
         landing_page=landing_page,
     )
 
-    # apply template
-    if not template:
-        raise Exception(
-            f"Default project template '{settings.DEFAULT_PROJECT_TEMPLATE}' not found. "
-            "Try to load fixtures again and check if the error persist."
-        )
     roles = await projects_repositories.apply_template_to_project(
         template=template, project=project
     )

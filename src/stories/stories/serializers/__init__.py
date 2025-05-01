@@ -37,27 +37,20 @@ class StorySummarySerializer(BaseModel):
     workflow_id: UUIDB64
     project_id: UUIDB64
     version: int
-    assignees: list[UserNestedSerializer] | None = None
+    assignee_ids: list[UUIDB64] | None = None
     model_config = ConfigDict(
         from_attributes=True,
     )
 
 
-class StoryDetailSerializer(BaseModel):
-    ref: int
-    title: str
+class StoryDetailSerializer(StorySummarySerializer):
     description: str | None = None
-    status_id: UUIDB64
     status: WorkflowStatusNestedSerializer
-    workflow_id: UUIDB64
-    project_id: UUIDB64
     workflow: WorkflowNestedSerializer
     created_by: UserNestedSerializer | None = None
     created_at: datetime
     prev: StoryNeighborSerializer | None = None
     next: StoryNeighborSerializer | None = None
-    version: int
-    assignees: list[UserNestedSerializer]
     title_updated_by: UserNestedSerializer | None = None
     title_updated_at: datetime | None = None
     description_updated_by: UserNestedSerializer | None = None

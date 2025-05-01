@@ -205,15 +205,24 @@ async def test_list_workflow_stories_200_ok(client, project_template):
     project = await f.create_project(project_template)
     workflow = await f.create_workflow(project=project)
     workflow_status = await f.create_workflow_status(workflow=workflow)
+    story = await f.create_story(
+        project=project, workflow=workflow, status=workflow_status
+    )
     await f.create_story(project=project, workflow=workflow, status=workflow_status)
-    await f.create_story(project=project, workflow=workflow, status=workflow_status)
+
+    assignments = [await f.create_story_assignment(story=story) for _ in range(3)]
 
     client.login(project.created_by)
     response = await client.get(
         f"/projects/{project.b64id}/workflows/{workflow.slug}/stories"
     )
     assert response.status_code == 200, response.data
-    assert len(response.json()) == 2
+    res = response.json()
+    assert len(res) == 2
+    assert res[0]["assigneeIds"] == [
+        assignment.user.b64id for assignment in reversed(assignments)
+    ]
+    assert res[1]["assigneeIds"] == []
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -336,10 +345,16 @@ async def test_get_story_200_ok(client, project_template):
         project=project, workflow=workflow, status=story_status
     )
 
+    assignments = [await f.create_story_assignment(story=story) for _ in range(2)]
+
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
     assert response.status_code == 200, response.data
-    assert response.json()["ref"] == story.ref
+    res = response.json()
+    assert res["ref"] == story.ref
+    assert res["assigneeIds"] == [
+        assignment.user.b64id for assignment in reversed(assignments)
+    ]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(

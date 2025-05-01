@@ -21,21 +21,23 @@ from decimal import Decimal
 from typing import Any, Final, Literal, TypedDict
 from uuid import UUID
 
-from django.db.models import Prefetch, QuerySet
+from django.contrib.postgres.aggregates import ArrayAgg
+from django.db.models import Q, QuerySet
 
 from base.occ import repositories as occ_repositories
 from base.repositories import neighbors as neighbors_repositories
 from base.repositories.neighbors import Neighbor
 from stories.stories.models import Story
-from users.models import User
 
 ##########################################################
 # filters and querysets
 ##########################################################
 
-ASSIGNEES_PREFETCH = Prefetch(
+ASSIGNEE_IDS_ANNOTATION = ArrayAgg(
     "assignees",
-    queryset=User.objects.order_by("-story_assignments__created_at"),
+    order_by="-story_assignments__created_at",
+    filter=Q(assignees__isnull=False),
+    default=[],
 )
 
 
@@ -59,9 +61,6 @@ StorySelectRelated = list[
         "description_updated_by",
     ]
 ]
-
-
-StoryPrefetchRelated = list[Literal["assignees",] | Prefetch]
 
 
 StoryOrderBy = list[
@@ -110,7 +109,6 @@ def list_stories_qs(
     offset: int | None = None,
     limit: int | None = None,
     select_related: StorySelectRelated = None,
-    prefetch_related: StoryPrefetchRelated = None,
 ) -> QuerySet[Story]:
     if filters is None:
         filters = {}
@@ -118,15 +116,12 @@ def list_stories_qs(
         excludes = {}
     if select_related is None:
         select_related = []
-    if prefetch_related is None:
-        prefetch_related = []
 
     qs = (
         Story.objects.all()
         .filter(**filters)
         .exclude(**excludes)
         .select_related(*select_related)
-        .prefetch_related(*prefetch_related)
     )
     if order_by is not None:
         # only replace default order_by if defined
@@ -147,23 +142,18 @@ async def get_story(
     ref: int,
     filters: StoryFilters = {},
     select_related: StorySelectRelated = None,
-    prefetch_related: StoryPrefetchRelated = None,
-) -> Story | None:
+    get_assignees=False,
+) -> Story:
     if select_related is None:
         select_related = ["status"]
-    if prefetch_related is None:
-        prefetch_related = [ASSIGNEES_PREFETCH]
+    annotations = {"assignee_ids": ASSIGNEE_IDS_ANNOTATION} if get_assignees else {}
     qs = (
         Story.objects.all()
         .filter(ref=ref, **filters)
         .select_related(*select_related)
-        .prefetch_related(*prefetch_related)
+        .annotate(**annotations)
     )
-
-    try:
-        return await qs.aget()
-    except Story.DoesNotExist:
-        return None
+    return await qs.aget()
 
 
 ##########################################################
@@ -234,7 +224,6 @@ async def list_stories_to_reorder(
         Story.objects.all()
         .filter(ref__in=ref__in, **filters)
         .select_related("status", "project", "created_by")
-        .prefetch_related(ASSIGNEES_PREFETCH)
     )
 
     # keep ref order
