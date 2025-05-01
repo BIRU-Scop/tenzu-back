@@ -122,11 +122,31 @@ test:
     TENZU_SECRET_KEY: secret
     TENZU_TOKENS__SIGNING_KEY: secret2
   script:
-    - cd src/
+    - cd $CI_PROJECT_DIR/src/
     - pytest . --junitxml=result.xml
   artifacts:
     reports:
-      junit: src/result.xml
+      junit: $CI_PROJECT_DIR/src/result.xml
+  rules:
+    - if: '$CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+check_migration:
+  stage: test
+  image:
+    name: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
+    pull_policy: [ always, if-not-present ]
+  variables:
+    # Tenzu configuration
+    TENZU_DEBUG: True
+    TENZU_DB__NAME: "tenzu"
+    TENZU_DB__USER: "tenzu"
+    TENZU_DB__PASSWORD: "tenzu"
+    TENZU_DB__HOST: "db"
+    TENZU_SECRET_KEY: secret
+    TENZU_TOKENS__SIGNING_KEY: secret2
+  script:
+    - cd $CI_PROJECT_DIR/src/
+    - python manage.py makemigrations --check
   rules:
     - if: '$CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
