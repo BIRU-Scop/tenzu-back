@@ -37,6 +37,7 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 related_name="workspaces",
                 through="workspaces_memberships.WorkspaceMembership",
+                through_fields=("workspace", "user"),
                 to=settings.AUTH_USER_MODEL,
                 verbose_name="members",
             ),
