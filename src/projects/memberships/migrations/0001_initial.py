@@ -166,6 +166,7 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         related_name="project_roles",
                         through="projects_memberships.ProjectMembership",
+                        through_fields=("role", "user"),
                         to=settings.AUTH_USER_MODEL,
                         verbose_name="users",
                     ),

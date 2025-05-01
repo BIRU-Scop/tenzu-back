@@ -141,6 +141,7 @@ class Migration(migrations.Migration):
                     models.ManyToManyField(
                         related_name="workspace_roles",
                         through="workspaces_memberships.WorkspaceMembership",
+                        through_fields=("role", "user"),
                         to=settings.AUTH_USER_MODEL,
                         verbose_name="users",
                     ),

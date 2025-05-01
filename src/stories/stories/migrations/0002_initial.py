@@ -40,6 +40,7 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 related_name="stories",
                 through="stories_assignments.StoryAssignment",
+                through_fields=("story", "user"),
                 to=settings.AUTH_USER_MODEL,
                 verbose_name="assignees",
             ),
