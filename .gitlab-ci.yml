@@ -34,11 +34,10 @@ include:
       prefix: test-
       destination: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
       rules:
-        - if: '$CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
+        - if: '$CI_COMMIT_REF_PROTECTED == "false" || $CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
           changes:
             - "buildrun/docker/tenzu/Dockerfile"
             - "buildrun/docker/tenzu/requirements/devel.txt"
-        - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
 
 stages:
   - build
