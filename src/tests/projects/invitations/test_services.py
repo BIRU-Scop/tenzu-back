@@ -198,6 +198,8 @@ async def test_list_project_invitations_ok_admin():
                 "project_id": invitation.project.id,
             },
             select_related=["project", "user", "role"],
+            order_by=["user__full_name", "email"],
+            order_priorities={"status": InvitationStatus.PENDING},
         )
         assert invitations == [invitation]
 

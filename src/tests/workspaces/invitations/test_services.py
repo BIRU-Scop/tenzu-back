@@ -411,6 +411,8 @@ async def test_list_workspace_invitations():
                 "workspace_id": invitation.workspace.id,
             },
             select_related=["user", "workspace", "role"],
+            order_by=["user__full_name", "email"],
+            order_priorities={"status": InvitationStatus.PENDING},
         )
         assert invitations == [invitation]
 

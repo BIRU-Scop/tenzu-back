@@ -96,6 +96,8 @@ async def list_workspace_invitations(
             "workspace_id": workspace.id,
         },
         select_related=["user", "workspace", "role"],
+        order_by=["user__full_name", "email"],
+        order_priorities={"status": InvitationStatus.PENDING},
     )
 
 

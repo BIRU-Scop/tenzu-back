@@ -351,13 +351,27 @@ async def list_invitations(
     offset: int | None = None,
     limit: int | None = None,
     select_related: InvitationSelectRelated = [],
-    order_by: InvitationOrderBy = ["user__full_name", "email"],
+    order_by: InvitationOrderBy = [],
+    order_priorities: InvitationFilters = {},
 ) -> list[TI]:
-    qs = (
-        model.objects.all()
-        .filter(**filters)
-        .select_related(*select_related)
-        .order_by(*order_by)
+    """
+    order_priorities:
+    use order_priorities to add possibility to priorise based on some conditions
+    for exemple if order_priorities = {"status": PENDING, resent_at__ge: now()}
+    this will result in the following queryset:
+    qs.annotate(priority1=Q(status=PENDING), priority2=Q(resent_at__ge=now()).order_by("-priority1", "-priority2")
+    """
+    qs = model.objects.all().filter(**filters).select_related(*select_related)
+    qs = qs.annotate(
+        **{
+            f"priority{i}": Q(**{priority_field: priority_value})
+            for i, (priority_field, priority_value) in enumerate(
+                order_priorities.items()
+            )
+        }
+    )
+    qs = qs.order_by(
+        *(f"-priority{i}" for i in range(len(order_priorities))), *order_by
     )
 
     if limit is not None and offset is not None:

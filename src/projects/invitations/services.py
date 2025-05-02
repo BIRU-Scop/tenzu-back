@@ -100,6 +100,8 @@ async def list_project_invitations(project_id: UUID) -> list[ProjectInvitation]:
             "project_id": project_id,
         },
         select_related=["project", "user", "role"],
+        order_by=["user__full_name", "email"],
+        order_priorities={"status": InvitationStatus.PENDING},
     )
 
 

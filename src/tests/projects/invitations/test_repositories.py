@@ -252,6 +252,7 @@ async def test_list_project_invitations_all_pending_users(project_template):
     response = await repositories.list_invitations(
         ProjectInvitation,
         filters={"project_id": project.id, "status": InvitationStatus.PENDING},
+        order_by=["user__full_name", "email"],
     )
     assert len(response) == 5
     assert response[0].email == user_a.email
@@ -259,6 +260,67 @@ async def test_list_project_invitations_all_pending_users(project_template):
     assert response[2].email == email_x
     assert response[3].email == email_y
     assert response[4].email == email_z
+
+
+async def test_list_project_invitations_pending_first(project_template):
+    project = await f.create_project(project_template)
+    member_role = await sync_to_async(project.roles.get)(slug="member")
+    email_a = "a@user.com"
+    email_b = "b@user.com"
+    email_x = "x@notauser.com"
+    email_y = "y@notauser.com"
+    email_z = "z@notauser.com"
+
+    user_a = await f.create_user(full_name="A", email=email_b)
+    await f.create_project_invitation(
+        email=email_b,
+        user=user_a,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.PENDING,
+    )
+    user_b = await f.create_user(full_name="B", email=email_a)
+    await f.create_project_invitation(
+        email=email_a,
+        user=user_b,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.ACCEPTED,
+    )
+    await f.create_project_invitation(
+        email=email_z,
+        user=None,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.PENDING,
+    )
+    await f.create_project_invitation(
+        email=email_x,
+        user=None,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.DENIED,
+    )
+    await f.create_project_invitation(
+        email=email_y,
+        user=None,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.PENDING,
+    )
+
+    response = await repositories.list_invitations(
+        ProjectInvitation,
+        filters={"project_id": project.id},
+        order_by=["user__full_name", "email"],
+        order_priorities={"status": InvitationStatus.PENDING},
+    )
+    assert len(response) == 5
+    assert response[0].email == user_a.email
+    assert response[1].email == email_y
+    assert response[2].email == email_z
+    assert response[3].email == user_b.email
+    assert response[4].email == email_x
 
 
 async def test_list_project_invitations_single_pending_user(project_template):
