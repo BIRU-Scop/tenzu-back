@@ -37,6 +37,7 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(
                 related_name="projects",
                 through="projects_memberships.ProjectMembership",
+                through_fields=("project", "user"),
                 to=settings.AUTH_USER_MODEL,
                 verbose_name="members",
             ),

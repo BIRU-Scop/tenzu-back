@@ -18,89 +18,92 @@
 
 from uuid import UUID
 
+from django.apps import apps as global_apps
 from django.conf import settings
 from django.utils.text import capfirst
 
 from permissions.choices import ProjectPermissions
 
 
-def create_initial_project_template(apps, schema_editor):
+def create_initial_project_template(apps=global_apps, *args, **kwargs):
     ProjectTemplate = apps.get_model("projects", "ProjectTemplate")
 
-    ProjectTemplate.objects.create(
+    ProjectTemplate.objects.update_or_create(
         id=UUID("00000000-0000-0000-0000-000000000001"),
-        name=capfirst(settings.DEFAULT_PROJECT_TEMPLATE),
-        slug=settings.DEFAULT_PROJECT_TEMPLATE,
-        roles=[
-            {
-                "slug": "owner",
-                "name": "Owner",
-                "editable": False,
-                "order": 1,
-                "is_owner": True,
-                "permissions": list(ProjectPermissions.values),
-            },
-            {
-                "slug": "admin",
-                "name": "Admin",
-                "editable": False,
-                "order": 2,
-                "is_owner": False,
-                "permissions": [
-                    ProjectPermissions.CREATE_MODIFY_MEMBER.value,
-                    ProjectPermissions.DELETE_MEMBER.value,
-                    ProjectPermissions.CREATE_MODIFY_DELETE_ROLE.value,
-                    ProjectPermissions.MODIFY_PROJECT.value,
-                    ProjectPermissions.VIEW_STORY.value,
-                    ProjectPermissions.MODIFY_STORY.value,
-                    ProjectPermissions.CREATE_STORY.value,
-                    ProjectPermissions.DELETE_STORY.value,
-                    ProjectPermissions.VIEW_COMMENT.value,
-                    ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT.value,
-                    ProjectPermissions.MODERATE_COMMENT.value,
-                    ProjectPermissions.VIEW_WORKFLOW.value,
-                    ProjectPermissions.MODIFY_WORKFLOW.value,
-                    ProjectPermissions.CREATE_WORKFLOW.value,
-                    ProjectPermissions.DELETE_WORKFLOW.value,
-                ],
-            },
-            {
-                "slug": "readonly-member",
-                "name": "Readonly-member",
-                "editable": False,
-                "order": 3,
-                "is_owner": False,
-                "permissions": [
-                    ProjectPermissions.VIEW_STORY.value,
-                    ProjectPermissions.VIEW_COMMENT.value,
-                    ProjectPermissions.VIEW_WORKFLOW.value,
-                ],
-            },
-            {
-                "slug": "member",
-                "name": "Member",
-                "editable": True,
-                "order": 4,
-                "is_owner": False,
-                "permissions": [
-                    ProjectPermissions.VIEW_STORY.value,
-                    ProjectPermissions.MODIFY_STORY.value,
-                    ProjectPermissions.CREATE_STORY.value,
-                    ProjectPermissions.DELETE_STORY.value,
-                    ProjectPermissions.VIEW_COMMENT.value,
-                    ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT.value,
-                    ProjectPermissions.VIEW_WORKFLOW.value,
-                    ProjectPermissions.MODIFY_WORKFLOW.value,
-                    ProjectPermissions.CREATE_WORKFLOW.value,
-                    ProjectPermissions.DELETE_WORKFLOW.value,
-                ],
-            },
-        ],
-        workflows=[{"slug": "main", "name": "Main", "order": 1}],
-        workflow_statuses=[
-            {"name": "New", "order": 1, "color": 1},
-            {"name": "Ready", "order": 2, "color": 2},
-            {"name": "In progress", "order": 3, "color": 3},
-            {"name": "Done", "order": 4, "color": 4},
-        ],
+        defaults=dict(
+            name=capfirst(settings.DEFAULT_PROJECT_TEMPLATE),
+            slug=settings.DEFAULT_PROJECT_TEMPLATE,
+            roles=[
+                {
+                    "slug": "owner",
+                    "name": "Owner",
+                    "editable": False,
+                    "order": 1,
+                    "is_owner": True,
+                    "permissions": list(ProjectPermissions.values),
+                },
+                {
+                    "slug": "admin",
+                    "name": "Admin",
+                    "editable": False,
+                    "order": 2,
+                    "is_owner": False,
+                    "permissions": [
+                        ProjectPermissions.CREATE_MODIFY_MEMBER.value,
+                        ProjectPermissions.DELETE_MEMBER.value,
+                        ProjectPermissions.CREATE_MODIFY_DELETE_ROLE.value,
+                        ProjectPermissions.MODIFY_PROJECT.value,
+                        ProjectPermissions.VIEW_STORY.value,
+                        ProjectPermissions.MODIFY_STORY.value,
+                        ProjectPermissions.CREATE_STORY.value,
+                        ProjectPermissions.DELETE_STORY.value,
+                        ProjectPermissions.VIEW_COMMENT.value,
+                        ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT.value,
+                        ProjectPermissions.MODERATE_COMMENT.value,
+                        ProjectPermissions.VIEW_WORKFLOW.value,
+                        ProjectPermissions.MODIFY_WORKFLOW.value,
+                        ProjectPermissions.CREATE_WORKFLOW.value,
+                        ProjectPermissions.DELETE_WORKFLOW.value,
+                    ],
+                },
+                {
+                    "slug": "readonly-member",
+                    "name": "Readonly-member",
+                    "editable": False,
+                    "order": 3,
+                    "is_owner": False,
+                    "permissions": [
+                        ProjectPermissions.VIEW_STORY.value,
+                        ProjectPermissions.VIEW_COMMENT.value,
+                        ProjectPermissions.VIEW_WORKFLOW.value,
+                    ],
+                },
+                {
+                    "slug": "member",
+                    "name": "Member",
+                    "editable": True,
+                    "order": 4,
+                    "is_owner": False,
+                    "permissions": [
+                        ProjectPermissions.VIEW_STORY.value,
+                        ProjectPermissions.MODIFY_STORY.value,
+                        ProjectPermissions.CREATE_STORY.value,
+                        ProjectPermissions.DELETE_STORY.value,
+                        ProjectPermissions.VIEW_COMMENT.value,
+                        ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT.value,
+                        ProjectPermissions.VIEW_WORKFLOW.value,
+                        ProjectPermissions.MODIFY_WORKFLOW.value,
+                        ProjectPermissions.CREATE_WORKFLOW.value,
+                        ProjectPermissions.DELETE_WORKFLOW.value,
+                    ],
+                },
+            ],
+            workflows=[{"slug": "main", "name": "Main", "order": 1}],
+            workflow_statuses=[
+                {"name": "New", "order": 1, "color": 1},
+                {"name": "Ready", "order": 2, "color": 2},
+                {"name": "In progress", "order": 3, "color": 3},
+                {"name": "Done", "order": 4, "color": 4},
+            ],
+        ),
     )

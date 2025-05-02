@@ -39,7 +39,7 @@ from workflows.serializers.nested import WorkflowStatusNestedSerializer
 async def test_create_story_ok():
     user = f.build_user()
     status = f.build_workflow_status()
-    story = f.build_story(status=status, workflow=status.workflow, assignees=0)
+    story = f.build_story(status=status, workflow=status.workflow, assignee_ids=1)
     neighbors = Neighbor(next=f.build_story(), prev=f.build_story())
 
     with (
@@ -118,6 +118,7 @@ async def test_create_story_invalid_status():
 
 
 async def test_list_paginated_stories():
+    fields = ["ref", "title", "workflow_id", "project_id", "status_id", "version"]
     with (
         patch(
             "stories.stories.services.stories_repositories", autospec=True
@@ -140,9 +141,12 @@ async def test_list_paginated_stories():
             offset=0,
             limit=10,
             order_by=["order"],
-            prefetch_related=[repositories.ASSIGNEES_PREFETCH],
+        )
+        fake_stories_repo.list_stories_qs.return_value.values.assert_called_once_with(
+            *fields, assignee_ids=repositories.ASSIGNEE_IDS_ANNOTATION
         )
         fake_stories_repo.list_stories_qs.reset_mock()
+        fake_stories_repo.list_stories_qs.return_value.values.reset_mock()
         story = f.build_story()
         fake_stories_repo.list_stories_qs.return_value.__aiter__.return_value = [story]
         await services.list_stories(
@@ -160,7 +164,9 @@ async def test_list_paginated_stories():
             offset=0,
             limit=10,
             order_by=["order"],
-            prefetch_related=[],
+        )
+        fake_stories_repo.list_stories_qs.return_value.values.assert_called_once_with(
+            *fields
         )
 
 
@@ -176,7 +182,7 @@ async def test_get_story_detail_ok():
         project=story1.project,
         workflow=story1.workflow,
         status=story1.status,
-        assignees=1,
+        assignee_ids=1,
     )
     story3 = f.build_story(
         ref=3, project=story1.project, workflow=story1.workflow, status=story1.status
@@ -205,7 +211,7 @@ async def test_get_story_detail_ok():
                 "title_updated_by",
                 "description_updated_by",
             ],
-            prefetch_related=[repositories.ASSIGNEES_PREFETCH],
+            get_assignees=True,
         )
 
         fake_stories_repo.list_story_neighbors.assert_awaited_once_with(
@@ -218,7 +224,7 @@ async def test_get_story_detail_ok():
 
 
 async def test_get_story_detail_no_neighbors():
-    story1 = f.build_story(ref=1, assignees=1)
+    story1 = f.build_story(ref=1, assignee_ids=1)
     neighbors = Neighbor(prev=None, next=None)
 
     with patch(
@@ -243,7 +249,7 @@ async def test_get_story_detail_no_neighbors():
                 "title_updated_by",
                 "description_updated_by",
             ],
-            prefetch_related=[repositories.ASSIGNEES_PREFETCH],
+            get_assignees=True,
         )
 
         fake_stories_repo.list_story_neighbors.assert_awaited_once_with(

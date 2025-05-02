@@ -84,11 +84,9 @@ async def test_list_stories(project_template) -> None:
     assert len(stories) == 2
 
     stories = [
-        # will fail in async context with "SynchronousOnlyOperation" if prefetch did not work
-        (story, list(story.assignees.all()))
+        story
         async for story in repositories.list_stories_qs(
             filters={"workflow_id": workflow_2.id},
-            prefetch_related=[repositories.ASSIGNEES_PREFETCH],
         )
     ]
     assert len(stories) == 1
@@ -111,6 +109,26 @@ async def test_get_story() -> None:
     assert story1.ref == story.ref
     assert story1.title == story.title
     assert story1.id == story.id
+
+
+async def test_get_story_with_assignees() -> None:
+    story1 = await f.create_story()
+    assignments = [await f.create_story_assignment(story=story1) for _ in range(3)]
+    story = await repositories.get_story(
+        ref=story1.ref,
+        filters={
+            "project_id": story1.project.id,
+            "workflow_id": story1.workflow.id,
+        },
+        get_assignees=True,
+    )
+    assert story1.ref == story.ref
+    assert story1.title == story.title
+    assert story1.id == story.id
+    # check assignees are in reverse created_at order
+    assert story.assignee_ids == [
+        assignment.user_id for assignment in reversed(assignments)
+    ]
 
 
 ##########################################################

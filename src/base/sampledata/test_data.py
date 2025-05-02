@@ -204,25 +204,14 @@ def _get_membership_role(membership: ProjectMembership) -> ProjectRole:
 #################################
 
 
-@sync_to_async
-def _get_workflows(project: Project) -> list[Workflow]:
-    return list(project.workflows.all())
-
-
-@sync_to_async
-def _get_workflow_statuses(workflow: Workflow) -> list[WorkflowStatus]:
-    return list(workflow.statuses.all())
-
-
 async def _create_workflow_status(
     workflow: Workflow,
     name: str | None = None,
     color: int | None = None,
-) -> None:
-    await WorkflowStatus.objects.acreate(
+) -> WorkflowStatus:
+    return await workflow.statuses.acreate(
         name=name or fake.unique.text(max_nb_chars=15)[:-1],
         color=color or fake.random_int(min=1, max=NUM_COLORS),
-        workflow=workflow,
     )
 
 
@@ -906,13 +895,17 @@ async def _create_scenario_with_2k_stories_and_40_workflow_statuses(
         created_by=created_by,
         workspace=workspace,
     )
-    full_project = await factories.get_project_with_related_info(project.id)
-    await factories.create_project_memberships(full_project, users=users)
+    project = await factories.get_project_with_related_info(project.id)
+    await factories.create_project_memberships(project, users=users)
 
-    workflow = (await _get_workflows(project=project))[0]
-    for i in range(0, 40 - len(await _get_workflow_statuses(workflow=workflow))):
-        await _create_workflow_status(workflow=workflow)
+    workflow = [w async for w in project.workflows.all()][0]
+    statuses_cache = [s async for s in workflow.statuses.all()]
+    number_to_create = 40 - len(statuses_cache)
+    for i in range(0, number_to_create):
+        statuses_cache.append(await _create_workflow_status(workflow=workflow))
 
+    # hack to fill prefetch cache so that no db refresh is needed to sync statuses
+    workflow._prefetched_objects_cache["statuses"] = statuses_cache
     await factories.create_stories(
-        project=full_project, min_stories=2000, with_comments=True
+        project=project, min_stories=2000, with_comments=True
     )

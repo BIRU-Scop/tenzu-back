@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import uuid
 
 from asgiref.sync import sync_to_async
 
@@ -81,6 +82,13 @@ class StoryFactory(Factory):
                     for _ in range(extracted)
                 ]
             }
+
+    @factory.post_generation
+    def assignee_ids(self, create, extracted, **kwargs):
+        if extracted is None:
+            return
+        if not create:
+            self.assignee_ids = [uuid.uuid1() for _ in range(extracted)]
 
     class Meta:
         model = "stories.Story"
