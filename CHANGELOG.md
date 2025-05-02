@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.15](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.14...v0.0.1-staging.15) (2025-05-02)
+
+
+### Bug Fixes
+
+* make migration check happy with explicit through_fields ([10d6b1c](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/10d6b1cc6cc210c1d36143390d6050cbab72f933))
+
 ## [0.0.1-staging.14](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.13...v0.0.1-staging.14) (2025-04-28)
 
 
