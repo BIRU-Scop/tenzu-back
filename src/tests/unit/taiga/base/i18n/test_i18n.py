@@ -18,13 +18,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from unittest.mock import PropertyMock, patch
 
 import pytest
 from django.test import override_settings
 
 from base import templating
-from base.i18n import FALLBACK_LOCALE, I18N, Locale, UnknownLocaleIdentifierError
+from base.i18n import FALLBACK_LOCALE, I18N, UnknownLocaleIdentifierError
 
 
 def test_i18n_is_created_with_the_falback_lang():
@@ -35,9 +34,10 @@ def test_i18n_is_created_with_the_falback_lang():
 
 def test_i18n_is_initialized_with_the_config_lang(initialize_template_env):
     settings_lang = "es-ES"
-    with override_settings(
-        **{"LANGUAGE_CODE": settings_lang}
-    ), initialize_template_env():
+    with (
+        override_settings(**{"LANGUAGE_CODE": settings_lang}),
+        initialize_template_env(),
+    ):
         i18n = I18N()
 
         orig_trans = i18n.translations
@@ -60,9 +60,10 @@ def test_i18n_is_initialized_with_the_config_lang(initialize_template_env):
 def test_i18n_set_lang(initialize_template_env):
     settings_lang = "en-US"
     lang = "es-ES"
-    with override_settings(
-        **{"LANGUAGE_CODE": settings_lang}
-    ), initialize_template_env():
+    with (
+        override_settings(**{"LANGUAGE_CODE": settings_lang}),
+        initialize_template_env(),
+    ):
         i18n = I18N()
         i18n.initialize()
 
@@ -85,9 +86,10 @@ def test_i18n_set_lang_with_invalid_identifier(initialize_template_env):
     settings_lang = "en-US"
     invalid_lang = "invalid"
 
-    with override_settings(
-        **{"LANGUAGE_CODE": settings_lang}
-    ), initialize_template_env():
+    with (
+        override_settings(**{"LANGUAGE_CODE": settings_lang}),
+        initialize_template_env(),
+    ):
         i18n = I18N()
         i18n.initialize()
 
@@ -148,47 +150,3 @@ def test_i18n_use_contextmanager():
 def test_i18n_if_is_language_available(lang, result):
     i18n = I18N()
     assert i18n.is_language_available(lang) == result
-
-
-def test_i19n_get_available_languages_info_return_sorted_list():
-    codes = [
-        "ar",
-        "bg",
-        "ca",
-        "en-US",
-        "es-ES",
-        "eu",
-        "fa",
-        "he",
-        "ja",
-        "ko",
-        "pt",
-        "pt-BR",
-        "ru",
-        "uk",
-        "zh-Hans",
-        "zh-Hant",
-    ]
-    sorted_codes = [
-        "ca",
-        "en-US",
-        "es-ES",
-        "eu",
-        "pt",
-        "pt-BR",
-        "bg",
-        "ru",
-        "uk",
-        "he",
-        "ar",
-        "fa",
-        "zh-Hans",
-        "zh-Hant",
-        "ja",
-        "ko",
-    ]
-    with patch("base.i18n.I18N.locales", new_callable=PropertyMock) as locales_mock:
-        locales_mock.return_value = [Locale.parse(cod, sep="-") for cod in codes]
-
-        i18n = I18N()
-        assert sorted_codes == [lang.code for lang in i18n.available_languages_info]

@@ -18,10 +18,8 @@
 # You can contact BIRU at ask@biru.sh
 
 from ninja import Router
-from pydantic import TypeAdapter
 
-from base.i18n import i18n
-from base.i18n.schemas import LanguageSchema
+from system import services as system_services
 from system.serializers import LanguageSerializer
 
 system_router = Router()
@@ -30,8 +28,6 @@ system_router = Router()
 # list languages info
 ################################################
 
-Adapter = TypeAdapter(list[LanguageSchema])
-
 
 @system_router.get(
     "/system/languages",
@@ -39,6 +35,7 @@ Adapter = TypeAdapter(list[LanguageSchema])
     summary="List system available languages",
     response=list[LanguageSerializer],
     auth=None,
+    by_alias=True,
 )
-async def list_languages(request) -> list[LanguageSchema]:
-    return Adapter.validate_python(i18n.available_languages_info)
+async def list_languages(request) -> list[LanguageSerializer]:
+    return system_services.get_available_languages_info()
