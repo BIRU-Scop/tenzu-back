@@ -75,7 +75,7 @@ async def create_story_comments(
     """
     Add a comment to a story
     """
-    story = await get_story_or_404(project_id=project_id, ref=ref)
+    story = await get_story_or_404(project_id=project_id, ref=ref, get_assignees=True)
     await check_permissions(
         permissions=CommentPermissionsCheck.CREATE.value, user=request.user, obj=story
     )

@@ -215,7 +215,8 @@ async def list_stories_to_reorder(
     qs = (
         Story.objects.all()
         .filter(ref__in=ref__in, **filters)
-        .select_related("project", "created_by")
+        .select_related("project")
+        .annotate(assignee_ids=ASSIGNEE_IDS_ANNOTATION)
     )
 
     # keep ref order

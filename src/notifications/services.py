@@ -30,10 +30,10 @@ from users.models import User
 
 
 async def notify_users(
-    type: str, emitted_by: User, notified_users: Iterable[User], content: BaseModel
+    type: str, emitted_by: User, notified_user_ids: Iterable[UUID], content: BaseModel
 ) -> None:
     notifications = await notifications_repositories.create_notifications(
-        owners=notified_users,
+        owner_ids=notified_user_ids,
         created_by=emitted_by,
         notification_type=type,
         content=content.dict(),

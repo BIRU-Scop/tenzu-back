@@ -31,7 +31,7 @@ from projects.projects.models import Project
 from workspaces.workspaces.models import Workspace
 
 if TYPE_CHECKING:
-    from users.models import AnyUser
+    from users.models import User
 
 
 class EventsManager:
@@ -63,7 +63,7 @@ class EventsManager:
         await self.publish(channel=channel, event=event)
 
     async def publish_on_user_channel(
-        self, user: AnyUser | str, type: str, content: EventContent = None
+        self, user: User | str | UUID, type: str, content: EventContent = None
     ) -> None:
         channel = channels.user_channel(user)
         event = self._generate_event(type=type, content=content)

@@ -125,11 +125,12 @@ async def list_stories(
 ##########################################################
 
 
-async def get_story(project_id: UUID, ref: int) -> Story:
+async def get_story(project_id: UUID, ref: int, get_assignees=False) -> Story:
     return await stories_repositories.get_story(
         ref=ref,
         filters={"project_id": project_id},
         select_related=["project", "project__workspace", "workflow", "created_by"],
+        get_assignees=get_assignees,
     )
 
 

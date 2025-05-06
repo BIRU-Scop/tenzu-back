@@ -20,11 +20,11 @@ from uuid import UUID
 
 from base.utils.uuid import encode_uuid_to_b64str
 from projects.projects.models import Project
-from users.models import AnyUser, User
+from users.models import User
 from workspaces.workspaces.models import Workspace
 
 _SYSTEM_CHANNEL_PATTERN = "system"
-_USER_CHANNEL_PATTERN = "users.{username}"
+_USER_CHANNEL_PATTERN = "users.{id}"
 _PROJECT_CHANNEL_PATTERN = "projects.{id}"
 _WORKSPACE_CHANNEL_PATTERN = "workspaces.{id}"
 
@@ -33,9 +33,15 @@ def system_channel() -> str:
     return _SYSTEM_CHANNEL_PATTERN
 
 
-def user_channel(user: AnyUser | str) -> str:
-    username = user.username if isinstance(user, User) else user
-    return _USER_CHANNEL_PATTERN.format(username=username)
+def user_channel(user: User | str | UUID) -> str:
+    key = (
+        user.b64id
+        if isinstance(user, User)
+        else encode_uuid_to_b64str(user)
+        if isinstance(user, UUID)
+        else user
+    )
+    return _USER_CHANNEL_PATTERN.format(id=key)
 
 
 def project_channel(project: Project | str | UUID) -> str:

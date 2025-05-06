@@ -29,15 +29,15 @@ STORY_COMMENT_CREATE = "story_comment.create"
 async def notify_when_story_comment_is_created(
     story: Story, comment: Comment, emitted_by: User
 ) -> None:
-    notified_users = {u async for u in story.assignees.all()}
-    if story.created_by:
-        notified_users.add(story.created_by)
-    notified_users.discard(emitted_by)
+    notified_user_ids = set(story.assignee_ids)
+    if story.created_by_id:
+        notified_user_ids.add(story.created_by_id)
+    notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
         type=STORY_COMMENT_CREATE,
         emitted_by=emitted_by,
-        notified_users=notified_users,
+        notified_user_ids=notified_user_ids,
         content=StoryCommentCreateNotificationContent(
             project=story.project,
             story=story,

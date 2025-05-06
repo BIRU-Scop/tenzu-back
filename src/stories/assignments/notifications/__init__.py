@@ -35,15 +35,15 @@ async def notify_when_story_is_assigned(
     """
     Emit notification when a story is assigned.
     """
-    notified_users = {assigned_to}
-    if story.created_by:
-        notified_users.add(story.created_by)
-    notified_users.discard(emitted_by)
+    notified_user_ids = {assigned_to.id}
+    if story.created_by_id:
+        notified_user_ids.add(story.created_by_id)
+    notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
         type=STORIES_ASSIGN,
         emitted_by=emitted_by,
-        notified_users=notified_users,
+        notified_user_ids=notified_user_ids,
         content=StoryAssignNotificationContent(
             project=story.project,
             story=story,
@@ -59,15 +59,15 @@ async def notify_when_story_is_unassigned(
     """
     Emit notification when story is unassigned.
     """
-    notified_users = {unassigned_to}
-    if story.created_by:
-        notified_users.add(story.created_by)
-    notified_users.discard(emitted_by)
+    notified_user_ids = {unassigned_to.id}
+    if story.created_by_id:
+        notified_user_ids.add(story.created_by_id)
+    notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
         type=STORIES_UNASSIGN,
         emitted_by=emitted_by,
-        notified_users=notified_users,
+        notified_user_ids=notified_user_ids,
         content=StoryUnassignNotificationContent(
             project=story.project,
             story=story,
