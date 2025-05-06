@@ -90,7 +90,6 @@ async def create_invitations(
     invitations: list[dict[str, str]],
     invited_by: User,
     user_role: Role,
-    extra_select_related_for_mail_template: list[str] = [],
 ) -> tuple[list[Invitation], list[Invitation], int]:
     # create two lists with roles_slug and the emails received (either directly by the invitation's email, or by the
     # invited username's email)
@@ -194,9 +193,6 @@ async def create_invitations(
                 select_related=[
                     "user",
                     "role",
-                    "invited_by",
-                    reference_object._meta.model_name,
-                    *extra_select_related_for_mail_template,
                 ],
             )
         except reference_object.invitations.model.DoesNotExist:

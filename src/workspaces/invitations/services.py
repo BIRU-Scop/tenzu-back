@@ -70,7 +70,9 @@ async def create_workspace_invitations(
         ),
     )
     for invitation in invitations_to_send:
-        await send_workspace_invitation_email(invitation=invitation)
+        await send_workspace_invitation_email(
+            invitation=invitation, workspace=workspace, sender=invited_by
+        )
 
     if invitations_to_publish:
         await invitations_events.emit_event_when_workspace_invitations_are_created(
@@ -250,7 +252,9 @@ async def resend_workspace_invitation(
     )
     if resent_invitation is not None:
         await send_workspace_invitation_email(
-            invitation=resent_invitation, is_resend=True
+            invitation=resent_invitation,
+            workspace=invitation.workspace,
+            sender=resent_by,
         )
         return resent_invitation
     return invitation
@@ -300,10 +304,9 @@ async def revoke_workspace_invitation(
 
 async def send_workspace_invitation_email(
     invitation: WorkspaceInvitation,
-    is_resend: bool | None = False,
+    workspace: Workspace,
+    sender: User,
 ) -> None:
-    workspace = invitation.workspace
-    sender = invitation.resent_by if is_resend else invitation.invited_by
     receiver = invitation.user
     email = receiver.email if receiver else invitation.email
     invitation_token = await _generate_workspace_invitation_token(invitation)

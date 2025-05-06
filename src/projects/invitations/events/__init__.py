@@ -41,7 +41,7 @@ async def emit_event_when_project_invitations_are_created(
             user=invitation.user,  # type: ignore[arg-type]
             type=CREATE_PROJECT_INVITATION,
             content=ProjectInvitationContent(
-                workspace=invitation.project.workspace_id,
+                workspace=project.workspace_id,
                 project=invitation.project_id,
             ),
         )

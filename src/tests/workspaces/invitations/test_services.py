@@ -813,7 +813,11 @@ async def test_send_workspace_invitations_for_existing_user(tqmanager, correlati
     ) as FakeWorkspaceInvitationToken:
         FakeWorkspaceInvitationToken.create_for_object.return_value = "invitation-token"
 
-        await services.send_workspace_invitation_email(invitation=invitation)
+        await services.send_workspace_invitation_email(
+            invitation=invitation,
+            workspace=invitation.workspace,
+            sender=invitation.invited_by,
+        )
 
         assert len(tqmanager.pending_jobs) == 1
 
@@ -847,7 +851,11 @@ async def test_send_workspace_invitations_for_new_user(tqmanager):
     ) as FakeWorkspaceInvitationToken:
         FakeWorkspaceInvitationToken.create_for_object.return_value = "invitation-token"
 
-        await services.send_workspace_invitation_email(invitation=invitation)
+        await services.send_workspace_invitation_email(
+            invitation=invitation,
+            workspace=invitation.workspace,
+            sender=invitation.invited_by,
+        )
 
         assert len(tqmanager.pending_jobs) == 1
 

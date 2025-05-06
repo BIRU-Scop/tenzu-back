@@ -69,14 +69,13 @@ async def create_project_invitations(
             reference_object=project,
             invitations=invitations,
             invited_by=invited_by,
-            extra_select_related_for_mail_template=[
-                "project__workspace",
-            ],
             user_role=user_role,
         ),
     )
     for invitation in invitations_to_send:
-        await send_project_invitation_email(invitation=invitation)
+        await send_project_invitation_email(
+            invitation=invitation, project=project, sender=invited_by
+        )
 
     if invitations_to_publish:
         await invitations_events.emit_event_when_project_invitations_are_created(
@@ -251,7 +250,7 @@ async def resend_project_invitation(
     )
     if resent_invitation is not None:
         await send_project_invitation_email(
-            invitation=resent_invitation, is_resend=True
+            invitation=resent_invitation, project=invitation.project, sender=resent_by
         )
         return resent_invitation
     return invitation
@@ -298,10 +297,10 @@ async def revoke_project_invitation(
 
 
 async def send_project_invitation_email(
-    invitation: ProjectInvitation, is_resend: bool | None = False
+    invitation: ProjectInvitation,
+    project: Project,
+    sender: User,
 ) -> None:
-    project = invitation.project
-    sender = invitation.resent_by if is_resend else invitation.invited_by
     receiver = invitation.user
     email = receiver.email if receiver else invitation.email
     invitation_token = await _generate_project_invitation_token(invitation)

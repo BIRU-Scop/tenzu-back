@@ -227,7 +227,11 @@ async def test_send_project_invitations_for_existing_user(tqmanager, correlation
     ) as FakeProjectInvitationToken:
         FakeProjectInvitationToken.create_for_object.return_value = "invitation-token"
 
-        await services.send_project_invitation_email(invitation=invitation)
+        await services.send_project_invitation_email(
+            invitation=invitation,
+            project=invitation.project,
+            sender=invitation.invited_by,
+        )
 
         assert len(tqmanager.pending_jobs) == 1
 
@@ -265,7 +269,11 @@ async def test_send_project_invitations_for_new_user(tqmanager):
     ) as FakeProjectInvitationToken:
         FakeProjectInvitationToken.create_for_object.return_value = "invitation-token"
 
-        await services.send_project_invitation_email(invitation=invitation)
+        await services.send_project_invitation_email(
+            invitation=invitation,
+            project=invitation.project,
+            sender=invitation.invited_by,
+        )
 
         assert len(tqmanager.pending_jobs) == 1
 
@@ -1310,7 +1318,7 @@ async def test_resend_project_invitation_by_username_ok() -> None:
             },
         )
         fake_send_project_invitation_email.assert_awaited_once_with(
-            invitation=invitation, is_resend=True
+            invitation=invitation, project=project, sender=project.created_by
         )
 
 
@@ -1347,7 +1355,7 @@ async def test_resend_project_invitation_by_user_email_ok() -> None:
             },
         )
         fake_send_project_invitation_email.assert_awaited_once_with(
-            invitation=invitation, is_resend=True
+            invitation=invitation, project=project, sender=project.created_by
         )
 
 
@@ -1384,7 +1392,7 @@ async def test_resend_project_invitation_by_email_ok() -> None:
             },
         )
         fake_send_project_invitation_email.assert_awaited_once_with(
-            invitation=invitation, is_resend=True
+            invitation=invitation, project=project, sender=project.created_by
         )
 
 
