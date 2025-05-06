@@ -271,7 +271,9 @@ async def _validate_and_process_values_to_update(
     workflow_slug = output.pop("workflow_slug", None)
     if status_id := output.pop("status_id", None):
         if workflow_slug:
-            raise ex.InvalidStatusError("The provided status is not valid.")
+            raise ex.InvalidStatusError(
+                "Can't set workflow_slug and status_id at the same time."
+            )
         try:
             status = await workflows_repositories.get_workflow_status(
                 status_id=status_id, filters={"workflow_id": story.workflow_id}
@@ -294,20 +296,13 @@ async def _validate_and_process_values_to_update(
             raise ex.InvalidWorkflowError("The provided workflow is not valid.") from e
 
         if workflow.slug != story.workflow.slug:
-            # Set first status
-            first_status_list = await workflows_repositories.list_workflow_statuses(
-                workflow_id=workflow.id,
-                order_by=["order"],
-                offset=0,
-                limit=1,
-            )
-
-            if not first_status_list:
+            statuses = list(workflow.statuses.all())  # no query because of prefetch
+            if not statuses:
                 raise ex.WorkflowHasNotStatusesError(
                     "The provided workflow hasn't any statuses."
                 )
             else:
-                first_status = first_status_list[0]
+                first_status = statuses[0]
 
             output.update(
                 workflow=workflow,

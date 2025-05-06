@@ -109,7 +109,7 @@ async def create_workflow(
 async def list_workflows(
     request,
     project_id: Path[B64UUID],
-) -> list[WorkflowSerializer]:
+) -> list[Workflow]:
     """
     List the workflows of a project
     """
@@ -140,7 +140,7 @@ async def list_workflows(
 async def get_workflow(
     request,
     workflow_id: Path[B64UUID],
-) -> WorkflowSerializer:
+) -> Workflow:
     """
     Get the details of a workflow by id
     """
@@ -151,7 +151,7 @@ async def get_workflow(
         user=request.user,
         obj=workflow.project,
     )
-    return await workflows_services.get_workflow_detail(workflow_id=workflow.id)
+    return workflow
 
 
 @workflows_router.get(
@@ -170,7 +170,7 @@ async def get_workflow_by_slug(
     request,
     project_id: Path[B64UUID],
     workflow_slug: str,
-) -> WorkflowSerializer:
+) -> Workflow:
     """
     Get the details of a workflow by slug
     """
@@ -182,7 +182,7 @@ async def get_workflow_by_slug(
         user=request.user,
         obj=workflow.project,
     )
-    return await workflows_services.get_workflow_detail(workflow_id=workflow.id)
+    return workflow
 
 
 #########################################################
@@ -206,7 +206,7 @@ async def update_workflow(
     request,
     workflow_id: Path[B64UUID],
     form: UpdateWorkflowValidator,
-) -> WorkflowSerializer:
+) -> Workflow:
     """
     Update workflow
     """
@@ -218,7 +218,9 @@ async def update_workflow(
     )
 
     values = form.dict(exclude_unset=True)
-    return await workflows_services.update_workflow(workflow=workflow, updated_by=request.user, values=values)
+    return await workflows_services.update_workflow(
+        workflow=workflow, updated_by=request.user, values=values
+    )
 
 
 ################################################

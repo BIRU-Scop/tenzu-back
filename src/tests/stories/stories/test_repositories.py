@@ -60,8 +60,8 @@ async def test_list_stories(project_template) -> None:
     project = await f.create_project(project_template)
     workflow_1 = await sync_to_async(project.workflows.first)()
     status_1 = await sync_to_async(workflow_1.statuses.first)()
-    workflow_2 = await f.create_workflow(project=project)
-    status_2 = await sync_to_async(workflow_2.statuses.first)()
+    workflow_2 = await f.create_workflow(project=project, statuses=2)
+    status_2 = workflow_2.statuses.all()[0]
 
     await f.create_story(project=project, workflow=workflow_1, status=status_1)
     await f.create_story(project=project, workflow=workflow_1, status=status_1)

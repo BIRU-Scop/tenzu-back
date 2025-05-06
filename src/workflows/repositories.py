@@ -22,14 +22,15 @@
 #
 # Copyright (c) 2023-present Kaleidos INC
 
-from decimal import Decimal
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from django.db.models import Count, QuerySet
+from django.db.models.functions import Coalesce
 
 from base.repositories import neighbors as neighbors_repositories
 from base.repositories.neighbors import Neighbor
+from commons.ordering import DEFAULT_ORDER_OFFSET
 from projects.projects.models import Project, ProjectTemplate
 from workflows.models import Workflow, WorkflowStatus
 
@@ -177,15 +178,20 @@ WorkflowStatusOrderBy = list[
 async def create_workflow_status(
     name: str,
     color: int,
-    order: Decimal,
     workflow: Workflow,
 ) -> WorkflowStatus:
-    return await WorkflowStatus.objects.acreate(
+    latest_statuses_subquery = WorkflowStatus.objects.filter(
+        workflow_id=workflow.id
+    ).order_by("-order")
+    status = await WorkflowStatus.objects.acreate(
         name=name,
         color=color,
-        order=order,
+        order=DEFAULT_ORDER_OFFSET
+        + Coalesce(latest_statuses_subquery.values("order")[:1], 0),
         workflow=workflow,
     )
+    await status.arefresh_from_db(fields=["order"])
+    return status
 
 
 async def bulk_create_workflow_statuses(
@@ -309,7 +315,7 @@ async def delete_workflow_status(
 
 async def apply_default_workflow_statuses(
     template: ProjectTemplate, workflow: Workflow
-) -> None:
+) -> list[WorkflowStatus]:
     statuses = [
         WorkflowStatus(
             name=status["name"],
@@ -319,4 +325,4 @@ async def apply_default_workflow_statuses(
         )
         for status in template.workflow_statuses
     ]
-    await WorkflowStatus.objects.abulk_create(statuses)
+    return await WorkflowStatus.objects.abulk_create(statuses)
