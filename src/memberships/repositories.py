@@ -59,6 +59,7 @@ ProjectMembershipSelectRelated = list[
         "role",
         "user",
     ]
+    | None
 ]
 WorkspaceMembershipSelectRelated = list[
     Literal[
@@ -66,6 +67,7 @@ WorkspaceMembershipSelectRelated = list[
         "role",
         "user",
     ]
+    | None
 ]
 MembershipSelectRelated = (
     ProjectMembershipSelectRelated | WorkspaceMembershipSelectRelated
@@ -95,8 +97,8 @@ class WorkspaceRoleFilters(_RoleFilters, total=False):
 
 RoleFilters = ProjectRoleFilters | WorkspaceRoleFilters
 
-ProjectRoleSelectRelated = list[Literal["project",]]
-WorkspaceRoleSelectRelated = list[Literal["workspace",]]
+ProjectRoleSelectRelated = list[Literal["project",] | None]
+WorkspaceRoleSelectRelated = list[Literal["workspace",] | None]
 RoleSelectRelated = ProjectRoleSelectRelated | WorkspaceRoleSelectRelated
 TR = TypeVar("TR", bound=Role)
 
@@ -133,6 +135,7 @@ ProjectInvitationSelectRelated = list[
         "project__workspace",
         "invited_by",
     ]
+    | None
 ]
 WorkspaceInvitationSelectRelated = list[
     Literal[
@@ -141,6 +144,7 @@ WorkspaceInvitationSelectRelated = list[
         "workspace",
         "invited_by",
     ]
+    | None
 ]
 InvitationSelectRelated = (
     ProjectInvitationSelectRelated | WorkspaceInvitationSelectRelated
@@ -162,7 +166,7 @@ TI = TypeVar("TI", bound=Invitation)
 async def list_memberships(
     model: type[TM],
     filters: MembershipFilters = {},
-    select_related: MembershipSelectRelated = [],
+    select_related: MembershipSelectRelated = [None],
     order_by: MembershipOrderBy = ["user__full_name"],
     offset: int | None = None,
     limit: int | None = None,
@@ -306,7 +310,7 @@ async def list_roles(
 async def get_role(
     model: type[TR],
     filters: RoleFilters = {},
-    select_related: RoleSelectRelated = [],
+    select_related: RoleSelectRelated = [None],
 ) -> TR:
     qs = model.objects.all().filter(**filters).select_related(*select_related)
     return await qs.aget()
@@ -350,7 +354,7 @@ async def list_invitations(
     filters: InvitationFilters = {},
     offset: int | None = None,
     limit: int | None = None,
-    select_related: InvitationSelectRelated = [],
+    select_related: InvitationSelectRelated = [None],
     order_by: InvitationOrderBy = [],
     order_priorities: InvitationFilters = {},
 ) -> list[TI]:
@@ -370,9 +374,11 @@ async def list_invitations(
             )
         }
     )
-    qs = qs.order_by(
-        *(f"-priority{i}" for i in range(len(order_priorities))), *order_by
-    )
+    if order_by or order_priorities:
+        # only replace default order_by if defined
+        qs = qs.order_by(
+            *(f"-priority{i}" for i in range(len(order_priorities))), *order_by
+        )
 
     if limit is not None and offset is not None:
         limit += offset
@@ -389,7 +395,7 @@ async def get_invitation(
     model: type[TI],
     filters: InvitationFilters = {},
     q_filter: Q | None = None,
-    select_related: InvitationSelectRelated = [],
+    select_related: InvitationSelectRelated = [None],
 ) -> TI:
     qs = model.objects.all().filter(**filters).select_related(*select_related)
     if q_filter:

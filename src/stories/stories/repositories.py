@@ -60,6 +60,7 @@ StorySelectRelated = list[
         "title_updated_by",
         "description_updated_by",
     ]
+    | None
 ]
 
 
@@ -103,20 +104,13 @@ async def create_story(
 
 
 def list_stories_qs(
-    filters: StoryFilters = None,
-    excludes: StoryFilters = None,
+    filters: StoryFilters = {},
+    excludes: StoryFilters = {},
     order_by: StoryOrderBy = None,
     offset: int | None = None,
     limit: int | None = None,
-    select_related: StorySelectRelated = None,
+    select_related: StorySelectRelated = [None],
 ) -> QuerySet[Story]:
-    if filters is None:
-        filters = {}
-    if excludes is None:
-        excludes = {}
-    if select_related is None:
-        select_related = []
-
     qs = (
         Story.objects.all()
         .filter(**filters)
@@ -141,11 +135,9 @@ def list_stories_qs(
 async def get_story(
     ref: int,
     filters: StoryFilters = {},
-    select_related: StorySelectRelated = None,
+    select_related: StorySelectRelated = ["status"],
     get_assignees=False,
 ) -> Story:
-    if select_related is None:
-        select_related = ["status"]
     annotations = {"assignee_ids": ASSIGNEE_IDS_ANNOTATION} if get_assignees else {}
     qs = (
         Story.objects.all()
@@ -223,7 +215,7 @@ async def list_stories_to_reorder(
     qs = (
         Story.objects.all()
         .filter(ref__in=ref__in, **filters)
-        .select_related("status", "project", "created_by")
+        .select_related("project", "created_by")
     )
 
     # keep ref order

@@ -458,12 +458,12 @@ async def test_bulk_update_project_invitations(project_template):
     updated_invitation1 = await repositories.get_invitation(
         ProjectInvitation, filters={"id": invitation1.id}
     )
-    assert updated_invitation1.role == role2
+    assert updated_invitation1.role_id == role2.id
 
     updated_invitation2 = await repositories.get_invitation(
         ProjectInvitation, filters={"id": invitation2.id}
     )
-    assert updated_invitation2.role == role2
+    assert updated_invitation2.role_id == role2.id
 
 
 ##########################################################

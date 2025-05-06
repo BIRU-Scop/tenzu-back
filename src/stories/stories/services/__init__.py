@@ -439,7 +439,7 @@ async def reorder_stories(
     stories_to_update = []
     stories_with_changed_status = []
     for i, story in enumerate(stories_to_reorder):
-        if story.status != target_status:
+        if story.status_id != target_status.id:
             stories_with_changed_status.append(story)
 
         story.status = target_status

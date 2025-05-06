@@ -70,7 +70,7 @@ async def list_paginated_comments(
     content_object: Model,
     offset: int,
     limit: int,
-    order_by: CommentOrderBy = [],
+    order_by: CommentOrderBy = ["-created_at"],
 ) -> tuple[Pagination, int, list[Comment]]:
     filters: CommentFilters = {"content_object": content_object}
     comments = await comments_repositories.list_comments(

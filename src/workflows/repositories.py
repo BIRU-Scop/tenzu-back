@@ -45,7 +45,7 @@ class WorkflowFilters(TypedDict, total=False):
     project_id: UUID
 
 
-WorkflowSelectRelated = list[Literal["project", "project__workspace"]]
+WorkflowSelectRelated = list[Literal["project", "project__workspace"] | None]
 
 
 WorkflowPrefetchRelated = list[Literal["statuses",]]
@@ -103,7 +103,7 @@ def list_workflows(
 
 async def get_workflow(
     filters: WorkflowFilters = {},
-    select_related: WorkflowSelectRelated = [],
+    select_related: WorkflowSelectRelated = [None],
     prefetch_related: WorkflowPrefetchRelated = ["statuses"],
 ) -> Workflow | None:
     qs = (
@@ -160,6 +160,7 @@ WorkflowStatusSelectRelated = list[
         "workflow__project",
         "workflow__project__workspace",
     ]
+    | None
 ]
 
 
@@ -264,7 +265,7 @@ def list_workflow_status_neighbors(
 async def get_workflow_status(
     status_id: UUID,
     filters: WorkflowStatusFilters = {},
-    select_related: WorkflowStatusSelectRelated = [],
+    select_related: WorkflowStatusSelectRelated = [None],
 ) -> WorkflowStatus | None:
     qs = WorkflowStatus.objects.all().filter(**filters).select_related(*select_related)
 
