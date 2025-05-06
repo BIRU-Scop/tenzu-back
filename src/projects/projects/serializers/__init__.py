@@ -23,7 +23,6 @@ from memberships.serializers import RoleSerializer
 from projects.projects.serializers.mixins import ProjectLogoBaseSerializer  # noqa
 from projects.projects.serializers.nested import ProjectNestedSerializer
 from workflows.serializers.nested import WorkflowNestedSerializer
-from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
 class ProjectSummarySerializer(ProjectNestedSerializer):
@@ -32,7 +31,6 @@ class ProjectSummarySerializer(ProjectNestedSerializer):
 
 
 class ProjectDetailSerializer(ProjectSummarySerializer):
-    workspace: WorkspaceNestedSerializer
     workflows: list[WorkflowNestedSerializer]
 
     user_role: RoleSerializer | None

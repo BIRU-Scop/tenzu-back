@@ -125,7 +125,7 @@ class SubscribeToProjectEventsAction(PydanticBaseModel):
 
         project_id = decode_b64str_to_uuid(self.project)
         try:
-            project = await projects_services.get_project(id=project_id)
+            project = await projects_services.get_project(project_id=project_id)
         except Project.DoesNotExist:
             # Project does not exist
             await consumer.send_without_broadcast_action_response(
@@ -191,7 +191,7 @@ class CheckProjectEventsSubscriptionAction(PydanticBaseModel):
 
         project_id = decode_b64str_to_uuid(self.project)
         try:
-            project = await projects_services.get_project(id=project_id)
+            project = await projects_services.get_project(project_id=project_id)
         except Project.DoesNotExist:
             return
 

@@ -54,9 +54,12 @@ async def test_create_workflow(project_template):
 
 async def test_list_workflows_schemas_ok(project_template) -> None:
     project = await f.create_project(project_template)
-    workflows = await repositories.list_workflows(
-        filters={"project_id": project.id}, prefetch_related=["statuses"]
-    )
+    workflows = [
+        w
+        async for w in repositories.list_workflows_qs(
+            filters={"project_id": project.id}, prefetch_related=["statuses"]
+        )
+    ]
 
     assert len(workflows) == 1
     assert len(await _list_workflow_statuses(workflow=workflows[0])) == 4
@@ -65,7 +68,12 @@ async def test_list_workflows_schemas_ok(project_template) -> None:
 
 async def test_list_project_without_workflows_ok() -> None:
     project = await f.create_simple_project()
-    workflows = await repositories.list_workflows(filters={"project_id": project.id})
+    workflows = [
+        w
+        async for w in repositories.list_workflows_qs(
+            filters={"project_id": project.id}
+        )
+    ]
 
     assert len(workflows) == 0
 

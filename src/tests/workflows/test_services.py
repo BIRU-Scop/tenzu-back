@@ -57,7 +57,7 @@ async def test_create_workflow_ok():
         ) as fake_workflows_events,
         patch_db_transaction(),
     ):
-        fake_workflows_repo.list_workflows.return_value = None
+        fake_workflows_repo.list_workflows_qs.return_value.values_list.return_value.__aiter__.return_value = []
         fake_workflows_repo.create_workflow.return_value = workflow
         fake_workflows_repo.list_workflow_statuses.return_value = []
 
@@ -65,7 +65,7 @@ async def test_create_workflow_ok():
             project=workflow.project, name=workflow.name
         )
 
-        fake_workflows_repo.list_workflows.assert_awaited_once_with(
+        fake_workflows_repo.list_workflows_qs.assert_called_once_with(
             filters={"project_id": project.id}, order_by=["-order"]
         )
         fake_workflows_repo.create_workflow.assert_awaited_once_with(
@@ -102,7 +102,9 @@ async def test_create_workflow_no_landing_change():
         ) as fake_workflows_events,
         patch_db_transaction(),
     ):
-        fake_workflows_repo.list_workflows.return_value = [workflow2]
+        fake_workflows_repo.list_workflows_qs.return_value.values_list.return_value.__aiter__.return_value = [
+            workflow2.order
+        ]
         fake_workflows_repo.create_workflow.return_value = workflow1
         fake_workflows_repo.list_workflow_statuses.return_value = []
 
@@ -110,7 +112,7 @@ async def test_create_workflow_no_landing_change():
             project=workflow1.project, name=workflow1.name
         )
 
-        fake_workflows_repo.list_workflows.assert_awaited_once_with(
+        fake_workflows_repo.list_workflows_qs.assert_called_once_with(
             filters={"project_id": project.id}, order_by=["-order"]
         )
         fake_workflows_repo.create_workflow.assert_awaited_once()
@@ -144,11 +146,12 @@ async def test_create_workflow_reached_num_workflows_error():
         override_settings(**{"MAX_NUM_WORKFLOWS": 1}),
         pytest.raises(ex.MaxNumWorkflowCreatedError),
     ):
-        fake_workflows_repo.list_workflows.return_value = [workflow1]
-
+        fake_workflows_repo.list_workflows_qs.return_value.values_list.return_value.__aiter__.return_value = [
+            workflow1.order
+        ]
         await services.create_workflow(project=workflow2.project, name=workflow2.name)
 
-        fake_workflows_repo.list_workflows.assert_awaited_once_with(
+        fake_workflows_repo.list_workflows_qs.assert_called_once_with(
             filters={"project_id": project.id}, order_by=["-order"]
         )
         fake_workflows_repo.create_workflow.assert_not_awaited()
@@ -170,10 +173,12 @@ async def test_list_workflows_ok():
     with patch(
         "workflows.services.workflows_repositories", autospec=True
     ) as fake_workflows_repo:
-        fake_workflows_repo.list_workflows.return_value = workflows
+        fake_workflows_repo.list_workflows_qs.return_value.__aiter__.return_value = (
+            workflows
+        )
         fake_workflows_repo.list_workflow_statuses.return_value = [workflow_status]
         await services.list_workflows(project_id=workflows[0].project.id)
-        fake_workflows_repo.list_workflows.assert_awaited_once_with(
+        fake_workflows_repo.list_workflows_qs.assert_called_once_with(
             filters={"project_id": workflows[0].project.id},
             prefetch_related=["statuses"],
         )
@@ -316,7 +321,9 @@ async def test_update_workflow_update_landing_to_new_slug():
         ) as fake_projects_services,
         patch_db_transaction(),
     ):
-        await services.update_workflow(workflow=workflow, updated_by=user, values=values)
+        await services.update_workflow(
+            workflow=workflow, updated_by=user, values=values
+        )
         fake_projects_services.update_project_landing_page.assert_awaited_once()
 
 

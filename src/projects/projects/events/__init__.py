@@ -16,13 +16,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from uuid import UUID
 
 from events import events_manager
 from projects.projects.events.content import DeleteProjectContent, UpdateProjectContent
 from projects.projects.models import Project
 from projects.projects.serializers import ProjectDetailSerializer
-from users.models import AnyUser, User
-from workspaces.workspaces.models import Workspace
+from users.models import User
 
 PROJECT_DELETE = "projects.delete"
 PROJECT_UPDATE = "projects.update"
@@ -56,19 +56,19 @@ async def emit_event_when_project_is_updated(
 
 
 async def emit_event_when_project_is_deleted(
-    workspace: Workspace,
+    workspace_id: UUID,
     project: Project,
     deleted_by: User,
 ) -> None:
     # for ws-authorised readers (members in invitees), both in the home page and in the ws-detail
     await events_manager.publish_on_workspace_channel(
-        workspace=workspace,
+        workspace=workspace_id,
         type=PROJECT_DELETE,
         content=DeleteProjectContent(
             project=project.id,
             name=project.name,
             deleted_by=deleted_by,
-            workspace=workspace.id,
+            workspace=workspace_id,
         ),
     )
 
@@ -80,6 +80,6 @@ async def emit_event_when_project_is_deleted(
             project=project.id,
             name=project.name,
             deleted_by=deleted_by,
-            workspace=workspace.id,
+            workspace=workspace_id,
         ),
     )

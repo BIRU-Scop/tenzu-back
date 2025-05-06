@@ -26,8 +26,7 @@ from decimal import Decimal
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
-from django.db.models import Count
+from django.db.models import Count, QuerySet
 
 from base.repositories import neighbors as neighbors_repositories
 from base.repositories.neighbors import Neighbor
@@ -80,12 +79,11 @@ async def bulk_create_workflows(workflows: list[Workflow]) -> list[Workflow]:
 ##########################################################
 
 
-@sync_to_async
-def list_workflows(
+def list_workflows_qs(
     filters: WorkflowFilters = {},
-    prefetch_related: WorkflowPrefetchRelated = ["statuses"],
+    prefetch_related: WorkflowPrefetchRelated = [],
     order_by: WorkflowOrderBy = ["order"],
-) -> list[Workflow]:
+) -> QuerySet[Workflow]:
     qs = (
         Workflow.objects.all()
         .filter(**filters)
@@ -93,7 +91,7 @@ def list_workflows(
         .order_by(*order_by)
     )
 
-    return list(qs)
+    return qs
 
 
 ##########################################################
@@ -121,12 +119,11 @@ async def get_workflow(
 ##########################################################
 
 
-@sync_to_async
-def update_workflow(workflow: Workflow, values: dict[str, Any] = {}) -> Workflow:
+async def update_workflow(workflow: Workflow, values: dict[str, Any] = {}) -> Workflow:
     for attr, value in values.items():
         setattr(workflow, attr, value)
 
-    workflow.save()
+    await workflow.asave()
     return workflow
 
 
@@ -243,8 +240,7 @@ async def list_workflow_statuses_to_reorder(
     return sorted([s async for s in qs], key=lambda s: order[s.id])
 
 
-@sync_to_async
-def list_workflow_status_neighbors(
+async def list_workflow_status_neighbors(
     workflow_id: UUID, status: WorkflowStatus, excludes: WorkflowStatusFilters = {}
 ) -> Neighbor[WorkflowStatus]:
     qs = (
@@ -254,7 +250,7 @@ def list_workflow_status_neighbors(
         .order_by("order")
     )
 
-    return neighbors_repositories.get_neighbors_sync(obj=status, model_queryset=qs)
+    return await neighbors_repositories.get_neighbors(obj=status, model_queryset=qs)
 
 
 ##########################################################

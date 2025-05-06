@@ -16,7 +16,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from uuid import UUID
 
+from base.utils.uuid import encode_uuid_to_b64str
 from projects.projects.models import Project
 from users.models import AnyUser, User
 from workspaces.workspaces.models import Workspace
@@ -36,11 +38,31 @@ def user_channel(user: AnyUser | str) -> str:
     return _USER_CHANNEL_PATTERN.format(username=username)
 
 
-def project_channel(project: Project | str) -> str:
-    id = project.b64id if isinstance(project, Project) else project
-    return _PROJECT_CHANNEL_PATTERN.format(id=id)
+def project_channel(project: Project | str | UUID) -> str:
+    """
+    prefer passing Project or str to make use of cached b64id,
+    use UUID if you are dealing with non prefetched related objects
+    """
+    key = (
+        project.b64id
+        if isinstance(project, Project)
+        else encode_uuid_to_b64str(project)
+        if isinstance(project, UUID)
+        else project
+    )
+    return _PROJECT_CHANNEL_PATTERN.format(id=key)
 
 
-def workspace_channel(workspace: Workspace | str) -> str:
-    id = workspace.b64id if isinstance(workspace, Workspace) else workspace
-    return _WORKSPACE_CHANNEL_PATTERN.format(id=id)
+def workspace_channel(workspace: Workspace | str | UUID) -> str:
+    """
+    prefer passing Workspace or str to make use of cached b64id,
+    use UUID if you are dealing with non prefetched related objects
+    """
+    key = (
+        workspace.b64id
+        if isinstance(workspace, Workspace)
+        else encode_uuid_to_b64str(workspace)
+        if isinstance(workspace, UUID)
+        else workspace
+    )
+    return _WORKSPACE_CHANNEL_PATTERN.format(id=key)

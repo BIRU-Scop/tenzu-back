@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from channels.layers import get_channel_layer
 from redis import AuthenticationError, ConnectionError
@@ -69,7 +70,7 @@ class EventsManager:
         await self.publish(channel=channel, event=event)
 
     async def publish_on_project_channel(
-        self, project: Project | str, type: str, content: EventContent = None
+        self, project: Project | str | UUID, type: str, content: EventContent = None
     ) -> None:
         channel = channels.project_channel(project)
         event = self._generate_event(type=type, content=content)
@@ -77,7 +78,7 @@ class EventsManager:
 
     async def publish_on_workspace_channel(
         self,
-        workspace: Workspace | str,
+        workspace: Workspace | str | UUID,
         type: str,
         content: EventContent = None,
     ) -> None:

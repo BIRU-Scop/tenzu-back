@@ -49,22 +49,25 @@ from workflows.services import exceptions as ex
 
 @transaction_atomic_async
 async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
-    workflows = await workflows_repositories.list_workflows(
-        filters={"project_id": project.id}, order_by=["-order"]
-    )
+    workflow_orders = [
+        w
+        async for w in workflows_repositories.list_workflows_qs(
+            filters={"project_id": project.id}, order_by=["-order"]
+        ).values_list("order", flat=True)
+    ]
 
     # validate num workflows
-    num_workflows = len(workflows) if workflows else 0
+    num_workflows = len(workflow_orders) if workflow_orders else 0
     if num_workflows >= settings.MAX_NUM_WORKFLOWS:
         raise ex.MaxNumWorkflowCreatedError("Maximum number of workflows is reached")
 
     # calculate order
-    order = DEFAULT_ORDER_OFFSET + (workflows[0].order if workflows else 0)
+    order = DEFAULT_ORDER_OFFSET + (workflow_orders[0] if workflow_orders else 0)
 
     workflow = await workflows_repositories.create_workflow(
         project=project, name=name, order=order
     )
-    if not workflows:
+    if not workflow_orders:
         await projects_repositories.update_project(
             project,
             values={
@@ -109,12 +112,15 @@ async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
 
 
 async def list_workflows(project_id: UUID) -> list[WorkflowSerializer]:
-    workflows = await workflows_repositories.list_workflows(
-        filters={
-            "project_id": project_id,
-        },
-        prefetch_related=["statuses"],
-    )
+    workflows = [
+        w
+        async for w in workflows_repositories.list_workflows_qs(
+            filters={
+                "project_id": project_id,
+            },
+            prefetch_related=["statuses"],
+        )
+    ]
 
     return [
         serializers_services.serialize_workflow(
