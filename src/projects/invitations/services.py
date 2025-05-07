@@ -121,7 +121,7 @@ async def get_project_invitation(
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
         filters={**invitation_data, **filters},
-        select_related=["user", "project", "project__workspace", "role"],
+        select_related=["user", "project", "role"],
     )
 
 
@@ -153,7 +153,7 @@ async def get_project_invitation_by_username_or_email(
         q_filter=invitations_repositories.invitation_username_or_email_query(
             username_or_email
         ),
-        select_related=["user", "project", "project__workspace", "role"],
+        select_related=["user", "project", "role"],
     )
 
 
@@ -163,7 +163,7 @@ async def get_project_invitation_by_id(
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
         filters={"project_id": project_id, "id": invitation_id},
-        select_related=["user", "project", "project__workspace", "role"],
+        select_related=["user", "project", "role"],
     )
 
 
@@ -177,7 +177,7 @@ async def update_user_projects_invitations(user: User) -> None:
     invitations = await invitations_repositories.list_invitations(
         ProjectInvitation,
         filters={"user": user, "status": InvitationStatus.PENDING},
-        select_related=["user", "role", "project", "project__workspace"],
+        select_related=["user", "role", "project"],
     )
     await transaction_on_commit_async(
         invitations_events.emit_event_when_project_invitations_are_updated
@@ -360,7 +360,7 @@ async def _sync_related_workspace_membership(pj_invitation: ProjectInvitation):
     except WorkspaceInvitation.DoesNotExist:
         # there is no existing membership nor pending invitation, create workspace default membership
         await workspaces_memberships_services.create_default_workspace_membership(
-            pj_invitation.project.workspace, pj_invitation.user
+            pj_invitation.project.workspace_id, pj_invitation.user
         )
     else:
         await workspaces_invitations_services.accept_workspace_invitation(ws_invitation)

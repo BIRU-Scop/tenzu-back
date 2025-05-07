@@ -20,13 +20,8 @@
 from base.serializers import BaseModel
 from memberships.serializers import RoleSerializer
 from workspaces.memberships.serializers import (
-    WorkspaceMembershipDeletedSerializer,
     WorkspaceMembershipSerializer,
 )
-
-
-class DeleteWorkspaceMembershipContent(BaseModel):
-    membership: WorkspaceMembershipDeletedSerializer
 
 
 class WorkspaceMembershipContent(BaseModel):

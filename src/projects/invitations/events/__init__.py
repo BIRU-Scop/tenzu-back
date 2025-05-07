@@ -127,7 +127,7 @@ async def emit_event_when_project_invitation_is_denied(
         type=DENY_PROJECT_INVITATION,
     )
     await events_manager.publish_on_workspace_channel(
-        workspace=invitation.project.workspace,
+        workspace=invitation.project.workspace_id,
         type=DENY_PROJECT_INVITATION,
     )
     if invitation.user:
