@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from uuid import UUID
 
 from notifications import services as notifications_services
 from stories.stories.models import Story
@@ -37,15 +38,15 @@ async def notify_when_story_status_change(
     """
     Emit notification when a story status changes
     """
-    notified_users = {u async for u in story.assignees.all()}
-    if story.created_by:
-        notified_users.add(story.created_by)
-    notified_users.discard(emitted_by)
+    notified_user_ids = set(story.assignee_ids)
+    if story.created_by_id:
+        notified_user_ids.add(story.created_by_id)
+    notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
         type=STORIES_STATUS_CHANGE,
         emitted_by=emitted_by,
-        notified_users=notified_users,
+        notified_user_ids=notified_user_ids,
         content=StoryStatusChangeNotificationContent(
             project=story.project,
             story=story,
@@ -61,15 +62,15 @@ async def notify_when_story_workflow_change(
     """
     Emit notification when a story workflow changes
     """
-    notified_users = {u async for u in story.assignees.all()}
-    if story.created_by:
-        notified_users.add(story.created_by)
-    notified_users.discard(emitted_by)
+    notified_user_ids = set(story.assignee_ids)
+    if story.created_by_id:
+        notified_user_ids.add(story.created_by_id)
+    notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
         type=STORIES_WORKFLOW_CHANGE,
         emitted_by=emitted_by,
-        notified_users=notified_users,
+        notified_user_ids=notified_user_ids,
         content=StoryWorkflowChangeNotificationContent(
             project=story.project,
             story=story,
@@ -84,15 +85,15 @@ async def notify_when_story_is_deleted(story: Story, emitted_by: User) -> None:
     """
     Emit notification when a story is deleted
     """
-    notified_users = set()
-    if story.created_by:
-        notified_users.add(story.created_by)
-    notified_users.discard(emitted_by)
+    notified_user_ids: set[UUID] = set()
+    if story.created_by_id:
+        notified_user_ids.add(story.created_by_id)
+    notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
         type=STORIES_DELETE,
         emitted_by=emitted_by,
-        notified_users=notified_users,
+        notified_user_ids=notified_user_ids,
         content=StoryDeleteNotificationContent(
             project=story.project,
             story=story,

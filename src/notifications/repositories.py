@@ -49,19 +49,19 @@ NotificationSelectRelated = list[Literal["owner", "created_by"]]
 
 
 async def create_notifications(
-    owners: Iterable[User],
+    owner_ids: Iterable[UUID],
     created_by: User,
     notification_type: str,
     content: dict[str, Any],
 ) -> list[Notification]:
     notifications = [
         Notification(
-            owner=owner,
+            owner_id=owner_id,
             created_by=created_by,
             type=notification_type,
             content=content,
         )
-        for owner in owners
+        for owner_id in owner_ids
     ]
 
     return await Notification.objects.abulk_create(notifications)

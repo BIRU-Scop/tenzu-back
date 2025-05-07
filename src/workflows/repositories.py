@@ -22,15 +22,15 @@
 #
 # Copyright (c) 2023-present Kaleidos INC
 
-from decimal import Decimal
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
-from django.db.models import Count
+from django.db.models import Count, QuerySet
+from django.db.models.functions import Coalesce
 
 from base.repositories import neighbors as neighbors_repositories
 from base.repositories.neighbors import Neighbor
+from commons.ordering import DEFAULT_ORDER_OFFSET
 from projects.projects.models import Project, ProjectTemplate
 from workflows.models import Workflow, WorkflowStatus
 
@@ -45,7 +45,7 @@ class WorkflowFilters(TypedDict, total=False):
     project_id: UUID
 
 
-WorkflowSelectRelated = list[Literal["project", "project__workspace"]]
+WorkflowSelectRelated = list[Literal["project", "project__workspace"] | None]
 
 
 WorkflowPrefetchRelated = list[Literal["statuses",]]
@@ -80,12 +80,11 @@ async def bulk_create_workflows(workflows: list[Workflow]) -> list[Workflow]:
 ##########################################################
 
 
-@sync_to_async
-def list_workflows(
+def list_workflows_qs(
     filters: WorkflowFilters = {},
-    prefetch_related: WorkflowPrefetchRelated = ["statuses"],
+    prefetch_related: WorkflowPrefetchRelated = [],
     order_by: WorkflowOrderBy = ["order"],
-) -> list[Workflow]:
+) -> QuerySet[Workflow]:
     qs = (
         Workflow.objects.all()
         .filter(**filters)
@@ -93,7 +92,7 @@ def list_workflows(
         .order_by(*order_by)
     )
 
-    return list(qs)
+    return qs
 
 
 ##########################################################
@@ -103,7 +102,7 @@ def list_workflows(
 
 async def get_workflow(
     filters: WorkflowFilters = {},
-    select_related: WorkflowSelectRelated = [],
+    select_related: WorkflowSelectRelated = [None],
     prefetch_related: WorkflowPrefetchRelated = ["statuses"],
 ) -> Workflow | None:
     qs = (
@@ -121,12 +120,11 @@ async def get_workflow(
 ##########################################################
 
 
-@sync_to_async
-def update_workflow(workflow: Workflow, values: dict[str, Any] = {}) -> Workflow:
+async def update_workflow(workflow: Workflow, values: dict[str, Any] = {}) -> Workflow:
     for attr, value in values.items():
         setattr(workflow, attr, value)
 
-    workflow.save()
+    await workflow.asave()
     return workflow
 
 
@@ -160,6 +158,7 @@ WorkflowStatusSelectRelated = list[
         "workflow__project",
         "workflow__project__workspace",
     ]
+    | None
 ]
 
 
@@ -179,15 +178,20 @@ WorkflowStatusOrderBy = list[
 async def create_workflow_status(
     name: str,
     color: int,
-    order: Decimal,
     workflow: Workflow,
 ) -> WorkflowStatus:
-    return await WorkflowStatus.objects.acreate(
+    latest_statuses_subquery = WorkflowStatus.objects.filter(
+        workflow_id=workflow.id
+    ).order_by("-order")
+    status = await WorkflowStatus.objects.acreate(
         name=name,
         color=color,
-        order=order,
+        order=DEFAULT_ORDER_OFFSET
+        + Coalesce(latest_statuses_subquery.values("order")[:1], 0),
         workflow=workflow,
     )
+    await status.arefresh_from_db(fields=["order"])
+    return status
 
 
 async def bulk_create_workflow_statuses(
@@ -242,8 +246,7 @@ async def list_workflow_statuses_to_reorder(
     return sorted([s async for s in qs], key=lambda s: order[s.id])
 
 
-@sync_to_async
-def list_workflow_status_neighbors(
+async def list_workflow_status_neighbors(
     workflow_id: UUID, status: WorkflowStatus, excludes: WorkflowStatusFilters = {}
 ) -> Neighbor[WorkflowStatus]:
     qs = (
@@ -253,7 +256,7 @@ def list_workflow_status_neighbors(
         .order_by("order")
     )
 
-    return neighbors_repositories.get_neighbors_sync(obj=status, model_queryset=qs)
+    return await neighbors_repositories.get_neighbors(obj=status, model_queryset=qs)
 
 
 ##########################################################
@@ -264,7 +267,7 @@ def list_workflow_status_neighbors(
 async def get_workflow_status(
     status_id: UUID,
     filters: WorkflowStatusFilters = {},
-    select_related: WorkflowStatusSelectRelated = [],
+    select_related: WorkflowStatusSelectRelated = [None],
 ) -> WorkflowStatus | None:
     qs = WorkflowStatus.objects.all().filter(**filters).select_related(*select_related)
 
@@ -312,7 +315,7 @@ async def delete_workflow_status(
 
 async def apply_default_workflow_statuses(
     template: ProjectTemplate, workflow: Workflow
-) -> None:
+) -> list[WorkflowStatus]:
     statuses = [
         WorkflowStatus(
             name=status["name"],
@@ -322,4 +325,4 @@ async def apply_default_workflow_statuses(
         )
         for status in template.workflow_statuses
     ]
-    await WorkflowStatus.objects.abulk_create(statuses)
+    return await WorkflowStatus.objects.abulk_create(statuses)

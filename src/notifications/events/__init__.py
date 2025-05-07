@@ -34,7 +34,7 @@ async def emit_event_when_notifications_are_created(
 ) -> None:
     for notification in notifications:
         await events_manager.publish_on_user_channel(
-            user=notification.owner,
+            user=notification.owner_id,
             type=CREATE_NOTIFICATION,
             content=CreateNotificationContent(
                 notification=notification,

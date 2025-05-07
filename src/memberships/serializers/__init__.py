@@ -15,6 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import datetime
 
 from pydantic import ConfigDict, EmailStr, field_validator, validator
 from pydantic_core.core_schema import ValidationInfo
@@ -40,6 +41,8 @@ class InvitationBaseSerializer(BaseModel):
     user: UserNestedSerializer | None = None
     role: RoleSerializer
     email: EmailStr
+    resent_at: datetime.datetime | None
+    created_at: datetime.datetime
 
 
 class _PrivateEmailInvitationSerializer(InvitationBaseSerializer):

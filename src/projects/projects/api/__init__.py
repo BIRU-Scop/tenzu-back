@@ -241,9 +241,11 @@ async def delete_project(
 ##########################################################
 
 
-async def get_project_or_404(project_id: UUID) -> Project:
+async def get_project_or_404(project_id: UUID, get_workspace=False) -> Project:
     try:
-        project = await projects_services.get_project(id=project_id)
+        project = await projects_services.get_project(
+            project_id=project_id, get_workspace=get_workspace
+        )
     except Project.DoesNotExist as e:
         raise ex.NotFoundError("Project does not exist") from e
 

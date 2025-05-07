@@ -125,11 +125,12 @@ async def list_stories(
 ##########################################################
 
 
-async def get_story(project_id: UUID, ref: int) -> Story:
+async def get_story(project_id: UUID, ref: int, get_assignees=False) -> Story:
     return await stories_repositories.get_story(
         ref=ref,
         filters={"project_id": project_id},
         select_related=["project", "project__workspace", "workflow", "created_by"],
+        get_assignees=get_assignees,
     )
 
 
@@ -270,7 +271,9 @@ async def _validate_and_process_values_to_update(
     workflow_slug = output.pop("workflow_slug", None)
     if status_id := output.pop("status_id", None):
         if workflow_slug:
-            raise ex.InvalidStatusError("The provided status is not valid.")
+            raise ex.InvalidStatusError(
+                "Can't set workflow_slug and status_id at the same time."
+            )
         try:
             status = await workflows_repositories.get_workflow_status(
                 status_id=status_id, filters={"workflow_id": story.workflow_id}
@@ -293,20 +296,13 @@ async def _validate_and_process_values_to_update(
             raise ex.InvalidWorkflowError("The provided workflow is not valid.") from e
 
         if workflow.slug != story.workflow.slug:
-            # Set first status
-            first_status_list = await workflows_repositories.list_workflow_statuses(
-                workflow_id=workflow.id,
-                order_by=["order"],
-                offset=0,
-                limit=1,
-            )
-
-            if not first_status_list:
+            statuses = list(workflow.statuses.all())  # no query because of prefetch
+            if not statuses:
                 raise ex.WorkflowHasNotStatusesError(
                     "The provided workflow hasn't any statuses."
                 )
             else:
-                first_status = first_status_list[0]
+                first_status = statuses[0]
 
             output.update(
                 workflow=workflow,
@@ -439,7 +435,7 @@ async def reorder_stories(
     stories_to_update = []
     stories_with_changed_status = []
     for i, story in enumerate(stories_to_reorder):
-        if story.status != target_status:
+        if story.status_id != target_status.id:
             stories_with_changed_status.append(story)
 
         story.status = target_status

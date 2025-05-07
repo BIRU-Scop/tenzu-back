@@ -55,7 +55,7 @@ async def test_get_project_invitation_ok():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             ProjectInvitation,
             filters={"id": str(invitation.id)},
-            select_related=["user", "project", "project__workspace", "role"],
+            select_related=["user", "project", "role"],
         )
         assert inv == invitation
 
@@ -82,7 +82,7 @@ async def test_get_project_invitation_error_not_found():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             ProjectInvitation,
             filters={"id": str(invitation.id)},
-            select_related=["user", "project", "project__workspace", "role"],
+            select_related=["user", "project", "role"],
         )
 
 
@@ -115,7 +115,7 @@ async def test_get_public_project_invitation_ok():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             ProjectInvitation,
             filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
-            select_related=["user", "project", "project__workspace", "role"],
+            select_related=["user", "project", "role"],
         )
         fake_auth_services.get_available_user_logins.assert_awaited_once_with(
             user=invitation.user
@@ -144,7 +144,7 @@ async def test_get_public_project_invitation_ok_without_user():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             ProjectInvitation,
             filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
-            select_related=["user", "project", "project__workspace", "role"],
+            select_related=["user", "project", "role"],
         )
         fake_auth_services.get_available_user_logins.assert_not_awaited()
 
@@ -169,7 +169,7 @@ async def test_get_public_project_invitation_error_invitation_not_exists():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             ProjectInvitation,
             filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
-            select_related=["user", "project", "project__workspace", "role"],
+            select_related=["user", "project", "role"],
         )
 
 
@@ -198,6 +198,8 @@ async def test_list_project_invitations_ok_admin():
                 "project_id": invitation.project.id,
             },
             select_related=["project", "user", "role"],
+            order_by=["user__full_name", "email"],
+            order_priorities={"status": InvitationStatus.PENDING},
         )
         assert invitations == [invitation]
 
@@ -225,7 +227,11 @@ async def test_send_project_invitations_for_existing_user(tqmanager, correlation
     ) as FakeProjectInvitationToken:
         FakeProjectInvitationToken.create_for_object.return_value = "invitation-token"
 
-        await services.send_project_invitation_email(invitation=invitation)
+        await services.send_project_invitation_email(
+            invitation=invitation,
+            project=invitation.project,
+            sender=invitation.invited_by,
+        )
 
         assert len(tqmanager.pending_jobs) == 1
 
@@ -263,7 +269,11 @@ async def test_send_project_invitations_for_new_user(tqmanager):
     ) as FakeProjectInvitationToken:
         FakeProjectInvitationToken.create_for_object.return_value = "invitation-token"
 
-        await services.send_project_invitation_email(invitation=invitation)
+        await services.send_project_invitation_email(
+            invitation=invitation,
+            project=invitation.project,
+            sender=invitation.invited_by,
+        )
 
         assert len(tqmanager.pending_jobs) == 1
 
@@ -957,7 +967,7 @@ async def test_accept_project_invitation_no_workspace_membership_nor_invitation(
         )
         fake_workspaces_invitations_services.accept_workspace_invitation.assert_not_awaited()
         fake_workspaces_memberships_services.create_default_workspace_membership.assert_awaited_once_with(
-            project.workspace, user
+            project.workspace_id, user
         )
 
 
@@ -1265,7 +1275,7 @@ async def test_update_user_projects_invitations() -> None:
         fake_invitations_repositories.list_invitations.assert_awaited_once_with(
             ProjectInvitation,
             filters={"user": user, "status": InvitationStatus.PENDING},
-            select_related=["user", "role", "project", "project__workspace"],
+            select_related=["user", "role", "project"],
         )
         fake_invitations_events.emit_event_when_project_invitations_are_updated.assert_awaited_once()
 
@@ -1308,7 +1318,7 @@ async def test_resend_project_invitation_by_username_ok() -> None:
             },
         )
         fake_send_project_invitation_email.assert_awaited_once_with(
-            invitation=invitation, is_resend=True
+            invitation=invitation, project=project, sender=project.created_by
         )
 
 
@@ -1345,7 +1355,7 @@ async def test_resend_project_invitation_by_user_email_ok() -> None:
             },
         )
         fake_send_project_invitation_email.assert_awaited_once_with(
-            invitation=invitation, is_resend=True
+            invitation=invitation, project=project, sender=project.created_by
         )
 
 
@@ -1382,7 +1392,7 @@ async def test_resend_project_invitation_by_email_ok() -> None:
             },
         )
         fake_send_project_invitation_email.assert_awaited_once_with(
-            invitation=invitation, is_resend=True
+            invitation=invitation, project=project, sender=project.created_by
         )
 
 

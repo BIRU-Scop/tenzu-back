@@ -53,7 +53,7 @@ class ProjectFilters(TypedDict, total=False):
     memberships__role__is_owner: bool
 
 
-ProjectSelectRelated = list[Literal["workspace",]]
+ProjectSelectRelated = list[Literal["workspace",] | None]
 
 ProjectPrefetchRelated = list[Literal["workflows"]]
 

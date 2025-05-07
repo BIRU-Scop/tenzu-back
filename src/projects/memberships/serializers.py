@@ -17,22 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
 
-from base.serializers import BaseModel
-from memberships.serializers import RoleSerializer
-from projects.projects.serializers.nested import ProjectNestedSerializer
+from base.serializers import UUIDB64, BaseModel
 from users.serializers.nested import UserNestedSerializer
 
 
 class ProjectMembershipSerializer(BaseModel):
     user: UserNestedSerializer
-    role: RoleSerializer
-    project: ProjectNestedSerializer
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ProjectMembershipDeletedSerializer(BaseModel):
-    user: UserNestedSerializer
-    project: ProjectNestedSerializer
-    model_config = ConfigDict(from_attributes=True)
+    role_id: UUIDB64
+    project_id: UUIDB64

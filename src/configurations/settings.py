@@ -235,6 +235,7 @@ if settings.EVENTS.PUBSUB_BACKEND == PubSubBackendChoices.REDIS:
 
 LOG_FORMAT = "[{levelname}] <{asctime}> {pathname}:{lineno} {message}"
 LOGLEVEL = "WARNING"
+SQL_LOGLEVEL = "WARNING"
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -259,6 +260,11 @@ LOGGING = {
             "level": LOGLEVEL,
             "handlers": ["console"],
             # required to avoid double logging with root logger
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "level": SQL_LOGLEVEL,
+            "handlers": ["console"],
             "propagate": False,
         },
     },

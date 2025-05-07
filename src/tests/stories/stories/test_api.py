@@ -512,7 +512,7 @@ async def test_update_story_200_ok_unprotected_attribute_workflow_ok(
     project = await f.create_project(project_template)
     workflow1 = await project.workflows.afirst()
     status1 = await workflow1.statuses.afirst()
-    workflow2 = await f.create_workflow(project=project)
+    workflow2 = await f.create_workflow(project=project, statuses=2)
     story = await f.create_story(project=project, workflow=workflow1, status=status1)
 
     data = {"version": story.version, "workflowSlug": workflow2.slug}

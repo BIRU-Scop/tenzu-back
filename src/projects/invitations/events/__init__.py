@@ -41,7 +41,7 @@ async def emit_event_when_project_invitations_are_created(
             user=invitation.user,  # type: ignore[arg-type]
             type=CREATE_PROJECT_INVITATION,
             content=ProjectInvitationContent(
-                workspace=invitation.project.workspace_id,
+                workspace=project.workspace_id,
                 project=invitation.project_id,
             ),
         )
@@ -127,7 +127,7 @@ async def emit_event_when_project_invitation_is_denied(
         type=DENY_PROJECT_INVITATION,
     )
     await events_manager.publish_on_workspace_channel(
-        workspace=invitation.project.workspace,
+        workspace=invitation.project.workspace_id,
         type=DENY_PROJECT_INVITATION,
     )
     if invitation.user:

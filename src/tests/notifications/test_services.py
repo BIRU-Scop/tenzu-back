@@ -50,11 +50,11 @@ async def test_notify_users():
         fake_notifications_repository.create_notifications.return_value = [notification]
 
         await services.notify_users(
-            type="test", emitted_by=user, notified_users=[user], content=content
+            type="test", emitted_by=user, notified_user_ids=[user.id], content=content
         )
 
         fake_notifications_repository.create_notifications.assert_called_once_with(
-            owners=[user],
+            owner_ids=[user.id],
             created_by=user,
             notification_type="test",
             content={"msg": "Test notify"},

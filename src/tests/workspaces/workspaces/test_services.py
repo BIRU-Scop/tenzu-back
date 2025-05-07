@@ -77,7 +77,9 @@ async def test_get_workspace():
         "workspaces.workspaces.services.workspaces_repositories", autospec=True
     ) as fake_workspaces_repo:
         await services.get_workspace(workspace_id=ws_id)
-        fake_workspaces_repo.get_workspace.assert_awaited_with(workspace_id=ws_id)
+        fake_workspaces_repo.get_workspace.assert_awaited_with(
+            workspace_id=ws_id, get_total_project=False
+        )
 
 
 ##########################################################
