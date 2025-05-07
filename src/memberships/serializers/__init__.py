@@ -26,6 +26,7 @@ from users.serializers.nested import UserNestedSerializer
 
 
 class RoleSerializer(BaseModel):
+    id: UUIDB64
     name: str
     slug: str
     is_owner: bool

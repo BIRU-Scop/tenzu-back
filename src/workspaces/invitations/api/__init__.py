@@ -103,7 +103,7 @@ async def create_workspace_invitations(
 @workspace_invit_router.get(
     "/workspaces/{workspace_id}/invitations",
     url_name="workspace.invitations.list",
-    summary="List workspace pending invitations",
+    summary="List workspace invitations",
     response={
         200: list[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,

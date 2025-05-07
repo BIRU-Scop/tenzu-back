@@ -377,6 +377,13 @@ async def test_list_project_roles(project_template):
     res = await repositories.list_roles(ProjectRole, filters={"project_id": project.id})
     assert len(res) == 4
     assert sum(1 for role in res if role.is_owner) == 1
+    assert all(not hasattr(role, "total_members") for role in res)
+    res = await repositories.list_roles(
+        ProjectRole, filters={"project_id": project.id}, get_total_members=True
+    )
+    assert len(res) == 4
+    assert res[0].total_members == 1
+    assert all(role.total_members == 0 for role in res[1:])
 
 
 ##########################################################

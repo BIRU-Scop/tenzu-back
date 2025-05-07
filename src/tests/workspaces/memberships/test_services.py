@@ -401,7 +401,9 @@ async def test_list_workspace_role():
         ret = await services.list_workspace_roles(workspace)
 
         fake_ws_memberships_repo.list_roles.assert_awaited_once_with(
-            WorkspaceRole, filters={"workspace_id": workspace.id}
+            WorkspaceRole,
+            filters={"workspace_id": workspace.id},
+            get_total_members=True,
         )
         assert ret == [role]
 

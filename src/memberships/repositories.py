@@ -293,8 +293,11 @@ async def list_roles(
     filters: RoleFilters = {},
     offset: int | None = None,
     limit: int | None = None,
+    get_total_members=False,
 ) -> list[TR]:
     qs = model.objects.all().filter(**filters)
+    if get_total_members:
+        qs = qs.annotate(total_members=Count("memberships"))
 
     if limit is not None and offset is not None:
         limit += offset

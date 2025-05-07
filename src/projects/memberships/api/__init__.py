@@ -47,7 +47,10 @@ from projects.memberships.permissions import (
     ProjectMembershipPermissionsCheck,
     ProjectRolePermissionsCheck,
 )
-from projects.memberships.serializers import ProjectMembershipSerializer
+from projects.memberships.serializers import (
+    ProjectMembershipSerializer,
+    ProjectRolesSerializer,
+)
 from projects.projects.api import get_project_or_404
 
 project_membership_router = Router()
@@ -178,7 +181,7 @@ async def delete_project_membership(
     url_name="project.roles.list",
     summary="List project roles",
     response={
-        200: list[RoleSerializer],
+        200: list[ProjectRolesSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -244,7 +247,7 @@ async def create_project_role(
 
 
 @project_membership_router.put(
-    "/projects/{project_id}/roles/{role_slug}",
+    "/projects/{project_id}/roles/{role_id}",
     url_name="project.roles.put",
     summary="Edit project roles",
     response={
@@ -259,14 +262,14 @@ async def create_project_role(
 async def update_project_role(
     request,
     project_id: Path[B64UUID],
-    role_slug: Path[str],
+    role_id: Path[B64UUID],
     form: UpdateRoleValidator,
 ) -> ProjectRole:
     """
     Edit project roles
     """
 
-    role = await get_project_role_or_404(project_id=project_id, slug=role_slug)
+    role = await get_project_role_or_404(project_id=project_id, role_id=role_id)
     await check_permissions(
         permissions=ProjectRolePermissionsCheck.MODIFY.value,
         user=request.user,
@@ -287,7 +290,7 @@ async def update_project_role(
 
 
 @project_membership_router.delete(
-    "/projects/{project_id}/roles/{role_slug}",
+    "/projects/{project_id}/roles/{role_id}",
     url_name="project.roles.delete",
     summary="Delete project roles",
     response={
@@ -302,14 +305,14 @@ async def update_project_role(
 async def delete_project_role(
     request,
     project_id: Path[B64UUID],
-    role_slug: Path[str],
+    role_id: Path[B64UUID],
     query_params: Query[DeleteRoleQuery],
 ) -> tuple[int, None]:
     """
     Delete project roles
     """
 
-    role = await get_project_role_or_404(project_id=project_id, slug=role_slug)
+    role = await get_project_role_or_404(project_id=project_id, role_id=role_id)
     await check_permissions(
         permissions=ProjectRolePermissionsCheck.DELETE.value,
         user=request.user,
@@ -319,7 +322,7 @@ async def delete_project_role(
         await memberships_services.delete_project_role(
             user=request.user,
             role=role,
-            target_role_slug=query_params.move_to,
+            target_role_id=query_params.move_to,
         )
     except (NonEditableRoleError, OwnerRoleNotAuthorisedError) as exc:
         # change the bad-request into a forbidden error
@@ -347,12 +350,12 @@ async def get_project_membership_or_404(
     return membership
 
 
-async def get_project_role_or_404(project_id: UUID, slug: str) -> ProjectRole:
+async def get_project_role_or_404(project_id: UUID, role_id: UUID) -> ProjectRole:
     try:
         role = await memberships_services.get_project_role(
-            project_id=project_id, slug=slug
+            project_id=project_id, role_id=role_id
         )
     except ProjectRole.DoesNotExist as e:
-        raise ex.NotFoundError(f"Role {slug} does not exist") from e
+        raise ex.NotFoundError(f"Role {role_id} does not exist") from e
 
     return role

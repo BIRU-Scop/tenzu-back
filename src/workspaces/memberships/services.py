@@ -147,7 +147,7 @@ async def create_default_workspace_membership(workspace_id: UUID, user: User):
 
 async def list_workspace_roles(workspace: Workspace) -> list[WorkspaceRole]:
     return await memberships_repositories.list_roles(
-        WorkspaceRole, filters={"workspace_id": workspace.id}
+        WorkspaceRole, filters={"workspace_id": workspace.id}, get_total_members=True
     )
 
 

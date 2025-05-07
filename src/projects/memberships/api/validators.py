@@ -20,7 +20,8 @@ from typing import Annotated
 
 from pydantic import StringConstraints
 
-from commons.validators import BaseModel
+from base.serializers import UUIDB64
+from commons.validators import B64UUID, BaseModel
 from permissions.validators import ProjectPermissionsField
 
 _RoleName = Annotated[
@@ -39,4 +40,4 @@ class CreateRoleValidator(BaseModel):
 
 
 class DeleteRoleQuery(BaseModel):
-    move_to: str | None = None
+    move_to: B64UUID | None = None

@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+import uuid
 from unittest.mock import patch
 
 import pytest
@@ -430,7 +430,7 @@ async def test_list_project_role():
         ret = await services.list_project_roles(project)
 
         fake_ws_memberships_repo.list_roles.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id}
+            ProjectRole, filters={"project_id": project.id}, get_total_members=True
         )
         assert ret == [role]
 
@@ -450,11 +450,11 @@ async def test_get_project_role():
         ) as fake_ws_memberships_repo,
     ):
         fake_ws_memberships_repo.get_role.return_value = role
-        ret = await services.get_project_role(project_id=project.id, slug=role.slug)
+        ret = await services.get_project_role(project_id=project.id, role_id=role.id)
 
         fake_ws_memberships_repo.get_role.assert_awaited_once_with(
             ProjectRole,
-            filters={"project_id": project.id, "slug": role.slug},
+            filters={"project_id": project.id, "id": role.id},
             select_related=["project"],
         )
         assert ret == role
@@ -666,11 +666,11 @@ async def test_delete_project_role_ok_with_move_to():
         fake_get_project_role.return_value = target_role
         fake_memberships_repositories.delete_project_role.return_value = 1
         await services.delete_project_role(
-            role=role, user=user, target_role_slug="member"
+            role=role, user=user, target_role_id=target_role.id
         )
         fake_get_project_role.assert_awaited_once_with(
             project_id=role.project_id,
-            slug="member",
+            role_id=target_role.id,
         )
         fake_memberships_repositories.delete_project_role.assert_awaited_once_with(
             role=role,
@@ -725,12 +725,13 @@ async def test_delete_project_role_ko_not_existing_target_slug():
         pytest.raises(ex.NonExistingMoveToRole),
     ):
         fake_get_project_role.side_effect = ProjectRole.DoesNotExist
+        target_role_id = uuid.uuid1()
         await services.delete_project_role(
-            role=role, user=user, target_role_slug=NOT_EXISTING_SLUG
+            role=role, user=user, target_role_id=target_role_id
         )
         fake_get_project_role.assert_awaited_once_with(
             project_id=role.project_id,
-            slug="member",
+            role_id=target_role_id,
         )
         fake_memberships_repositories.delete_project_role.assert_not_awaited()
         fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()
@@ -756,7 +757,7 @@ async def test_delete_project_role_ko_role_same_as_target():
     ):
         fake_get_project_role.return_value = role
         await services.delete_project_role(
-            role=role, user=user, target_role_slug=role.slug
+            role=role, user=user, target_role_id=role.b64id
         )
         fake_get_project_role.assert_awaited_once_with(
             project_id=role.project_id,
@@ -787,12 +788,10 @@ async def test_delete_project_role_ko_target_owner():
         pytest.raises(ex.OwnerRoleNotAuthorisedError),
     ):
         fake_get_project_role.return_value = owner_role
-        await services.delete_project_role(
-            role=role, user=user, target_role_slug=role.slug
-        )
+        await services.delete_project_role(role=role, user=user, target_role_id=role.id)
         fake_get_project_role.assert_awaited_once_with(
             project_id=role.project_id,
-            slug="member",
+            role_id=role.id,
         )
         fake_memberships_repositories.delete_project_role.assert_not_awaited()
         fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()
