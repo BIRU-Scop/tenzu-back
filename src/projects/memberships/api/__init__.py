@@ -247,9 +247,9 @@ async def create_project_role(
 
 
 @project_membership_router.put(
-    "/projects/{project_id}/roles/{role_id}",
+    "/projects/roles/{role_id}",
     url_name="project.roles.put",
-    summary="Edit project roles",
+    summary="Update project roles",
     response={
         200: RoleSerializer,
         400: ERROR_RESPONSE_400,
@@ -261,15 +261,14 @@ async def create_project_role(
 )
 async def update_project_role(
     request,
-    project_id: Path[B64UUID],
     role_id: Path[B64UUID],
     form: UpdateRoleValidator,
 ) -> ProjectRole:
     """
-    Edit project roles
+    Update project roles
     """
 
-    role = await get_project_role_or_404(project_id=project_id, role_id=role_id)
+    role = await get_project_role_or_404(role_id=role_id)
     await check_permissions(
         permissions=ProjectRolePermissionsCheck.MODIFY.value,
         user=request.user,
@@ -290,7 +289,7 @@ async def update_project_role(
 
 
 @project_membership_router.delete(
-    "/projects/{project_id}/roles/{role_id}",
+    "/projects/roles/{role_id}",
     url_name="project.roles.delete",
     summary="Delete project roles",
     response={
@@ -304,7 +303,6 @@ async def update_project_role(
 )
 async def delete_project_role(
     request,
-    project_id: Path[B64UUID],
     role_id: Path[B64UUID],
     query_params: Query[DeleteRoleQuery],
 ) -> tuple[int, None]:
@@ -312,7 +310,7 @@ async def delete_project_role(
     Delete project roles
     """
 
-    role = await get_project_role_or_404(project_id=project_id, role_id=role_id)
+    role = await get_project_role_or_404(role_id=role_id)
     await check_permissions(
         permissions=ProjectRolePermissionsCheck.DELETE.value,
         user=request.user,
@@ -350,11 +348,9 @@ async def get_project_membership_or_404(
     return membership
 
 
-async def get_project_role_or_404(project_id: UUID, role_id: UUID) -> ProjectRole:
+async def get_project_role_or_404(role_id: UUID) -> ProjectRole:
     try:
-        role = await memberships_services.get_project_role(
-            project_id=project_id, role_id=role_id
-        )
+        role = await memberships_services.get_project_role(role_id=role_id)
     except ProjectRole.DoesNotExist as e:
         raise ex.NotFoundError(f"Role {role_id} does not exist") from e
 

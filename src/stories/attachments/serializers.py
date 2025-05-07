@@ -35,10 +35,8 @@ class StoryAttachmentSerializer(AttachmentSerializer):
             str(settings.BACKEND_URL),
             str(
                 reverse_lazy(
-                    f"api-{settings.API_VERSION}:project.story.attachments.file",
+                    f"api-{settings.API_VERSION}:story.attachments.file",
                     kwargs={
-                        "project_id": obj.content_object.project.b64id,
-                        "ref": obj.content_object.ref,
                         "attachment_id": obj.b64id,
                     },
                 )

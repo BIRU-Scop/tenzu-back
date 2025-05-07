@@ -262,7 +262,7 @@ async def test_list_workspaces_422_unprocessable_workspace_b64id(client):
 
 
 #########################################################################
-# GET /workspaces/invitations/<token>
+# GET /workspaces/invitations/by_token/<token>
 #########################################################################
 
 
@@ -270,12 +270,12 @@ async def test_get_workspace_invitation_200_ok(client):
     invitation = await f.create_workspace_invitation()
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
-    response = await client.get(f"/workspaces/invitations/{str(token)}")
+    response = await client.get(f"/workspaces/invitations/by_token/{str(token)}")
     assert response.status_code == 200, response.data
 
 
 async def test_get_workspace_invitation_400_bad_request_invalid_token(client):
-    response = await client.get("/workspaces/invitations/invalid-token")
+    response = await client.get("/workspaces/invitations/by_token/invalid-token")
     assert response.status_code == 400, response.data
 
 
@@ -283,7 +283,7 @@ async def test_get_workspace_invitation_404_not_found_token(client):
     invitation = f.build_workspace_invitation(id=111)
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
-    response = await client.get(f"/workspaces/invitations/{str(token)}")
+    response = await client.get(f"/workspaces/invitations/by_token/{str(token)}")
     assert response.status_code == 404, response.data
 
 
@@ -291,12 +291,12 @@ async def test_get_workspace_invitation_revoked_does_not_exist(client):
     invitation = await f.create_workspace_invitation(status=InvitationStatus.REVOKED)
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
-    response = await client.get(f"/workspaces/invitations/{str(token)}")
+    response = await client.get(f"/workspaces/invitations/by_token/{str(token)}")
     assert response.status_code == 404, response.data
 
 
 #########################################################################
-# POST /workspaces/invitations/<token>/accept
+# POST /workspaces/invitations/by_token/<token>/accept
 #########################################################################
 
 
@@ -306,14 +306,18 @@ async def test_accept_workspace_invitation_200_ok(client):
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
     client.login(user)
-    response = await client.post(f"/workspaces/invitations/{str(token)}/accept")
+    response = await client.post(
+        f"/workspaces/invitations/by_token/{str(token)}/accept"
+    )
     assert response.status_code == 200, response.data
 
 
 async def test_accept_workspace_invitation_400_bad_request_invalid_token(client):
     user = await f.create_user()
     client.login(user)
-    response = await client.post("/workspaces/invitations/invalid-token/accept")
+    response = await client.post(
+        "/workspaces/invitations/by_token/invalid-token/accept"
+    )
     assert response.status_code == 400, response.data
 
 
@@ -323,7 +327,9 @@ async def test_accept_workspace_invitation_403_forbidden(client):
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
     client.login(user)
-    response = await client.post(f"/workspaces/invitations/{str(token)}/accept")
+    response = await client.post(
+        f"/workspaces/invitations/by_token/{str(token)}/accept"
+    )
     assert response.status_code == 403, response.data
 
 
@@ -333,7 +339,9 @@ async def test_accept_workspace_invitation_404_not_found_token(client):
     token = await WorkspaceInvitationToken.create_for_object(invitation)
 
     client.login(user)
-    response = await client.post(f"/workspaces/invitations/{str(token)}/accept")
+    response = await client.post(
+        f"/workspaces/invitations/by_token/{str(token)}/accept"
+    )
     assert response.status_code == 404, response.data
 
 
@@ -423,7 +431,7 @@ async def test_accept_user_revoked_workspace_invitation(
 
 
 #########################################################################
-# POST /workspaces/<id>/invitations/resend
+# POST /workspaces/invitations/<id>/resend
 #########################################################################
 
 
@@ -435,7 +443,7 @@ async def test_resend_workspace_invitations_anonymous_user(
         user=None, email="test@test.test", workspace=workspace
     )
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+        f"workspaces/invitations/{invitation.b64id}/resend",
     )
     assert response.status_code == 401, response.data
 
@@ -451,7 +459,7 @@ async def test_resend_workspace_invitation_by_email_ok(
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+        f"workspaces/invitations/{invitation.b64id}/resend",
     )
     assert response.status_code == 200, response.data
     res = response.json()
@@ -467,7 +475,7 @@ async def test_resend_workspace_invitation_by_email_ok(
         user=None, email="test@demo.com", workspace=workspace
     )
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+        f"workspaces/invitations/{invitation.b64id}/resend",
     )
     assert response.status_code == 200, response.data
     res = response.json()
@@ -485,7 +493,7 @@ async def test_resend_workspace_invitation_by_user_email_ok(
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+        f"workspaces/invitations/{invitation.b64id}/resend",
     )
     assert response.status_code == 200, response.data
     res = response.json()
@@ -502,7 +510,7 @@ async def test_resend_workspace_invitation_by_user_email_ok(
         user=user, email=user.email, workspace=workspace
     )
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+        f"workspaces/invitations/{invitation.b64id}/resend",
     )
     assert response.status_code == 200, response.data
     res = response.json()
@@ -521,13 +529,13 @@ async def test_resend_workspace_invitation_user_without_permission(
 
     client.login(user)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+        f"workspaces/invitations/{invitation.b64id}/resend",
     )
     assert response.status_code == 403, response.data
     role = await f.create_workspace_role(permissions=[], workspace=workspace)
     await f.create_workspace_membership(role=role, workspace=workspace, user=user)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+        f"workspaces/invitations/{invitation.b64id}/resend",
     )
     assert response.status_code == 403, response.data
 
@@ -539,7 +547,7 @@ async def test_resend_workspace_invitation_not_exist(
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{NOT_EXISTING_B64ID}/resend",
+        f"workspaces/invitations/{NOT_EXISTING_B64ID}/resend",
     )
     assert response.status_code == 404, response.data
 
@@ -558,7 +566,7 @@ async def test_resend_workspace_invitation_already_accepted(
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+        f"workspaces/invitations/{invitation.b64id}/resend",
     )
     assert response.status_code == 400, response.data
 
@@ -577,13 +585,13 @@ async def test_resend_workspace_invitation_revoked(
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/resend",
+        f"workspaces/invitations/{invitation.b64id}/resend",
     )
     assert response.status_code == 400, response.data
 
 
 #########################################################################
-# POST /workspaces/<id>/invitations/revoke
+# POST /workspaces/invitations/<id>/revoke
 #########################################################################
 
 
@@ -598,7 +606,7 @@ async def test_revoke_workspace_invitations_anonymous_user(
         status=InvitationStatus.PENDING,
     )
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 401, response.data
 
@@ -614,7 +622,7 @@ async def test_revoke_workspace_invitation_for_email_ok(
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 200, response.data
     res = response.json()
@@ -630,7 +638,7 @@ async def test_revoke_workspace_invitation_for_email_ok(
         user=None, email="test@demo.com", workspace=workspace
     )
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 200, response.data
     res = response.json()
@@ -651,7 +659,7 @@ async def test_revoke_workspace_invitation_for_user_email_ok(
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 200, response.data
     res = response.json()
@@ -668,7 +676,7 @@ async def test_revoke_workspace_invitation_for_user_email_ok(
         user=user, email=user.email, workspace=workspace
     )
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 200, response.data
     res = response.json()
@@ -684,7 +692,7 @@ async def test_revoke_workspace_invitation_not_found(
     client.login(workspace.created_by)
     data = {"username_or_email": user.email}
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{NOT_EXISTING_B64ID}/revoke",
+        f"workspaces/invitations/{NOT_EXISTING_B64ID}/revoke",
     )
     assert response.status_code == 404, response.data
 
@@ -711,7 +719,7 @@ async def test_revoke_workspace_invitation_already_member_invalid(
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 400, response.data
 
@@ -738,7 +746,7 @@ async def test_revoke_workspace_invitation_revoked(
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 400, response.data
 
@@ -754,13 +762,13 @@ async def test_revoke_workspace_invitation_user_without_permission(
 
     client.login(user)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 403, response.data
     role = await f.create_workspace_role(permissions=[], workspace=workspace)
     await f.create_workspace_membership(role=role, workspace=workspace, user=user)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 403, response.data
 
@@ -781,13 +789,13 @@ async def test_revoke_workspace_invitation_owner(
 
     client.login(user)
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 403, response.data
     membership.role = owner_role
     await membership.asave()
     response = await client.post(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}/revoke",
+        f"workspaces/invitations/{invitation.b64id}/revoke",
     )
     assert response.status_code == 200, response.data
     res = response.json()
@@ -910,7 +918,7 @@ async def test_deny_workspace_invitation_revoked(
 
 
 ##########################################################
-# PATCH /workspaces/<workspace_id>/invitations/<id>
+# PATCH /workspaces/invitations/<id>
 ##########################################################
 
 
@@ -922,7 +930,7 @@ async def test_update_workspace_invitation_role_invitation_not_exist(
     client.login(workspace.created_by)
     data = {"role_slug": "owner"}
     response = await client.patch(
-        f"workspaces/{workspace.b64id}/invitations/{NOT_EXISTING_B64ID}", json=data
+        f"workspaces/invitations/{NOT_EXISTING_B64ID}", json=data
     )
     assert response.status_code == 404, response.data
 
@@ -943,13 +951,13 @@ async def test_update_workspace_invitation_role_user_without_permission(
     client.login(user)
     data = {"role_slug": "member"}
     response = await client.patch(
-        f"/workspaces/{workspace.b64id}/invitations/{invitation.b64id}", json=data
+        f"/workspaces/invitations/{invitation.b64id}", json=data
     )
     assert response.status_code == 403, response.data
     role = await f.create_workspace_role(permissions=[], workspace=workspace)
     await f.create_workspace_membership(role=role, workspace=workspace, user=user)
     response = await client.patch(
-        f"/workspaces/{workspace.b64id}/invitations/{invitation.b64id}", json=data
+        f"/workspaces/invitations/{invitation.b64id}", json=data
     )
     assert response.status_code == 403, response.data
 
@@ -974,23 +982,23 @@ async def test_update_workspace_invitation_owner(
     client.login(user)
     data = {"role_slug": "owner"}
     response = await client.patch(
-        f"/workspaces/{workspace.b64id}/invitations/{member_invitation.b64id}",
+        f"/workspaces/invitations/{member_invitation.b64id}",
         json=data,
     )
     assert response.status_code == 403, response.data
     response = await client.patch(
-        f"/workspaces/{workspace.b64id}/invitations/{owner_invitation.b64id}", json=data
+        f"/workspaces/invitations/{owner_invitation.b64id}", json=data
     )
     assert response.status_code == 403, response.data
     membership.role = owner_role
     await membership.asave()
     response = await client.patch(
-        f"/workspaces/{workspace.b64id}/invitations/{member_invitation.b64id}",
+        f"/workspaces/invitations/{member_invitation.b64id}",
         json=data,
     )
     assert response.status_code == 200, response.data
     response = await client.patch(
-        f"/workspaces/{workspace.b64id}/invitations/{owner_invitation.b64id}", json=data
+        f"/workspaces/invitations/{owner_invitation.b64id}", json=data
     )
     assert response.status_code == 200, response.data
 
@@ -1012,7 +1020,7 @@ async def test_update_workspace_invitation_role_ok(
     client.login(workspace.created_by)
     data = {"role_slug": "readonly-member"}
     response = await client.patch(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}", json=data
+        f"workspaces/invitations/{invitation.b64id}", json=data
     )
     assert response.status_code == 200, response.data
 
@@ -1024,6 +1032,6 @@ async def test_update_workspace_invitation_role_ok(
     await f.create_workspace_membership(role=role, workspace=workspace, user=user)
     data = {"role_slug": "member"}
     response = await client.patch(
-        f"workspaces/{workspace.b64id}/invitations/{invitation.b64id}", json=data
+        f"workspaces/invitations/{invitation.b64id}", json=data
     )
     assert response.status_code == 200, response.data

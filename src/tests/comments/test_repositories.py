@@ -21,6 +21,7 @@ import pytest
 
 from base.utils.datetime import aware_utcnow
 from comments import repositories
+from comments.models import Comment
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -83,12 +84,10 @@ async def test_get_comment():
     assert (
         await repositories.get_comment(filters={"content_object": story1}) == comment11
     )
-    assert (
+    with pytest.raises(Comment.DoesNotExist):
         await repositories.get_comment(
             filters={"content_object": story1, "id": comment21.id}
         )
-        is None
-    )
     assert (
         await repositories.get_comment(
             filters={"content_object": story1, "id": comment11.id}

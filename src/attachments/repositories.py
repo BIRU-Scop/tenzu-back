@@ -138,16 +138,12 @@ async def list_attachments(
 async def get_attachment(
     filters: AttachmentFilters = {},
     prefetch_related: AttachmentPrefetchRelated = [],
-) -> Attachment | None:
+) -> Attachment:
     qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
     qs = await _apply_prefetch_related_to_queryset(
         qs=qs, prefetch_related=prefetch_related
     )
-
-    try:
-        return await qs.aget()
-    except Attachment.DoesNotExist:
-        return None
+    return await qs.aget()
 
 
 ##########################################################

@@ -153,10 +153,10 @@ async def list_project_roles(project: Project) -> list[ProjectRole]:
 ##########################################################
 
 
-async def get_project_role(project_id: UUID, role_id: UUID) -> ProjectRole:
+async def get_project_role(role_id: UUID) -> ProjectRole:
     return await memberships_repositories.get_role(
         ProjectRole,
-        filters={"project_id": project_id, "id": role_id},
+        filters={"id": role_id},
         select_related=["project"],
     )
 
@@ -236,13 +236,15 @@ async def delete_project_role(
     target_role = None
     if target_role_id is not None:
         try:
-            target_role = await get_project_role(
-                project_id=role.project_id, role_id=target_role_id
-            )
+            target_role = await get_project_role(role_id=target_role_id)
         except ProjectRole.DoesNotExist as e:
             raise ex.NonExistingMoveToRole(
                 f"The role '{target_role_id}' doesn't exist"
             ) from e
+        if target_role.project_id != role.project_id:
+            raise ex.NonExistingMoveToRole(
+                f"The role '{target_role_id}' is in a different project"
+            )
         if target_role.id == role.id:
             raise ex.SameMoveToRole(
                 "The to-be-deleted role and the target-role cannot be the same"

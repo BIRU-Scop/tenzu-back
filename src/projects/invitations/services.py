@@ -109,7 +109,7 @@ async def list_project_invitations(project_id: UUID) -> list[ProjectInvitation]:
 ##########################################################
 
 
-async def get_project_invitation(
+async def get_project_invitation_by_token(
     token: str, filters: ProjectInvitationFilters = {}
 ) -> ProjectInvitation:
     try:
@@ -128,7 +128,7 @@ async def get_project_invitation(
 async def get_public_pending_project_invitation(
     token: str,
 ) -> PublicProjectPendingInvitationSerializer | None:
-    invitation = await get_project_invitation(
+    invitation = await get_project_invitation_by_token(
         token=token, filters={"status": InvitationStatus.PENDING}
     )
     available_logins = (
@@ -157,12 +157,10 @@ async def get_project_invitation_by_username_or_email(
     )
 
 
-async def get_project_invitation_by_id(
-    project_id: UUID, invitation_id: UUID
-) -> ProjectInvitation | None:
+async def get_project_invitation(invitation_id: UUID) -> ProjectInvitation | None:
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
-        filters={"project_id": project_id, "id": invitation_id},
+        filters={"id": invitation_id},
         select_related=["user", "project", "role"],
     )
 
@@ -226,7 +224,7 @@ async def accept_project_invitation_from_token(
     token: str, user: User
 ) -> ProjectInvitation:
     try:
-        invitation = await get_project_invitation(token=token)
+        invitation = await get_project_invitation_by_token(token=token)
 
     except ProjectInvitation.DoesNotExist as e:
         raise ex.InvitationDoesNotExistError("Invitation does not exist") from e

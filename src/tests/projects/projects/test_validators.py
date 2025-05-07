@@ -26,7 +26,6 @@ from projects.projects.api.validators import (
     UpdateProjectValidator,
 )
 from tests.utils import factories as f
-from tests.utils.bad_params import NOT_EXISTING_B64ID
 from tests.utils.utils import check_validation_errors
 
 ##########################################################
@@ -38,8 +37,8 @@ def test_validate_create_user_wrong_not_all_required_fields():
     with pytest.raises(ValidationError) as validation_errors:
         CreateProjectValidator()
 
-    expected_error_fields = ["name", "workspace_id"]
-    expected_error_messages = ["Field required", "Field required"]
+    expected_error_fields = ["name"]
+    expected_error_messages = ["Field required"]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
     )
@@ -95,9 +94,7 @@ def test_valid_project():
     name = "Project test"
     color = 1
 
-    project = CreateProjectValidator(
-        name=name, color=color, workspace_id=NOT_EXISTING_B64ID
-    )
+    project = CreateProjectValidator(name=name, color=color)
 
     assert project.name == name
     assert project.color == color
@@ -109,7 +106,7 @@ def test_validate_logo_content_type():
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        CreateProjectValidator(color=color, logo=logo, workspace_id=NOT_EXISTING_B64ID)
+        CreateProjectValidator(color=color, logo=logo)
 
     expected_error_fields = [
         "logo",
@@ -130,7 +127,7 @@ def test_validate_logo_content():
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        CreateProjectValidator(color=color, logo=logo, workspace_id=NOT_EXISTING_B64ID)
+        CreateProjectValidator(color=color, logo=logo)
 
     expected_error_fields = ["logo", "name"]
     expected_error_messages = ["Value error, Invalid image content", "Field required"]
@@ -145,7 +142,7 @@ def test_validate_logo_name_empty():
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        CreateProjectValidator(color=color, logo=logo, workspace_id=NOT_EXISTING_B64ID)
+        CreateProjectValidator(color=color, logo=logo)
 
     expected_error_fields = ["name"]
     expected_error_messages = ["Field required"]

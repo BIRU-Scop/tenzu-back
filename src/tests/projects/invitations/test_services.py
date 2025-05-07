@@ -51,7 +51,7 @@ async def test_get_project_invitation_ok():
         ) as fake_invitations_repo,
     ):
         fake_invitations_repo.get_invitation.return_value = invitation
-        inv = await services.get_project_invitation(token)
+        inv = await services.get_project_invitation_by_token(token)
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             ProjectInvitation,
             filters={"id": str(invitation.id)},
@@ -62,7 +62,7 @@ async def test_get_project_invitation_ok():
 
 async def test_get_project_invitation_error_invalid_token():
     with pytest.raises(ex.BadInvitationTokenError):
-        await services.get_project_invitation("invalid-token")
+        await services.get_project_invitation_by_token("invalid-token")
 
 
 async def test_get_project_invitation_error_not_found():
@@ -78,7 +78,7 @@ async def test_get_project_invitation_error_not_found():
             ProjectInvitation.DoesNotExist
         )
         with pytest.raises(ProjectInvitation.DoesNotExist):
-            await services.get_project_invitation(token)
+            await services.get_project_invitation_by_token(token)
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             ProjectInvitation,
             filters={"id": str(invitation.id)},
@@ -1081,7 +1081,7 @@ async def test_accept_project_invitation_from_token_ok() -> None:
 
     with (
         patch(
-            "projects.invitations.services.get_project_invitation",
+            "projects.invitations.services.get_project_invitation_by_token",
             autospec=True,
         ) as fake_get_project_invitation,
         patch(
@@ -1102,7 +1102,7 @@ async def test_accept_project_invitation_from_token_error_no_invitation_found() 
 
     with (
         patch(
-            "projects.invitations.services.get_project_invitation",
+            "projects.invitations.services.get_project_invitation_by_token",
             autospec=True,
         ) as fake_get_project_invitation,
         patch(
@@ -1131,7 +1131,7 @@ async def test_accept_project_invitation_from_token_error_invitation_is_for_othe
 
     with (
         patch(
-            "projects.invitations.services.get_project_invitation",
+            "projects.invitations.services.get_project_invitation_by_token",
             autospec=True,
         ) as fake_get_project_invitation,
         patch(
@@ -1157,7 +1157,7 @@ async def test_accept_project_invitation_from_token_error_already_accepted() -> 
 
     with (
         patch(
-            "projects.invitations.services.get_project_invitation",
+            "projects.invitations.services.get_project_invitation_by_token",
             autospec=True,
         ) as fake_get_project_invitation,
         patch("projects.invitations.services._sync_related_workspace_membership"),
@@ -1180,7 +1180,7 @@ async def test_accept_project_invitation_from_token_error_revoked() -> None:
 
     with (
         patch(
-            "projects.invitations.services.get_project_invitation",
+            "projects.invitations.services.get_project_invitation_by_token",
             autospec=True,
         ) as fake_get_project_invitation,
         patch("projects.invitations.services._sync_related_workspace_membership"),
@@ -1203,7 +1203,7 @@ async def test_accept_project_invitation_from_token_error_denied() -> None:
 
     with (
         patch(
-            "projects.invitations.services.get_project_invitation",
+            "projects.invitations.services.get_project_invitation_by_token",
             autospec=True,
         ) as fake_get_project_invitation,
         patch("projects.invitations.services._sync_related_workspace_membership"),

@@ -432,7 +432,7 @@ async def test_get_workspace_invitation_ok():
         ) as fake_invitations_repo,
     ):
         fake_invitations_repo.get_invitation.return_value = invitation
-        inv = await services.get_workspace_invitation(token)
+        inv = await services.get_workspace_invitation_by_token(token)
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
             filters={"id": str(invitation.id)},
@@ -443,7 +443,7 @@ async def test_get_workspace_invitation_ok():
 
 async def test_get_workspace_invitation_error_invalid_token():
     with pytest.raises(ex.BadInvitationTokenError):
-        await services.get_workspace_invitation("invalid-token")
+        await services.get_workspace_invitation_by_token("invalid-token")
 
 
 async def test_get_workspace_invitation_error_not_found():
@@ -459,7 +459,7 @@ async def test_get_workspace_invitation_error_not_found():
             WorkspaceInvitation.DoesNotExist
         )
         with pytest.raises(WorkspaceInvitation.DoesNotExist):
-            await services.get_workspace_invitation(token)
+            await services.get_workspace_invitation_by_token(token)
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
             filters={"id": str(invitation.id)},
@@ -687,7 +687,8 @@ async def test_accept_workspace_invitation_from_token_ok() -> None:
 
     with (
         patch(
-            "workspaces.invitations.services.get_workspace_invitation", autospec=True
+            "workspaces.invitations.services.get_workspace_invitation_by_token",
+            autospec=True,
         ) as fake_get_workspace_invitation,
         patch(
             "workspaces.invitations.services.accept_workspace_invitation", autospec=True
@@ -708,7 +709,8 @@ async def test_accept_workspace_invitation_from_token_error_no_invitation_found(
 
     with (
         patch(
-            "workspaces.invitations.services.get_workspace_invitation", autospec=True
+            "workspaces.invitations.services.get_workspace_invitation_by_token",
+            autospec=True,
         ) as fake_get_workspace_invitation,
         patch(
             "workspaces.invitations.services.accept_workspace_invitation", autospec=True
@@ -735,7 +737,8 @@ async def test_accept_workspace_invitation_from_token_error_invitation_is_for_ot
 
     with (
         patch(
-            "workspaces.invitations.services.get_workspace_invitation", autospec=True
+            "workspaces.invitations.services.get_workspace_invitation_by_token",
+            autospec=True,
         ) as fake_get_workspace_invitation,
         patch(
             "workspaces.invitations.services.accept_workspace_invitation", autospec=True
@@ -759,7 +762,8 @@ async def test_accept_workspace_invitation_from_token_error_already_accepted() -
 
     with (
         patch(
-            "workspaces.invitations.services.get_workspace_invitation", autospec=True
+            "workspaces.invitations.services.get_workspace_invitation_by_token",
+            autospec=True,
         ) as fake_get_workspace_invitation,
         patch_db_transaction(),
         pytest.raises(ex.InvitationAlreadyAcceptedError),
@@ -780,7 +784,8 @@ async def test_accept_workspace_invitation_from_token_error_revoked() -> None:
 
     with (
         patch(
-            "workspaces.invitations.services.get_workspace_invitation", autospec=True
+            "workspaces.invitations.services.get_workspace_invitation_by_token",
+            autospec=True,
         ) as fake_get_workspace_invitation,
         patch_db_transaction(),
         pytest.raises(ex.InvitationRevokedError),

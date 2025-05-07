@@ -53,7 +53,7 @@ workspace_membership_router = Router()
 
 
 @workspace_membership_router.get(
-    "/workspaces/{id}/memberships",
+    "/workspaces/{workspace_id}/memberships",
     url_name="workspace.memberships.list",
     summary="List workspace memberships",
     response={
@@ -65,12 +65,12 @@ workspace_membership_router = Router()
 )
 async def list_workspace_memberships(
     request,
-    id: Path[B64UUID],
+    workspace_id: Path[B64UUID],
 ) -> list[WorkspaceMembership]:
     """
     List workspace memberships
     """
-    workspace = await get_workspace_or_404(id)
+    workspace = await get_workspace_or_404(workspace_id)
     await check_permissions(
         permissions=WorkspaceMembershipPermissionsCheck.VIEW.value,
         user=request.user,
@@ -85,7 +85,7 @@ async def list_workspace_memberships(
 
 
 @workspace_membership_router.patch(
-    "/workspaces/{id}/memberships/{username}",
+    "/workspaces/{workspace_id}/memberships/{username}",
     url_name="workspace.memberships.update",
     summary="Update workspace membership",
     response={
@@ -99,7 +99,7 @@ async def list_workspace_memberships(
 )
 async def update_workspace_membership(
     request,
-    id: Path[B64UUID],
+    workspace_id: Path[B64UUID],
     username: str,
     form: MembershipValidator,
 ) -> WorkspaceMembership:
@@ -107,7 +107,7 @@ async def update_workspace_membership(
     Update workspace membership
     """
     membership = await get_workspace_membership_or_404(
-        workspace_id=id, username=username
+        workspace_id=workspace_id, username=username
     )
 
     await check_permissions(
@@ -129,7 +129,7 @@ async def update_workspace_membership(
 
 
 @workspace_membership_router.delete(
-    "/workspaces/{id}/memberships/{username}",
+    "/workspaces/{workspace_id}/memberships/{username}",
     url_name="workspace.membership.delete",
     summary="Delete workspace membership",
     response={
@@ -143,14 +143,14 @@ async def update_workspace_membership(
 )
 async def delete_workspace_membership(
     request,
-    id: Path[B64UUID],
+    workspace_id: Path[B64UUID],
     username: str,
 ) -> tuple[int, None]:
     """
     Delete a workspace membership
     """
     membership = await get_workspace_membership_or_404(
-        workspace_id=id, username=username
+        workspace_id=workspace_id, username=username
     )
     await check_permissions(
         permissions=WorkspaceMembershipPermissionsCheck.DELETE.value,

@@ -36,6 +36,7 @@ from permissions import check_permissions
 from stories.attachments import services as services
 from stories.attachments.serializers import StoryAttachmentSerializer
 from stories.stories.api import get_story_or_404
+from stories.stories.models import Story
 from stories.stories.permissions import StoryPermissionsCheck
 
 attachments_router = Router()
@@ -80,7 +81,7 @@ async def create_story_attachments(
 
 
 ##########################################################
-# list story comments
+# list story attachments
 ##########################################################
 
 
@@ -120,8 +121,8 @@ async def list_story_attachment(
 
 
 @attachments_router.delete(
-    "/projects/{project_id}/stories/{int:ref}/attachments/{attachment_id}",
-    url_name="project.story.attachments.delete",
+    "/stories/attachments/{attachment_id}",
+    url_name="story.attachments.delete",
     summary="Delete story attachment",
     response={
         204: None,
@@ -133,16 +134,12 @@ async def list_story_attachment(
 )
 async def delete_story_attachment(
     request,
-    project_id: Path[B64UUID],
-    ref: Path[int],
     attachment_id: Path[B64UUID],
 ) -> tuple[int, None]:
     """
     Delete a story attachment
     """
-    attachment = await get_story_attachment_or_404(
-        attachment_id=attachment_id, project_id=project_id, ref=ref
-    )
+    attachment = await get_story_attachment_or_404(attachment_id=attachment_id)
     await check_permissions(
         permissions=StoryPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -161,8 +158,8 @@ async def delete_story_attachment(
 
 
 @attachments_router.get(
-    "/projects/{project_id}/stories/{int:ref}/attachments/{attachment_id}",
-    url_name="project.story.attachments.file",
+    "/stories/attachments/{attachment_id}",
+    url_name="story.attachments.file",
     summary="Download the story attachment file",
     response={
         # FileResponse is not support by django ninja swagger generation
@@ -176,17 +173,13 @@ async def delete_story_attachment(
 )
 async def get_story_attachment_file(
     request,
-    project_id: Path[B64UUID],
-    ref: Path[int],
     attachment_id: Path[B64UUID],
     is_view: bool = False,
 ) -> FileResponse:
     """
     Download a story attachment file
     """
-    attachment = await get_story_attachment_or_404(
-        attachment_id=attachment_id, project_id=project_id, ref=ref
-    )
+    attachment = await get_story_attachment_or_404(attachment_id=attachment_id)
     await check_permissions(
         permissions=StoryPermissionsCheck.VIEW.value,
         user=request.user,
@@ -211,19 +204,14 @@ async def get_story_attachment_file(
 
 async def get_story_attachment_or_404(
     attachment_id: UUID,
-    project_id: Path[B64UUID],
-    ref: int,
 ) -> Attachment:
-    attachment = await attachments_services.get_attachment(
-        attachment_id=attachment_id,
-    )
-    if (
-        attachment is None
-        or attachment.content_object.ref != ref
-        or attachment.content_object.project_id != project_id
-    ):
-        raise ex.NotFoundError(
-            f"Attachment {attachment_id} does not exist for given story"
+    try:
+        attachment = await attachments_services.get_attachment(
+            attachment_id=attachment_id
         )
+    except Attachment.DoesNotExist as e:
+        raise ex.NotFoundError(f"Attachment {attachment_id} does not exist") from e
+    if not isinstance(attachment.content_object, Story):
+        raise ex.NotFoundError(f"Attachment {attachment_id} is not a story attachment")
 
     return attachment

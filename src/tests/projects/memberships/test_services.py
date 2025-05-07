@@ -450,11 +450,11 @@ async def test_get_project_role():
         ) as fake_ws_memberships_repo,
     ):
         fake_ws_memberships_repo.get_role.return_value = role
-        ret = await services.get_project_role(project_id=project.id, role_id=role.id)
+        ret = await services.get_project_role(role_id=role.id)
 
         fake_ws_memberships_repo.get_role.assert_awaited_once_with(
             ProjectRole,
-            filters={"project_id": project.id, "id": role.id},
+            filters={"id": role.id},
             select_related=["project"],
         )
         assert ret == role
@@ -647,7 +647,7 @@ async def test_delete_project_role_ok():
 
 async def test_delete_project_role_ok_with_move_to():
     role = f.build_project_role()
-    target_role = f.build_project_role()
+    target_role = f.build_project_role(project=role.project)
     user = f.build_user()
     user.project_role = role
 
@@ -669,7 +669,6 @@ async def test_delete_project_role_ok_with_move_to():
             role=role, user=user, target_role_id=target_role.id
         )
         fake_get_project_role.assert_awaited_once_with(
-            project_id=role.project_id,
             role_id=target_role.id,
         )
         fake_memberships_repositories.delete_project_role.assert_awaited_once_with(
@@ -756,8 +755,37 @@ async def test_delete_project_role_ko_role_same_as_target():
         pytest.raises(ex.SameMoveToRole),
     ):
         fake_get_project_role.return_value = role
+        await services.delete_project_role(role=role, user=user, target_role_id=role.id)
+        fake_get_project_role.assert_awaited_once_with(
+            project_id=role.project_id,
+            slug="member",
+        )
+        fake_memberships_repositories.delete_project_role.assert_not_awaited()
+        fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()
+        fake_memberships_repositories.move_project_role_of_related.assert_not_awaited()
+
+
+async def test_delete_project_role_ko_target_role_different_project():
+    role = f.build_project_role()
+    target_role = f.build_project_role()
+    user = f.build_user()
+
+    with (
+        patch(
+            "projects.memberships.services.get_project_role", autospec=True
+        ) as fake_get_project_role,
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_memberships_events,
+        patch_db_transaction(),
+        pytest.raises(ex.NonExistingMoveToRole),
+    ):
+        fake_get_project_role.return_value = target_role
         await services.delete_project_role(
-            role=role, user=user, target_role_id=role.b64id
+            role=role, user=user, target_role_id=target_role.id
         )
         fake_get_project_role.assert_awaited_once_with(
             project_id=role.project_id,
@@ -770,7 +798,7 @@ async def test_delete_project_role_ko_role_same_as_target():
 
 async def test_delete_project_role_ko_target_owner():
     role = f.build_project_role()
-    owner_role = f.build_project_role(is_owner=True)
+    owner_role = f.build_project_role(is_owner=True, project=role.project)
     user = f.build_user()
     user.project_role = role
 
@@ -788,7 +816,9 @@ async def test_delete_project_role_ko_target_owner():
         pytest.raises(ex.OwnerRoleNotAuthorisedError),
     ):
         fake_get_project_role.return_value = owner_role
-        await services.delete_project_role(role=role, user=user, target_role_id=role.id)
+        await services.delete_project_role(
+            role=role, user=user, target_role_id=owner_role.id
+        )
         fake_get_project_role.assert_awaited_once_with(
             project_id=role.project_id,
             role_id=role.id,

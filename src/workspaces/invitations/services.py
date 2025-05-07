@@ -108,7 +108,7 @@ async def list_workspace_invitations(
 ##########################################################
 
 
-async def get_workspace_invitation(
+async def get_workspace_invitation_by_token(
     token: str, filters: WorkspaceInvitationFilters = {}
 ) -> WorkspaceInvitation | None:
     try:
@@ -127,7 +127,7 @@ async def get_workspace_invitation(
 async def get_public_pending_workspace_invitation(
     token: str,
 ) -> PublicWorkspacePendingInvitationSerializer | None:
-    invitation = await get_workspace_invitation(
+    invitation = await get_workspace_invitation_by_token(
         token=token, filters={"status": InvitationStatus.PENDING}
     )
     available_logins = (
@@ -156,12 +156,10 @@ async def get_workspace_invitation_by_username_or_email(
     )
 
 
-async def get_workspace_invitation_by_id(
-    workspace_id: UUID, invitation_id: UUID
-) -> WorkspaceInvitation | None:
+async def get_workspace_invitation(invitation_id: UUID) -> WorkspaceInvitation | None:
     return await invitations_repositories.get_invitation(
         WorkspaceInvitation,
-        filters={"workspace_id": workspace_id, "id": invitation_id},
+        filters={"id": invitation_id},
         select_related=["user", "workspace", "role"],
     )
 
@@ -228,7 +226,7 @@ async def accept_workspace_invitation_from_token(
     token: str, user: User
 ) -> WorkspaceInvitation:
     try:
-        invitation = await get_workspace_invitation(token=token)
+        invitation = await get_workspace_invitation_by_token(token=token)
 
     except WorkspaceInvitation.DoesNotExist as e:
         raise ex.InvitationDoesNotExistError("Invitation does not exist") from e
