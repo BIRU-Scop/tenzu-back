@@ -410,7 +410,7 @@ async def test_list_workspace_invitations():
             filters={
                 "workspace_id": invitation.workspace.id,
             },
-            select_related=["user", "workspace", "role"],
+            select_related=["user", "workspace"],
             order_by=["user__full_name", "email"],
             order_priorities={"status": InvitationStatus.PENDING},
         )
@@ -436,7 +436,7 @@ async def test_get_workspace_invitation_ok():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
             filters={"id": str(invitation.id)},
-            select_related=["user", "workspace", "role"],
+            select_related=["user", "workspace"],
         )
         assert inv == invitation
 
@@ -463,7 +463,7 @@ async def test_get_workspace_invitation_error_not_found():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
             filters={"id": str(invitation.id)},
-            select_related=["user", "workspace", "role"],
+            select_related=["user", "workspace"],
         )
 
 
@@ -496,7 +496,7 @@ async def test_get_public_workspace_invitation_ok():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
             filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
-            select_related=["user", "workspace", "role"],
+            select_related=["user", "workspace"],
         )
         fake_auth_services.get_available_user_logins.assert_awaited_once_with(
             user=invitation.user
@@ -525,7 +525,7 @@ async def test_get_public_workspace_invitation_ok_without_user():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
             filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
-            select_related=["user", "workspace", "role"],
+            select_related=["user", "workspace"],
         )
         fake_auth_services.get_available_user_logins.assert_not_awaited()
 
@@ -550,7 +550,7 @@ async def test_get_public_workspace_invitation_error_invitation_not_exists():
         fake_invitations_repo.get_invitation.assert_awaited_once_with(
             WorkspaceInvitation,
             filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
-            select_related=["user", "workspace", "role"],
+            select_related=["user", "workspace"],
         )
 
 
@@ -698,7 +698,9 @@ async def test_accept_workspace_invitation_from_token_ok() -> None:
 
         await services.accept_workspace_invitation_from_token(token=token, user=user)
 
-        fake_get_workspace_invitation.assert_awaited_once_with(token=token)
+        fake_get_workspace_invitation.assert_awaited_once_with(
+            token=token, get_role=True
+        )
         fake_accept_workspace_invitation.assert_awaited_once_with(invitation=invitation)
 
 

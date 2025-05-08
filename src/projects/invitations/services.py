@@ -98,7 +98,7 @@ async def list_project_invitations(project_id: UUID) -> list[ProjectInvitation]:
         filters={
             "project_id": project_id,
         },
-        select_related=["project", "user", "role"],
+        select_related=["project", "user"],
         order_by=["user__full_name", "email"],
         order_priorities={"status": InvitationStatus.PENDING},
     )
@@ -107,22 +107,6 @@ async def list_project_invitations(project_id: UUID) -> list[ProjectInvitation]:
 ##########################################################
 # get project invitation
 ##########################################################
-
-
-async def get_project_invitation_by_token(
-    token: str, filters: ProjectInvitationFilters = {}
-) -> ProjectInvitation:
-    try:
-        invitation_token = ProjectInvitationToken(token=token)
-    except TokenError:
-        raise ex.BadInvitationTokenError("Invalid or expired token")
-
-    invitation_data = cast(ProjectInvitationFilters, invitation_token.object_id_data)
-    return await invitations_repositories.get_invitation(
-        ProjectInvitation,
-        filters={**invitation_data, **filters},
-        select_related=["user", "project", "role"],
-    )
 
 
 async def get_public_pending_project_invitation(
@@ -144,24 +128,46 @@ async def get_public_pending_project_invitation(
     )
 
 
+def _get_select_related(get_role: bool):
+    return ["user", "project", "role"] if get_role else ["user", "project"]
+
+
+async def get_project_invitation_by_token(
+    token: str, filters: ProjectInvitationFilters = {}, get_role=False
+) -> ProjectInvitation:
+    try:
+        invitation_token = ProjectInvitationToken(token=token)
+    except TokenError:
+        raise ex.BadInvitationTokenError("Invalid or expired token")
+
+    invitation_data = cast(ProjectInvitationFilters, invitation_token.object_id_data)
+    return await invitations_repositories.get_invitation(
+        ProjectInvitation,
+        filters={**invitation_data, **filters},
+        select_related=_get_select_related(get_role),
+    )
+
+
 async def get_project_invitation_by_username_or_email(
-    project_id: UUID, username_or_email: str
-) -> ProjectInvitation | None:
+    project_id: UUID, username_or_email: str, get_role=False
+) -> ProjectInvitation:
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
         filters={"project_id": project_id},
         q_filter=invitations_repositories.invitation_username_or_email_query(
             username_or_email
         ),
-        select_related=["user", "project", "role"],
+        select_related=_get_select_related(get_role),
     )
 
 
-async def get_project_invitation(invitation_id: UUID) -> ProjectInvitation | None:
+async def get_project_invitation(
+    invitation_id: UUID, get_role=False
+) -> ProjectInvitation:
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
         filters={"id": invitation_id},
-        select_related=["user", "project", "role"],
+        select_related=_get_select_related(get_role),
     )
 
 
@@ -224,7 +230,7 @@ async def accept_project_invitation_from_token(
     token: str, user: User
 ) -> ProjectInvitation:
     try:
-        invitation = await get_project_invitation_by_token(token=token)
+        invitation = await get_project_invitation_by_token(token=token, get_role=True)
 
     except ProjectInvitation.DoesNotExist as e:
         raise ex.InvitationDoesNotExistError("Invitation does not exist") from e

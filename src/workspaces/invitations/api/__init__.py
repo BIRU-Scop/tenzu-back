@@ -226,7 +226,9 @@ async def revoke_workspace_invitation(
     """
     Revoke invitation in a workspace.
     """
-    invitation = await get_workspace_invitation_or_404(invitation_id=invitation_id)
+    invitation = await get_workspace_invitation_or_404(
+        invitation_id=invitation_id, get_role=True
+    )
     await check_permissions(
         permissions=WorkspaceInvitationPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -261,7 +263,9 @@ async def accept_workspace_invitation_by_token(
     A user accepts a workspace invitation using an invitation token
     """
     try:
-        invitation = await get_workspace_invitation_by_token_or_404(token=token)
+        invitation = await get_workspace_invitation_by_token_or_404(
+            token=token, get_role=True
+        )
     except BadInvitationTokenError as e:
         raise ex.BadRequest(str(e))
 
@@ -300,7 +304,9 @@ async def accept_workspace_invitation_by_workspace(
         obj=None,
     )
     invitation = await get_workspace_invitation_by_username_or_email_or_404(
-        workspace_id=workspace_id, username_or_email=request.user.username
+        workspace_id=workspace_id,
+        username_or_email=request.user.username,
+        get_role=True,
     )
     return await workspaces_invitations_services.accept_workspace_invitation(
         invitation=invitation
@@ -369,7 +375,9 @@ async def update_workspace_invitation(
     """
     Update workspace invitation
     """
-    invitation = await get_workspace_invitation_or_404(invitation_id=invitation_id)
+    invitation = await get_workspace_invitation_or_404(
+        invitation_id=invitation_id, get_role=True
+    )
     await check_permissions(
         permissions=WorkspaceInvitationPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -392,11 +400,13 @@ async def update_workspace_invitation(
 
 
 async def get_workspace_invitation_by_username_or_email_or_404(
-    workspace_id: UUID, username_or_email: str
+    workspace_id: UUID, username_or_email: str, get_role=False
 ) -> WorkspaceInvitation:
     try:
         invitation = await workspaces_invitations_services.get_workspace_invitation_by_username_or_email(
-            workspace_id=workspace_id, username_or_email=username_or_email
+            workspace_id=workspace_id,
+            username_or_email=username_or_email,
+            get_role=get_role,
         )
     except WorkspaceInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation not found") from e
@@ -404,10 +414,12 @@ async def get_workspace_invitation_by_username_or_email_or_404(
     return invitation
 
 
-async def get_workspace_invitation_or_404(invitation_id: UUID) -> WorkspaceInvitation:
+async def get_workspace_invitation_or_404(
+    invitation_id: UUID, get_role=False
+) -> WorkspaceInvitation:
     try:
         invitation = await workspaces_invitations_services.get_workspace_invitation(
-            invitation_id=invitation_id
+            invitation_id=invitation_id, get_role=get_role
         )
     except WorkspaceInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation not found") from e
@@ -415,11 +427,13 @@ async def get_workspace_invitation_or_404(invitation_id: UUID) -> WorkspaceInvit
     return invitation
 
 
-async def get_workspace_invitation_by_token_or_404(token: str) -> WorkspaceInvitation:
+async def get_workspace_invitation_by_token_or_404(
+    token: str, get_role=False
+) -> WorkspaceInvitation:
     try:
         invitation = (
             await workspaces_invitations_services.get_workspace_invitation_by_token(
-                token=token
+                token=token, get_role=get_role
             )
         )
     except WorkspaceInvitation.DoesNotExist as e:

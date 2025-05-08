@@ -227,7 +227,9 @@ async def revoke_project_invitation(
     """
     Revoke invitation in a project.
     """
-    invitation = await get_project_invitation_or_404(invitation_id=invitation_id)
+    invitation = await get_project_invitation_or_404(
+        invitation_id=invitation_id, get_role=True
+    )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -261,7 +263,9 @@ async def accept_project_invitation_by_token(request, token: str) -> ProjectInvi
     A user accepts a project invitation using an invitation token
     """
     try:
-        invitation = await get_project_invitation_by_token_or_404(token=token)
+        invitation = await get_project_invitation_by_token_or_404(
+            token=token, get_role=True
+        )
     except BadInvitationTokenError as e:
         raise ex.BadRequest(str(e))
     await check_permissions(
@@ -296,7 +300,7 @@ async def accept_project_invitation_by_project(
         obj=None,
     )
     invitation = await get_project_invitation_by_username_or_email_or_404(
-        project_id=project_id, username_or_email=request.user.username
+        project_id=project_id, username_or_email=request.user.username, get_role=True
     )
     return await invitations_services.accept_project_invitation(invitation=invitation)
 
@@ -361,7 +365,9 @@ async def update_project_invitation(
     """
     Update project invitation
     """
-    invitation = await get_project_invitation_or_404(invitation_id=invitation_id)
+    invitation = await get_project_invitation_or_404(
+        invitation_id=invitation_id, get_role=True
+    )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -384,12 +390,14 @@ async def update_project_invitation(
 
 
 async def get_project_invitation_by_username_or_email_or_404(
-    project_id: UUID, username_or_email: str
+    project_id: UUID, username_or_email: str, get_role=False
 ) -> ProjectInvitation:
     try:
         invitation = (
             await invitations_services.get_project_invitation_by_username_or_email(
-                project_id=project_id, username_or_email=username_or_email
+                project_id=project_id,
+                username_or_email=username_or_email,
+                get_role=get_role,
             )
         )
     except ProjectInvitation.DoesNotExist as e:
@@ -398,10 +406,12 @@ async def get_project_invitation_by_username_or_email_or_404(
     return invitation
 
 
-async def get_project_invitation_or_404(invitation_id: UUID) -> ProjectInvitation:
+async def get_project_invitation_or_404(
+    invitation_id: UUID, get_role=False
+) -> ProjectInvitation:
     try:
         invitation = await invitations_services.get_project_invitation(
-            invitation_id=invitation_id
+            invitation_id=invitation_id, get_role=get_role
         )
     except ProjectInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation not found") from e
@@ -410,11 +420,11 @@ async def get_project_invitation_or_404(invitation_id: UUID) -> ProjectInvitatio
 
 
 async def get_project_invitation_by_token_or_404(
-    token: str,
+    token: str, get_role=False
 ) -> ProjectInvitation:
     try:
         invitation = await invitations_services.get_project_invitation_by_token(
-            token=token
+            token=token, get_role=get_role
         )
     except ProjectInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation does not exist") from e

@@ -40,7 +40,7 @@ class InvitationBaseSerializer(BaseModel):
     id: UUIDB64
     status: InvitationStatus
     user: UserNestedSerializer | None = None
-    role: RoleSerializer
+    role_id: UUIDB64
     email: EmailStr
     resent_at: datetime.datetime | None
     created_at: datetime.datetime
