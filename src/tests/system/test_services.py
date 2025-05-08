@@ -16,11 +16,10 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
-from base.i18n import I18N, Locale
+from base.i18n import Locale
 from system import services as system_services
-from tests.utils.utils import preserve_real_attrs
 
 
 def test_get_available_languages_info_return_sorted_list():
@@ -60,14 +59,9 @@ def test_get_available_languages_info_return_sorted_list():
         "ja",
         "ko",
     ]
-    locales_mock = [Locale.parse(cod, sep="-") for cod in codes]
-    with patch("system.services.i18n", autospec=True) as fake_i18n:
-        fake_i18n.locales = locales_mock
-        preserve_real_attrs(
-            fake_i18n,
-            I18N,
-            ["get_locale_code"],
-        )
+    with patch("base.i18n.I18N.locales", new_callable=PropertyMock) as locales_mock:
+        locales_mock.return_value = [Locale.parse(cod, sep="-") for cod in codes]
+        system_services.get_available_languages_info.cache_clear()  # prevent lru_cache from provoking flaky test
         assert sorted_codes == [
             lang.code for lang in system_services.get_available_languages_info()
         ]
