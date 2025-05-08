@@ -16,10 +16,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import uuid
 
 # not existing but valid parameters
 NOT_EXISTING_REF = "9999"
 NOT_EXISTING_SLUG = "unexisting_slug"
+NOT_EXISTING_UUID = uuid.uuid1()
 NOT_EXISTING_B64ID = "ZZZZZZZZZZZZZZZZZZZZZZ"
 
 # invalid parameters

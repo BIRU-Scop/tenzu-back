@@ -69,12 +69,12 @@ async def get_workspace_membership(
 
 
 async def update_workspace_membership(
-    membership: WorkspaceMembership, role_slug: str, user: User
+    membership: WorkspaceMembership, role_id: UUID, user: User
 ) -> WorkspaceMembership:
     user_role = getattr(user, "workspace_role", None)
 
     updated_membership = await memberships_services.update_membership(
-        membership=membership, role_slug=role_slug, user_role=user_role
+        membership=membership, role_id=role_id, user_role=user_role
     )
 
     await memberships_events.emit_event_when_workspace_membership_is_updated(

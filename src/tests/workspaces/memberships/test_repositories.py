@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 
 import pytest
 
@@ -25,6 +24,7 @@ from memberships.services import exceptions as ex
 from permissions import choices
 from permissions.choices import WorkspacePermissions
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from workspaces.memberships import repositories
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.workspaces.models import Workspace
@@ -128,7 +128,7 @@ async def test_get_workspace_membership_doesnotexist():
     with pytest.raises(WorkspaceMembership.DoesNotExist):
         await repositories.get_membership(
             WorkspaceMembership,
-            filters={"user_id": uuid.uuid1(), "workspace_id": uuid.uuid1()},
+            filters={"user_id": NOT_EXISTING_UUID, "workspace_id": NOT_EXISTING_UUID},
         )
 
 

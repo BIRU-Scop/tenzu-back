@@ -379,7 +379,7 @@ async def update_workspace_invitation(
     try:
         return await workspaces_invitations_services.update_workspace_invitation(
             invitation=invitation,
-            role_slug=form.role_slug,
+            role_id=form.role_id,
             user=request.user,
         )
     except OwnerRoleNotAuthorisedError as e:

@@ -16,7 +16,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-import uuid
 from unittest.mock import patch
 
 import pytest
@@ -28,7 +27,7 @@ from projects.invitations.models import ProjectInvitation
 from projects.memberships import services
 from projects.memberships.models import ProjectRole
 from tests.utils import factories as f
-from tests.utils.bad_params import NOT_EXISTING_SLUG
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from tests.utils.utils import patch_db_transaction
 
 #######################################################
@@ -93,11 +92,11 @@ async def test_update_project_membership_role_non_existing_role():
         fake_membership_repository.get_role.side_effect = ProjectRole.DoesNotExist
 
         await services.update_project_membership(
-            membership=membership, role_slug=NOT_EXISTING_SLUG, user=f.build_user()
+            membership=membership, role_id=NOT_EXISTING_UUID, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
             ProjectRole,
-            filters={"project_id": project.id, "slug": NOT_EXISTING_SLUG},
+            filters={"project_id": project.id, "id": NOT_EXISTING_UUID},
         )
         fake_membership_repository.update_membership.assert_not_awaited()
         fake_membership_events.emit_event_when_project_membership_is_updated.assert_not_awaited()
@@ -127,10 +126,10 @@ async def test_update_project_membership_role_only_one_owner():
         fake_is_membership_the_only_owner.return_value = True
 
         await services.update_project_membership(
-            membership=membership, role_slug=other_role.slug, user=f.build_user()
+            membership=membership, role_id=other_role.id, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id, "slug": other_role.slug}
+            ProjectRole, filters={"project_id": project.id, "id": other_role.id}
         )
         fake_is_membership_the_only_owner.assert_awaited_once_with(membership)
         fake_membership_repository.update_membership.assert_not_awaited()
@@ -164,10 +163,10 @@ async def test_update_project_membership_role_owner():
         fake_membership_repository.update_membership.return_value = updated_membership
         with pytest.raises(ex.OwnerRoleNotAuthorisedError):
             await services.update_project_membership(
-                membership=membership, role_slug=owner_role.slug, user=f.build_user()
+                membership=membership, role_id=owner_role.id, user=f.build_user()
             )
         fake_membership_repository.get_role.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id, "slug": owner_role.slug}
+            ProjectRole, filters={"project_id": project.id, "id": owner_role.id}
         )
         fake_membership_repository.update_membership.assert_not_awaited()
         fake_membership_events.emit_event_when_project_membership_is_updated.assert_not_awaited()
@@ -176,7 +175,7 @@ async def test_update_project_membership_role_owner():
         owner_user = f.build_user()
         owner_user.project_role = owner_role
         updated_membership = await services.update_project_membership(
-            membership=membership, role_slug=owner_role.slug, user=owner_user
+            membership=membership, role_id=owner_role.id, user=owner_user
         )
         fake_membership_repository.update_membership.assert_awaited_once_with(
             membership=membership, values={"role": owner_role}
@@ -219,10 +218,10 @@ async def test_update_project_membership_role_ok():
         fake_membership_repository.update_membership.return_value = updated_membership
 
         updated_membership = await services.update_project_membership(
-            membership=membership, role_slug=other_role.slug, user=f.build_user()
+            membership=membership, role_id=other_role.id, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id, "slug": other_role.slug}
+            ProjectRole, filters={"project_id": project.id, "id": other_role.id}
         )
         fake_is_membership_the_only_owner.assert_awaited_once_with(membership)
         fake_membership_repository.update_membership.assert_awaited_once_with(
@@ -267,10 +266,10 @@ async def test_update_project_membership_role_view_story_deleted():
         fake_membership_repository.update_membership.return_value = updated_membership
 
         updated_membership = await services.update_project_membership(
-            membership=membership, role_slug=other_role.slug, user=f.build_user()
+            membership=membership, role_id=other_role.id, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id, "slug": other_role.slug}
+            ProjectRole, filters={"project_id": project.id, "id": other_role.id}
         )
         fake_membership_repository.update_membership.assert_awaited_once_with(
             membership=membership, values={"role": other_role}
@@ -706,7 +705,7 @@ async def test_delete_project_role_ko_non_editable():
         fake_memberships_repositories.move_project_role_of_related.assert_not_awaited()
 
 
-async def test_delete_project_role_ko_not_existing_target_slug():
+async def test_delete_project_role_ko_not_existing_target_role_id():
     role = f.build_project_role()
     user = f.build_user()
 
@@ -724,7 +723,7 @@ async def test_delete_project_role_ko_not_existing_target_slug():
         pytest.raises(ex.NonExistingMoveToRole),
     ):
         fake_get_project_role.side_effect = ProjectRole.DoesNotExist
-        target_role_id = uuid.uuid1()
+        target_role_id = NOT_EXISTING_UUID
         await services.delete_project_role(
             role=role, user=user, target_role_id=target_role_id
         )
@@ -758,7 +757,7 @@ async def test_delete_project_role_ko_role_same_as_target():
         await services.delete_project_role(role=role, user=user, target_role_id=role.id)
         fake_get_project_role.assert_awaited_once_with(
             project_id=role.project_id,
-            slug="member",
+            id=role.id,
         )
         fake_memberships_repositories.delete_project_role.assert_not_awaited()
         fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()
@@ -789,7 +788,7 @@ async def test_delete_project_role_ko_target_role_different_project():
         )
         fake_get_project_role.assert_awaited_once_with(
             project_id=role.project_id,
-            slug="member",
+            id=target_role.id,
         )
         fake_memberships_repositories.delete_project_role.assert_not_awaited()
         fake_memberships_events.emit_event_when_project_role_is_deleted.assert_not_awaited()

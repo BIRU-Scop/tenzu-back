@@ -371,7 +371,7 @@ async def update_project_invitation(
     try:
         return await invitations_services.update_project_invitation(
             invitation=invitation,
-            role_slug=form.role_slug,
+            role_id=form.role_id,
             user=request.user,
         )
     except OwnerRoleNotAuthorisedError as e:

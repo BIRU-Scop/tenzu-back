@@ -127,7 +127,7 @@ async def update_project_membership(
 
     try:
         return await memberships_services.update_project_membership(
-            membership=membership, role_slug=form.role_slug, user=request.user
+            membership=membership, role_id=form.role_id, user=request.user
         )
     except OwnerRoleNotAuthorisedError as e:
         raise ex.ForbiddenError(str(e))

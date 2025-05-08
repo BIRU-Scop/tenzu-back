@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from operator import attrgetter
 
 import pytest
 
@@ -36,10 +36,13 @@ pytestmark = pytest.mark.django_db
 
 async def test_create_project_invitations_anonymous_user(client, project_template):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     data = {
         "invitations": [
-            {"email": "user-test@email.com", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "member"},
+            {"email": "user-test@email.com", "role_id": owner_role.b64id},
+            {"email": "test@email.com", "role_id": member_role.b64id},
         ]
     }
     response = await client.post(f"/projects/{project.b64id}/invitations", json=data)
@@ -50,10 +53,13 @@ async def test_create_project_invitations_user_without_permission(
     client, project_template
 ):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     data = {
         "invitations": [
-            {"email": "user-test@email.com", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "member"},
+            {"email": "user-test@email.com", "role_id": owner_role.b64id},
+            {"email": "test@email.com", "role_id": member_role.b64id},
         ]
     }
     user = await f.create_user()
@@ -66,10 +72,13 @@ async def test_create_project_invitations_user_wrong_email_format(
     client, project_template
 ):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     data = {
         "invitations": [
-            {"email": "user-test@email", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "member"},
+            {"email": "user-test@email", "role_id": owner_role.b64id},
+            {"email": "test@email.com", "role_id": member_role.b64id},
         ]
     }
     user = await f.create_user()
@@ -80,12 +89,7 @@ async def test_create_project_invitations_user_wrong_email_format(
 
 async def test_create_project_invitations_project_not_found(client):
     user = await f.create_user()
-    data = {
-        "invitations": [
-            {"email": "user-test@email.com", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "member"},
-        ]
-    }
+    data = {"invitations": []}
     client.login(user)
     response = await client.post(
         f"/projects/{NOT_EXISTING_B64ID}/invitations", json=data
@@ -97,7 +101,11 @@ async def test_create_project_invitations_not_existing_username(
     client, project_template
 ):
     project = await f.create_project(project_template)
-    data = {"invitations": [{"username": "not-a-username", "role_slug": "member"}]}
+    roles = list(project.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
+    data = {
+        "invitations": [{"username": "not-a-username", "role_id": member_role.b64id}]
+    }
     client.login(project.created_by)
     response = await client.post(f"/projects/{project.b64id}/invitations", json=data)
     assert response.status_code == 400, response.data
@@ -107,7 +115,7 @@ async def test_create_project_invitations_non_existing_role(client, project_temp
     project = await f.create_project(project_template)
     data = {
         "invitations": [
-            {"email": "test@email.com", "role_slug": "non_existing_role"},
+            {"email": "test@email.com", "role_id": NOT_EXISTING_B64ID},
         ]
     }
     client.login(project.created_by)
@@ -123,12 +131,18 @@ async def test_create_project_invitations_owner_no_permission(client, project_te
         project=project, role__is_owner=True
     )
     membership = await f.create_project_membership(project=project)
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     data = {
         "invitations": [
-            {"email": "invitee2@tenzu.demo", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "member"},
-            {"username": invitee1.username, "role_slug": "member"},
-            {"username": existing_invitation.user.username, "role_slug": "member"},
+            {"email": "invitee2@tenzu.demo", "role_id": owner_role.b64id},
+            {"email": "test@email.com", "role_id": member_role.b64id},
+            {"username": invitee1.username, "role_id": member_role.b64id},
+            {
+                "username": existing_invitation.user.username,
+                "role_id": member_role.b64id,
+            },
         ]
     }
     client.login(membership.user)
@@ -144,11 +158,14 @@ async def test_create_project_invitations(client, project_template):
     invitee1 = await f.create_user(email="invitee1@tenzu.demo", username="invitee1")
     invitee2 = await f.create_user(email="invitee2@tenzu.demo", username="invitee2")
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     data = {
         "invitations": [
-            {"email": invitee2.email, "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "member"},
-            {"username": invitee1.username, "role_slug": "member"},
+            {"email": invitee2.email, "role_id": owner_role.b64id},
+            {"email": "test@email.com", "role_id": member_role.b64id},
+            {"username": invitee1.username, "role_id": member_role.b64id},
         ]
     }
     client.login(project.created_by)
@@ -172,7 +189,8 @@ async def test_create_project_invitations(client, project_template):
 
 async def test_list_project_invitations_ok(client, project_template):
     project = await f.create_project(project_template)
-    member_role = await project.roles.aget(slug="member")
+    roles = list(project.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
 
     user1 = await f.create_user(full_name="AAA")
     await f.create_project_invitation(
@@ -847,7 +865,8 @@ async def test_revoke_project_invitation_user_without_permission(
 async def test_revoke_project_invitation_owner(client, project_template):
     project = await f.create_project(project_template)
     user = await f.create_user()
-    owner_role = await project.roles.aget(is_owner=True)
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
     invitation = await f.create_project_invitation(
         user=None, email=user.email, project=project, role=owner_role
     )
@@ -977,9 +996,11 @@ async def test_update_project_invitation_role_invitation_not_exist(
     client, project_template
 ):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
 
     client.login(project.created_by)
-    data = {"role_slug": "owner"}
+    data = {"role_id": owner_role.b64id}
     response = await client.patch(
         f"projects/invitations/{NOT_EXISTING_B64ID}", json=data
     )
@@ -990,6 +1011,8 @@ async def test_update_project_invitation_role_user_without_permission(
     client, project_template
 ):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user = await f.create_user()
 
     invited_user = await f.create_user()
@@ -1000,7 +1023,7 @@ async def test_update_project_invitation_role_user_without_permission(
     )
 
     client.login(user)
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/projects/invitations/{invitation.b64id}", json=data
     )
@@ -1016,8 +1039,9 @@ async def test_update_project_invitation_role_user_without_permission(
 async def test_update_project_invitation_owner(client, project_template):
     user = await f.create_user()
     project = await f.create_project(project_template)
-    owner_role = await project.roles.aget(is_owner=True)
-    member_role = await project.roles.filter(is_owner=False).afirst()
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     owner_invitation = await f.create_project_invitation(
         user=None, email="email1@test.demo", project=project, role=owner_role
     )
@@ -1029,7 +1053,7 @@ async def test_update_project_invitation_owner(client, project_template):
     )
 
     client.login(user)
-    data = {"role_slug": "owner"}
+    data = {"role_id": owner_role.b64id}
     response = await client.patch(
         f"/projects/invitations/{member_invitation.b64id}", json=data
     )
@@ -1053,17 +1077,21 @@ async def test_update_project_invitation_owner(client, project_template):
 async def test_update_project_invitation_role_ok(client, project_template):
     project = await f.create_project(project_template)
     user = await f.create_user()
-    member_role = await f.create_project_role(
+    general_admin_role = await f.create_project_role(
         project=project,
         permissions=ProjectPermissions.values,
         is_owner=False,
     )
     invitation = await f.create_project_invitation(
-        user=user, project=project, role=member_role, email=user.email
+        user=user, project=project, role=general_admin_role, email=user.email
+    )
+    roles = list(project.roles.all())
+    readonlymember_role = next(
+        filter(lambda role: role.slug == "readonly-member", roles)
     )
 
     client.login(project.created_by)
-    data = {"role_slug": "readonly-member"}
+    data = {"role_id": readonlymember_role.b64id}
     response = await client.patch(f"projects/invitations/{invitation.b64id}", json=data)
     assert response.status_code == 200, response.data
 
@@ -1073,6 +1101,6 @@ async def test_update_project_invitation_role_ok(client, project_template):
         permissions=[ProjectPermissions.CREATE_MODIFY_MEMBER], project=project
     )
     await f.create_project_membership(role=role, project=project, user=user)
-    data = {"role_slug": "member"}
+    data = {"role_id": general_admin_role.b64id}
     response = await client.patch(f"projects/invitations/{invitation.b64id}", json=data)
     assert response.status_code == 200, response.data

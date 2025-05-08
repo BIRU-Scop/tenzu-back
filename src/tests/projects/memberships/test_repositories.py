@@ -16,7 +16,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-import uuid
 
 import pytest
 
@@ -27,6 +26,7 @@ from projects.memberships import repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 
 pytestmark = pytest.mark.django_db
 
@@ -124,7 +124,7 @@ async def test_get_project_membership_doesnotexist():
     with pytest.raises(ProjectMembership.DoesNotExist):
         await repositories.get_membership(
             ProjectMembership,
-            filters={"user_id": uuid.uuid1(), "project_id": uuid.uuid1()},
+            filters={"user_id": NOT_EXISTING_UUID, "project_id": NOT_EXISTING_UUID},
         )
 
 

@@ -16,7 +16,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -31,7 +30,7 @@ from projects.invitations.models import ProjectInvitation
 from projects.invitations.tokens import ProjectInvitationToken
 from projects.memberships.models import ProjectRole
 from tests.utils import factories as f
-from tests.utils.bad_params import NOT_EXISTING_SLUG
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from tests.utils.utils import patch_db_transaction
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships.models import WorkspaceMembership
@@ -301,7 +300,7 @@ async def test_send_project_invitations_for_new_user(tqmanager):
 async def test_create_project_invitations_non_existing_role(tqmanager):
     project = f.build_project()
     role = f.build_project_role(project=project, slug="role")
-    invitations = [{"email": "test@email.com", "role_slug": NOT_EXISTING_SLUG}]
+    invitations = [{"email": "test@email.com", "role_id": NOT_EXISTING_UUID}]
 
     with (
         patch(
@@ -326,7 +325,7 @@ async def test_create_project_invitations_already_member(tqmanager):
     user = f.build_user()
     project = f.build_project()
     role = f.build_project_role(project=project, slug="member")
-    invitations = [{"email": user.email, "role_slug": role.slug}]
+    invitations = [{"email": user.email, "role_id": role.id}]
 
     with (
         patch(
@@ -370,7 +369,7 @@ async def test_create_project_invitations_with_pending_invitations(tqmanager):
         created_at=created_at,
         invited_by=project.created_by,
     )
-    invitations = [{"email": invitation.email, "role_slug": role2.slug}]
+    invitations = [{"email": invitation.email, "role_id": role2.id}]
 
     with (
         patch(
@@ -410,7 +409,7 @@ async def test_create_project_invitations_with_pending_invitations_time_spam(tqm
         email="test@email.com",
         invited_by=project.created_by,
     )
-    invitations = [{"email": invitation.email, "role_slug": role2.slug}]
+    invitations = [{"email": invitation.email, "role_id": role2.id}]
 
     with (
         patch(
@@ -454,7 +453,7 @@ async def test_create_project_invitations_with_revoked_invitations(tqmanager):
         invited_by=project.created_by,
         status=InvitationStatus.REVOKED,
     )
-    invitations = [{"email": invitation.email, "role_slug": role2.slug}]
+    invitations = [{"email": invitation.email, "role_id": role2.id}]
 
     with (
         patch(
@@ -495,7 +494,7 @@ async def test_create_project_invitations_with_revoked_invitations_time_spam(tqm
         invited_by=project.created_by,
         status=InvitationStatus.REVOKED,
     )
-    invitations = [{"email": invitation.email, "role_slug": role2.slug}]
+    invitations = [{"email": invitation.email, "role_id": role2.id}]
 
     with (
         patch(
@@ -533,8 +532,8 @@ async def test_create_project_invitations_by_emails(tqmanager):
     user1.project_role = role1
 
     invitations = [
-        {"email": user2.email, "role_slug": role1.slug},
-        {"email": "test@email.com", "role_slug": role2.slug},
+        {"email": user2.email, "role_id": role1.id},
+        {"email": "test@email.com", "role_id": role2.id},
     ]
 
     with (
@@ -562,7 +561,8 @@ async def test_create_project_invitations_by_emails(tqmanager):
         )
 
         fake_memberships_repositories.list_roles.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id}
+            ProjectRole,
+            filters={"project_id": project.id, "id__in": {role1.id, role2.id}},
         )
         fake_users_services.list_users_emails_as_dict.assert_awaited_once()
         fake_users_services.list_users_usernames_as_dict.assert_not_awaited()
@@ -582,8 +582,8 @@ async def test_create_project_invitations_by_usernames(tqmanager):
     user1.project_role = role1
 
     invitations = [
-        {"username": user2.username, "role_slug": role1.slug},
-        {"username": user3.username, "role_slug": role2.slug},
+        {"username": user2.username, "role_id": role1.id},
+        {"username": user3.username, "role_id": role2.id},
     ]
 
     with (
@@ -612,7 +612,8 @@ async def test_create_project_invitations_by_usernames(tqmanager):
         )
 
         fake_memberships_repositories.list_roles.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id}
+            ProjectRole,
+            filters={"project_id": project.id, "id__in": {role1.id, role2.id}},
         )
         fake_memberships_repositories.create_invitations.assert_awaited_once()
 
@@ -634,12 +635,12 @@ async def test_create_project_invitations_duplicated_email_username(tqmanager):
         {
             "username": user2.username,
             "email": "test2@email.com",
-            "role_slug": role2.slug,
+            "role_id": role2.id,
         },
-        {"username": user3.username, "role_slug": role2.slug},
-        {"username": user4.username, "role_slug": role1.slug},
-        {"email": "test3@email.com", "role_slug": role1.slug},
-        {"email": "test4@email.com", "role_slug": role2.slug},
+        {"username": user3.username, "role_id": role2.id},
+        {"username": user4.username, "role_id": role1.id},
+        {"email": "test3@email.com", "role_id": role1.id},
+        {"email": "test4@email.com", "role_id": role2.id},
     ]
 
     with (
@@ -672,7 +673,8 @@ async def test_create_project_invitations_duplicated_email_username(tqmanager):
         )
 
         fake_memberships_repositories.list_roles.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id}
+            ProjectRole,
+            filters={"project_id": project.id, "id__in": {role1.id, role2.id}},
         )
         fake_users_services.list_users_emails_as_dict.assert_awaited_once()
         fake_users_services.list_users_usernames_as_dict.assert_awaited_once()
@@ -692,7 +694,7 @@ async def test_create_project_invitations_invalid_username(tqmanager):
     project = f.build_project()
     role = f.build_project_role(project=project, slug="owner", is_owner=True)
 
-    invitations = [{"username": "not existing username", "role_slug": role.slug}]
+    invitations = [{"username": "not existing username", "role_id": role.id}]
 
     with (
         patch(
@@ -725,8 +727,8 @@ async def test_create_project_invitations_owner_no_permission(tqmanager):
     )
 
     invitations = [
-        {"email": user1.email, "role_slug": member_role.slug},
-        {"username": user2.username, "role_slug": owner_role.slug},
+        {"email": user1.email, "role_id": member_role.id},
+        {"username": user2.username, "role_id": owner_role.id},
     ]
 
     with (
@@ -1784,7 +1786,7 @@ async def test_update_project_invitation_role_invitation_accepted() -> None:
         pytest.raises(ex.InvitationAlreadyAcceptedError),
     ):
         await services.update_project_invitation(
-            invitation=invitation, role_slug=member_role, user=f.build_user()
+            invitation=invitation, role_id=member_role.id, user=f.build_user()
         )
 
         fake_memberships_repositories.update_invitation.assert_not_awaited()
@@ -1811,7 +1813,7 @@ async def test_update_project_invitation_role_invitation_revoked() -> None:
         pytest.raises(ex.InvitationRevokedError),
     ):
         await services.update_project_invitation(
-            invitation=invitation, role_slug=member_role, user=f.build_user()
+            invitation=invitation, role_id=member_role.id, user=f.build_user()
         )
 
         fake_memberships_repositories.update_invitation.assert_not_awaited()
@@ -1838,7 +1840,7 @@ async def test_update_project_invitation_role_invitation_denied() -> None:
         pytest.raises(ex.InvitationDeniedError),
     ):
         await services.update_project_invitation(
-            invitation=invitation, role_slug=member_role, user=f.build_user()
+            invitation=invitation, role_id=member_role.id, user=f.build_user()
         )
 
         fake_memberships_repositories.update_invitation.assert_not_awaited()
@@ -1869,11 +1871,11 @@ async def test_update_project_invitation_role_non_existing_role():
         fake_memberships_repositories.get_role.side_effect = ProjectRole.DoesNotExist
 
         await services.update_project_invitation(
-            invitation=invitation, role_slug=NOT_EXISTING_SLUG, user=f.build_user()
+            invitation=invitation, role_id=NOT_EXISTING_UUID, user=f.build_user()
         )
         fake_memberships_repositories.get_role.assert_awaited_once_with(
             ProjectRole,
-            filters={"project_id": project.id, "slug": NOT_EXISTING_SLUG},
+            filters={"project_id": project.id, "id": NOT_EXISTING_UUID},
         )
         fake_memberships_repositories.update_invitation.assert_not_awaited()
         fake_invitations_events.emit_event_when_project_invitation_is_updated.assert_not_awaited()
@@ -1902,10 +1904,10 @@ async def test_update_project_invitation_role_ok():
     ):
         fake_memberships_repositories.get_role.return_value = member_role2
         updated_invitation = await services.update_project_invitation(
-            invitation=invitation, role_slug=member_role2.slug, user=f.build_user()
+            invitation=invitation, role_id=member_role2.id, user=f.build_user()
         )
         fake_memberships_repositories.get_role.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id, "slug": member_role2.slug}
+            ProjectRole, filters={"project_id": project.id, "id": member_role2.id}
         )
         fake_memberships_repositories.update_invitation.assert_awaited_once_with(
             invitation=invitation, values={"role": member_role2}
@@ -1940,17 +1942,17 @@ async def test_update_project_invitation_role_owner():
         fake_memberships_repositories.get_role.return_value = owner_role
         with pytest.raises(ex.OwnerRoleNotAuthorisedError):
             await services.update_project_invitation(
-                invitation=invitation, role_slug=owner_role.slug, user=f.build_user()
+                invitation=invitation, role_id=owner_role.id, user=f.build_user()
             )
         fake_memberships_repositories.get_role.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id, "slug": owner_role.slug}
+            ProjectRole, filters={"project_id": project.id, "id": owner_role.id}
         )
         fake_memberships_repositories.update_invitation.assert_not_awaited()
         fake_invitations_events.emit_event_when_project_invitation_is_updated.assert_not_awaited()
         owner_user = f.build_user()
         owner_user.project_role = owner_role
         updated_invitation = await services.update_project_invitation(
-            invitation=invitation, role_slug=owner_role.slug, user=owner_user
+            invitation=invitation, role_id=owner_role.id, user=owner_user
         )
         fake_memberships_repositories.update_invitation.assert_awaited_once_with(
             invitation=invitation, values={"role": owner_role}

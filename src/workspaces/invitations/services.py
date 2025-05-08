@@ -184,12 +184,12 @@ async def update_user_workspaces_invitations(user: User) -> None:
 
 
 async def update_workspace_invitation(
-    invitation: WorkspaceInvitation, role_slug: str, user: User
+    invitation: WorkspaceInvitation, role_id: UUID, user: User
 ) -> WorkspaceInvitation:
     user_role = user.workspace_role
     updated_invitation = await memberships_services.update_invitation(
         invitation=invitation,
-        role_slug=role_slug,
+        role_id=role_id,
         user_role=user_role,
     )
     await transaction_on_commit_async(

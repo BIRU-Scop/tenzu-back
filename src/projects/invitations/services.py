@@ -183,12 +183,12 @@ async def update_user_projects_invitations(user: User) -> None:
 
 
 async def update_project_invitation(
-    invitation: ProjectInvitation, role_slug: str, user: User
+    invitation: ProjectInvitation, role_id: UUID, user: User
 ) -> ProjectInvitation:
     user_role = user.project_role
     updated_invitation = await memberships_services.update_invitation(
         invitation=invitation,
-        role_slug=role_slug,
+        role_id=role_id,
         user_role=user_role,
     )
     await transaction_on_commit_async(

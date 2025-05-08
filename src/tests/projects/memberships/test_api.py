@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from operator import attrgetter
 
 import pytest
 
@@ -97,10 +98,12 @@ async def test_update_project_membership_role_membership_not_exist(
     client, project_template
 ):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
 
     client.login(project.created_by)
     username = "not_exist"
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"projects/{project.b64id}/memberships/{username}", json=data
     )
@@ -111,24 +114,30 @@ async def test_update_project_membership_role_user_without_permission(
     client, project_template
 ):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user1 = await f.create_user()
     user2 = await f.create_user()
-    member_role = await f.create_project_role(
+    readonlymember_role = await f.create_project_role(
         project=project,
         permissions=[],
         is_owner=False,
     )
-    await f.create_project_membership(user=user2, project=project, role=member_role)
+    await f.create_project_membership(
+        user=user2, project=project, role=readonlymember_role
+    )
 
     client.login(user1)
     username = user2.username
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
     assert response.status_code == 403, response.data
 
-    await f.create_project_membership(user=user1, project=project, role=member_role)
+    await f.create_project_membership(
+        user=user1, project=project, role=readonlymember_role
+    )
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
@@ -137,6 +146,8 @@ async def test_update_project_membership_role_user_without_permission(
 
 async def test_update_project_membership_role_ok(client, project_template):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user1 = await f.create_user()
     user2 = await f.create_user()
     general_admin_role = await f.create_project_role(
@@ -152,7 +163,7 @@ async def test_update_project_membership_role_ok(client, project_template):
     )
 
     client.login(project.created_by)
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"projects/{project.b64id}/memberships/{user2.username}", json=data
     )
@@ -168,6 +179,9 @@ async def test_update_project_membership_role_owner_and_not_owner(
     client, project_template
 ):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user1 = await f.create_user()
     user2 = await f.create_user()
     general_admin_role = await f.create_project_role(
@@ -185,14 +199,14 @@ async def test_update_project_membership_role_owner_and_not_owner(
     client.login(user1)
     # change role to owner
     username = user2.username
-    data = {"role_slug": "owner"}
+    data = {"role_id": owner_role.b64id}
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
     assert response.status_code == 403, response.data
     # change role of owner
     username = project.created_by.username
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
@@ -201,24 +215,29 @@ async def test_update_project_membership_role_owner_and_not_owner(
 
 async def test_update_project_membership_role_owner_and_owner(client, project_template):
     project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user = await f.create_user()
-    member_role = await f.create_project_role(
+    readonlymember_role = await f.create_project_role(
         project=project,
         permissions=[],
         is_owner=False,
     )
-    await f.create_project_membership(user=user, project=project, role=member_role)
+    await f.create_project_membership(
+        user=user, project=project, role=readonlymember_role
+    )
 
     client.login(project.created_by)
     # change role to owner
     username = user.username
-    data = {"role_slug": "owner"}
+    data = {"role_id": owner_role.b64id}
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )
     assert response.status_code == 200, response.data
     # change role of owner
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/projects/{project.b64id}/memberships/{username}", json=data
     )

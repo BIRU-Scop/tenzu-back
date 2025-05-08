@@ -17,11 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 from unittest.mock import AsyncMock, patch
 
 from attachments import services
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 
 #####################################################
 # create_attachment
@@ -120,8 +120,7 @@ async def test_list_attachments():
 
 
 async def test_get_attachment():
-    story = f.build_story(id="story_id")
-    attachment_id = uuid.uuid1()
+    attachment_id = NOT_EXISTING_UUID
 
     with (
         patch(
@@ -141,7 +140,7 @@ async def test_get_attachment():
 
 
 async def test_delete_attachment():
-    attachment = f.build_attachment(id=uuid.uuid1())
+    attachment = f.build_attachment(id=NOT_EXISTING_UUID)
 
     with (
         patch(
@@ -158,7 +157,7 @@ async def test_delete_attachment():
 
 
 async def test_delete_attachment_and_emit_event_on_delete():
-    attachment = f.build_attachment(id=uuid.uuid1())
+    attachment = f.build_attachment(id=NOT_EXISTING_UUID)
     fake_event_on_delete = AsyncMock()
 
     with (
@@ -179,7 +178,7 @@ async def test_delete_attachment_and_emit_event_on_delete():
 
 
 async def test_delete_attachment_that_does_not_exist():
-    attachment = f.build_attachment(id=uuid.uuid1())
+    attachment = f.build_attachment(id=NOT_EXISTING_UUID)
     fake_event_on_delete = AsyncMock()
 
     with (

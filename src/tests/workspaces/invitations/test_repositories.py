@@ -17,12 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 
 import pytest
 
 from memberships.choices import InvitationStatus
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from workspaces.invitations import repositories
 from workspaces.invitations.models import WorkspaceInvitation
 
@@ -361,7 +361,7 @@ async def test_get_workspace_invitation_by_id() -> None:
 async def get_workspace_invitation_by_id_not_found() -> None:
     with pytest.raises(WorkspaceInvitation.DoesNotExist):
         await repositories.get_invitation(
-            WorkspaceInvitation, filters={"id": uuid.uuid1()}
+            WorkspaceInvitation, filters={"id": NOT_EXISTING_UUID}
         )
 
 

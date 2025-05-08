@@ -19,6 +19,7 @@
 
 from asgiref.sync import sync_to_async
 
+from ..utils import set_prefetched_qs_cache
 from .base import Factory, factory
 
 
@@ -32,18 +33,17 @@ class WorkflowFactory(Factory):
     def statuses(self, create, extracted, **kwargs):
         if extracted is None:
             return
+
         if not create:
+            set_prefetched_qs_cache(self, {"statuses": extracted})
             self._prefetched_objects_cache = {"statuses": extracted}
             for status in extracted:
                 status.workflow = self
         elif isinstance(extracted, int):
-            # hack to fill prefetch cache so that no db query will be needed to fetch statuses
-            self._prefetched_objects_cache = {
-                "statuses": [
-                    WorkflowStatusFactory.create(workflow=self)
-                    for _ in range(extracted)
-                ]
-            }
+            statuses = [
+                WorkflowStatusFactory.create(workflow=self) for _ in range(extracted)
+            ]
+            set_prefetched_qs_cache(self, {"statuses": statuses})
 
     class Meta:
         model = "workflows.Workflow"

@@ -16,13 +16,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from operator import attrgetter
 
 import pytest
 
 from memberships.choices import InvitationStatus
 from permissions.choices import WorkspacePermissions
 from tests.utils import factories as f
-from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID, NOT_EXISTING_SLUG
+from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
 from workspaces.invitations.tokens import WorkspaceInvitationToken
 
 pytestmark = pytest.mark.django_db
@@ -37,11 +38,14 @@ async def test_create_workspace_invitations_200_ok(client):
     invitee1 = await f.create_user(email="invitee1@tenzu.demo", username="invitee1")
     await f.create_user(email="invitee2@tenzu.demo", username="invitee2")
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     data = {
         "invitations": [
-            {"email": "invitee2@tenzu.demo", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "member"},
-            {"username": invitee1.username, "role_slug": "member"},
+            {"email": "invitee2@tenzu.demo", "role_id": owner_role.b64id},
+            {"email": "test@email.com", "role_id": member_role.b64id},
+            {"username": invitee1.username, "role_id": member_role.b64id},
         ]
     }
     client.login(workspace.created_by)
@@ -68,16 +72,22 @@ async def test_create_workspace_invitations_owner_no_permission(
     invitee1 = await f.create_user(email="invitee1@tenzu.demo", username="invitee1")
     await f.create_user(email="invitee2@tenzu.demo", username="invitee2")
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     existing_invitation = await f.create_workspace_invitation(
         workspace=workspace, role__is_owner=True
     )
     membership = await f.create_workspace_membership(workspace=workspace)
     data = {
         "invitations": [
-            {"email": "invitee2@tenzu.demo", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "member"},
-            {"username": invitee1.username, "role_slug": "member"},
-            {"username": existing_invitation.user.username, "role_slug": "member"},
+            {"email": "invitee2@tenzu.demo", "role_id": owner_role.b64id},
+            {"email": "test@email.com", "role_id": member_role.b64id},
+            {"username": invitee1.username, "role_id": member_role.b64id},
+            {
+                "username": existing_invitation.user.username,
+                "role_id": member_role.b64id,
+            },
         ]
     }
     client.login(membership.user)
@@ -95,7 +105,11 @@ async def test_create_workspace_invitations_400_bad_request_not_existing_usernam
     client,
 ):
     workspace = await f.create_workspace()
-    data = {"invitations": [{"username": "not-a-username", "role_slug": "owner"}]}
+    roles = list(workspace.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    data = {
+        "invitations": [{"username": "not-a-username", "role_id": owner_role.b64id}]
+    }
     client.login(workspace.created_by)
     response = await client.post(
         f"/workspaces/{workspace.b64id}/invitations", json=data
@@ -107,7 +121,7 @@ async def test_create_workspace_invitations_non_existing_role(client):
     workspace = await f.create_workspace()
     data = {
         "invitations": [
-            {"email": "test@email.com", "role_slug": NOT_EXISTING_SLUG},
+            {"email": "test@email.com", "role_id": NOT_EXISTING_B64ID},
         ]
     }
     client.login(workspace.created_by)
@@ -119,10 +133,12 @@ async def test_create_workspace_invitations_non_existing_role(client):
 
 async def test_create_workspace_invitations_401_not_authorised_anonymous_user(client):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
     data = {
         "invitations": [
-            {"email": "user-test@email.com", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "owner"},
+            {"email": "user-test@email.com", "role_id": owner_role.b64id},
+            {"email": "test@email.com", "role_id": owner_role.b64id},
         ]
     }
     response = await client.post(
@@ -135,10 +151,12 @@ async def test_create_workspace_invitations_403_forbidden_user_without_permissio
     client,
 ):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
     data = {
         "invitations": [
-            {"email": "user-test@email.com", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "owner"},
+            {"email": "user-test@email.com", "role_id": owner_role.b64id},
+            {"email": "test@email.com", "role_id": owner_role.b64id},
         ]
     }
     user = await f.create_user()
@@ -153,8 +171,8 @@ async def test_create_workspace_invitations_404_not_found_workspace_b64id(client
     user = await f.create_user()
     data = {
         "invitations": [
-            {"email": "user-test@email.com", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "owner"},
+            {"email": "user-test@email.com", "role_id": NOT_EXISTING_B64ID},
+            {"email": "test@email.com", "role_id": NOT_EXISTING_B64ID},
         ]
     }
     client.login(user)
@@ -168,8 +186,8 @@ async def test_create_workspace_invitations_422_unprocessable_workspace_b64id(cl
     user = await f.create_user()
     data = {
         "invitations": [
-            {"email": "user-test@email.com", "role_slug": "owner"},
-            {"email": "test@email.com", "role_slug": "owner"},
+            {"email": "user-test@email.com", "role_id": NOT_EXISTING_B64ID},
+            {"email": "test@email.com", "role_id": NOT_EXISTING_B64ID},
         ]
     }
     client.login(user)
@@ -926,9 +944,11 @@ async def test_update_workspace_invitation_role_invitation_not_exist(
     client,
 ):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
 
     client.login(workspace.created_by)
-    data = {"role_slug": "owner"}
+    data = {"role_id": owner_role.b64id}
     response = await client.patch(
         f"workspaces/invitations/{NOT_EXISTING_B64ID}", json=data
     )
@@ -939,6 +959,8 @@ async def test_update_workspace_invitation_role_user_without_permission(
     client,
 ):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user = await f.create_user()
 
     invited_user = await f.create_user()
@@ -949,7 +971,7 @@ async def test_update_workspace_invitation_role_user_without_permission(
     )
 
     client.login(user)
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/workspaces/invitations/{invitation.b64id}", json=data
     )
@@ -967,8 +989,9 @@ async def test_update_workspace_invitation_owner(
 ):
     user = await f.create_user()
     workspace = await f.create_workspace()
-    owner_role = await workspace.roles.aget(is_owner=True)
-    member_role = await workspace.roles.filter(is_owner=False).afirst()
+    roles = list(workspace.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     owner_invitation = await f.create_workspace_invitation(
         user=None, email="email1@test.demo", workspace=workspace, role=owner_role
     )
@@ -980,7 +1003,7 @@ async def test_update_workspace_invitation_owner(
     )
 
     client.login(user)
-    data = {"role_slug": "owner"}
+    data = {"role_id": owner_role.b64id}
     response = await client.patch(
         f"/workspaces/invitations/{member_invitation.b64id}",
         json=data,
@@ -1007,18 +1030,23 @@ async def test_update_workspace_invitation_role_ok(
     client,
 ):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
+    readonlymember_role = next(
+        filter(lambda role: role.slug == "readonly-member", roles)
+    )
     user = await f.create_user()
-    member_role = await f.create_workspace_role(
+    general_admin_role = await f.create_workspace_role(
         workspace=workspace,
         permissions=WorkspacePermissions.values,
         is_owner=False,
     )
     invitation = await f.create_workspace_invitation(
-        user=user, workspace=workspace, role=member_role, email=user.email
+        user=user, workspace=workspace, role=general_admin_role, email=user.email
     )
 
     client.login(workspace.created_by)
-    data = {"role_slug": "readonly-member"}
+    data = {"role_id": readonlymember_role.b64id}
     response = await client.patch(
         f"workspaces/invitations/{invitation.b64id}", json=data
     )
@@ -1030,7 +1058,7 @@ async def test_update_workspace_invitation_role_ok(
         permissions=[WorkspacePermissions.CREATE_MODIFY_MEMBER], workspace=workspace
     )
     await f.create_workspace_membership(role=role, workspace=workspace, user=user)
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"workspaces/invitations/{invitation.b64id}", json=data
     )

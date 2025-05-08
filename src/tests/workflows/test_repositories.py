@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 from unittest import IsolatedAsyncioTestCase
 
 import pytest
@@ -26,6 +25,7 @@ from asgiref.sync import sync_to_async
 from commons.ordering import DEFAULT_ORDER_OFFSET
 from projects.projects.models import Project
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from workflows import repositories
 from workflows.models import Workflow, WorkflowStatus
 
@@ -248,9 +248,8 @@ async def test_list_statuses_to_reorder_bad_ids(project_template) -> None:
     project = await f.create_project(project_template)
     workflow = await sync_to_async(project.workflows.first)()
     st_ids = [s.id for s in await _list_workflow_statuses(workflow=workflow)]
-    non_existing_uuid = uuid.uuid1()
 
-    statuses = [st_ids[0], non_existing_uuid]
+    statuses = [st_ids[0], NOT_EXISTING_UUID]
     statuses = await repositories.list_workflow_statuses_to_reorder(
         workflow_id=workflow.id, ids=statuses
     )
@@ -311,11 +310,10 @@ async def test_get_workflow_status_ok(project_template) -> None:
 async def test_get_project_without_workflow_statuses_ok(project_template) -> None:
     project = await f.create_project(project_template)
     workflows = await _list_workflows(project=project)
-    bad_status_id = uuid.uuid1()
 
     with pytest.raises(WorkflowStatus.DoesNotExist):
         await repositories.get_workflow_status(
-            status_id=bad_status_id,
+            status_id=NOT_EXISTING_UUID,
             filters={
                 "workflow_id": workflows[0].id,
             },

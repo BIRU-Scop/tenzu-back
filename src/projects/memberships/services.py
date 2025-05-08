@@ -68,12 +68,12 @@ async def get_project_membership(project_id: UUID, username: str) -> ProjectMemb
 
 @transaction_atomic_async
 async def update_project_membership(
-    membership: ProjectMembership, role_slug: str, user: User
+    membership: ProjectMembership, role_id: UUID, user: User
 ) -> ProjectMembership:
     user_role = user.project_role
 
     updated_membership = await memberships_services.update_membership(
-        membership=membership, role_slug=role_slug, user_role=user_role
+        membership=membership, role_id=role_id, user_role=user_role
     )
 
     await transaction_on_commit_async(
@@ -264,7 +264,7 @@ async def delete_project_role(
             role=role,
         )
     except RestrictedError:
-        # TODO handle concurrency issue where target_role_slug was provided
+        # TODO handle concurrency issue where target_role_id was provided
         #  but a membership or invitation was created in the meantime
         raise ex.RequiredMoveToRole(
             "Some memberships or invitations use this role, you need to provide a role then can use instead"

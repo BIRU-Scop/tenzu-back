@@ -17,12 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 
 import pytest
 
 from memberships.choices import InvitationStatus
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from workspaces.workspaces import repositories
 from workspaces.workspaces.models import Workspace
 
@@ -248,10 +248,9 @@ async def test_get_workspace_return_workspace():
 
 
 async def test_get_workspace_return_none():
-    non_existing_ws_id = uuid.uuid1()
     await f.create_workspace(name="ws 1")
     with pytest.raises(Workspace.DoesNotExist):
-        await repositories.get_workspace(workspace_id=non_existing_ws_id)
+        await repositories.get_workspace(workspace_id=NOT_EXISTING_UUID)
 
 
 ##########################################################

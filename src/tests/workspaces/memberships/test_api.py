@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from operator import attrgetter
 
 import pytest
 from fastapi import status
@@ -106,10 +107,12 @@ async def test_update_workspace_membership_role_membership_not_exist(
     client,
 ):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
 
     client.login(workspace.created_by)
     username = "not_exist"
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"workspaces/{workspace.b64id}/memberships/{username}", json=data
     )
@@ -120,27 +123,29 @@ async def test_update_workspace_membership_role_user_without_permission(
     client,
 ):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user1 = await f.create_user()
     user2 = await f.create_user()
-    member_role = await f.create_workspace_role(
+    readonlymember_role = await f.create_workspace_role(
         workspace=workspace,
         permissions=[],
         is_owner=False,
     )
     await f.create_workspace_membership(
-        user=user2, workspace=workspace, role=member_role
+        user=user2, workspace=workspace, role=readonlymember_role
     )
 
     client.login(user1)
     username = user2.username
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/workspaces/{workspace.b64id}/memberships/{username}", json=data
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
 
     await f.create_workspace_membership(
-        user=user1, workspace=workspace, role=member_role
+        user=user1, workspace=workspace, role=readonlymember_role
     )
     response = await client.patch(
         f"/workspaces/{workspace.b64id}/memberships/{username}", json=data
@@ -152,6 +157,8 @@ async def test_update_workspace_membership_role_ok(
     client,
 ):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user1 = await f.create_user()
     user2 = await f.create_user()
     general_admin_role = await f.create_workspace_role(
@@ -167,7 +174,7 @@ async def test_update_workspace_membership_role_ok(
     )
 
     client.login(workspace.created_by)
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"workspaces/{workspace.b64id}/memberships/{user2.username}", json=data
     )
@@ -183,6 +190,9 @@ async def test_update_workspace_membership_role_owner_and_not_owner(
     client,
 ):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user1 = await f.create_user()
     user2 = await f.create_user()
     general_admin_role = await f.create_workspace_role(
@@ -200,14 +210,14 @@ async def test_update_workspace_membership_role_owner_and_not_owner(
     client.login(user1)
     # change role to owner
     username = user2.username
-    data = {"role_slug": "owner"}
+    data = {"role_id": owner_role.b64id}
     response = await client.patch(
         f"/workspaces/{workspace.b64id}/memberships/{username}", json=data
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
     # change role of owner
     username = workspace.created_by.username
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/workspaces/{workspace.b64id}/memberships/{username}", json=data
     )
@@ -218,6 +228,9 @@ async def test_update_workspace_membership_role_owner_and_owner(
     client,
 ):
     workspace = await f.create_workspace()
+    roles = list(workspace.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
     user = await f.create_user()
     general_member_role = await f.create_workspace_role(
         workspace=workspace,
@@ -231,13 +244,13 @@ async def test_update_workspace_membership_role_owner_and_owner(
     client.login(workspace.created_by)
     # change role to owner
     username = user.username
-    data = {"role_slug": "owner"}
+    data = {"role_id": owner_role.b64id}
     response = await client.patch(
         f"/workspaces/{workspace.b64id}/memberships/{username}", json=data
     )
     assert response.status_code == status.HTTP_200_OK, response.data
     # change role of owner
-    data = {"role_slug": "member"}
+    data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/workspaces/{workspace.b64id}/memberships/{username}", json=data
     )

@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 
 import pytest
 from asgiref.sync import sync_to_async
@@ -26,6 +25,7 @@ from memberships.choices import InvitationStatus
 from projects.invitations import repositories
 from projects.invitations.models import ProjectInvitation
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 
 pytestmark = pytest.mark.django_db
 
@@ -163,7 +163,7 @@ async def test_get_project_invitation_by_id() -> None:
 async def get_project_invitation_by_id_not_found() -> None:
     with pytest.raises(ProjectInvitation.DoesNotExist):
         await repositories.get_invitation(
-            ProjectInvitation, filters={"id": uuid.uuid1()}
+            ProjectInvitation, filters={"id": NOT_EXISTING_UUID}
         )
 
 

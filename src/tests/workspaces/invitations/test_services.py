@@ -41,7 +41,7 @@ async def test_create_workspace_invitations_already_member(tqmanager):
     user = f.build_user()
     workspace = f.build_workspace()
     role = f.build_workspace_role(workspace=workspace)
-    invitations = [{"email": user.email, "role_slug": role.slug}]
+    invitations = [{"email": user.email, "role_id": role.id}]
 
     with (
         patch(
@@ -84,7 +84,7 @@ async def test_create_workspace_invitations_with_pending_invitations_time_spam(
         invited_by=workspace.created_by,
     )
     role = f.build_workspace_role(workspace=workspace)
-    invitations = [{"email": invitation.email, "role_slug": role.slug}]
+    invitations = [{"email": invitation.email, "role_id": role.id}]
 
     with (
         patch(
@@ -127,7 +127,7 @@ async def test_create_workspace_invitations_with_pending_invitations(tqmanager):
         created_at=created_at,
         invited_by=workspace.created_by,
     )
-    invitations = [{"email": invitation.email, "role_slug": role.slug}]
+    invitations = [{"email": invitation.email, "role_id": role.id}]
 
     with (
         patch(
@@ -165,8 +165,8 @@ async def test_create_workspace_invitations_by_emails(tqmanager):
     role = f.build_workspace_role(workspace=workspace)
 
     invitations = [
-        {"email": user2.email, "role_slug": role.slug},
-        {"email": "test@email.com", "role_slug": role.slug},
+        {"email": user2.email, "role_id": role.id},
+        {"email": "test@email.com", "role_id": role.id},
     ]
 
     with (
@@ -209,8 +209,8 @@ async def test_create_workspace_invitations_by_usernames(tqmanager):
     role = f.build_workspace_role(workspace=workspace)
 
     invitations = [
-        {"username": user2.username, "role_slug": role.slug},
-        {"username": user3.username, "role_slug": role.slug},
+        {"username": user2.username, "role_id": role.id},
+        {"username": user3.username, "role_id": role.id},
     ]
 
     with (
@@ -256,12 +256,12 @@ async def test_create_workspace_invitations_duplicated_email_username(tqmanager)
         {
             "username": user2.username,
             "email": "test2@email.com",
-            "role_slug": role.slug,
+            "role_id": role.id,
         },
-        {"username": user3.username, "role_slug": role.slug},
-        {"username": user4.username, "role_slug": role.slug},
-        {"email": "test3@email.com", "role_slug": role.slug},
-        {"email": "test4@email.com", "role_slug": role.slug},
+        {"username": user3.username, "role_id": role.id},
+        {"username": user4.username, "role_id": role.id},
+        {"email": "test3@email.com", "role_id": role.id},
+        {"email": "test4@email.com", "role_id": role.id},
     ]
 
     with (
@@ -311,7 +311,7 @@ async def test_create_workspace_invitations_invalid_username(tqmanager):
     workspace = f.build_workspace()
     role = f.build_workspace_role(workspace=workspace)
 
-    invitations = [{"username": "not existing username", "role_slug": role.slug}]
+    invitations = [{"username": "not existing username", "role_id": role.id}]
 
     with (
         patch(
@@ -346,8 +346,8 @@ async def test_create_workspace_invitations_owner_no_permission(tqmanager):
     )
 
     invitations = [
-        {"email": user1.email, "role_slug": member_role.slug},
-        {"username": user2.username, "role_slug": owner_role.slug},
+        {"email": user1.email, "role_id": member_role.id},
+        {"username": user2.username, "role_id": owner_role.id},
     ]
 
     with (
