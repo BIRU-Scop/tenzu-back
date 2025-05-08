@@ -57,17 +57,14 @@ async def test_list_workspace_memberships():
 
 
 async def test_get_workspace_membership():
-    workspace = f.build_workspace()
+    membership = f.build_workspace_membership()
     with patch(
         "workspaces.memberships.services.memberships_repositories", autospec=True
     ) as fake_membership_repository:
-        await services.get_workspace_membership(
-            workspace_id=workspace.id, username=workspace.created_by.username
-        )
+        await services.get_workspace_membership(membership_id=membership.id)
         fake_membership_repository.get_membership.assert_awaited_once()
         assert {
-            "workspace_id": workspace.id,
-            "user__username": workspace.created_by.username,
+            "id": membership.id,
         } == fake_membership_repository.get_membership.call_args.kwargs["filters"]
 
 

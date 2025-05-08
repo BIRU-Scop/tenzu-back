@@ -85,7 +85,7 @@ async def list_workspace_memberships(
 
 
 @workspace_membership_router.patch(
-    "/workspaces/{workspace_id}/memberships/{username}",
+    "/workspaces/memberships/{membership_id}",
     url_name="workspace.memberships.update",
     summary="Update workspace membership",
     response={
@@ -99,16 +99,13 @@ async def list_workspace_memberships(
 )
 async def update_workspace_membership(
     request,
-    workspace_id: Path[B64UUID],
-    username: str,
+    membership_id: Path[B64UUID],
     form: MembershipValidator,
 ) -> WorkspaceMembership:
     """
     Update workspace membership
     """
-    membership = await get_workspace_membership_or_404(
-        workspace_id=workspace_id, username=username
-    )
+    membership = await get_workspace_membership_or_404(membership_id=membership_id)
 
     await check_permissions(
         permissions=WorkspaceMembershipPermissionsCheck.MODIFY.value,
@@ -129,7 +126,7 @@ async def update_workspace_membership(
 
 
 @workspace_membership_router.delete(
-    "/workspaces/{workspace_id}/memberships/{username}",
+    "/workspaces/memberships/{membership_id}",
     url_name="workspace.membership.delete",
     summary="Delete workspace membership",
     response={
@@ -143,15 +140,12 @@ async def update_workspace_membership(
 )
 async def delete_workspace_membership(
     request,
-    workspace_id: Path[B64UUID],
-    username: str,
+    membership_id: Path[B64UUID],
 ) -> tuple[int, None]:
     """
     Delete a workspace membership
     """
-    membership = await get_workspace_membership_or_404(
-        workspace_id=workspace_id, username=username
-    )
+    membership = await get_workspace_membership_or_404(membership_id=membership_id)
     await check_permissions(
         permissions=WorkspaceMembershipPermissionsCheck.DELETE.value,
         user=request.user,
@@ -199,17 +193,13 @@ async def list_workspace_roles(request, workspace_id: Path[B64UUID]):
 ################################################
 
 
-async def get_workspace_membership_or_404(
-    workspace_id: UUID, username: str
-) -> WorkspaceMembership:
+async def get_workspace_membership_or_404(membership_id: UUID) -> WorkspaceMembership:
     try:
         membership = await memberships_services.get_workspace_membership(
-            workspace_id=workspace_id, username=username
+            membership_id=membership_id
         )
     except WorkspaceMembership.DoesNotExist as e:
-        raise ex.NotFoundError(
-            f"User {username} is not a member of workspace {workspace_id}"
-        ) from e
+        raise ex.NotFoundError(f"Membership {membership_id} not found") from e
 
     return membership
 

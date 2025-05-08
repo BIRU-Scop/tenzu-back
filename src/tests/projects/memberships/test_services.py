@@ -53,17 +53,16 @@ async def test_list_project_memberships():
 
 
 async def test_get_project_membership():
-    project = f.build_project()
+    membership = f.build_project_membership()
     with patch(
         "projects.memberships.services.memberships_repositories", autospec=True
     ) as fake_membership_repository:
         await services.get_project_membership(
-            project_id=project.id, username=project.created_by.username
+            membership_id=membership.id,
         )
         fake_membership_repository.get_membership.assert_awaited_once()
         assert {
-            "project_id": project.id,
-            "user__username": project.created_by.username,
+            "id": membership.id,
         } == fake_membership_repository.get_membership.call_args.kwargs["filters"]
 
 

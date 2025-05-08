@@ -90,7 +90,7 @@ async def test_list_project_memberships_not_a_member(client, project_template):
 
 
 ##########################################################
-# PATCH /projects/<id>/memberships/<username>
+# PATCH /projects/memberships/<id>
 ##########################################################
 
 
@@ -102,10 +102,9 @@ async def test_update_project_membership_role_membership_not_exist(
     member_role = next(filter(lambda role: role.slug == "member", roles))
 
     client.login(project.created_by)
-    username = "not_exist"
     data = {"role_id": member_role.b64id}
     response = await client.patch(
-        f"projects/{project.b64id}/memberships/{username}", json=data
+        f"projects/memberships/{NOT_EXISTING_B64ID}", json=data
     )
     assert response.status_code == 404, response.data
 
@@ -123,15 +122,14 @@ async def test_update_project_membership_role_user_without_permission(
         permissions=[],
         is_owner=False,
     )
-    await f.create_project_membership(
+    membership = await f.create_project_membership(
         user=user2, project=project, role=readonlymember_role
     )
 
     client.login(user1)
-    username = user2.username
     data = {"role_id": member_role.b64id}
     response = await client.patch(
-        f"/projects/{project.b64id}/memberships/{username}", json=data
+        f"/projects/memberships/{membership.b64id}", json=data
     )
     assert response.status_code == 403, response.data
 
@@ -139,7 +137,7 @@ async def test_update_project_membership_role_user_without_permission(
         user=user1, project=project, role=readonlymember_role
     )
     response = await client.patch(
-        f"/projects/{project.b64id}/memberships/{username}", json=data
+        f"/projects/memberships/{membership.b64id}", json=data
     )
     assert response.status_code == 403, response.data
 
@@ -158,20 +156,16 @@ async def test_update_project_membership_role_ok(client, project_template):
     await f.create_project_membership(
         user=user1, project=project, role=general_admin_role
     )
-    await f.create_project_membership(
+    membership = await f.create_project_membership(
         user=user2, project=project, role=general_admin_role
     )
 
     client.login(project.created_by)
     data = {"role_id": member_role.b64id}
-    response = await client.patch(
-        f"projects/{project.b64id}/memberships/{user2.username}", json=data
-    )
+    response = await client.patch(f"projects/memberships/{membership.b64id}", json=data)
     assert response.status_code == 200, response.data
     client.login(user1)
-    response = await client.patch(
-        f"projects/{project.b64id}/memberships/{user2.username}", json=data
-    )
+    response = await client.patch(f"projects/memberships/{membership.b64id}", json=data)
     assert response.status_code == 200, response.data
 
 
@@ -192,23 +186,22 @@ async def test_update_project_membership_role_owner_and_not_owner(
     await f.create_project_membership(
         user=user1, project=project, role=general_admin_role
     )
-    await f.create_project_membership(
+    membership = await f.create_project_membership(
         user=user2, project=project, role=general_admin_role
     )
 
     client.login(user1)
     # change role to owner
-    username = user2.username
     data = {"role_id": owner_role.b64id}
     response = await client.patch(
-        f"/projects/{project.b64id}/memberships/{username}", json=data
+        f"/projects/memberships/{membership.b64id}", json=data
     )
     assert response.status_code == 403, response.data
     # change role of owner
-    username = project.created_by.username
+    owner_membership = list(project.memberships.all())[0]
     data = {"role_id": member_role.b64id}
     response = await client.patch(
-        f"/projects/{project.b64id}/memberships/{username}", json=data
+        f"/projects/memberships/{owner_membership.b64id}", json=data
     )
     assert response.status_code == 403, response.data
 
@@ -224,37 +217,35 @@ async def test_update_project_membership_role_owner_and_owner(client, project_te
         permissions=[],
         is_owner=False,
     )
-    await f.create_project_membership(
+    membership = await f.create_project_membership(
         user=user, project=project, role=readonlymember_role
     )
 
     client.login(project.created_by)
     # change role to owner
-    username = user.username
     data = {"role_id": owner_role.b64id}
     response = await client.patch(
-        f"/projects/{project.b64id}/memberships/{username}", json=data
+        f"/projects/memberships/{membership.b64id}", json=data
     )
     assert response.status_code == 200, response.data
     # change role of owner
     data = {"role_id": member_role.b64id}
     response = await client.patch(
-        f"/projects/{project.b64id}/memberships/{username}", json=data
+        f"/projects/memberships/{membership.b64id}", json=data
     )
     assert response.status_code == 200, response.data
 
 
 ##########################################################
-# DELETE /projects/<id>/memberships/<username>
+# DELETE /projects/memberships/<id>
 ##########################################################
 
 
 async def test_delete_project_membership_not_exist(client, project_template):
     project = await f.create_project(project_template)
-    username = "not_exist"
 
     client.login(project.created_by)
-    response = await client.delete(f"/projects/{project.b64id}/memberships/{username}")
+    response = await client.delete(f"/projects/memberships/{NOT_EXISTING_B64ID}")
     assert response.status_code == 404, response.data
 
 
@@ -268,12 +259,12 @@ async def test_delete_project_membership_without_permissions(client, project_tem
         is_owner=False,
     )
     await f.create_project_membership(user=user1, project=project, role=member_role)
-    await f.create_project_membership(user=user2, project=project, role=member_role)
+    membership = await f.create_project_membership(
+        user=user2, project=project, role=member_role
+    )
 
     client.login(user1)
-    response = await client.delete(
-        f"/projects/{project.b64id}/memberships/{user2.username}"
-    )
+    response = await client.delete(f"/projects/memberships/{membership.b64id}")
     assert response.status_code == 403, response.data
 
 
@@ -289,24 +280,21 @@ async def test_delete_project_membership_role_ok(client, project_template):
     await f.create_project_membership(
         user=user1, project=project, role=general_admin_role
     )
-    await f.create_project_membership(
+    membership = await f.create_project_membership(
         user=user2, project=project, role=general_admin_role
     )
 
     client.login(user1)
-    response = await client.delete(
-        f"/projects/{project.b64id}/memberships/{user2.username}"
-    )
+    response = await client.delete(f"/projects/memberships/{membership.b64id}")
     assert response.status_code == 204, response.data
 
 
 async def test_delete_project_membership_only_owner(client, project_template):
     project = await f.create_project(project_template)
+    owner_membership = list(project.memberships.all())[0]
 
     client.login(project.created_by)
-    response = await client.delete(
-        f"/projects/{project.b64id}/memberships/{project.created_by.username}"
-    )
+    response = await client.delete(f"/projects/memberships/{owner_membership.b64id}")
     assert response.status_code == 400, response.data
 
 
@@ -314,6 +302,7 @@ async def test_delete_project_membership_role_owner_and_not_owner(
     client, project_template
 ):
     project = await f.create_project(project_template)
+    owner_membership = list(project.memberships.all())[0]
     user = await f.create_user()
     general_admin_role = await f.create_project_role(
         project=project,
@@ -325,9 +314,7 @@ async def test_delete_project_membership_role_owner_and_not_owner(
     )
 
     client.login(user)
-    response = await client.delete(
-        f"/projects/{project.b64id}/memberships/{project.created_by.username}"
-    )
+    response = await client.delete(f"/projects/memberships/{owner_membership.b64id}")
     assert response.status_code == 403, response.data
 
 
@@ -335,12 +322,12 @@ async def test_delete_project_membership_role_owner_and_owner(client, project_te
     project = await f.create_project(project_template)
     user = await f.create_user()
     owner_role = await project.roles.aget(is_owner=True)
-    await f.create_project_membership(user=user, project=project, role=owner_role)
+    membership = await f.create_project_membership(
+        user=user, project=project, role=owner_role
+    )
 
     client.login(project.created_by)
-    response = await client.delete(
-        f"/projects/{project.b64id}/memberships/{user.username}"
-    )
+    response = await client.delete(f"/projects/memberships/{membership.b64id}")
     assert response.status_code == 204, response.data
 
 
@@ -352,12 +339,12 @@ async def test_delete_project_membership_self_request(client, project_template):
         permissions=[],
         is_owner=False,
     )
-    await f.create_project_membership(user=member, project=project, role=member_role)
+    membership = await f.create_project_membership(
+        user=member, project=project, role=member_role
+    )
 
     client.login(member)
-    response = await client.delete(
-        f"/projects/{project.b64id}/memberships/{member.username}"
-    )
+    response = await client.delete(f"/projects/memberships/{membership.b64id}")
     assert response.status_code == 204, response.data
 
 

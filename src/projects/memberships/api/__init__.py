@@ -94,7 +94,7 @@ async def list_project_memberships(
 
 
 @project_membership_router.patch(
-    "/projects/{project_id}/memberships/{username}",
+    "/projects/memberships/{membership_id}",
     url_name="project.memberships.update",
     summary="Update project membership",
     response={
@@ -108,16 +108,13 @@ async def list_project_memberships(
 )
 async def update_project_membership(
     request,
-    project_id: Path[B64UUID],
-    username: Path[str],
+    membership_id: Path[B64UUID],
     form: MembershipValidator,
 ) -> ProjectMembership:
     """
     Update project membership
     """
-    membership = await get_project_membership_or_404(
-        project_id=project_id, username=username
-    )
+    membership = await get_project_membership_or_404(membership_id=membership_id)
 
     await check_permissions(
         permissions=ProjectMembershipPermissionsCheck.MODIFY.value,
@@ -139,7 +136,7 @@ async def update_project_membership(
 
 
 @project_membership_router.delete(
-    "/projects/{project_id}/memberships/{username}",
+    "/projects/memberships/{membership_id}",
     url_name="project.memberships.delete",
     summary="Delete project membership",
     response={
@@ -152,14 +149,12 @@ async def update_project_membership(
     by_alias=True,
 )
 async def delete_project_membership(
-    request, project_id: Path[B64UUID], username: Path[str]
+    request, membership_id: Path[B64UUID]
 ) -> tuple[int, None]:
     """
     Delete a project membership
     """
-    membership = await get_project_membership_or_404(
-        project_id=project_id, username=username
-    )
+    membership = await get_project_membership_or_404(membership_id=membership_id)
 
     await check_permissions(
         permissions=ProjectMembershipPermissionsCheck.DELETE.value,
@@ -333,17 +328,13 @@ async def delete_project_role(
 ################################################
 
 
-async def get_project_membership_or_404(
-    project_id: UUID, username: str
-) -> ProjectMembership:
+async def get_project_membership_or_404(membership_id: UUID) -> ProjectMembership:
     try:
         membership = await memberships_services.get_project_membership(
-            project_id=project_id, username=username
+            membership_id=membership_id
         )
     except ProjectMembership.DoesNotExist as e:
-        raise ex.NotFoundError(
-            f"User {username} is not a member of project {project_id}"
-        ) from e
+        raise ex.NotFoundError(f"Membership {membership_id} not found") from e
 
     return membership
 

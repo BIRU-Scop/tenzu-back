@@ -116,10 +116,15 @@ class WorkspaceFactory(Factory):
         owner, admin, member, readonly = async_to_sync(
             bulk_create_workspace_default_roles
         )(obj)
-        set_prefetched_qs_cache(obj, {"roles": [owner, admin, member, readonly]})
-
-        WorkspaceMembershipFactory.create(
+        owner_membership = WorkspaceMembershipFactory.create(
             user=obj.created_by, workspace=obj, role=owner
+        )
+        set_prefetched_qs_cache(
+            obj,
+            {
+                "roles": [owner, admin, member, readonly],
+                "memberships": [owner_membership],
+            },
         )
 
 

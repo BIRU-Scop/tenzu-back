@@ -44,6 +44,7 @@ async def test_create_project_membership(project_template):
     membership = await repositories.create_project_membership(
         user=user, project=project, role=role
     )
+    await project.arefresh_from_db(fields=["memberships"])
     memberships = [m async for m in project.memberships.all()]
     assert membership in memberships
 

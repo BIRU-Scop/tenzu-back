@@ -118,7 +118,7 @@ async def test_mark_all_notifications_as_read_401_anonymous(client):
 
 
 ##########################################################
-# POST my/notifications/{id}/read
+# POST my/notifications/<id>/read
 ##########################################################
 
 

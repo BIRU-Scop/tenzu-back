@@ -132,10 +132,12 @@ def create_project(template, **kwargs):
     )
 
     owner_role = next(filter(attrgetter("is_owner"), roles))
-    ProjectMembershipFactory.create(
+    owner_membership = ProjectMembershipFactory.create(
         user=project.created_by, project=project, role=owner_role
     )
-    set_prefetched_qs_cache(project, {"roles": roles})
+    set_prefetched_qs_cache(
+        project, {"roles": roles, "memberships": [owner_membership]}
+    )
 
     return project
 

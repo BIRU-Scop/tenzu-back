@@ -53,12 +53,11 @@ async def list_workspace_memberships(workspace: Workspace) -> list[WorkspaceMemb
 
 
 async def get_workspace_membership(
-    workspace_id: UUID,
-    username: str,
+    membership_id: UUID,
 ) -> WorkspaceMembership | None:
     return await memberships_repositories.get_membership(
         WorkspaceMembership,
-        filters={"workspace_id": workspace_id, "user__username": username},
+        filters={"id": membership_id},
         select_related=["user", "role", "workspace"],
     )
 

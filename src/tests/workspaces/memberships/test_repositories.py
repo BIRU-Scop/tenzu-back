@@ -45,6 +45,7 @@ async def test_create_workspace_membership():
     membership = await repositories.create_workspace_membership(
         user=user, workspace=workspace, role=role
     )
+    await workspace.arefresh_from_db(fields=["memberships"])
     memberships = [m async for m in workspace.memberships.all()]
     assert membership in memberships
 
