@@ -24,7 +24,7 @@ import pytest
 from memberships.services import exceptions as ex
 from projects.memberships.models import ProjectMembership
 from tests.utils import factories as f
-from tests.utils.bad_params import NOT_EXISTING_SLUG
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from tests.utils.utils import patch_db_transaction
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import services
@@ -57,17 +57,14 @@ async def test_list_workspace_memberships():
 
 
 async def test_get_workspace_membership():
-    workspace = f.build_workspace()
+    membership = f.build_workspace_membership()
     with patch(
         "workspaces.memberships.services.memberships_repositories", autospec=True
     ) as fake_membership_repository:
-        await services.get_workspace_membership(
-            workspace_id=workspace.id, username=workspace.created_by.username
-        )
+        await services.get_workspace_membership(membership_id=membership.id)
         fake_membership_repository.get_membership.assert_awaited_once()
         assert {
-            "workspace_id": workspace.id,
-            "user__username": workspace.created_by.username,
+            "id": membership.id,
         } == fake_membership_repository.get_membership.call_args.kwargs["filters"]
 
 
@@ -95,11 +92,11 @@ async def test_update_workspace_membership_role_non_existing_role():
         fake_membership_repository.get_role.side_effect = WorkspaceRole.DoesNotExist
 
         await services.update_workspace_membership(
-            membership=membership, role_slug=NOT_EXISTING_SLUG, user=f.build_user()
+            membership=membership, role_id=NOT_EXISTING_UUID, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
             WorkspaceRole,
-            filters={"workspace_id": workspace.id, "slug": NOT_EXISTING_SLUG},
+            filters={"workspace_id": workspace.id, "id": NOT_EXISTING_UUID},
         )
         fake_membership_repository.update_membership.assert_not_awaited()
         fake_membership_events.emit_event_when_workspace_membership_is_updated.assert_not_awaited()
@@ -128,11 +125,11 @@ async def test_update_workspace_membership_role_only_one_owner():
         fake_is_membership_the_only_owner.return_value = True
 
         await services.update_workspace_membership(
-            membership=membership, role_slug=other_role.slug, user=f.build_user()
+            membership=membership, role_id=other_role.id, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
             WorkspaceRole,
-            filters={"workspace_id": workspace.id, "slug": other_role.slug},
+            filters={"workspace_id": workspace.id, "id": other_role.id},
         )
         fake_is_membership_the_only_owner.assert_awaited_once_with(membership)
         fake_membership_repository.update_membership.assert_not_awaited()
@@ -162,11 +159,11 @@ async def test_update_workspace_membership_role_owner():
         fake_membership_repository.update_membership.return_value = updated_membership
         with pytest.raises(ex.OwnerRoleNotAuthorisedError):
             await services.update_workspace_membership(
-                membership=membership, role_slug=owner_role.slug, user=f.build_user()
+                membership=membership, role_id=owner_role.id, user=f.build_user()
             )
         fake_membership_repository.get_role.assert_awaited_once_with(
             WorkspaceRole,
-            filters={"workspace_id": workspace.id, "slug": owner_role.slug},
+            filters={"workspace_id": workspace.id, "id": owner_role.id},
         )
         fake_membership_repository.update_membership.assert_not_awaited()
         fake_membership_events.emit_event_when_workspace_membership_is_updated.assert_not_awaited()
@@ -174,7 +171,7 @@ async def test_update_workspace_membership_role_owner():
         owner_user = f.build_user()
         owner_user.workspace_role = owner_role
         updated_membership = await services.update_workspace_membership(
-            membership=membership, role_slug=owner_role.slug, user=owner_user
+            membership=membership, role_id=owner_role.id, user=owner_user
         )
         fake_membership_repository.update_membership.assert_awaited_once_with(
             membership=membership, values={"role": owner_role}
@@ -211,11 +208,11 @@ async def test_update_workspace_membership_role_ok():
         fake_membership_repository.update_membership.return_value = updated_membership
 
         updated_membership = await services.update_workspace_membership(
-            membership=membership, role_slug=other_role.slug, user=f.build_user()
+            membership=membership, role_id=other_role.id, user=f.build_user()
         )
         fake_membership_repository.get_role.assert_awaited_once_with(
             WorkspaceRole,
-            filters={"workspace_id": workspace.id, "slug": other_role.slug},
+            filters={"workspace_id": workspace.id, "id": other_role.id},
         )
         fake_is_membership_the_only_owner.assert_awaited_once_with(membership)
         fake_membership_repository.update_membership.assert_awaited_once_with(
@@ -401,7 +398,9 @@ async def test_list_workspace_role():
         ret = await services.list_workspace_roles(workspace)
 
         fake_ws_memberships_repo.list_roles.assert_awaited_once_with(
-            WorkspaceRole, filters={"workspace_id": workspace.id}
+            WorkspaceRole,
+            filters={"workspace_id": workspace.id},
+            get_total_members=True,
         )
         assert ret == [role]
 

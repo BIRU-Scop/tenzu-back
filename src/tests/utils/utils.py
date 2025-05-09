@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from typing import Any
 from unittest.mock import Mock, patch
 
+from django.db.models import Model
 from pydantic import ValidationError
 
 
@@ -62,3 +63,15 @@ def patch_db_transaction():
         patch("django.db.transaction.on_commit", new=lambda fn: fn()),
     ):
         yield
+
+
+def set_prefetched_qs_cache(model_object: Model, related_values: dict[str, list]):
+    """
+    this is useful to hack prefetched cache of model object and prevent additional dbqueries
+    """
+    model_object._prefetched_objects_cache = {}
+    for field, value in related_values.items():
+        qs = getattr(model_object, field).all()
+        qs._result_cache = value
+        qs._prefetch_done = True
+        model_object._prefetched_objects_cache[field] = qs

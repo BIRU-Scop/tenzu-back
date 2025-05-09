@@ -26,6 +26,7 @@ from users.serializers.nested import UserNestedSerializer
 
 
 class RoleSerializer(BaseModel):
+    id: UUIDB64
     name: str
     slug: str
     is_owner: bool
@@ -39,7 +40,7 @@ class InvitationBaseSerializer(BaseModel):
     id: UUIDB64
     status: InvitationStatus
     user: UserNestedSerializer | None = None
-    role: RoleSerializer
+    role_id: UUIDB64
     email: EmailStr
     resent_at: datetime.datetime | None
     created_at: datetime.datetime

@@ -179,18 +179,14 @@ async def get_comment(
     select_related: CommentSelectRelated = [None],
     prefetch_related: CommentPrefetchRelated = [],
     excludes: CommentExcludes = {},
-) -> Comment | None:
+) -> Comment:
     qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
     qs = await _apply_excludes_to_queryset(qs=qs, excludes=excludes)
     qs = await _apply_select_related_to_queryset(qs=qs, select_related=select_related)
     qs = await _apply_prefetch_related_to_queryset(
         qs=qs, prefetch_related=prefetch_related
     )
-
-    try:
-        return await qs.aget()
-    except Comment.DoesNotExist:
-        return None
+    return await qs.aget()
 
 
 ##########################################################

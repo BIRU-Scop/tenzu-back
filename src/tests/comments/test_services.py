@@ -183,7 +183,7 @@ async def test_get_comment():
             "comments.services.comments_repositories", autospec=True
         ) as fake_comments_repositories,
     ):
-        await services.get_comment(id=comment_id)
+        await services.get_comment(comment_id=comment_id)
         fake_comments_repositories.get_comment.assert_awaited_once_with(
             filters={"id": comment_id},
             select_related=["created_by", "deleted_by"],

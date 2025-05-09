@@ -36,20 +36,21 @@ from users.models import User
 
 
 async def create_story_assignment(
-    project_id: UUID, story: Story, username: str, created_by: User
+    project_id: UUID, story: Story, user_id: UUID, created_by: User
 ) -> StoryAssignment:
     try:
         pj_membership = await pj_memberships_repositories.get_membership(
             ProjectMembership,
             filters={
                 "project_id": project_id,
-                "user__username": username,
+                "user_id": user_id,
                 "role__permissions__contains": [ProjectPermissions.VIEW_STORY.value],
             },
+            select_related=["user"],
         )
     except ProjectMembership.DoesNotExist:
         raise ex.InvalidAssignmentError(
-            f"{username} is not member or does not have permissions"
+            f"{user_id} is not member or does not have permissions"
         )
 
     user = pj_membership.user
@@ -77,11 +78,13 @@ async def create_story_assignment(
 
 
 async def get_story_assignment(
-    project_id: UUID, ref: int, username: str
+    project_id: UUID,
+    ref: int,
+    user_id: UUID,
 ) -> StoryAssignment | None:
     return await story_assignments_repositories.get_story_assignment(
-        filters={"project_id": project_id, "ref": ref, "username": username},
-        select_related=["story", "user", "project", "workspace"],
+        filters={"project_id": project_id, "ref": ref, "user_id": user_id},
+        select_related=["story", "user", "project"],
     )
 
 
@@ -91,8 +94,9 @@ async def get_story_assignment(
 
 
 async def delete_story_assignment(
-    story_assignment: StoryAssignment, story: Story, deleted_by: User
+    story_assignment: StoryAssignment, deleted_by: User
 ) -> bool:
+    story = story_assignment.story
     deleted = await story_assignments_repositories.delete_stories_assignments(
         filters={"id": story_assignment.id}
     )

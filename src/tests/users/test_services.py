@@ -323,7 +323,7 @@ async def test_verify_user_ok_no_invitation_tokens_to_accept():
 
         fake_pj_invitations_services.accept_project_invitation_from_token.assert_not_awaited()
         fake_ws_invitations_services.accept_workspace_invitation_from_token.assert_not_awaited()
-        fake_pj_invitations_services.get_project_invitation.assert_not_awaited()
+        fake_pj_invitations_services.get_project_invitation_by_token.assert_not_awaited()
         fake_ws_invitations_services.get_workspace_invitation.assert_not_awaited()
 
         fake_auth_services.create_auth_credentials.assert_awaited_once_with(user=user)
@@ -369,7 +369,7 @@ async def test_verify_user_ok_accepting_or_not_a_project_invitation_token(
             ["__code__"],
         )
         fake_auth_services.create_auth_credentials.return_value = auth_credentials
-        fake_pj_invitations_services.get_project_invitation.return_value = (
+        fake_pj_invitations_services.get_project_invitation_by_token.return_value = (
             project_invitation
         )
         fake_users_repo.get_user.return_value = user
@@ -397,7 +397,7 @@ async def test_verify_user_ok_accepting_or_not_a_project_invitation_token(
         FakeVerifyUserToken.return_value.get.assert_any_call(
             "accept_project_invitation", False
         )
-        fake_pj_invitations_services.get_project_invitation.assert_awaited_once_with(
+        fake_pj_invitations_services.get_project_invitation_by_token.assert_awaited_once_with(
             token=project_invitation_token
         )
         if accept_project_invitation:
@@ -448,7 +448,7 @@ async def test_verify_user_ok_accepting_or_not_a_workspace_invitation_token(
             ["__code__"],
         )
         fake_auth_services.create_auth_credentials.return_value = auth_credentials
-        fake_ws_invitations_services.get_workspace_invitation.return_value = (
+        fake_ws_invitations_services.get_workspace_invitation_by_token.return_value = (
             workspace_invitation
         )
         fake_users_repo.get_user.return_value = user
@@ -476,7 +476,7 @@ async def test_verify_user_ok_accepting_or_not_a_workspace_invitation_token(
         FakeVerifyUserToken.return_value.get.assert_any_call(
             "accept_workspace_invitation", False
         )
-        fake_ws_invitations_services.get_workspace_invitation.assert_awaited_once_with(
+        fake_ws_invitations_services.get_workspace_invitation_by_token.assert_awaited_once_with(
             token=workspace_invitation_token
         )
         if accept_workspace_invitation:
@@ -544,13 +544,15 @@ async def test_verify_user_error_project_invitation_token(exception):
             ["__code__"],
         )
         fake_auth_services.create_auth_credentials.return_value = auth_credentials
-        fake_invitations_services.get_project_invitation.return_value = (
+        fake_invitations_services.get_project_invitation_by_token.return_value = (
             project_invitation
         )
         fake_users_repo.get_user.return_value = user
 
         #  exception when recovering the project invitation
-        fake_invitations_services.get_project_invitation.side_effect = exception
+        fake_invitations_services.get_project_invitation_by_token.side_effect = (
+            exception
+        )
 
         info = await services.verify_user_from_token("some_token")
 
@@ -596,13 +598,15 @@ async def test_verify_user_error_workspace_invitation_token(exception):
             ["__code__"],
         )
         fake_auth_services.create_auth_credentials.return_value = auth_credentials
-        fake_invitations_services.get_workspace_invitation.return_value = (
+        fake_invitations_services.get_workspace_invitation_by_token.return_value = (
             workspace_invitation
         )
         fake_users_repo.get_user.return_value = user
 
         #  exception when recovering the workspace invitation
-        fake_invitations_services.get_workspace_invitation.side_effect = exception
+        fake_invitations_services.get_workspace_invitation_by_token.side_effect = (
+            exception
+        )
 
         info = await services.verify_user_from_token("some_token")
 

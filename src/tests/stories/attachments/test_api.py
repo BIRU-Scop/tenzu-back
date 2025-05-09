@@ -283,20 +283,18 @@ async def test_list_story_attachments_404_not_found_story(client, project_templa
 
 
 ##########################################################
-# DELETE projects/<id>/stories/<ref>/attachments/<id>
+# DELETE stories/attachments/<id>
 ##########################################################
 
 
-async def test_delete_story_attachments_204_no_content(client, project_template):
+async def test_delete_story_attachment_204_no_content(client, project_template):
     project = await f.create_project(project_template)
     user = project.created_by
     story = await f.create_story(project=project)
     attachment = await f.create_attachment(content_object=story, created_by=user)
 
     client.login(user)
-    response = await client.delete(
-        f"/projects/{story.project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.delete(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 204, response.data
 
     attachment = await f.create_attachment(content_object=story, created_by=user)
@@ -310,13 +308,11 @@ async def test_delete_story_attachments_204_no_content(client, project_template)
         user=user, project=project, role=general_member_role
     )
     client.login(user)
-    response = await client.delete(
-        f"/projects/{story.project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.delete(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 204, response.data
 
 
-async def test_delete_story_attachments_401_forbidden_anonymous(
+async def test_delete_story_attachment_401_forbidden_anonymous(
     client, project_template
 ):
     project = await f.create_project(project_template)
@@ -325,13 +321,11 @@ async def test_delete_story_attachments_401_forbidden_anonymous(
         content_object=story, created_by=project.created_by
     )
 
-    response = await client.delete(
-        f"/projects/{story.project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.delete(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 401, response.data
 
 
-async def test_delete_story_attachments_403_forbidden_not_member(
+async def test_delete_story_attachment_403_forbidden_not_member(
     client, project_template
 ):
     project = await f.create_project(project_template)
@@ -342,13 +336,11 @@ async def test_delete_story_attachments_403_forbidden_not_member(
     user = await f.create_user()
 
     client.login(user)
-    response = await client.delete(
-        f"/projects/{story.project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.delete(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 403, response.data
 
 
-async def test_delete_story_attachments_403_forbidden_no_permission(
+async def test_delete_story_attachment_403_forbidden_no_permission(
     client, project_template
 ):
     project = await f.create_project(project_template)
@@ -367,49 +359,30 @@ async def test_delete_story_attachments_403_forbidden_no_permission(
         user=user, project=project, role=general_member_role
     )
     client.login(user)
-    response = await client.delete(
-        f"/projects/{story.project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.delete(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 403, response.data
 
 
-async def test_delete_story_attachments_404_not_found_nonexistent_project(client):
+async def test_delete_story_attachment_404_not_story_attachment(client):
     user = await f.create_user()
+    workflow = await f.create_workflow()
+    attachment = await f.create_attachment(content_object=workflow, created_by=user)
 
     client.login(user)
     response = await client.delete(
-        f"/projects/{NOT_EXISTING_B64ID}/stories/{NOT_EXISTING_REF}/attachments/{NOT_EXISTING_B64ID}"
+        f"/stories/attachments/{attachment.b64id}",
     )
     assert response.status_code == 404, response.data
 
 
-async def test_delete_story_attachments_404_not_found_nonexistent_story(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-
-    client.login(project.created_by)
-    response = await client.delete(
-        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/attachments/{NOT_EXISTING_B64ID}"
-    )
-    assert response.status_code == 404, response.data
-
-
-async def test_delete_story_attachments_404_not_found_nonexistent_attachment(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    story = await f.create_story(project=project)
-
-    client.login(project.created_by)
-    response = await client.delete(
-        f"/projects/{project.b64id}/stories/{story.ref}/attachments/{NOT_EXISTING_B64ID}"
-    )
+async def test_delete_story_attachment_404_not_found_nonexistent_attachment(client):
+    client.login(await f.create_user())
+    response = await client.delete(f"/stories/attachments/{NOT_EXISTING_B64ID}")
     assert response.status_code == 404, response.data
 
 
 ##########################################################
-# GET projects/<id>/stories/<ref>/attachments/<id>/file/<filename>
+# GET stories/attachments/<id>/file/<filename>
 ##########################################################
 
 
@@ -420,9 +393,7 @@ async def test_get_story_attachment_file_200_ok(client, project_template):
     attachment = await f.create_attachment(content_object=story, created_by=user)
 
     client.login(user)
-    response = await client.get(
-        f"/projects/{project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.get(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 200, response.data
 
     user = await f.create_user()
@@ -435,9 +406,7 @@ async def test_get_story_attachment_file_200_ok(client, project_template):
         user=user, project=project, role=general_member_role
     )
     client.login(user)
-    response = await client.get(
-        f"/projects/{project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.get(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 200, response.data
 
 
@@ -450,9 +419,7 @@ async def test_get_story_attachment_file_401_forbidden_anonymous(
         content_object=story, created_by=project.created_by
     )
 
-    response = await client.get(
-        f"/projects/{project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.get(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 401, response.data
 
 
@@ -467,9 +434,7 @@ async def test_get_story_attachment_file_403_forbidden_not_member(
     user = await f.create_user()
 
     client.login(user)
-    response = await client.get(
-        f"/projects/{project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.get(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 403, response.data
 
 
@@ -492,50 +457,23 @@ async def test_get_story_attachment_file_403_forbidden_no_permission(
         user=user, project=project, role=general_member_role
     )
     client.login(user)
-    response = await client.get(
-        f"/projects/{project.b64id}/stories/{story.ref}/attachments/{attachment.b64id}"
-    )
+    response = await client.get(f"/stories/attachments/{attachment.b64id}")
     assert response.status_code == 403, response.data
 
 
-async def test_get_story_attachment_file_404_not_found_project(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    story = await f.create_story(project=project)
-    user = project.created_by
-    attachment = await f.create_attachment(content_object=story, created_by=user)
+async def test_get_story_attachment_file_404_not_story_attachment(client):
+    user = await f.create_user()
+    workflow = await f.create_workflow()
+    attachment = await f.create_attachment(content_object=workflow, created_by=user)
 
     client.login(user)
     response = await client.get(
-        f"/projects/{NOT_EXISTING_B64ID}/stories/{story.ref}/attachments/{attachment.b64id}"
+        f"/stories/attachments/{attachment.b64id}",
     )
     assert response.status_code == 404, response.data
 
 
-async def test_get_story_attachment_file_404_not_found_story(client, project_template):
-    project = await f.create_project(project_template)
-    story = await f.create_story(project=project)
-    user = project.created_by
-    attachment = await f.create_attachment(content_object=story, created_by=user)
-
-    client.login(user)
-    response = await client.get(
-        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/attachments/{attachment.b64id}"
-    )
-    assert response.status_code == 404, response.data
-
-
-async def test_get_story_attachment_file_404_not_found_attachment(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    story = await f.create_story(project=project)
-    user = project.created_by
-    attachment = await f.create_attachment(content_object=story, created_by=user)
-
-    client.login(user)
-    response = await client.get(
-        f"/projects/{project.b64id}/stories/{story.ref}/attachments/{NOT_EXISTING_B64ID}"
-    )
+async def test_get_story_attachment_file_404_not_found_attachment(client):
+    client.login(await f.create_user())
+    response = await client.get(f"/stories/attachments/{NOT_EXISTING_B64ID}")
     assert response.status_code == 404, response.data

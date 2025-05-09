@@ -62,7 +62,7 @@ async def test_create_story_assignment_user_without_permission():
         await services.create_story_assignment(
             project_id=story.project.id,
             story=story,
-            username=user.username,
+            user_id=user.username,
             created_by=story.created_by,
         )
         fake_story_assignment_repo.create_story_assignment.assert_not_awaited()
@@ -102,7 +102,7 @@ async def test_create_story_assignment_ok():
         await services.create_story_assignment(
             project_id=project.id,
             story=story,
-            username=user.username,
+            user_id=user.id,
             created_by=story.created_by,
         )
         fake_story_assignment_repo.create_story_assignment.assert_awaited_once_with(
@@ -149,7 +149,7 @@ async def test_create_story_assignment_already_assignment():
         await services.create_story_assignment(
             project_id=project.id,
             story=story,
-            username=user.username,
+            user_id=user.id,
             created_by=story.created_by,
         )
 
@@ -161,7 +161,7 @@ async def test_create_story_assignment_already_assignment():
         await services.create_story_assignment(
             project_id=project.id,
             story=story,
-            username=user.username,
+            user_id=user.id,
             created_by=story.created_by,
         )
         fake_story_assignment_repo.create_story_assignment.assert_awaited_with(
@@ -194,16 +194,16 @@ async def test_get_story_assignment():
         fake_story_assignment_repo.get_story_assignment.return_value = story_assignment
 
         await services.get_story_assignment(
-            project_id=story.project.id, ref=story.ref, username=user.username
+            project_id=story.project.id, ref=story.ref, user_id=user.id
         )
 
         fake_story_assignment_repo.get_story_assignment.assert_awaited_once_with(
             filters={
                 "project_id": story.project.id,
                 "ref": story.ref,
-                "username": user.username,
+                "user_id": user.id,
             },
-            select_related=["story", "user", "project", "workspace"],
+            select_related=["story", "user", "project"],
         )
 
 
@@ -232,7 +232,7 @@ async def test_delete_story_assignment_fail():
         fake_story_assignment_repo.delete_stories_assignments.return_value = 0
 
         await services.delete_story_assignment(
-            story=story, story_assignment=story_assignment, deleted_by=story.created_by
+            story_assignment=story_assignment, deleted_by=story.created_by
         )
         fake_story_assignment_repo.delete_stories_assignments.assert_awaited_once_with(
             filters={"id": story_assignment.id},
@@ -261,7 +261,7 @@ async def test_delete_story_assignment_ok():
         fake_story_assignment_repo.delete_stories_assignments.return_value = 1
 
         await services.delete_story_assignment(
-            story=story, story_assignment=story_assignment, deleted_by=story.created_by
+            story_assignment=story_assignment, deleted_by=story.created_by
         )
         fake_story_assignment_repo.delete_stories_assignments.assert_awaited_once_with(
             filters={"id": story_assignment.id},

@@ -308,14 +308,9 @@ async def create_workflow_status(
 ##########################################################
 
 
-async def get_workflow_status(
-    workflow_id: UUID, status_id: UUID
-) -> WorkflowStatus | None:
+async def get_workflow_status(status_id: UUID) -> WorkflowStatus | None:
     return await workflows_repositories.get_workflow_status(
         status_id=status_id,
-        filters={
-            "workflow_id": workflow_id,
-        },
         select_related=[
             "workflow",
             "workflow__project",
@@ -524,7 +519,6 @@ async def delete_workflow_status(
     if target_status_id:
         try:
             target_status = await get_workflow_status(
-                workflow_id=workflow_status.workflow_id,
                 status_id=target_status_id,
             )
         except WorkflowStatus.DoesNotExist as e:

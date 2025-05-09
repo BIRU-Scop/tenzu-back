@@ -17,6 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 from typing import Any, TypeVar
+from uuid import UUID
 
 from django.conf import settings
 
@@ -39,12 +40,12 @@ TI = TypeVar("TI", bound=Invitation)
 
 
 async def update_membership(
-    membership: Membership, role_slug: str, user_role: Role
+    membership: Membership, role_id: UUID, user_role: Role
 ) -> Membership:
     try:
         role = await memberships_repositories.get_role(
             membership.role.__class__,
-            filters={**membership.reference_model_filter, "slug": role_slug},
+            filters={**membership.reference_model_filter, "id": role_id},
         )
 
     except membership.role.DoesNotExist as e:
@@ -87,7 +88,7 @@ async def is_membership_the_only_owner(membership: Membership) -> bool:
 
 async def create_invitations(
     reference_object: Project | Workspace,
-    invitations: list[dict[str, str]],
+    invitations: list[dict[str, str | UUID]],
     invited_by: User,
     user_role: Role,
 ) -> tuple[list[Invitation], list[Invitation], int]:
@@ -101,28 +102,29 @@ async def create_invitations(
     for i in invitations:
         if i.get("username"):
             usernames.append(i["username"])
-            usernames_roles.append(i["role_slug"])
+            usernames_roles.append(i["role_id"])
 
         elif i.get("email"):
             emails.append(i["email"].lower())
-            emails_roles.append(i["role_slug"])
-    # emails =    ['user1@tenzu.demo']  |  emails_roles =    ['general']
-    # usernames = ['user3']             |  usernames_roles = ['admin']
+            emails_roles.append(i["role_id"])
+    # emails =    ['user1@tenzu.demo']  |  emails_roles =    [<member_role_uuid>]
+    # usernames = ['user3']             |  usernames_roles = [<admin_role_uuid>]
+    invitation_role_ids = set(emails_roles + usernames_roles)
 
     roles_dict = {
-        r.slug: r
+        r.id: r
         for r in await memberships_repositories.list_roles(
             reference_object.roles.model,
-            filters={f"{reference_object._meta.model_name}_id": reference_object.id},
+            filters={
+                f"{reference_object._meta.model_name}_id": reference_object.id,
+                "id__in": invitation_role_ids,
+            },
         )
     }
-    # roles_dict = {'admin': <Role: Administrator>, 'general': <Role: General>}
-    roles_slugs = roles_dict.keys()
-    wrong_roles_slugs = set(emails_roles + usernames_roles) - roles_slugs
-    if wrong_roles_slugs:
-        raise ex.NonExistingRoleError(
-            f"These role slugs don't exist: {wrong_roles_slugs}"
-        )
+    # roles_dict = {<admin_role_uuid>: <Role: Administrator>, <member_role_uuid>: <Role: Member>}
+    wrong_roles_ids = invitation_role_ids - roles_dict.keys()
+    if wrong_roles_ids:
+        raise ex.NonExistingRoleError(f"These role ids don't exist: {wrong_roles_ids}")
 
     users_emails_dict: dict[str, Any] = {}
     if len(emails) > 0:
@@ -164,17 +166,18 @@ async def create_invitations(
     created_owner_invitations = []
     changed_role_owner_invitations = []
 
-    for key, role_slug in zip(emails + usernames, emails_roles + usernames_roles):
-        #                                 key  |  role_slug
-        # =======================================================
-        # (1st iteration)   'user1@tenzu.demo' |   'general'
-        # (2nd iteration)              'user3' |     'admin'
+    for key, role_id in zip(emails + usernames, emails_roles + usernames_roles):
+        #                                 key  |  role_id
+        # ==========================================================
+        # (1st iteration)   'user1@tenzu.demo' | <member_role_uuid>
+        # (2nd iteration)              'user3' | <admin_role_uuid>
 
         user = users_dict.get(key)
         if user and user in members:
             already_members += 1
             continue
         email = user.email if user else key
+        role = roles_dict[role_id]
 
         try:
             invitation = await memberships_repositories.get_invitation(
@@ -196,7 +199,6 @@ async def create_invitations(
                 ],
             )
         except reference_object.invitations.model.DoesNotExist:
-            role = roles_dict[role_slug]
             new_invitation = reference_object.invitations.model(
                 user=user,
                 role=role,
@@ -209,7 +211,6 @@ async def create_invitations(
             if role.is_owner:
                 created_owner_invitations.append(key)
         else:
-            role = roles_dict[role_slug]
             if invitation.role.is_owner and invitation.role != role:
                 changed_role_owner_invitations.append(key)
             invitation.role = role
@@ -227,16 +228,16 @@ async def create_invitations(
         detail_msg = []
         if created_owner_invitations:
             detail_msg.append(
-                f"give owner role to invitations {", ".join(created_owner_invitations)}"
+                f"give owner role to invitations {', '.join(created_owner_invitations)}"
             )
 
         if changed_role_owner_invitations:
             detail_msg.append(
-                f"remove owner role from existing invitations {", ".join(changed_role_owner_invitations)}"
+                f"remove owner role from existing invitations {', '.join(changed_role_owner_invitations)}"
             )
 
         raise ex.OwnerRoleNotAuthorisedError(
-            f"You dont have permissions to: {" / ".join(detail_msg)}"
+            f"You dont have permissions to: {' / '.join(detail_msg)}"
         )
     if len(invitations_to_update) > 0:
         objs = list(invitations_to_update.values())
@@ -274,7 +275,7 @@ async def create_invitations(
 
 async def update_invitation(
     invitation: TI,
-    role_slug: str,
+    role_id: UUID,
     user_role: Role,
 ) -> TI:
     if invitation.status == InvitationStatus.ACCEPTED:
@@ -291,7 +292,7 @@ async def update_invitation(
     try:
         role = await memberships_repositories.get_role(
             invitation.role.__class__,
-            filters={**invitation.reference_model_filter, "slug": role_slug},
+            filters={**invitation.reference_model_filter, "id": role_id},
         )
 
     except invitation.role.DoesNotExist as e:

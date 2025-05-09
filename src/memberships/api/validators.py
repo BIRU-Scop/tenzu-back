@@ -24,23 +24,17 @@ from django.conf import settings
 from pydantic import (
     EmailStr,
     Field,
-    StringConstraints,
     field_validator,
     model_validator,
 )
 from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated
 
-from commons.validators import BaseModel, check_not_empty
+from commons.validators import B64UUID, BaseModel
 
 
 class MembershipValidator(BaseModel):
-    role_slug: str
-
-    @field_validator("role_slug")
-    @classmethod
-    def check_not_empty(cls, v: str) -> str:
-        return check_not_empty(v)
+    role_id: B64UUID
 
 
 # --- Invitations
@@ -49,9 +43,7 @@ class MembershipValidator(BaseModel):
 class _InvitationValidator(BaseModel):
     email: EmailStr | None = None
     username: str | None = None
-    role_slug: Annotated[
-        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=250)
-    ]
+    role_id: B64UUID
 
     @model_validator(mode="after")
     def username_or_email(self) -> Self:
@@ -79,9 +71,4 @@ class InvitationsValidator(BaseModel):
 
 
 class UpdateInvitationValidator(BaseModel):
-    role_slug: str
-
-    @field_validator("role_slug")
-    @classmethod
-    def check_not_empty(cls, v: str, info: ValidationInfo) -> str:
-        return check_not_empty(v)
+    role_id: B64UUID

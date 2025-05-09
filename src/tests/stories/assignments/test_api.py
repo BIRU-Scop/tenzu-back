@@ -34,7 +34,7 @@ async def test_create_story_assignment_invalid_story(client, project_template):
     project = await f.create_project(project_template)
     await f.create_story(project=project)
 
-    data = {"username": project.created_by.username}
+    data = {"user_id": project.created_by.b64id}
 
     client.login(project.created_by)
     response = await client.post(
@@ -50,7 +50,7 @@ async def test_create_story_assignment_user_without_permissions(
     story = await f.create_story(project=project)
     user = await f.create_user()
 
-    data = {"username": project.created_by.username}
+    data = {"user_id": project.created_by.b64id}
 
     client.login(user)
     response = await client.post(
@@ -63,7 +63,7 @@ async def test_create_story_assignment_ok(client, project_template):
     project = await f.create_project(project_template)
     story = await f.create_story(project=project)
 
-    data = {"username": project.created_by.username}
+    data = {"user_id": project.created_by.b64id}
 
     client.login(project.created_by)
     response = await client.post(
@@ -73,7 +73,7 @@ async def test_create_story_assignment_ok(client, project_template):
 
 
 ##########################################################
-# DELETE /projects/<id>/stories/<ref>/assignments/<username>
+# DELETE /projects/<id>/stories/<ref>/assignments/<user_id>
 ##########################################################
 
 
@@ -85,7 +85,7 @@ async def test_delete_story_assignment_invalid_story(client, project_template):
 
     client.login(pj_admin)
     response = await client.delete(
-        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/assignments/{pj_admin.username}"
+        f"/projects/{project.b64id}/stories/{NOT_EXISTING_REF}/assignments/{pj_admin.b64id}"
     )
     assert response.status_code == 404, response.data
 
@@ -101,7 +101,7 @@ async def test_delete_story_assignment_user_without_permissions(
 
     client.login(user)
     response = await client.delete(
-        f"/projects/{project.b64id}/stories/{story.ref}/assignments/{pj_admin.username}"
+        f"/projects/{project.b64id}/stories/{story.ref}/assignments/{pj_admin.b64id}"
     )
     assert response.status_code == 403, response.data
 
@@ -115,7 +115,7 @@ async def test_delete_story_assignment_user_not_assigned(client, project_templat
 
     client.login(pj_admin)
     response = await client.delete(
-        f"/projects/{project.b64id}/stories/{story.ref}/assignments/{user.username}"
+        f"/projects/{project.b64id}/stories/{story.ref}/assignments/{user.b64id}"
     )
     assert response.status_code == 404, response.data
 
@@ -128,6 +128,6 @@ async def test_delete_story_assignment_ok(client, project_template):
 
     client.login(pj_admin)
     response = await client.delete(
-        f"/projects/{project.b64id}/stories/{story.ref}/assignments/{pj_admin.username}"
+        f"/projects/{project.b64id}/stories/{story.ref}/assignments/{pj_admin.b64id}"
     )
     assert response.status_code == 204, response.data

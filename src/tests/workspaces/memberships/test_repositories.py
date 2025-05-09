@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 
 import pytest
 
@@ -25,6 +24,7 @@ from memberships.services import exceptions as ex
 from permissions import choices
 from permissions.choices import WorkspacePermissions
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from workspaces.memberships import repositories
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.workspaces.models import Workspace
@@ -45,6 +45,7 @@ async def test_create_workspace_membership():
     membership = await repositories.create_workspace_membership(
         user=user, workspace=workspace, role=role
     )
+    await workspace.arefresh_from_db(fields=["memberships"])
     memberships = [m async for m in workspace.memberships.all()]
     assert membership in memberships
 
@@ -128,7 +129,7 @@ async def test_get_workspace_membership_doesnotexist():
     with pytest.raises(WorkspaceMembership.DoesNotExist):
         await repositories.get_membership(
             WorkspaceMembership,
-            filters={"user_id": uuid.uuid1(), "workspace_id": uuid.uuid1()},
+            filters={"user_id": NOT_EXISTING_UUID, "workspace_id": NOT_EXISTING_UUID},
         )
 
 
@@ -331,8 +332,15 @@ async def test_list_workspace_roles():
     res = await repositories.list_roles(
         WorkspaceRole, filters={"workspace_id": workspace.id}
     )
-    assert len(res) == 4  # factory default
-    assert res[0].is_owner != res[1].is_owner
+    assert len(res) == 4
+    assert sum(1 for role in res if role.is_owner) == 1
+    assert all(not hasattr(role, "total_members") for role in res)
+    res = await repositories.list_roles(
+        WorkspaceRole, filters={"workspace_id": workspace.id}, get_total_members=True
+    )
+    assert len(res) == 4
+    assert res[0].total_members == 1
+    assert all(role.total_members == 0 for role in res[1:])
 
 
 ##########################################################

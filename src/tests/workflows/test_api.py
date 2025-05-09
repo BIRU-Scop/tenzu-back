@@ -28,16 +28,16 @@ pytestmark = pytest.mark.django_db
 
 
 ##########################################################
-# Workflow POST /workflows
+# Workflow POST /projects/<pj_b64id>/workflows
 ##########################################################
 
 
 async def test_create_workflow_200_ok(client, project_template):
     project = await f.create_project(project_template)
-    data = {"name": "New workflow", "project_id": project.b64id}
+    data = {"name": "New workflow"}
 
     client.login(project.created_by)
-    response = await client.post("/workflows", json=data)
+    response = await client.post(f"/projects/{project.b64id}/workflows", json=data)
     assert response.status_code == 200, response.data
 
     pj_member = await f.create_user()
@@ -49,23 +49,23 @@ async def test_create_workflow_200_ok(client, project_template):
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     client.login(pj_member)
-    response = await client.post("/workflows", json=data)
+    response = await client.post(f"/projects/{project.b64id}/workflows", json=data)
     assert response.status_code == 200, response.data
 
 
 async def test_create_workflow_403_forbidden_not_member(client, project_template):
     project = await f.create_project(project_template)
     user = await f.create_user()
-    data = {"name": "New workflow", "project_id": project.b64id}
+    data = {"name": "New workflow"}
 
     client.login(user)
-    response = await client.post("/workflows", json=data)
+    response = await client.post(f"/projects/{project.b64id}/workflows", json=data)
     assert response.status_code == 403, response.data
 
 
 async def test_create_workflow_403_forbidden_no_permission(client, project_template):
     project = await f.create_project(project_template)
-    data = {"name": "New workflow", "project_id": project.b64id}
+    data = {"name": "New workflow"}
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -76,25 +76,25 @@ async def test_create_workflow_403_forbidden_no_permission(client, project_templ
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     client.login(pj_member)
-    response = await client.post("/workflows", json=data)
+    response = await client.post(f"/projects/{project.b64id}/workflows", json=data)
     assert response.status_code == 403, response.data
 
 
 async def test_create_workflow_404_not_found_project_b64id(client):
     user = await f.create_user()
-    data = {"name": "New workflow", "project_id": NOT_EXISTING_B64ID}
+    data = {"name": "New workflow"}
 
     client.login(user)
-    response = await client.post("/workflows", json=data)
+    response = await client.post(f"/projects/{NOT_EXISTING_B64ID}/workflows", json=data)
     assert response.status_code == 404, response.data
 
 
 async def test_create_workflow_422_unprocessable_project_b64id(client):
     user = await f.create_user()
-    data = {"name": "New workflow", "project_id": INVALID_B64ID}
+    data = {"name": "New workflow"}
 
     client.login(user)
-    response = await client.post("/workflows", json=data)
+    response = await client.post(f"/projects/{INVALID_B64ID}/workflows", json=data)
     assert response.status_code == 422, response.data
 
 
@@ -163,7 +163,7 @@ async def test_get_workflows_422_unprocessable_project_b64id(client):
 
 
 #################################################################
-# Workflow GET /workflows/{wf_ig}
+# Workflow GET /workflows/{wf_id}
 #################################################################
 
 
@@ -242,7 +242,7 @@ async def test_get_workflow_by_slug_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(
-        f"/workflows/by_slug/{workflow.slug}/projects/{project.b64id}"
+        f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
     )
     assert response.status_code == 200, response.data
 
@@ -256,7 +256,7 @@ async def test_get_workflow_by_slug_200_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.get(
-        f"/workflows/by_slug/{workflow.slug}/projects/{project.b64id}"
+        f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
     )
     assert response.status_code == 200, response.data
 
@@ -268,7 +268,7 @@ async def test_get_workflow_by_slug_403_forbidden_not_member(client, project_tem
 
     client.login(user)
     response = await client.get(
-        f"/workflows/by_slug/{workflow.slug}/projects/{project.b64id}"
+        f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
     )
     assert response.status_code == 403, response.data
 
@@ -289,7 +289,7 @@ async def test_get_workflow_by_slug_403_forbidden_no_permission(
 
     client.login(pj_member)
     response = await client.get(
-        f"/workflows/by_slug/{workflow.slug}/projects/{project.b64id}"
+        f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
     )
     assert response.status_code == 403, response.data
 
@@ -302,7 +302,7 @@ async def test_get_workflow_by_slug_404_not_found_project_b64id(
 
     client.login(project.created_by)
     response = await client.get(
-        f"/workflows/by_slug/{workflow.slug}/projects/{NOT_EXISTING_B64ID}"
+        f"/projects/{NOT_EXISTING_B64ID}/workflows/by_slug/{workflow.slug}"
     )
     assert response.status_code == 404, response.data
 
@@ -312,7 +312,7 @@ async def test_get_workflow_by_slug_404_workflow_slug(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(
-        f"/workflows/by_slug/{NOT_EXISTING_SLUG}/projects/{project.b64id}"
+        f"/projects/{project.b64id}/workflows/by_slug/{NOT_EXISTING_SLUG}"
     )
     assert response.status_code == 404, response.data
 
@@ -325,7 +325,7 @@ async def test_get_workflow_by_slug_422_unprocessable_project_b64id(
 
     client.login(project.created_by)
     response = await client.get(
-        f"/workflows/by_slug/{workflow.slug}/projects/{INVALID_B64ID}"
+        f"/projects/{INVALID_B64ID}/workflows/by_slug/{workflow.slug}"
     )
     assert response.status_code == 422, response.data
 
@@ -713,7 +713,7 @@ async def test_reorder_statuses_422_unprocessable_pj_b64id(client, project_templ
 
 
 ################################################################################
-# WorkflowStatus PATCH /projects/<pj_b64id>/workflows/<wf_slug>/statuses/<wf_status_b64id>
+# WorkflowStatus PATCH /projects/workflows/<wf_slug>/statuses/<wf_status_b64id>
 ################################################################################
 
 
@@ -726,7 +726,7 @@ async def test_update_status_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.patch(
-        f"/workflows/{workflow.b64id}/statuses/{wf_status.b64id}",
+        f"/workflows/statuses/{wf_status.b64id}",
         json=data,
     )
     assert response.status_code == 200, response.data
@@ -741,7 +741,7 @@ async def test_update_status_200_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.patch(
-        f"/workflows/{workflow.b64id}/statuses/{wf_status.b64id}",
+        f"/workflows/statuses/{wf_status.b64id}",
         json=data,
     )
     assert response.status_code == 200, response.data
@@ -758,7 +758,7 @@ async def test_update_status_forbidden_not_member(client, project_template):
 
     client.login(user)
     response = await client.patch(
-        f"/workflows/{workflow.b64id}/statuses/{wf_status.b64id}",
+        f"/workflows/statuses/{wf_status.b64id}",
         json=data,
     )
     assert response.status_code == 403, response.data
@@ -781,7 +781,7 @@ async def test_update_status_forbidden_no_permission(client, project_template):
 
     client.login(pj_member)
     response = await client.patch(
-        f"/workflows/{workflow.b64id}/statuses/{wf_status.b64id}",
+        f"/workflows/statuses/{wf_status.b64id}",
         json=data,
     )
     assert response.status_code == 403, response.data
@@ -796,7 +796,7 @@ async def test_update_status_400_bad_request_null_name(client, project_template)
 
     client.login(project.created_by)
     response = await client.patch(
-        f"/workflows/{workflow.b64id}/statuses/{wf_status.b64id}",
+        f"/workflows/statuses/{wf_status.b64id}",
         json=data,
     )
     assert response.status_code == 400, response.data
@@ -811,7 +811,7 @@ async def test_update_status_404_not_found_wf_status_b64id(client, project_templ
 
     client.login(project.created_by)
     response = await client.patch(
-        f"/workflows/{workflow.b64id}/statuses/{NOT_EXISTING_B64ID}",
+        f"/workflows/statuses/{NOT_EXISTING_B64ID}",
         json=data,
     )
     assert response.status_code == 404, response.data
@@ -821,20 +821,19 @@ async def test_update_status_422_unprocessable_wf_status_b64id(
     client, project_template
 ):
     project = await f.create_project(project_template)
-    workflow = await f.create_workflow(project=project)
 
     data = {"name": "New status name"}
 
     client.login(project.created_by)
     response = await client.patch(
-        f"/workflows/{workflow.b64id}/statuses/{INVALID_B64ID}",
+        f"/workflows/statuses/{INVALID_B64ID}",
         json=data,
     )
     assert response.status_code == 422, response.data
 
 
 ################################################################################
-# WorkflowStatus DELETE /projects/<pj_b64id>/workflows/<wf_slug>/statuses/<ws_slug>
+# WorkflowStatus DELETE /projects/workflows/<wf_slug>/statuses/<ws_slug>
 ################################################################################
 
 
@@ -847,7 +846,7 @@ async def test_delete_workflow_status_204_ok_owner(client, project_template):
 
     client.login(project.created_by)
     response = await client.delete(
-        f"/workflows/{wf.b64id}/statuses/{wf_status1.b64id}?moveTo={wf_status2.b64id}"
+        f"/workflows/statuses/{wf_status1.b64id}?moveTo={wf_status2.b64id}"
     )
     assert response.status_code == 204, response.data
 
@@ -871,7 +870,7 @@ async def test_delete_workflow_status_204_ok_member_with_permission(
 
     client.login(pj_member)
     response = await client.delete(
-        f"/workflows/{wf.b64id}/statuses/{wf_status1.b64id}?moveTo={wf_status2.b64id}"
+        f"/workflows/statuses/{wf_status1.b64id}?moveTo={wf_status2.b64id}"
     )
     assert response.status_code == 204, response.data
 
@@ -883,7 +882,7 @@ async def test_delete_status_forbidden_not_member(client, project_template):
     user = await f.create_user()
 
     client.login(user)
-    response = await client.delete(f"/workflows/{wf.b64id}/statuses/{wf_status.b64id}")
+    response = await client.delete(f"/workflows/statuses/{wf_status.b64id}")
     assert response.status_code == 403, response.data
 
 
@@ -901,7 +900,7 @@ async def test_delete_status_forbidden_no_permission(client, project_template):
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     client.login(pj_member)
-    response = await client.delete(f"/workflows/{wf.b64id}/statuses/{wf_status.b64id}")
+    response = await client.delete(f"/workflows/statuses/{wf_status.b64id}")
     assert response.status_code == 403, response.data
 
 
@@ -914,52 +913,25 @@ async def test_delete_workflow_status_400_bad_request_move_to_b64id(
     await f.create_story(status=wf_status1, workflow=wf)
     client.login(project.created_by)
     response = await client.delete(
-        f"/workflows/{wf.b64id}/statuses/{wf_status1.b64id}?moveTo={NOT_EXISTING_B64ID}"
+        f"/workflows/statuses/{wf_status1.b64id}?moveTo={NOT_EXISTING_B64ID}"
     )
     assert response.status_code == 400, response.data
-
-
-async def test_delete_workflow_status_404_not_found_wf_b64id(client, project_template):
-    project = await f.create_project(project_template)
-    wf = await f.create_workflow(project=project)
-    wf_status1 = await f.create_workflow_status(workflow=wf)
-    client.login(project.created_by)
-    response = await client.delete(
-        f"/workflows/{NOT_EXISTING_B64ID}/statuses/{wf_status1.b64id}"
-    )
-    assert response.status_code == 404, response.data
 
 
 async def test_delete_workflow_status_404_wf_status_b64id(client, project_template):
     project = await f.create_project(project_template)
     wf = await f.create_workflow(project=project)
     client.login(project.created_by)
-    response = await client.delete(
-        f"/workflows/{wf.b64id}/statuses/{NOT_EXISTING_B64ID}"
-    )
+    response = await client.delete(f"/workflows/statuses/{NOT_EXISTING_B64ID}")
     assert response.status_code == 404, response.data
-
-
-async def test_delete_workflow_status_422_unprocessable_workflow_b64id(
-    client, project_template
-):
-    project = await f.create_project(project_template)
-    wf = await f.create_workflow(project=project)
-    wf_status1 = await f.create_workflow_status(workflow=wf)
-    client.login(project.created_by)
-    response = await client.delete(
-        f"/workflows/{INVALID_B64ID}/statuses/{wf_status1.b64id}"
-    )
-    assert response.status_code == 422, response.data
 
 
 async def test_delete_workflow_status_422_unprocessable_wf_status_b64id(
     client, project_template
 ):
     project = await f.create_project(project_template)
-    wf = await f.create_workflow(project=project)
     client.login(project.created_by)
-    response = await client.delete(f"/workflows/{wf.b64id}/statuses/{INVALID_B64ID}")
+    response = await client.delete(f"/workflows/statuses/{INVALID_B64ID}")
     assert response.status_code == 422, response.data
 
 
@@ -972,6 +944,6 @@ async def test_delete_wf_status_422_unprocessable_move_to_b64id(
     await f.create_story(status=wf_status1, workflow=wf)
     client.login(project.created_by)
     response = await client.delete(
-        f"/workflows/{wf.b64id}/statuses/{wf_status1.b64id}?moveTo={INVALID_B64ID}"
+        f"/workflows/statuses/{wf_status1.b64id}?moveTo={INVALID_B64ID}"
     )
     assert response.status_code == 422, response.data

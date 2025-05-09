@@ -1036,7 +1036,6 @@ async def test_delete_workflow_status_moving_stories_ok():
         )
 
         fake_get_workflow_status.assert_awaited_once_with(
-            workflow_id=workflow.id,
             status_id=workflow_status2.id,
         )
         fake_stories_repo.list_stories_qs.assert_called_once_with(
