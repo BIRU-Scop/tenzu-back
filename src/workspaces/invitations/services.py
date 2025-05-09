@@ -29,7 +29,11 @@ from emails.emails import Emails
 from emails.tasks import send_email
 from memberships import services as memberships_services
 from memberships.choices import InvitationStatus
-from memberships.repositories import WorkspaceInvitationFilters, exists_invitation
+from memberships.repositories import (
+    WorkspaceInvitationFilters,
+    WorkspaceInvitationSelectRelated,
+    exists_invitation,
+)
 from memberships.services import exceptions as ex
 from memberships.services import (  # noqa
     has_pending_invitation,
@@ -127,12 +131,13 @@ async def get_public_pending_workspace_invitation(
     )
 
 
-def _get_select_related(get_role: bool):
-    return ["user", "workspace", "role"] if get_role else ["user", "workspace"]
-
-
 async def get_workspace_invitation_by_token(
-    token: str, filters: WorkspaceInvitationFilters = {}, get_role=False
+    token: str,
+    filters: WorkspaceInvitationFilters = {},
+    select_related: WorkspaceInvitationSelectRelated = [
+        "user",
+        "workspace",
+    ],
 ) -> WorkspaceInvitation:
     try:
         invitation_token = WorkspaceInvitationToken(token=token)
@@ -143,12 +148,17 @@ async def get_workspace_invitation_by_token(
     return await invitations_repositories.get_invitation(
         WorkspaceInvitation,
         filters={**invitation_data, **filters},
-        select_related=_get_select_related(get_role),
+        select_related=select_related,
     )
 
 
 async def get_workspace_invitation_by_username_or_email(
-    workspace_id: UUID, username_or_email: str, get_role=False
+    workspace_id: UUID,
+    username_or_email: str,
+    select_related: WorkspaceInvitationSelectRelated = [
+        "user",
+        "workspace",
+    ],
 ) -> WorkspaceInvitation:
     return await invitations_repositories.get_invitation(
         WorkspaceInvitation,
@@ -156,17 +166,21 @@ async def get_workspace_invitation_by_username_or_email(
         q_filter=invitations_repositories.invitation_username_or_email_query(
             username_or_email
         ),
-        select_related=_get_select_related(get_role),
+        select_related=select_related,
     )
 
 
 async def get_workspace_invitation(
-    invitation_id: UUID, get_role=False
+    invitation_id: UUID,
+    select_related: WorkspaceInvitationSelectRelated = [
+        "user",
+        "workspace",
+    ],
 ) -> WorkspaceInvitation:
     return await invitations_repositories.get_invitation(
         WorkspaceInvitation,
         filters={"id": invitation_id},
-        select_related=_get_select_related(get_role),
+        select_related=select_related,
     )
 
 
@@ -232,7 +246,9 @@ async def accept_workspace_invitation_from_token(
     token: str, user: User
 ) -> WorkspaceInvitation:
     try:
-        invitation = await get_workspace_invitation_by_token(token=token, get_role=True)
+        invitation = await get_workspace_invitation_by_token(
+            token=token, select_related=["user", "workspace", "role"]
+        )
 
     except WorkspaceInvitation.DoesNotExist as e:
         raise ex.InvitationDoesNotExistError("Invitation does not exist") from e
