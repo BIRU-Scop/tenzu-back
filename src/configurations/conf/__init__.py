@@ -109,7 +109,7 @@ class Settings(BaseSettings):
     DEFAULT_PROJECT_TEMPLATE: str = "kanban"
 
     # Invitations
-    INVITATION_RESEND_LIMIT: int = 10
+    INVITATION_RESEND_LIMIT: int = 100
     INVITATION_RESEND_TIME: int = 10  # 10 minutes
 
     # Workflows
@@ -153,7 +153,7 @@ class Settings(BaseSettings):
         if not i18n.is_language_available(v):
             available_languages_for_display = "\n".join(i18n.available_languages)
             raise ValueError(
-                f"LANGUAGE_CODE should be one of \n{ available_languages_for_display }\n"
+                f"LANGUAGE_CODE should be one of \n{available_languages_for_display}\n"
             )
         return v
 

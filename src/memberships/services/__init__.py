@@ -437,7 +437,7 @@ def is_spam(invitation: Invitation) -> bool:
     )  # in minutes
     return (
         invitation.num_emails_sent
-        == settings.INVITATION_RESEND_LIMIT  # max invitations emails already sent
+        >= settings.INVITATION_RESEND_LIMIT  # max invitations emails already sent
         or time_since_last_send
         < settings.INVITATION_RESEND_TIME  # too soon to send the invitation again
     )
