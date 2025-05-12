@@ -1095,7 +1095,9 @@ async def test_accept_project_invitation_from_token_ok() -> None:
 
         await services.accept_project_invitation_from_token(token=token, user=user)
 
-        fake_get_project_invitation.assert_awaited_once_with(token=token, get_role=True)
+        fake_get_project_invitation.assert_awaited_once_with(
+            token=token, select_related=["user", "project", "role"]
+        )
         fake_accept_project_invitation.assert_awaited_once_with(invitation=invitation)
 
 

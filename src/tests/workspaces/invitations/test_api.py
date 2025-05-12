@@ -466,9 +466,10 @@ async def test_resend_workspace_invitations_anonymous_user(
     assert response.status_code == 401, response.data
 
 
-async def test_resend_workspace_invitation_by_email_ok(
-    client,
-):
+async def test_resend_workspace_invitation_by_email_ok(client, settings):
+    settings.INVITATION_RESEND_TIME = 0
+    settings.INVITATION_RESEND_LIMIT = 100
+
     workspace = await f.create_workspace()
     email = "user-test@email.com"
     invitation = await f.create_workspace_invitation(
@@ -500,9 +501,10 @@ async def test_resend_workspace_invitation_by_email_ok(
     assert res["status"] == InvitationStatus.PENDING
 
 
-async def test_resend_workspace_invitation_by_user_email_ok(
-    client,
-):
+async def test_resend_workspace_invitation_by_user_email_ok(client, settings):
+    settings.INVITATION_RESEND_TIME = 0
+    settings.INVITATION_RESEND_LIMIT = 100
+
     workspace = await f.create_workspace()
     user = await f.create_user()
     invitation = await f.create_workspace_invitation(

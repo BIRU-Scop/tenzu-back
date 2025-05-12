@@ -561,7 +561,12 @@ async def test_resend_project_invitations_anonymous_user(client, project_templat
     assert response.status_code == 401, response.data
 
 
-async def test_resend_project_invitation_by_email_ok(client, project_template):
+async def test_resend_project_invitation_by_email_ok(
+    client, project_template, settings
+):
+    settings.INVITATION_RESEND_TIME = 0
+    settings.INVITATION_RESEND_LIMIT = 100
+
     project = await f.create_project(project_template)
     email = "user-test@email.com"
     invitation = await f.create_project_invitation(
@@ -593,7 +598,12 @@ async def test_resend_project_invitation_by_email_ok(client, project_template):
     assert res["status"] == InvitationStatus.PENDING
 
 
-async def test_resend_project_invitation_by_user_email_ok(client, project_template):
+async def test_resend_project_invitation_by_user_email_ok(
+    client, project_template, settings
+):
+    settings.INVITATION_RESEND_TIME = 0
+    settings.INVITATION_RESEND_LIMIT = 100
+
     project = await f.create_project(project_template)
     user = await f.create_user()
     invitation = await f.create_project_invitation(

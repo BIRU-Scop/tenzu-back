@@ -699,7 +699,7 @@ async def test_accept_workspace_invitation_from_token_ok() -> None:
         await services.accept_workspace_invitation_from_token(token=token, user=user)
 
         fake_get_workspace_invitation.assert_awaited_once_with(
-            token=token, get_role=True
+            token=token, select_related=["user", "workspace", "role"]
         )
         fake_accept_workspace_invitation.assert_awaited_once_with(invitation=invitation)
 

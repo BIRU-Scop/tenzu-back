@@ -44,21 +44,11 @@ class InvitationBaseSerializer(BaseModel):
     email: EmailStr
     resent_at: datetime.datetime | None
     created_at: datetime.datetime
-
-
-class _PrivateEmailInvitationSerializer(InvitationBaseSerializer):
-    email: EmailStr | None
-    model_config = ConfigDict(from_attributes=True)
-
-    @field_validator("email", mode="after")
-    @classmethod
-    def avoid_to_publish_email_if_user(cls, value: str, info: ValidationInfo) -> str:
-        user = info.data.get("user")
-        return None if user else value
+    num_emails_sent: int
 
 
 class CreateInvitationsSerializer(BaseModel):
-    invitations: list[_PrivateEmailInvitationSerializer]
+    invitations: list[InvitationBaseSerializer]
     already_members: int
     model_config = ConfigDict(from_attributes=True)
 

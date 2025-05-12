@@ -192,7 +192,10 @@ async def resend_project_invitation(
     """
     Resend invitation to a project
     """
-    invitation = await get_project_invitation_or_404(invitation_id=invitation_id)
+    invitation = await get_project_invitation_or_404(
+        invitation_id=invitation_id,
+        select_related=["user", "project", "project__workspace"],
+    )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.CREATE.value,
         user=request.user,
@@ -228,7 +231,7 @@ async def revoke_project_invitation(
     Revoke invitation in a project.
     """
     invitation = await get_project_invitation_or_404(
-        invitation_id=invitation_id, get_role=True
+        invitation_id=invitation_id, select_related=["user", "project", "role"]
     )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.MODIFY.value,
@@ -264,7 +267,7 @@ async def accept_project_invitation_by_token(request, token: str) -> ProjectInvi
     """
     try:
         invitation = await get_project_invitation_by_token_or_404(
-            token=token, get_role=True
+            token=token, select_related=["user", "project", "role"]
         )
     except BadInvitationTokenError as e:
         raise ex.BadRequest(str(e))
@@ -300,7 +303,9 @@ async def accept_project_invitation_by_project(
         obj=None,
     )
     invitation = await get_project_invitation_by_username_or_email_or_404(
-        project_id=project_id, username_or_email=request.user.username, get_role=True
+        project_id=project_id,
+        username_or_email=request.user.username,
+        select_related=["user", "project", "role"],
     )
     return await invitations_services.accept_project_invitation(invitation=invitation)
 
@@ -366,7 +371,7 @@ async def update_project_invitation(
     Update project invitation
     """
     invitation = await get_project_invitation_or_404(
-        invitation_id=invitation_id, get_role=True
+        invitation_id=invitation_id, select_related=["user", "project", "role"]
     )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.MODIFY.value,
@@ -390,14 +395,19 @@ async def update_project_invitation(
 
 
 async def get_project_invitation_by_username_or_email_or_404(
-    project_id: UUID, username_or_email: str, get_role=False
+    project_id: UUID,
+    username_or_email: str,
+    select_related: invitations_services.ProjectInvitationSelectRelated = [
+        "user",
+        "project",
+    ],
 ) -> ProjectInvitation:
     try:
         invitation = (
             await invitations_services.get_project_invitation_by_username_or_email(
                 project_id=project_id,
                 username_or_email=username_or_email,
-                get_role=get_role,
+                select_related=select_related,
             )
         )
     except ProjectInvitation.DoesNotExist as e:
@@ -407,11 +417,15 @@ async def get_project_invitation_by_username_or_email_or_404(
 
 
 async def get_project_invitation_or_404(
-    invitation_id: UUID, get_role=False
+    invitation_id: UUID,
+    select_related: invitations_services.ProjectInvitationSelectRelated = [
+        "user",
+        "project",
+    ],
 ) -> ProjectInvitation:
     try:
         invitation = await invitations_services.get_project_invitation(
-            invitation_id=invitation_id, get_role=get_role
+            invitation_id=invitation_id, select_related=select_related
         )
     except ProjectInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation not found") from e
@@ -420,11 +434,15 @@ async def get_project_invitation_or_404(
 
 
 async def get_project_invitation_by_token_or_404(
-    token: str, get_role=False
+    token: str,
+    select_related: invitations_services.ProjectInvitationSelectRelated = [
+        "user",
+        "project",
+    ],
 ) -> ProjectInvitation:
     try:
         invitation = await invitations_services.get_project_invitation_by_token(
-            token=token, get_role=get_role
+            token=token, select_related=select_related
         )
     except ProjectInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation does not exist") from e
