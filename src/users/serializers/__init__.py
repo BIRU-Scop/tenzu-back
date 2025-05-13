@@ -34,7 +34,6 @@ from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
 class UserSerializer(UserNestedSerializer):
-    email: EmailStr
     lang: str
     model_config = ConfigDict(from_attributes=True)
 

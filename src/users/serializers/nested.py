@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, EmailStr
 
 from base.serializers import UUIDB64, BaseModel
 
@@ -27,4 +27,5 @@ class UserNestedSerializer(BaseModel):
     username: str
     full_name: str
     color: int
+    email: EmailStr
     model_config = ConfigDict(from_attributes=True)
