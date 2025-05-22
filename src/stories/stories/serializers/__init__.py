@@ -37,7 +37,7 @@ class StorySummarySerializer(BaseModel):
     workflow_id: UUIDB64
     project_id: UUIDB64
     version: int
-    assignee_ids: list[UUIDB64] | None = None
+    assignee_ids: list[UUIDB64]
     model_config = ConfigDict(
         from_attributes=True,
     )

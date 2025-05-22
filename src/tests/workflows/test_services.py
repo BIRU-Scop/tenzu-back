@@ -431,7 +431,6 @@ async def test_delete_workflow_update_landing_to_new_slug():
             slug="landing-w", project__landing_page="k/landing-w", statuses=[status1]
         )
         fake_workflows_repo.get_workflow.return_value = workflow
-        fake_stories_services.list_stories.return_value = []
         fake_workflows_repo.delete_workflow.return_value = True
         fake_projects_repo.get_first_workflow_slug.return_value = None
 
@@ -440,7 +439,6 @@ async def test_delete_workflow_update_landing_to_new_slug():
         fake_projects_services.update_project_landing_page.assert_awaited_once_with(
             project=workflow.project, updated_by=user
         )
-        fake_stories_services.list_stories.assert_awaited_once()
 
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once()
         assert ret is True
@@ -494,7 +492,6 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         fake_workflows_repo.list_workflow_statuses.return_value = (
             deleted_workflow_statuses
         )
-        fake_stories_services.list_stories.return_value = []
         fake_workflows_repo.delete_workflow.return_value = True
         # service call
         ret = await services.delete_workflow(
@@ -529,7 +526,6 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
             ),
             target_workflow=target_workflow,
         )
-        fake_stories_services.list_stories.assert_awaited_once()
         assert ret is True
 
 
@@ -561,8 +557,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         target_workflow = f.build_workflow(slug="target_workflow", statuses=[])
 
         fake_get_workflow.return_value = target_workflow
-        fake_stories_services.list_stories.return_value = []
-        # the serializer response doesn't maters
+        # the serializer response doesn't matters
         fake_reorder_workflow_statuses.return_value = ReorderWorkflowStatusesSerializer(
             workflow=WorkflowNestedSerializer(
                 id=target_workflow.id,
@@ -598,7 +593,6 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
             reorder=None,
             source_workflow=deleted_workflow,
         )
-        fake_stories_services.list_stories.assert_awaited_once()
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once_with(
             project=deleted_workflow.project,
             workflow=DeleteWorkflowSerializer(
@@ -607,7 +601,6 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
                 slug=deleted_workflow.slug,
                 order=deleted_workflow.order,
                 statuses=deleted_workflow_statuses,
-                stories=[],
             ),
             target_workflow=target_workflow,
         )

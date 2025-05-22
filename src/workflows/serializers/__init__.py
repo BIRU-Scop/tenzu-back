@@ -21,7 +21,6 @@ from typing import Literal
 from pydantic import ConfigDict
 
 from base.serializers import UUIDB64, BaseModel
-from stories.stories.serializers import StorySummarySerializer
 from workflows.serializers.nested import (
     WorkflowNestedSerializer,
     WorkflowStatusNestedSerializer,
@@ -40,7 +39,6 @@ class DeleteWorkflowSerializer(BaseModel):
     slug: str
     order: int
     statuses: list[WorkflowStatusNestedSerializer]
-    stories: list[StorySummarySerializer]
     model_config = ConfigDict(from_attributes=True)
 
 

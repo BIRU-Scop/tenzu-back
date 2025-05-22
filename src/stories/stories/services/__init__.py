@@ -99,12 +99,11 @@ async def list_stories(
     offset: int | None = None,
     limit: int | None = None,
     order_by: list | None = None,
-    get_assignees=True,
 ) -> list[StorySummarySerializer]:
     if order_by is None:
         order_by = ["order"]
     keys = ["ref", "title", "workflow_id", "project_id", "status_id", "version"]
-    annotations = {"assignee_ids": ASSIGNEE_IDS_ANNOTATION} if get_assignees else {}
+    annotations = {"assignee_ids": ASSIGNEE_IDS_ANNOTATION}
     qs: QuerySet[dict] = stories_repositories.list_stories_qs(
         filters={"project_id": project_id, "workflow__slug": workflow_slug},
         offset=offset,
