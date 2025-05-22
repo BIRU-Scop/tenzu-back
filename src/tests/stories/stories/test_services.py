@@ -154,7 +154,6 @@ async def test_list_paginated_stories():
             workflow_slug=story.workflow.slug,
             offset=0,
             limit=10,
-            get_assignees=False,
         )
         fake_stories_repo.list_stories_qs.assert_called_once_with(
             filters={
@@ -166,7 +165,7 @@ async def test_list_paginated_stories():
             order_by=["order"],
         )
         fake_stories_repo.list_stories_qs.return_value.values.assert_called_once_with(
-            *fields
+            *fields, assignee_ids=repositories.ASSIGNEE_IDS_ANNOTATION
         )
 
 

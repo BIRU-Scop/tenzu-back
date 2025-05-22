@@ -251,10 +251,6 @@ async def delete_workflow(
                     source_workflow=workflow,
                 )
 
-    # recover the workflow's detail before being deleted
-    workflow_stories = await stories_services.list_stories(
-        project_id=workflow.project_id, workflow_slug=workflow.slug, get_assignees=False
-    )
     deleted = await workflows_repositories.delete_workflow(filters={"id": workflow.id})
 
     if deleted > 0:
@@ -273,7 +269,6 @@ async def delete_workflow(
                 slug=workflow.slug,
                 order=workflow.order,
                 statuses=list(workflow.statuses.all()),
-                stories=workflow_stories,
             ),
             target_workflow=target_workflow,
         )
