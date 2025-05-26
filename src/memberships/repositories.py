@@ -314,8 +314,11 @@ async def get_role(
     model: type[TR],
     filters: RoleFilters = {},
     select_related: RoleSelectRelated = [None],
+    get_total_members=False,
 ) -> TR:
     qs = model.objects.all().filter(**filters).select_related(*select_related)
+    if get_total_members:
+        qs = qs.annotate(total_members=Count("memberships"))
     return await qs.aget()
 
 
