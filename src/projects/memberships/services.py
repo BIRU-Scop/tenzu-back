@@ -155,11 +155,12 @@ async def list_project_roles(project: Project) -> list[ProjectRole]:
 ##########################################################
 
 
-async def get_project_role(role_id: UUID) -> ProjectRole:
+async def get_project_role(role_id: UUID, get_total_members=False) -> ProjectRole:
     return await memberships_repositories.get_role(
         ProjectRole,
         filters={"id": role_id},
         select_related=["project"],
+        get_total_members=get_total_members,
     )
 
 
@@ -177,7 +178,7 @@ async def create_project_role(
         permissions=permissions,
         project_id=project_id,
     )
-
+    role.total_members = 0
     # Emit event
     await transaction_on_commit_async(
         memberships_events.emit_event_when_project_role_is_created

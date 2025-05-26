@@ -485,6 +485,62 @@ async def test_create_project_role_ok(client, project_template):
 
 
 #########################################################################
+# GET /projects/roles/<role_id>
+#########################################################################
+
+
+async def test_get_project_role(client, project_template):
+    project = await f.create_project(project_template)
+
+    member_role = await f.create_project_role(
+        project=project,
+        permissions=[],
+        is_owner=False,
+    )
+
+    pj_member = await f.create_user()
+    await f.create_project_membership(user=pj_member, project=project, role=member_role)
+    client.login(pj_member)
+
+    response = await client.get(f"/projects/roles/{member_role.b64id}")
+    assert response.status_code == 200, response.data
+    assert len(response.json())
+
+
+async def test_get_project_role_wrong_id(client, project_template):
+    project = await f.create_project(project_template)
+
+    client.login(project.created_by)
+    response = await client.get(f"/projects/roles/{NOT_EXISTING_B64ID}")
+    assert response.status_code == 404, response.data
+
+
+async def test_get_project_role_not_a_member(client, project_template):
+    project = await f.create_project(project_template)
+    not_a_member = await f.create_user()
+    role = await project.roles.aget(slug="member")
+    client.login(not_a_member)
+    response = await client.get(f"/projects/roles/{role.b64id}")
+    assert response.status_code == 403, response.data
+
+    # even invitee can't see members
+    general_admin_role = await f.create_project_role(
+        project=project,
+        permissions=choices.ProjectPermissions.values,
+        is_owner=False,
+    )
+    await f.create_project_invitation(
+        email=not_a_member.email,
+        user=not_a_member,
+        project=project,
+        role=general_admin_role,
+        status=InvitationStatus.PENDING,
+    )
+    response = await client.get(f"/projects/roles/{general_admin_role.b64id}")
+    assert response.status_code == 403, response.data
+
+
+#########################################################################
 # PUT /projects/roles/<role_id>
 #########################################################################
 

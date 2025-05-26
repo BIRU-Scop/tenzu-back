@@ -454,6 +454,7 @@ async def test_get_project_role():
             ProjectRole,
             filters={"id": role.id},
             select_related=["project"],
+            get_total_members=False,
         )
         assert ret == role
 

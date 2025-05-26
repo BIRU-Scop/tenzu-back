@@ -207,7 +207,7 @@ async def list_project_roles(request, project_id: Path[B64UUID]):
     url_name="project.roles.create",
     summary="Create project roles",
     response={
-        200: RoleSerializer,
+        200: ProjectRolesSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -241,12 +241,47 @@ async def create_project_role(
 ##########################################################
 
 
+@project_membership_router.get(
+    "/projects/roles/{role_id}",
+    url_name="project.roles.get",
+    summary="get project role",
+    response={
+        200: ProjectRolesSerializer,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def get_project_role(
+    request,
+    role_id: Path[B64UUID],
+) -> ProjectRole:
+    """
+    Get project role
+    """
+
+    role = await get_project_role_or_404(role_id=role_id, get_total_members=True)
+    await check_permissions(
+        permissions=ProjectRolePermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=role.project,
+    )
+    return role
+
+
+##########################################################
+# update project role
+##########################################################
+
+
 @project_membership_router.put(
     "/projects/roles/{role_id}",
     url_name="project.roles.put",
     summary="Update project roles",
     response={
-        200: RoleSerializer,
+        200: ProjectRolesSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -263,7 +298,7 @@ async def update_project_role(
     Update project roles
     """
 
-    role = await get_project_role_or_404(role_id=role_id)
+    role = await get_project_role_or_404(role_id=role_id, get_total_members=True)
     await check_permissions(
         permissions=ProjectRolePermissionsCheck.MODIFY.value,
         user=request.user,
@@ -339,9 +374,13 @@ async def get_project_membership_or_404(membership_id: UUID) -> ProjectMembershi
     return membership
 
 
-async def get_project_role_or_404(role_id: UUID) -> ProjectRole:
+async def get_project_role_or_404(
+    role_id: UUID, get_total_members=False
+) -> ProjectRole:
     try:
-        role = await memberships_services.get_project_role(role_id=role_id)
+        role = await memberships_services.get_project_role(
+            role_id=role_id, get_total_members=get_total_members
+        )
     except ProjectRole.DoesNotExist as e:
         raise ex.NotFoundError(f"Role {role_id} does not exist") from e
 
