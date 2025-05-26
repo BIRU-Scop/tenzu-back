@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import logging
 from typing import Any, TypeVar
 from uuid import UUID
 
@@ -31,6 +32,8 @@ from projects.projects.models import Project
 from users import services as users_services
 from users.models import AnyUser, User
 from workspaces.workspaces.models import Workspace
+
+logger = logging.getLogger(__name__)
 
 TI = TypeVar("TI", bound=Invitation)
 
@@ -165,6 +168,7 @@ async def create_invitations(
     # }
     created_owner_invitations = []
     changed_role_owner_invitations = []
+    already_accepted_invitations = []
 
     for key, role_id in zip(emails + usernames, emails_roles + usernames_roles):
         #                                 key  |  role_id
@@ -184,11 +188,6 @@ async def create_invitations(
                 reference_object.invitations.model,
                 filters={
                     f"{reference_object._meta.model_name}_id": reference_object.id,
-                    "status__in": [
-                        InvitationStatus.PENDING,
-                        InvitationStatus.REVOKED,
-                        InvitationStatus.DENIED,
-                    ],
                 },
                 q_filter=memberships_repositories.invitation_username_or_email_query(
                     email
@@ -211,6 +210,13 @@ async def create_invitations(
             if role.is_owner:
                 created_owner_invitations.append(key)
         else:
+            if invitation.status == InvitationStatus.ACCEPTED:
+                # weird state where user is not member but still has an accepted invitation, shouldn't happen ever
+                logger.error(
+                    f"Trying to create already accepted invitation {invitation._meta.model_name} {invitation.id}"
+                )
+                already_accepted_invitations.append(invitation)
+                continue
             if invitation.role.is_owner and invitation.role != role:
                 changed_role_owner_invitations.append(key)
             invitation.role = role
@@ -222,6 +228,10 @@ async def create_invitations(
                 invitations_to_send[email] = invitation
             invitations_to_update[email] = invitation
 
+    if already_accepted_invitations:
+        raise ex.InvitationAlreadyAcceptedError(
+            f"Cannot recreate an accepted invitation: {', '.join(invitation.email for invitation in already_accepted_invitations)}"
+        )
     if (created_owner_invitations or changed_role_owner_invitations) and (
         not user_role or not user_role.is_owner
     ):
