@@ -438,6 +438,41 @@ async def test_create_project_invitations_with_pending_invitations_time_spam(tqm
         fake_invitations_events.emit_event_when_project_invitations_are_created.assert_awaited_once()
 
 
+async def test_create_project_invitations_with_accepted_invitations():
+    project = f.build_project()
+    role = f.build_project_role(project=project, slug="owner", is_owner=True)
+    role2 = f.build_project_role(project=project, slug="member")
+    project.created_by.project_role = role
+    invitation = f.build_project_invitation(
+        project=project,
+        user=None,
+        role=role,
+        email="test@email.com",
+        invited_by=project.created_by,
+        status=InvitationStatus.ACCEPTED,
+    )
+    invitations = [{"email": invitation.email, "role_id": role2.id}]
+
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "memberships.services.users_services", autospec=True
+        ) as fake_users_services,
+        pytest.raises(ex.InvitationAlreadyAcceptedError),
+    ):
+        fake_memberships_repositories.list_roles.return_value = [role2]
+        fake_memberships_repositories.get_invitation.return_value = invitation
+        fake_users_services.list_users_emails_as_dict.return_value = {}
+        fake_users_services.list_users_usernames_as_dict.return_value = {}
+
+        await services.create_project_invitations(
+            project=project, invitations=invitations, invited_by=project.created_by
+        )
+        fake_memberships_repositories.bulk_update_invitations.assert_not_awaited()
+
+
 async def test_create_project_invitations_with_revoked_invitations(tqmanager):
     project = f.build_project()
     role = f.build_project_role(project=project, slug="owner", is_owner=True)

@@ -182,6 +182,29 @@ async def test_create_project_invitations(client, project_template):
     assert response.status_code == 200, response.data
 
 
+async def test_create_project_invitations_already_accepted(client, project_template):
+    invitee1 = await f.create_user(email="invitee1@tenzu.demo", username="invitee1")
+    project = await f.create_project(project_template)
+    await f.create_project_invitation(
+        user=invitee1,
+        email=invitee1.email,
+        project=project,
+        status=InvitationStatus.ACCEPTED,
+    )
+    roles = list(project.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
+    data = {
+        "invitations": [
+            {"username": invitee1.username, "role_id": member_role.b64id},
+        ]
+    }
+    client.login(project.created_by)
+    response = await client.post(f"/projects/{project.b64id}/invitations", json=data)
+    assert response.status_code == 400, response.data
+    res = response.json()
+    assert invitee1.email in res["error"]["msg"]
+
+
 ##########################################################
 # LIST /projects/<id>/invitations
 ##########################################################
