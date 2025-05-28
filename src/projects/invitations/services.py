@@ -29,7 +29,10 @@ from emails.emails import Emails
 from emails.tasks import send_email
 from memberships import services as memberships_services
 from memberships.choices import InvitationStatus
-from memberships.repositories import ProjectInvitationFilters
+from memberships.repositories import (
+    ProjectInvitationFilters,
+    ProjectInvitationSelectRelated,
+)
 from memberships.services import exceptions as ex
 from memberships.services import (  # noqa
     has_pending_invitation,
@@ -69,14 +72,13 @@ async def create_project_invitations(
             reference_object=project,
             invitations=invitations,
             invited_by=invited_by,
-            extra_select_related_for_mail_template=[
-                "project__workspace",
-            ],
             user_role=user_role,
         ),
     )
     for invitation in invitations_to_send:
-        await send_project_invitation_email(invitation=invitation)
+        await send_project_invitation_email(
+            invitation=invitation, project=project, sender=invited_by
+        )
 
     if invitations_to_publish:
         await invitations_events.emit_event_when_project_invitations_are_created(
@@ -99,7 +101,9 @@ async def list_project_invitations(project_id: UUID) -> list[ProjectInvitation]:
         filters={
             "project_id": project_id,
         },
-        select_related=["project", "user", "role"],
+        select_related=["project", "user"],
+        order_by=["user__full_name", "email"],
+        order_priorities={"status": InvitationStatus.PENDING},
     )
 
 
@@ -108,26 +112,10 @@ async def list_project_invitations(project_id: UUID) -> list[ProjectInvitation]:
 ##########################################################
 
 
-async def get_project_invitation(
-    token: str, filters: ProjectInvitationFilters = {}
-) -> ProjectInvitation:
-    try:
-        invitation_token = ProjectInvitationToken(token=token)
-    except TokenError:
-        raise ex.BadInvitationTokenError("Invalid or expired token")
-
-    invitation_data = cast(ProjectInvitationFilters, invitation_token.object_id_data)
-    return await invitations_repositories.get_invitation(
-        ProjectInvitation,
-        filters={**invitation_data, **filters},
-        select_related=["user", "project", "project__workspace", "role"],
-    )
-
-
 async def get_public_pending_project_invitation(
     token: str,
 ) -> PublicProjectPendingInvitationSerializer | None:
-    invitation = await get_project_invitation(
+    invitation = await get_project_invitation_by_token(
         token=token, filters={"status": InvitationStatus.PENDING}
     )
     available_logins = (
@@ -143,26 +131,56 @@ async def get_public_pending_project_invitation(
     )
 
 
+async def get_project_invitation_by_token(
+    token: str,
+    filters: ProjectInvitationFilters = {},
+    select_related: ProjectInvitationSelectRelated = [
+        "user",
+        "project",
+    ],
+) -> ProjectInvitation:
+    try:
+        invitation_token = ProjectInvitationToken(token=token)
+    except TokenError:
+        raise ex.BadInvitationTokenError("Invalid or expired token")
+
+    invitation_data = cast(ProjectInvitationFilters, invitation_token.object_id_data)
+    return await invitations_repositories.get_invitation(
+        ProjectInvitation,
+        filters={**invitation_data, **filters},
+        select_related=select_related,
+    )
+
+
 async def get_project_invitation_by_username_or_email(
-    project_id: UUID, username_or_email: str
-) -> ProjectInvitation | None:
+    project_id: UUID,
+    username_or_email: str,
+    select_related: ProjectInvitationSelectRelated = [
+        "user",
+        "project",
+    ],
+) -> ProjectInvitation:
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
         filters={"project_id": project_id},
         q_filter=invitations_repositories.invitation_username_or_email_query(
             username_or_email
         ),
-        select_related=["user", "project", "project__workspace", "role"],
+        select_related=select_related,
     )
 
 
-async def get_project_invitation_by_id(
-    project_id: UUID, invitation_id: UUID
-) -> ProjectInvitation | None:
+async def get_project_invitation(
+    invitation_id: UUID,
+    select_related: ProjectInvitationSelectRelated = [
+        "user",
+        "project",
+    ],
+) -> ProjectInvitation:
     return await invitations_repositories.get_invitation(
         ProjectInvitation,
-        filters={"project_id": project_id, "id": invitation_id},
-        select_related=["user", "project", "project__workspace", "role"],
+        filters={"id": invitation_id},
+        select_related=select_related,
     )
 
 
@@ -176,7 +194,7 @@ async def update_user_projects_invitations(user: User) -> None:
     invitations = await invitations_repositories.list_invitations(
         ProjectInvitation,
         filters={"user": user, "status": InvitationStatus.PENDING},
-        select_related=["user", "role", "project", "project__workspace"],
+        select_related=["user", "role", "project"],
     )
     await transaction_on_commit_async(
         invitations_events.emit_event_when_project_invitations_are_updated
@@ -184,12 +202,12 @@ async def update_user_projects_invitations(user: User) -> None:
 
 
 async def update_project_invitation(
-    invitation: ProjectInvitation, role_slug: str, user: User
+    invitation: ProjectInvitation, role_id: UUID, user: User
 ) -> ProjectInvitation:
     user_role = user.project_role
     updated_invitation = await memberships_services.update_invitation(
         invitation=invitation,
-        role_slug=role_slug,
+        role_id=role_id,
         user_role=user_role,
     )
     await transaction_on_commit_async(
@@ -225,7 +243,9 @@ async def accept_project_invitation_from_token(
     token: str, user: User
 ) -> ProjectInvitation:
     try:
-        invitation = await get_project_invitation(token=token)
+        invitation = await get_project_invitation_by_token(
+            token=token, select_related=["user", "project", "role"]
+        )
 
     except ProjectInvitation.DoesNotExist as e:
         raise ex.InvitationDoesNotExistError("Invitation does not exist") from e
@@ -249,7 +269,7 @@ async def resend_project_invitation(
     )
     if resent_invitation is not None:
         await send_project_invitation_email(
-            invitation=resent_invitation, is_resend=True
+            invitation=resent_invitation, project=invitation.project, sender=resent_by
         )
         return resent_invitation
     return invitation
@@ -296,10 +316,10 @@ async def revoke_project_invitation(
 
 
 async def send_project_invitation_email(
-    invitation: ProjectInvitation, is_resend: bool | None = False
+    invitation: ProjectInvitation,
+    project: Project,
+    sender: User,
 ) -> None:
-    project = invitation.project
-    sender = invitation.resent_by if is_resend else invitation.invited_by
     receiver = invitation.user
     email = receiver.email if receiver else invitation.email
     invitation_token = await _generate_project_invitation_token(invitation)
@@ -359,7 +379,7 @@ async def _sync_related_workspace_membership(pj_invitation: ProjectInvitation):
     except WorkspaceInvitation.DoesNotExist:
         # there is no existing membership nor pending invitation, create workspace default membership
         await workspaces_memberships_services.create_default_workspace_membership(
-            pj_invitation.project.workspace, pj_invitation.user
+            pj_invitation.project.workspace_id, pj_invitation.user
         )
     else:
         await workspaces_invitations_services.accept_workspace_invitation(ws_invitation)

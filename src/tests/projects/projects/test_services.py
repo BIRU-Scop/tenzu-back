@@ -209,6 +209,7 @@ async def test_list_workspace_projects_for_a_ws_member():
 async def test_get_project_detail():
     project = f.build_project()
     role = f.build_project_role(project=project, is_owner=True, permissions=[])
+    workflow = f.build_workflow(project=project)
 
     with (
         patch(
@@ -220,7 +221,7 @@ async def test_get_project_detail():
     ):
         # without membership's role
         await services.get_project_detail(project=project, user=project.created_by)
-        fake_workflows_repositories.list_workflows.assert_not_awaited()
+        fake_workflows_repositories.list_workflows_qs.assert_not_called()
         assert fake_ProjectDetailSerializer.call_args.kwargs["workflows"] == []
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_role"] is None
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_is_invited"] is False
@@ -229,7 +230,7 @@ async def test_get_project_detail():
         project.created_by.project_role = role
         project.created_by.is_invited = False
         await services.get_project_detail(project=project, user=project.created_by)
-        fake_workflows_repositories.list_workflows.assert_not_awaited()
+        fake_workflows_repositories.list_workflows_qs.assert_not_called()
         assert fake_ProjectDetailSerializer.call_args.kwargs["workflows"] == []
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_role"] == role
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_is_invited"] is False
@@ -242,16 +243,16 @@ async def test_get_project_detail():
         )
         project.created_by.project_role = role
         project.created_by.is_invited = True
+        fake_workflows_repositories.list_workflows_qs.return_value.values.return_value.__aiter__.return_value = [
+            workflow
+        ]
         await services.get_project_detail(project=project, user=project.created_by)
-        fake_workflows_repositories.list_workflows.assert_awaited_once_with(
+        fake_workflows_repositories.list_workflows_qs.assert_called_once_with(
             filters={
                 "project_id": project.id,
             }
         )
-        assert (
-            fake_ProjectDetailSerializer.call_args.kwargs["workflows"]
-            == fake_workflows_repositories.list_workflows.return_value
-        )
+        assert fake_ProjectDetailSerializer.call_args.kwargs["workflows"] == [workflow]
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_role"] == role
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_is_invited"] is True
 
@@ -530,7 +531,7 @@ async def test_delete_project_ok(tqmanager):
 
         await services.delete_project(project=project, deleted_by=user)
         fake_projects_events.emit_event_when_project_is_deleted.assert_awaited_once_with(
-            workspace=project.workspace, project=project, deleted_by=user
+            workspace_id=project.workspace_id, project=project, deleted_by=user
         )
         fake_projects_repo.delete_projects.assert_awaited_once_with(
             project_id=project.id,

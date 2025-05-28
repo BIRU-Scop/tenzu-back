@@ -20,6 +20,7 @@
 import pytest
 
 from attachments import repositories
+from attachments.models import Attachment
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -119,12 +120,10 @@ async def test_get_attachment():
         await repositories.get_attachment(filters={"content_object": story1})
         == attachment11
     )
-    assert (
+    with pytest.raises(Attachment.DoesNotExist):
         await repositories.get_attachment(
             filters={"content_object": story1, "id": attachment21.id}
         )
-        is None
-    )
     assert (
         await repositories.get_attachment(
             filters={"content_object": story1, "id": attachment11.id}

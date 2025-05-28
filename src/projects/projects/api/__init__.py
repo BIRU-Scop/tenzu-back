@@ -56,7 +56,7 @@ projects_router = Router()
 
 
 @projects_router.post(
-    "/projects",
+    "/workspaces/{workspace_id}/projects",
     url_name="projects.create",
     summary="Create projects",
     response={
@@ -71,13 +71,14 @@ projects_router = Router()
 )
 async def create_project(
     request,
+    workspace_id: Path[B64UUID],
     form: Form[CreateProjectValidator],
     logo: LogoField | None = File(None),
 ) -> ProjectDetailSerializer:
     """
     Create project in a given workspace.
     """
-    workspace = await get_workspace_or_404(workspace_id=form.workspace_id)
+    workspace = await get_workspace_or_404(workspace_id=workspace_id)
 
     await check_permissions(
         permissions=ProjectPermissionsCheck.CREATE.value,
@@ -241,9 +242,11 @@ async def delete_project(
 ##########################################################
 
 
-async def get_project_or_404(project_id: UUID) -> Project:
+async def get_project_or_404(project_id: UUID, get_workspace=False) -> Project:
     try:
-        project = await projects_services.get_project(id=project_id)
+        project = await projects_services.get_project(
+            project_id=project_id, get_workspace=get_workspace
+        )
     except Project.DoesNotExist as e:
         raise ex.NotFoundError("Project does not exist") from e
 

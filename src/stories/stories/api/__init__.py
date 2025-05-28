@@ -201,7 +201,7 @@ async def update_story(
     """
     Update a story from a project.
     """
-    story = await get_story_or_404(project_id, ref)
+    story = await get_story_or_404(project_id, ref, get_assignees=True)
     await check_permissions(
         permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
     )
@@ -299,9 +299,11 @@ async def delete_story(
 ################################################
 
 
-async def get_story_or_404(project_id: UUID, ref: int) -> Story:
+async def get_story_or_404(project_id: UUID, ref: int, get_assignees=False) -> Story:
     try:
-        story = await stories_services.get_story(project_id=project_id, ref=ref)
+        story = await stories_services.get_story(
+            project_id=project_id, ref=ref, get_assignees=get_assignees
+        )
     except Story.DoesNotExist as e:
         raise ex.NotFoundError(f"Story {ref} does not exist in the project") from e
 

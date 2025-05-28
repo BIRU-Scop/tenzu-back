@@ -17,12 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 from unittest.mock import patch
 
 import pytest
 
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from workspaces.workspaces import services
 from workspaces.workspaces.services import exceptions as ex
 
@@ -72,12 +72,13 @@ async def test_list_user_workspaces():
 
 
 async def test_get_workspace():
-    ws_id = uuid.uuid1()
     with patch(
         "workspaces.workspaces.services.workspaces_repositories", autospec=True
     ) as fake_workspaces_repo:
-        await services.get_workspace(workspace_id=ws_id)
-        fake_workspaces_repo.get_workspace.assert_awaited_with(workspace_id=ws_id)
+        await services.get_workspace(workspace_id=NOT_EXISTING_UUID)
+        fake_workspaces_repo.get_workspace.assert_awaited_with(
+            workspace_id=NOT_EXISTING_UUID, get_total_project=False
+        )
 
 
 ##########################################################

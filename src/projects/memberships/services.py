@@ -44,7 +44,7 @@ async def list_project_memberships(project: Project) -> list[ProjectMembership]:
     return await memberships_repositories.list_memberships(
         ProjectMembership,
         filters={"project_id": project.id},
-        select_related=["user", "role", "project"],
+        select_related=["user"],
     )
 
 
@@ -53,10 +53,12 @@ async def list_project_memberships(project: Project) -> list[ProjectMembership]:
 ##########################################################
 
 
-async def get_project_membership(project_id: UUID, username: str) -> ProjectMembership:
+async def get_project_membership(membership_id: UUID) -> ProjectMembership:
     return await memberships_repositories.get_membership(
         ProjectMembership,
-        filters={"project_id": project_id, "user__username": username},
+        filters={
+            "id": membership_id,
+        },
         select_related=["user", "role", "project"],
     )
 
@@ -68,12 +70,12 @@ async def get_project_membership(project_id: UUID, username: str) -> ProjectMemb
 
 @transaction_atomic_async
 async def update_project_membership(
-    membership: ProjectMembership, role_slug: str, user: User
+    membership: ProjectMembership, role_id: UUID, user: User
 ) -> ProjectMembership:
     user_role = user.project_role
 
     updated_membership = await memberships_services.update_membership(
-        membership=membership, role_slug=role_slug, user_role=user_role
+        membership=membership, role_id=role_id, user_role=user_role
     )
 
     await transaction_on_commit_async(
@@ -144,7 +146,7 @@ async def delete_project_membership(
 
 async def list_project_roles(project: Project) -> list[ProjectRole]:
     return await memberships_repositories.list_roles(
-        ProjectRole, filters={"project_id": project.id}
+        ProjectRole, filters={"project_id": project.id}, get_total_members=True
     )
 
 
@@ -153,11 +155,12 @@ async def list_project_roles(project: Project) -> list[ProjectRole]:
 ##########################################################
 
 
-async def get_project_role(project_id: UUID, slug: str) -> ProjectRole:
+async def get_project_role(role_id: UUID, get_total_members=False) -> ProjectRole:
     return await memberships_repositories.get_role(
         ProjectRole,
-        filters={"project_id": project_id, "slug": slug},
+        filters={"id": role_id},
         select_related=["project"],
+        get_total_members=get_total_members,
     )
 
 
@@ -175,7 +178,7 @@ async def create_project_role(
         permissions=permissions,
         project_id=project_id,
     )
-
+    role.total_members = 0
     # Emit event
     await transaction_on_commit_async(
         memberships_events.emit_event_when_project_role_is_created
@@ -229,20 +232,22 @@ async def update_project_role(
 async def delete_project_role(
     user: User,
     role: ProjectRole,
-    target_role_slug: str | None = None,
+    target_role_id: UUID | None = None,
 ) -> bool:
     if not role.editable:
         raise ex.NonEditableRoleError(f"Role {role.slug} is not editable")
     target_role = None
-    if target_role_slug is not None:
+    if target_role_id is not None:
         try:
-            target_role = await get_project_role(
-                project_id=role.project_id, slug=target_role_slug
-            )
+            target_role = await get_project_role(role_id=target_role_id)
         except ProjectRole.DoesNotExist as e:
             raise ex.NonExistingMoveToRole(
-                f"The role '{target_role_slug}' doesn't exist"
+                f"The role '{target_role_id}' doesn't exist"
             ) from e
+        if target_role.project_id != role.project_id:
+            raise ex.NonExistingMoveToRole(
+                f"The role '{target_role_id}' is in a different project"
+            )
         if target_role.id == role.id:
             raise ex.SameMoveToRole(
                 "The to-be-deleted role and the target-role cannot be the same"
@@ -262,7 +267,7 @@ async def delete_project_role(
             role=role,
         )
     except RestrictedError:
-        # TODO handle concurrency issue where target_role_slug was provided
+        # TODO handle concurrency issue where target_role_id was provided
         #  but a membership or invitation was created in the meantime
         raise ex.RequiredMoveToRole(
             "Some memberships or invitations use this role, you need to provide a role then can use instead"

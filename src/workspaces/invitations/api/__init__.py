@@ -35,7 +35,7 @@ from memberships.services.exceptions import (
     OwnerRoleNotAuthorisedError,
 )
 from permissions import check_permissions
-from workspaces.invitations import services as workspaces_invitations_services
+from workspaces.invitations import services as invitations_services
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.invitations.permissions import WorkspaceInvitationPermissionsCheck
 from workspaces.invitations.serializers import (
@@ -84,7 +84,7 @@ async def create_workspace_invitations(
     )
 
     try:
-        return await workspaces_invitations_services.create_workspace_invitations(
+        return await invitations_services.create_workspace_invitations(
             workspace=workspace,
             invitations=form.model_dump()["invitations"],
             invited_by=request.user,
@@ -103,7 +103,7 @@ async def create_workspace_invitations(
 @workspace_invit_router.get(
     "/workspaces/{workspace_id}/invitations",
     url_name="workspace.invitations.list",
-    summary="List workspace pending invitations",
+    summary="List workspace invitations",
     response={
         200: list[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
@@ -126,9 +126,7 @@ async def list_workspace_invitations(
         obj=workspace,
     )
 
-    return await workspaces_invitations_services.list_workspace_invitations(
-        workspace=workspace
-    )
+    return await invitations_services.list_workspace_invitations(workspace=workspace)
 
 
 # ##########################################################
@@ -137,9 +135,9 @@ async def list_workspace_invitations(
 
 
 @workspace_invit_router.get(
-    "/workspaces/invitations/{token}",
+    "/workspaces/invitations/by_token/{token}",
     url_name="workspace.invitations.get",
-    summary="Get public information about a workspace invitation",
+    summary="Get public workspace invitation information by token",
     response={
         200: PublicWorkspacePendingInvitationSerializer,
         400: ERROR_RESPONSE_400,
@@ -153,10 +151,10 @@ async def get_public_pending_workspace_invitation(
     request, token: str
 ) -> PublicWorkspacePendingInvitationSerializer:
     """
-    Get public information about a pending workspace invitation
+    Get public information about a pending workspace invitation using a token
     """
     try:
-        invitation = await workspaces_invitations_services.get_public_pending_workspace_invitation(
+        invitation = await invitations_services.get_public_pending_workspace_invitation(
             token=token
         )
     except BadInvitationTokenError as e:
@@ -173,7 +171,7 @@ async def get_public_pending_workspace_invitation(
 
 
 @workspace_invit_router.post(
-    "/workspaces/{workspace_id}/invitations/{invitation_id}/resend",
+    "/workspaces/invitations/{invitation_id}/resend",
     url_name="workspace.invitations.resend",
     summary="Resend workspace invitation",
     response={
@@ -187,20 +185,17 @@ async def get_public_pending_workspace_invitation(
 async def resend_workspace_invitation(
     request,
     invitation_id: Path[B64UUID],
-    workspace_id: Path[B64UUID],
 ) -> WorkspaceInvitation:
     """
     Resend invitation to a workspace
     """
-    invitation = await get_workspace_invitation_by_id_or_404(
-        workspace_id=workspace_id, invitation_id=invitation_id
-    )
+    invitation = await get_workspace_invitation_or_404(invitation_id=invitation_id)
     await check_permissions(
         permissions=WorkspaceInvitationPermissionsCheck.CREATE.value,
         user=request.user,
         obj=invitation.workspace,
     )
-    return await workspaces_invitations_services.resend_workspace_invitation(
+    return await invitations_services.resend_workspace_invitation(
         invitation=invitation, resent_by=request.user
     )
 
@@ -211,7 +206,7 @@ async def resend_workspace_invitation(
 
 
 @workspace_invit_router.post(
-    "/workspaces/{workspace_id}/invitations/{invitation_id}/revoke",
+    "/workspaces/invitations/{invitation_id}/revoke",
     url_name="workspace.invitations.revoke",
     summary="Revoke workspace invitation",
     response={
@@ -225,22 +220,91 @@ async def resend_workspace_invitation(
 async def revoke_workspace_invitation(
     request,
     invitation_id: Path[B64UUID],
-    workspace_id: Path[B64UUID],
 ) -> WorkspaceInvitation:
     """
     Revoke invitation in a workspace.
     """
-    invitation = await get_workspace_invitation_by_id_or_404(
-        workspace_id=workspace_id, invitation_id=invitation_id
+    invitation = await get_workspace_invitation_or_404(
+        invitation_id=invitation_id, select_related=["user", "workspace", "role"]
     )
     await check_permissions(
         permissions=WorkspaceInvitationPermissionsCheck.MODIFY.value,
         user=request.user,
         obj=invitation,
     )
-    return await workspaces_invitations_services.revoke_workspace_invitation(
+    return await invitations_services.revoke_workspace_invitation(
         invitation=invitation, revoked_by=request.user
     )
+
+
+# ##########################################################
+# # accept workspace invitation
+# ##########################################################
+
+
+@workspace_invit_router.post(
+    "/workspaces/invitations/by_token/{token}/accept",
+    url_name="workspace.invitations.accept",
+    summary="Accept workspace invitation by token",
+    response={
+        200: WorkspaceInvitationSerializer,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+    },
+    by_alias=True,
+)
+async def accept_workspace_invitation_by_token(
+    request, token: str
+) -> WorkspaceInvitation:
+    """
+    A user accepts a workspace invitation using an invitation token
+    """
+    try:
+        invitation = await get_workspace_invitation_by_token_or_404(
+            token=token, select_related=["user", "workspace", "role"]
+        )
+    except BadInvitationTokenError as e:
+        raise ex.BadRequest(str(e))
+
+    await check_permissions(
+        permissions=WorkspaceInvitationPermissionsCheck.ANSWER.value,
+        user=request.user,
+        obj=invitation,
+    )
+
+    return await invitations_services.accept_workspace_invitation(invitation=invitation)
+
+
+@workspace_invit_router.post(
+    "/workspaces/{workspace_id}/invitations/accept",
+    url_name="workspace.my.invitations.accept",
+    summary="Accept a workspace invitation for authenticated users",
+    response={
+        200: WorkspaceInvitationSerializer,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def accept_workspace_invitation_by_workspace(
+    request, workspace_id: Path[B64UUID]
+) -> WorkspaceInvitation:
+    """
+    An authenticated user accepts a workspace invitation
+    """
+    await check_permissions(
+        permissions=WorkspaceInvitationPermissionsCheck.ANSWER_SELF.value,
+        user=request.user,
+        obj=None,
+    )
+    invitation = await get_workspace_invitation_by_username_or_email_or_404(
+        workspace_id=workspace_id,
+        username_or_email=request.user.username,
+        select_related=["user", "workspace", "role"],
+    )
+    return await invitations_services.accept_workspace_invitation(invitation=invitation)
 
 
 ##########################################################
@@ -275,79 +339,7 @@ async def deny_workspace_invitation_by_workspace(
         workspace_id=workspace_id, username_or_email=request.user.username
     )
 
-    return await workspaces_invitations_services.deny_workspace_invitation(
-        invitation=invitation
-    )
-
-
-# ##########################################################
-# # accept workspace invitation
-# ##########################################################
-
-
-@workspace_invit_router.post(
-    "/workspaces/invitations/{token}/accept",
-    url_name="workspace.invitations.accept",
-    summary="Accept a workspace invitation using a token",
-    response={
-        200: WorkspaceInvitationSerializer,
-        400: ERROR_RESPONSE_400,
-        403: ERROR_RESPONSE_403,
-        404: ERROR_RESPONSE_404,
-    },
-    by_alias=True,
-)
-async def accept_workspace_invitation_by_token(
-    request, token: str
-) -> WorkspaceInvitation:
-    """
-    A user accepts a workspace invitation using an invitation token
-    """
-    try:
-        invitation = await get_workspace_invitation_by_token_or_404(token=token)
-    except BadInvitationTokenError as e:
-        raise ex.BadRequest(str(e))
-
-    await check_permissions(
-        permissions=WorkspaceInvitationPermissionsCheck.ANSWER.value,
-        user=request.user,
-        obj=invitation,
-    )
-
-    return await workspaces_invitations_services.accept_workspace_invitation(
-        invitation=invitation
-    )
-
-
-@workspace_invit_router.post(
-    "/workspaces/{workspace_id}/invitations/accept",
-    url_name="workspace.my.invitations.accept",
-    summary="Accept a workspace invitation for authenticated users",
-    response={
-        200: WorkspaceInvitationSerializer,
-        403: ERROR_RESPONSE_403,
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-async def accept_workspace_invitation_by_workspace(
-    request, workspace_id: Path[B64UUID]
-) -> WorkspaceInvitation:
-    """
-    An authenticated user accepts a workspace invitation
-    """
-    await check_permissions(
-        permissions=WorkspaceInvitationPermissionsCheck.ANSWER_SELF.value,
-        user=request.user,
-        obj=None,
-    )
-    invitation = await get_workspace_invitation_by_username_or_email_or_404(
-        workspace_id=workspace_id, username_or_email=request.user.username
-    )
-    return await workspaces_invitations_services.accept_workspace_invitation(
-        invitation=invitation
-    )
+    return await invitations_services.deny_workspace_invitation(invitation=invitation)
 
 
 ##########################################################
@@ -356,7 +348,7 @@ async def accept_workspace_invitation_by_workspace(
 
 
 @workspace_invit_router.patch(
-    "/workspaces/{workspace_id}/invitations/{invitation_id}",
+    "/workspaces/invitations/{invitation_id}",
     url_name="workspace.invitations.update",
     summary="Update workspace invitation",
     response={
@@ -370,14 +362,13 @@ async def accept_workspace_invitation_by_workspace(
 async def update_workspace_invitation(
     request,
     invitation_id: Path[B64UUID],
-    workspace_id: Path[B64UUID],
     form: UpdateInvitationValidator,
 ) -> WorkspaceInvitation:
     """
     Update workspace invitation
     """
-    invitation = await get_workspace_invitation_by_id_or_404(
-        workspace_id=workspace_id, invitation_id=invitation_id
+    invitation = await get_workspace_invitation_or_404(
+        invitation_id=invitation_id, select_related=["user", "workspace", "role"]
     )
     await check_permissions(
         permissions=WorkspaceInvitationPermissionsCheck.MODIFY.value,
@@ -386,9 +377,9 @@ async def update_workspace_invitation(
     )
 
     try:
-        return await workspaces_invitations_services.update_workspace_invitation(
+        return await invitations_services.update_workspace_invitation(
             invitation=invitation,
-            role_slug=form.role_slug,
+            role_id=form.role_id,
             user=request.user,
         )
     except OwnerRoleNotAuthorisedError as e:
@@ -401,25 +392,19 @@ async def update_workspace_invitation(
 
 
 async def get_workspace_invitation_by_username_or_email_or_404(
-    workspace_id: UUID, username_or_email: str
-) -> WorkspaceInvitation:
-    try:
-        invitation = await workspaces_invitations_services.get_workspace_invitation_by_username_or_email(
-            workspace_id=workspace_id, username_or_email=username_or_email
-        )
-    except WorkspaceInvitation.DoesNotExist as e:
-        raise ex.NotFoundError("Invitation not found") from e
-
-    return invitation
-
-
-async def get_workspace_invitation_by_id_or_404(
-    workspace_id: UUID, invitation_id: UUID
+    workspace_id: UUID,
+    username_or_email: str,
+    select_related: invitations_services.WorkspaceInvitationSelectRelated = [
+        "user",
+        "workspace",
+    ],
 ) -> WorkspaceInvitation:
     try:
         invitation = (
-            await workspaces_invitations_services.get_workspace_invitation_by_id(
-                workspace_id=workspace_id, invitation_id=invitation_id
+            await invitations_services.get_workspace_invitation_by_username_or_email(
+                workspace_id=workspace_id,
+                username_or_email=username_or_email,
+                select_related=select_related,
             )
         )
     except WorkspaceInvitation.DoesNotExist as e:
@@ -428,10 +413,33 @@ async def get_workspace_invitation_by_id_or_404(
     return invitation
 
 
-async def get_workspace_invitation_by_token_or_404(token: str) -> WorkspaceInvitation:
+async def get_workspace_invitation_or_404(
+    invitation_id: UUID,
+    select_related: invitations_services.WorkspaceInvitationSelectRelated = [
+        "user",
+        "workspace",
+    ],
+) -> WorkspaceInvitation:
     try:
-        invitation = await workspaces_invitations_services.get_workspace_invitation(
-            token=token
+        invitation = await invitations_services.get_workspace_invitation(
+            invitation_id=invitation_id, select_related=select_related
+        )
+    except WorkspaceInvitation.DoesNotExist as e:
+        raise ex.NotFoundError("Invitation not found") from e
+
+    return invitation
+
+
+async def get_workspace_invitation_by_token_or_404(
+    token: str,
+    select_related: invitations_services.WorkspaceInvitationSelectRelated = [
+        "user",
+        "workspace",
+    ],
+) -> WorkspaceInvitation:
+    try:
+        invitation = await invitations_services.get_workspace_invitation_by_token(
+            token=token, select_related=select_related
         )
     except WorkspaceInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation does not exist") from e

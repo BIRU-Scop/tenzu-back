@@ -16,9 +16,42 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from enum import Enum
 
-from base.i18n.choices import ScriptType, TextDirection
+from base.i18n import choices as i18n_choices
 from base.serializers import BaseModel
+from base.utils.enum import OrderedEnum
+
+
+class TextDirection(Enum):
+    RTL = "rtl"
+    LTR = "ltr"
+
+
+class ScriptType(OrderedEnum):
+    LATIN = "latin"
+    CYRILLIC = "cyrillic"
+    GREEK = "greek"
+    HEBREW = "hebrew"
+    ARABIC = "arabic"
+    CHINESE_AND_DEVS = "chinese_and_devs"
+    OTHER = "other"
+
+
+def get_script_type(identifier: str) -> ScriptType:
+    if identifier in i18n_choices.LATIN_LANGS:
+        return ScriptType.LATIN
+    if identifier in i18n_choices.CYRILLIC_LANGS:
+        return ScriptType.CYRILLIC
+    if identifier in i18n_choices.GREEK_LANGS:
+        return ScriptType.GREEK
+    if identifier in i18n_choices.HEBREW_LANGS:
+        return ScriptType.HEBREW
+    if identifier in i18n_choices.ARABIC_LANGS:
+        return ScriptType.ARABIC
+    if identifier in i18n_choices.CHINESE_AND_DEV_LANGS:
+        return ScriptType.CHINESE_AND_DEVS
+    return ScriptType.OTHER
 
 
 class LanguageSerializer(BaseModel):

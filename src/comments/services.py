@@ -70,7 +70,7 @@ async def list_paginated_comments(
     content_object: Model,
     offset: int,
     limit: int,
-    order_by: CommentOrderBy = [],
+    order_by: CommentOrderBy = ["-created_at"],
 ) -> tuple[Pagination, int, list[Comment]]:
     filters: CommentFilters = {"content_object": content_object}
     comments = await comments_repositories.list_comments(
@@ -95,9 +95,9 @@ async def list_paginated_comments(
 ##########################################################
 
 
-async def get_comment(id: UUID) -> Comment | None:
+async def get_comment(comment_id: UUID) -> Comment:
     return await comments_repositories.get_comment(
-        filters={"id": id},
+        filters={"id": comment_id},
         select_related=["created_by", "deleted_by"],
         prefetch_related=["content_object", "project", "workspace"],
         excludes={"deleted": True},

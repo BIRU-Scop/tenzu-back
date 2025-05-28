@@ -71,7 +71,7 @@ async def list_attachments(
 
 async def get_attachment(
     attachment_id: UUID,
-) -> Attachment | None:
+) -> Attachment:
     return await attachments_repositories.get_attachment(
         filters={"id": attachment_id},
         prefetch_related=["content_object", "project"],

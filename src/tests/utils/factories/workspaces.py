@@ -23,6 +23,7 @@ from memberships.choices import InvitationStatus
 from permissions import choices
 from workspaces.memberships.repositories import bulk_create_workspace_default_roles
 
+from ..utils import set_prefetched_qs_cache
 from .base import Factory, factory
 
 # WORKSPACE ROLE
@@ -112,12 +113,18 @@ class WorkspaceFactory(Factory):
     def memberships(obj, create, extracted, **kwargs):
         if not create:
             return
-        owner, _admin, _member, _readonly = async_to_sync(
+        owner, admin, member, readonly = async_to_sync(
             bulk_create_workspace_default_roles
         )(obj)
-
-        WorkspaceMembershipFactory.create(
+        owner_membership = WorkspaceMembershipFactory.create(
             user=obj.created_by, workspace=obj, role=owner
+        )
+        set_prefetched_qs_cache(
+            obj,
+            {
+                "roles": [owner, admin, member, readonly],
+                "memberships": [owner_membership],
+            },
         )
 
 

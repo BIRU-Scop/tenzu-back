@@ -24,13 +24,20 @@ from memberships.api.validators import (
     InvitationsValidator,
     _InvitationValidator,
 )
+from tests.utils.bad_params import NOT_EXISTING_B64ID
 from tests.utils.utils import check_validation_errors
 
 
 @pytest.mark.parametrize(
-    "email, username, role_slug, error_fields, expected_errors",
+    "email, username, role_id, error_fields, expected_errors",
     [
-        ("email@test.com", "username", "", ["roleSlug"], "Empty field is not allowed"),
+        (
+            "email@test.com",
+            "username",
+            "",
+            ["roleSlug"],
+            "Empty field is not allowed",
+        ),
         (
             "email@test.com",
             "username",
@@ -41,15 +48,15 @@ from tests.utils.utils import check_validation_errors
         (
             "not an email",
             "username",
-            "role",
+            NOT_EXISTING_B64ID,
             ["email"],
             "value is not a valid email address: An email address must have an @-sign.",
         ),
     ],
 )
-def test_email_role_slug(email, username, role_slug, error_fields, expected_errors):
+def test_email_role_id(email, username, role_id, error_fields, expected_errors):
     with pytest.raises(ValidationError) as validation_errors:
-        _InvitationValidator(email=email, username=username, role_slug=role_slug)
+        _InvitationValidator(email=email, username=username, role_id=role_id)
 
     expected_error_fields = error_fields
     expected_error_messages = expected_errors
@@ -61,7 +68,9 @@ def test_email_role_slug(email, username, role_slug, error_fields, expected_erro
 def test_validate_invitations_more_than_50():
     invitations = []
     for i in range(55):
-        invitations.append({"email": f"test{i}@email.com", "role_slug": "member"})
+        invitations.append(
+            {"email": f"test{i}@email.com", "role_id": NOT_EXISTING_B64ID}
+        )
 
     with pytest.raises(
         ValidationError, match=r"type=too_long.+input_type=list"

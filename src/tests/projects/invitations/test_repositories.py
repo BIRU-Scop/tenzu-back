@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 
 import pytest
 from asgiref.sync import sync_to_async
@@ -26,6 +25,7 @@ from memberships.choices import InvitationStatus
 from projects.invitations import repositories
 from projects.invitations.models import ProjectInvitation
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 
 pytestmark = pytest.mark.django_db
 
@@ -163,7 +163,7 @@ async def test_get_project_invitation_by_id() -> None:
 async def get_project_invitation_by_id_not_found() -> None:
     with pytest.raises(ProjectInvitation.DoesNotExist):
         await repositories.get_invitation(
-            ProjectInvitation, filters={"id": uuid.uuid1()}
+            ProjectInvitation, filters={"id": NOT_EXISTING_UUID}
         )
 
 
@@ -252,6 +252,7 @@ async def test_list_project_invitations_all_pending_users(project_template):
     response = await repositories.list_invitations(
         ProjectInvitation,
         filters={"project_id": project.id, "status": InvitationStatus.PENDING},
+        order_by=["user__full_name", "email"],
     )
     assert len(response) == 5
     assert response[0].email == user_a.email
@@ -259,6 +260,67 @@ async def test_list_project_invitations_all_pending_users(project_template):
     assert response[2].email == email_x
     assert response[3].email == email_y
     assert response[4].email == email_z
+
+
+async def test_list_project_invitations_pending_first(project_template):
+    project = await f.create_project(project_template)
+    member_role = await sync_to_async(project.roles.get)(slug="member")
+    email_a = "a@user.com"
+    email_b = "b@user.com"
+    email_x = "x@notauser.com"
+    email_y = "y@notauser.com"
+    email_z = "z@notauser.com"
+
+    user_a = await f.create_user(full_name="A", email=email_b)
+    await f.create_project_invitation(
+        email=email_b,
+        user=user_a,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.PENDING,
+    )
+    user_b = await f.create_user(full_name="B", email=email_a)
+    await f.create_project_invitation(
+        email=email_a,
+        user=user_b,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.ACCEPTED,
+    )
+    await f.create_project_invitation(
+        email=email_z,
+        user=None,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.PENDING,
+    )
+    await f.create_project_invitation(
+        email=email_x,
+        user=None,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.DENIED,
+    )
+    await f.create_project_invitation(
+        email=email_y,
+        user=None,
+        project=project,
+        role=member_role,
+        status=InvitationStatus.PENDING,
+    )
+
+    response = await repositories.list_invitations(
+        ProjectInvitation,
+        filters={"project_id": project.id},
+        order_by=["user__full_name", "email"],
+        order_priorities={"status": InvitationStatus.PENDING},
+    )
+    assert len(response) == 5
+    assert response[0].email == user_a.email
+    assert response[1].email == email_y
+    assert response[2].email == email_z
+    assert response[3].email == user_b.email
+    assert response[4].email == email_x
 
 
 async def test_list_project_invitations_single_pending_user(project_template):
@@ -396,12 +458,12 @@ async def test_bulk_update_project_invitations(project_template):
     updated_invitation1 = await repositories.get_invitation(
         ProjectInvitation, filters={"id": invitation1.id}
     )
-    assert updated_invitation1.role == role2
+    assert updated_invitation1.role_id == role2.id
 
     updated_invitation2 = await repositories.get_invitation(
         ProjectInvitation, filters={"id": invitation2.id}
     )
-    assert updated_invitation2.role == role2
+    assert updated_invitation2.role_id == role2.id
 
 
 ##########################################################

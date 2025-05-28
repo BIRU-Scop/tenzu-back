@@ -145,9 +145,10 @@ async def list_workspace_projects_for_user(
 ##########################################################
 
 
-async def get_project(id: UUID) -> Project:
+async def get_project(project_id: UUID, get_workspace=False) -> Project:
     return await projects_repositories.get_project(
-        project_id=id, select_related=["workspace"], prefetch_related=["workflows"]
+        project_id=project_id,
+        select_related=["workspace"] if get_workspace else [None],
     )
 
 
@@ -158,11 +159,14 @@ async def get_project_detail(
         user.project_role is not None
         and ProjectPermissions.VIEW_WORKFLOW in user.project_role.permissions
     ):
-        workflows = await workflows_repositories.list_workflows(
-            filters={
-                "project_id": project.id,
-            }
-        )
+        workflows = [
+            w
+            async for w in workflows_repositories.list_workflows_qs(
+                filters={
+                    "project_id": project.id,
+                }
+            ).values("id", "name", "slug", "project_id")
+        ]
     else:
         workflows = []
 
@@ -174,8 +178,7 @@ async def get_project_detail(
         color=project.color,
         logo=project.logo,
         landing_page=project.landing_page,
-        workspace=project.workspace,
-        workspace_id=project.workspace.id,
+        workspace_id=project.workspace_id,
         workflows=workflows,
         user_role=user.project_role,
         user_is_invited=user.is_invited or False,
@@ -268,7 +271,7 @@ async def delete_project(project: Project, deleted_by: User) -> bool:
         await transaction_on_commit_async(
             projects_events.emit_event_when_project_is_deleted
         )(
-            workspace=project.workspace,
+            workspace_id=project.workspace_id,
             project=project,
             deleted_by=deleted_by,
         )

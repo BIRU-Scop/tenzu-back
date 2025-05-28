@@ -532,8 +532,10 @@ async def _accept_project_invitation_from_token(
             pass  # TODO: Logging invitation is invalid
     if invitation_token:
         try:
-            invitation = await project_invitations_services.get_project_invitation(
-                token=invitation_token
+            invitation = (
+                await project_invitations_services.get_project_invitation_by_token(
+                    token=invitation_token
+                )
             )
         except (
             invitations_ex.BadInvitationTokenError,
@@ -564,8 +566,10 @@ async def _accept_workspace_invitation_from_token(
             pass  # TODO: Logging invitation is invalid
     if invitation_token:
         try:
-            invitation = await workspace_invitations_services.get_workspace_invitation(
-                token=invitation_token
+            invitation = (
+                await workspace_invitations_services.get_workspace_invitation_by_token(
+                    token=invitation_token
+                )
             )
         except (
             invitations_ex.BadInvitationTokenError,

@@ -45,6 +45,7 @@ from permissions import (
 from stories.comments import services as services
 from stories.comments.permissions import CommentPermissionsCheck
 from stories.stories.api import get_story_or_404
+from stories.stories.models import Story
 
 comments_router = Router()
 
@@ -75,7 +76,7 @@ async def create_story_comments(
     """
     Add a comment to a story
     """
-    story = await get_story_or_404(project_id=project_id, ref=ref)
+    story = await get_story_or_404(project_id=project_id, ref=ref, get_assignees=True)
     await check_permissions(
         permissions=CommentPermissionsCheck.CREATE.value, user=request.user, obj=story
     )
@@ -142,8 +143,8 @@ async def list_story_comments(
 
 
 @comments_router.patch(
-    "/projects/{project_id}/stories/{int:ref}/comments/{comment_id}",
-    url_name="project.story.comments.update",
+    "/stories/comments/{comment_id}",
+    url_name="story.comments.update",
     summary="Update story comment",
     response={
         200: CommentSerializer,
@@ -155,17 +156,13 @@ async def list_story_comments(
 )
 async def update_story_comments(
     request,
-    project_id: Path[B64UUID],
-    ref: Path[int],
     comment_id: Path[B64UUID],
     form: UpdateCommentValidator,
 ) -> Comment:
     """
     Update a story's comment
     """
-    comment = await get_story_comment_or_404(
-        comment_id=comment_id, project_id=project_id, ref=ref
-    )
+    comment = await get_story_comment_or_404(comment_id=comment_id)
     await check_permissions(
         permissions=CommentPermissionsCheck.MODIFY.value, user=request.user, obj=comment
     )
@@ -182,8 +179,8 @@ async def update_story_comments(
 
 
 @comments_router.delete(
-    "/projects/{project_id}/stories/{int:ref}/comments/{comment_id}",
-    url_name="project.story.comments.delete",
+    "/stories/comments/{comment_id}",
+    url_name="story.comments.delete",
     summary="Delete story comment",
     response={
         200: CommentSerializer,
@@ -195,16 +192,12 @@ async def update_story_comments(
 )
 async def delete_story_comment(
     request,
-    project_id: Path[B64UUID],
-    ref: Path[int],
     comment_id: Path[B64UUID],
 ) -> Comment:
     """
     Delete a comment
     """
-    comment = await get_story_comment_or_404(
-        comment_id=comment_id, project_id=project_id, ref=ref
-    )
+    comment = await get_story_comment_or_404(comment_id=comment_id)
     await check_permissions(
         permissions=CommentPermissionsCheck.DELETE.value, user=request.user, obj=comment
     )
@@ -221,15 +214,12 @@ async def delete_story_comment(
 
 async def get_story_comment_or_404(
     comment_id: UUID,
-    project_id: Path[B64UUID],
-    ref: int,
 ) -> Comment:
-    comment = await comments_services.get_comment(id=comment_id)
-    if (
-        comment is None
-        or comment.content_object.ref != ref
-        or comment.content_object.project_id != project_id
-    ):
-        raise ex.NotFoundError(f"Comment {comment_id} does not exist for given story")
+    try:
+        comment = await comments_services.get_comment(comment_id=comment_id)
+    except Comment.DoesNotExist as e:
+        raise ex.NotFoundError(f"Comment {comment_id} does not exist") from e
+    if not isinstance(comment.content_object, Story):
+        raise ex.NotFoundError(f"Comment {comment_id} is not a story comment")
 
     return comment

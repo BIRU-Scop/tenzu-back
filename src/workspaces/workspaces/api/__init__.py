@@ -123,7 +123,9 @@ async def get_workspace(
     """
     Get workspace detail by id.
     """
-    workspace = await get_workspace_or_404(workspace_id=workspace_id)
+    workspace = await get_workspace_or_404(
+        workspace_id=workspace_id, get_total_project=True
+    )
     await check_permissions(
         permissions=WorkspacePermissionsCheck.VIEW.value,
         user=request.user,
@@ -160,7 +162,7 @@ async def update_workspace(
     """
     Update workspace
     """
-    workspace = await get_workspace_or_404(workspace_id)
+    workspace = await get_workspace_or_404(workspace_id, get_total_project=True)
     await check_permissions(
         permissions=WorkspacePermissionsCheck.MODIFY.value,
         user=request.user,
@@ -213,9 +215,13 @@ async def delete_workspace(request, workspace_id: Path[B64UUID]) -> tuple[int, N
 ##########################################################
 
 
-async def get_workspace_or_404(workspace_id: UUID) -> Workspace:
+async def get_workspace_or_404(
+    workspace_id: UUID, get_total_project=False
+) -> Workspace:
     try:
-        workspace = await workspaces_services.get_workspace(workspace_id=workspace_id)
+        workspace = await workspaces_services.get_workspace(
+            workspace_id=workspace_id, get_total_project=get_total_project
+        )
     except Workspace.DoesNotExist:
         raise ex.NotFoundError(f"Workspace {workspace_id} does not exist")
 

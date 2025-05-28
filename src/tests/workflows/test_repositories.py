@@ -17,14 +17,15 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 from unittest import IsolatedAsyncioTestCase
 
 import pytest
 from asgiref.sync import sync_to_async
 
+from commons.ordering import DEFAULT_ORDER_OFFSET
 from projects.projects.models import Project
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from workflows import repositories
 from workflows.models import Workflow, WorkflowStatus
 
@@ -54,9 +55,12 @@ async def test_create_workflow(project_template):
 
 async def test_list_workflows_schemas_ok(project_template) -> None:
     project = await f.create_project(project_template)
-    workflows = await repositories.list_workflows(
-        filters={"project_id": project.id}, prefetch_related=["statuses"]
-    )
+    workflows = [
+        w
+        async for w in repositories.list_workflows_qs(
+            filters={"project_id": project.id}, prefetch_related=["statuses"]
+        )
+    ]
 
     assert len(workflows) == 1
     assert len(await _list_workflow_statuses(workflow=workflows[0])) == 4
@@ -65,7 +69,12 @@ async def test_list_workflows_schemas_ok(project_template) -> None:
 
 async def test_list_project_without_workflows_ok() -> None:
     project = await f.create_simple_project()
-    workflows = await repositories.list_workflows(filters={"project_id": project.id})
+    workflows = [
+        w
+        async for w in repositories.list_workflows_qs(
+            filters={"project_id": project.id}
+        )
+    ]
 
     assert len(workflows) == 0
 
@@ -125,7 +134,7 @@ async def test_delete_workflow_with_workflow_statuses_ok(project_template) -> No
     workflow = await f.create_workflow(project=project)
 
     delete_ret = await repositories.delete_workflow(filters={"id": workflow.id})
-    assert delete_ret == 4
+    assert delete_ret == 1
 
 
 ##########################################################
@@ -137,13 +146,22 @@ async def test_create_workflow_status():
     workflow = await f.create_workflow()
 
     workflow_status_res = await repositories.create_workflow_status(
-        name="workflow-status",
+        name="workflow-status1",
         color=1,
-        order=1,
         workflow=workflow,
     )
-    assert workflow_status_res.name == "workflow-status"
-    assert workflow_status_res.workflow == workflow
+    assert workflow_status_res.name == "workflow-status1"
+    assert workflow_status_res.workflow_id == workflow.id
+    assert workflow_status_res.order == DEFAULT_ORDER_OFFSET
+
+    workflow_status_res = await repositories.create_workflow_status(
+        name="workflow-status2",
+        color=2,
+        workflow=workflow,
+    )
+    assert workflow_status_res.name == "workflow-status2"
+    assert workflow_status_res.workflow_id == workflow.id
+    assert workflow_status_res.order == DEFAULT_ORDER_OFFSET * 2
 
 
 ##########################################################
@@ -230,9 +248,8 @@ async def test_list_statuses_to_reorder_bad_ids(project_template) -> None:
     project = await f.create_project(project_template)
     workflow = await sync_to_async(project.workflows.first)()
     st_ids = [s.id for s in await _list_workflow_statuses(workflow=workflow)]
-    non_existing_uuid = uuid.uuid1()
 
-    statuses = [st_ids[0], non_existing_uuid]
+    statuses = [st_ids[0], NOT_EXISTING_UUID]
     statuses = await repositories.list_workflow_statuses_to_reorder(
         workflow_id=workflow.id, ids=statuses
     )
@@ -293,11 +310,10 @@ async def test_get_workflow_status_ok(project_template) -> None:
 async def test_get_project_without_workflow_statuses_ok(project_template) -> None:
     project = await f.create_project(project_template)
     workflows = await _list_workflows(project=project)
-    bad_status_id = uuid.uuid1()
 
     with pytest.raises(WorkflowStatus.DoesNotExist):
         await repositories.get_workflow_status(
-            status_id=bad_status_id,
+            status_id=NOT_EXISTING_UUID,
             filters={
                 "workflow_id": workflows[0].id,
             },

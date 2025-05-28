@@ -39,7 +39,6 @@ WorkflowSlug = Annotated[
 
 class CreateWorkflowValidator(BaseModel):
     name: WorkflowName
-    project_id: B64UUID
 
 
 class DeleteWorkflowQuery(BaseModel):

@@ -73,7 +73,7 @@ async def create_story_assignment(
     return await story_assignments_services.create_story_assignment(
         project_id=project_id,
         story=story,
-        username=form.username,
+        user_id=form.user_id,
         created_by=request.user,
     )
 
@@ -84,7 +84,7 @@ async def create_story_assignment(
 
 
 @assignments_router.delete(
-    "/projects/{project_id}/stories/{int:ref}/assignments/{username}",
+    "/projects/{project_id}/stories/{int:ref}/assignments/{user_id}",
     url_name="project.story.assignments.delete",
     summary="Delete story assignment",
     response={
@@ -99,13 +99,12 @@ async def delete_story_assignment(
     request,
     project_id: Path[B64UUID],
     ref: Path[int],
-    username: Path[str],
+    user_id: Path[B64UUID],
 ) -> tuple[int, None]:
     """
     Delete a story assignment
     """
-    story_assignment = await get_story_assignment_or_404(project_id, ref, username)
-    story = await get_story_or_404(project_id, ref)
+    story_assignment = await get_story_assignment_or_404(project_id, ref, user_id)
     await check_permissions(
         permissions=StoryPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -113,7 +112,7 @@ async def delete_story_assignment(
     )
 
     await story_assignments_services.delete_story_assignment(
-        story_assignment=story_assignment, story=story, deleted_by=request.user
+        story_assignment=story_assignment, deleted_by=request.user
     )
     return 204, None
 
@@ -124,12 +123,12 @@ async def delete_story_assignment(
 
 
 async def get_story_assignment_or_404(
-    project_id: UUID, ref: int, username: str
+    project_id: UUID, ref: int, user_id: UUID
 ) -> StoryAssignment:
     story_assignment = await story_assignments_services.get_story_assignment(
-        project_id=project_id, ref=ref, username=username
+        project_id=project_id, ref=ref, user_id=user_id
     )
     if story_assignment is None:
-        raise ex.NotFoundError(f"{username} is not assigned to story {ref}")
+        raise ex.NotFoundError(f"User {user_id} is not assigned to story {ref}")
 
     return story_assignment

@@ -40,7 +40,7 @@ async def test_create_notification():
     user3 = await f.create_user()
 
     notifications = await repositories.create_notifications(
-        owners=[user1, user2],
+        owner_ids=[user1.id, user2.id],
         created_by=user3,
         notification_type="test_notification",
         content={"msg": "test"},
@@ -50,8 +50,8 @@ async def test_create_notification():
     assert notifications[0].created_by == notifications[1].created_by == user3
     assert notifications[0].type == notifications[1].type == "test_notification"
     assert notifications[0].content == notifications[1].content == {"msg": "test"}
-    assert notifications[0].owner == user1
-    assert notifications[1].owner == user2
+    assert notifications[0].owner_id == user1.id
+    assert notifications[1].owner_id == user2.id
 
 
 ##########################################################

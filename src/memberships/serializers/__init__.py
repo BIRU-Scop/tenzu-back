@@ -15,6 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import datetime
 
 from pydantic import ConfigDict, EmailStr, field_validator, validator
 from pydantic_core.core_schema import ValidationInfo
@@ -25,6 +26,7 @@ from users.serializers.nested import UserNestedSerializer
 
 
 class RoleSerializer(BaseModel):
+    id: UUIDB64
     name: str
     slug: str
     is_owner: bool
@@ -38,23 +40,15 @@ class InvitationBaseSerializer(BaseModel):
     id: UUIDB64
     status: InvitationStatus
     user: UserNestedSerializer | None = None
-    role: RoleSerializer
+    role_id: UUIDB64
     email: EmailStr
-
-
-class _PrivateEmailInvitationSerializer(InvitationBaseSerializer):
-    email: EmailStr | None
-    model_config = ConfigDict(from_attributes=True)
-
-    @field_validator("email", mode="after")
-    @classmethod
-    def avoid_to_publish_email_if_user(cls, value: str, info: ValidationInfo) -> str:
-        user = info.data.get("user")
-        return None if user else value
+    resent_at: datetime.datetime | None
+    created_at: datetime.datetime
+    num_emails_sent: int
 
 
 class CreateInvitationsSerializer(BaseModel):
-    invitations: list[_PrivateEmailInvitationSerializer]
+    invitations: list[InvitationBaseSerializer]
     already_members: int
     model_config = ConfigDict(from_attributes=True)
 

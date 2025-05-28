@@ -20,6 +20,7 @@ import uuid
 
 from asgiref.sync import sync_to_async
 
+from ..utils import set_prefetched_qs_cache
 from .base import Factory, factory
 
 ####################################################
@@ -75,13 +76,15 @@ class StoryFactory(Factory):
         if extracted is None:
             return
         if not create:
-            # hack to fill prefetch cache so that no db query will be needed to fetch assignees
-            self._prefetched_objects_cache = {
-                "assignees": [
-                    StoryAssignmentFactory.build(story=self).user
-                    for _ in range(extracted)
-                ]
-            }
+            set_prefetched_qs_cache(
+                self,
+                {
+                    "assignees": [
+                        StoryAssignmentFactory.build(story=self).user
+                        for _ in range(extracted)
+                    ]
+                },
+            )
 
     @factory.post_generation
     def assignee_ids(self, create, extracted, **kwargs):

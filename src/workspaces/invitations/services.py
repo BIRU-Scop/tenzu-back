@@ -29,7 +29,11 @@ from emails.emails import Emails
 from emails.tasks import send_email
 from memberships import services as memberships_services
 from memberships.choices import InvitationStatus
-from memberships.repositories import WorkspaceInvitationFilters, exists_invitation
+from memberships.repositories import (
+    WorkspaceInvitationFilters,
+    WorkspaceInvitationSelectRelated,
+    exists_invitation,
+)
 from memberships.services import exceptions as ex
 from memberships.services import (  # noqa
     has_pending_invitation,
@@ -70,7 +74,9 @@ async def create_workspace_invitations(
         ),
     )
     for invitation in invitations_to_send:
-        await send_workspace_invitation_email(invitation=invitation)
+        await send_workspace_invitation_email(
+            invitation=invitation, workspace=workspace, sender=invited_by
+        )
 
     if invitations_to_publish:
         await invitations_events.emit_event_when_workspace_invitations_are_created(
@@ -95,7 +101,9 @@ async def list_workspace_invitations(
         filters={
             "workspace_id": workspace.id,
         },
-        select_related=["user", "workspace", "role"],
+        select_related=["user", "workspace"],
+        order_by=["user__full_name", "email"],
+        order_priorities={"status": InvitationStatus.PENDING},
     )
 
 
@@ -104,26 +112,10 @@ async def list_workspace_invitations(
 ##########################################################
 
 
-async def get_workspace_invitation(
-    token: str, filters: WorkspaceInvitationFilters = {}
-) -> WorkspaceInvitation | None:
-    try:
-        invitation_token = WorkspaceInvitationToken(token=token)
-    except TokenError:
-        raise ex.BadInvitationTokenError("Invalid or expired token")
-
-    invitation_data = cast(WorkspaceInvitationFilters, invitation_token.object_id_data)
-    return await invitations_repositories.get_invitation(
-        WorkspaceInvitation,
-        filters={**invitation_data, **filters},
-        select_related=["user", "workspace", "role"],
-    )
-
-
 async def get_public_pending_workspace_invitation(
     token: str,
 ) -> PublicWorkspacePendingInvitationSerializer | None:
-    invitation = await get_workspace_invitation(
+    invitation = await get_workspace_invitation_by_token(
         token=token, filters={"status": InvitationStatus.PENDING}
     )
     available_logins = (
@@ -139,26 +131,56 @@ async def get_public_pending_workspace_invitation(
     )
 
 
+async def get_workspace_invitation_by_token(
+    token: str,
+    filters: WorkspaceInvitationFilters = {},
+    select_related: WorkspaceInvitationSelectRelated = [
+        "user",
+        "workspace",
+    ],
+) -> WorkspaceInvitation:
+    try:
+        invitation_token = WorkspaceInvitationToken(token=token)
+    except TokenError:
+        raise ex.BadInvitationTokenError("Invalid or expired token")
+
+    invitation_data = cast(WorkspaceInvitationFilters, invitation_token.object_id_data)
+    return await invitations_repositories.get_invitation(
+        WorkspaceInvitation,
+        filters={**invitation_data, **filters},
+        select_related=select_related,
+    )
+
+
 async def get_workspace_invitation_by_username_or_email(
-    workspace_id: UUID, username_or_email: str
-) -> WorkspaceInvitation | None:
+    workspace_id: UUID,
+    username_or_email: str,
+    select_related: WorkspaceInvitationSelectRelated = [
+        "user",
+        "workspace",
+    ],
+) -> WorkspaceInvitation:
     return await invitations_repositories.get_invitation(
         WorkspaceInvitation,
         filters={"workspace_id": workspace_id},
         q_filter=invitations_repositories.invitation_username_or_email_query(
             username_or_email
         ),
-        select_related=["user", "workspace", "role"],
+        select_related=select_related,
     )
 
 
-async def get_workspace_invitation_by_id(
-    workspace_id: UUID, invitation_id: UUID
-) -> WorkspaceInvitation | None:
+async def get_workspace_invitation(
+    invitation_id: UUID,
+    select_related: WorkspaceInvitationSelectRelated = [
+        "user",
+        "workspace",
+    ],
+) -> WorkspaceInvitation:
     return await invitations_repositories.get_invitation(
         WorkspaceInvitation,
-        filters={"workspace_id": workspace_id, "id": invitation_id},
-        select_related=["user", "workspace", "role"],
+        filters={"id": invitation_id},
+        select_related=select_related,
     )
 
 
@@ -182,12 +204,12 @@ async def update_user_workspaces_invitations(user: User) -> None:
 
 
 async def update_workspace_invitation(
-    invitation: WorkspaceInvitation, role_slug: str, user: User
+    invitation: WorkspaceInvitation, role_id: UUID, user: User
 ) -> WorkspaceInvitation:
     user_role = user.workspace_role
     updated_invitation = await memberships_services.update_invitation(
         invitation=invitation,
-        role_slug=role_slug,
+        role_id=role_id,
         user_role=user_role,
     )
     await transaction_on_commit_async(
@@ -224,7 +246,9 @@ async def accept_workspace_invitation_from_token(
     token: str, user: User
 ) -> WorkspaceInvitation:
     try:
-        invitation = await get_workspace_invitation(token=token)
+        invitation = await get_workspace_invitation_by_token(
+            token=token, select_related=["user", "workspace", "role"]
+        )
 
     except WorkspaceInvitation.DoesNotExist as e:
         raise ex.InvitationDoesNotExistError("Invitation does not exist") from e
@@ -248,7 +272,9 @@ async def resend_workspace_invitation(
     )
     if resent_invitation is not None:
         await send_workspace_invitation_email(
-            invitation=resent_invitation, is_resend=True
+            invitation=resent_invitation,
+            workspace=invitation.workspace,
+            sender=resent_by,
         )
         return resent_invitation
     return invitation
@@ -298,10 +324,9 @@ async def revoke_workspace_invitation(
 
 async def send_workspace_invitation_email(
     invitation: WorkspaceInvitation,
-    is_resend: bool | None = False,
+    workspace: Workspace,
+    sender: User,
 ) -> None:
-    workspace = invitation.workspace
-    sender = invitation.resent_by if is_resend else invitation.invited_by
     receiver = invitation.user
     email = receiver.email if receiver else invitation.email
     invitation_token = await _generate_workspace_invitation_token(invitation)

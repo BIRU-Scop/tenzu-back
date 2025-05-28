@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from operator import attrgetter
 
 from asgiref.sync import async_to_sync, sync_to_async
 
@@ -23,6 +24,7 @@ from memberships.choices import InvitationStatus
 from permissions import choices
 from projects.projects import repositories as projects_repositories
 
+from ..utils import set_prefetched_qs_cache
 from .base import Factory, factory
 
 # PROJECT ROLE
@@ -125,13 +127,16 @@ def create_project(template, **kwargs):
     if "workspace" in kwargs and "created_by" not in kwargs:
         kwargs["created_by"] = kwargs["workspace"].created_by
     project = ProjectFactory.create(**kwargs)
-    async_to_sync(projects_repositories.apply_template_to_project)(
+    roles = async_to_sync(projects_repositories.apply_template_to_project)(
         project=project, template=template
     )
 
-    owner_role = project.roles.get(is_owner=True)
-    ProjectMembershipFactory.create(
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    owner_membership = ProjectMembershipFactory.create(
         user=project.created_by, project=project, role=owner_role
+    )
+    set_prefetched_qs_cache(
+        project, {"roles": roles, "memberships": [owner_membership]}
     )
 
     return project

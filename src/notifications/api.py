@@ -123,7 +123,7 @@ async def mark_all_my_notification_as_read(
 
 
 @notifications_router.post(
-    "/notifications/{id}/read",
+    "/notifications/{notification_id}/read",
     url_name="notifications.mark.read",
     summary="Mark notification as read",
     response={
@@ -136,12 +136,12 @@ async def mark_all_my_notification_as_read(
 )
 async def mark_my_notification_as_read(
     request,
-    id: Path[B64UUID],
+    notification_id: Path[B64UUID],
 ) -> Notification:
     """
     Mark a notification as read.
     """
-    notification = await get_notification_or_404(notification_id=id)
+    notification = await get_notification_or_404(notification_id=notification_id)
     await check_permissions(
         permissions=NotificationPermissionsCheck.MODIFY.value,
         user=request.user,
@@ -149,7 +149,7 @@ async def mark_my_notification_as_read(
     )
     return (
         await notifications_services.mark_user_notifications_as_read(
-            user=request.user, notification_id=id
+            user=request.user, notification_id=notification_id
         )
     )[0]
 

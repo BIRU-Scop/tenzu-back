@@ -137,15 +137,11 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
 ##########################################################
 
 
-async def get_workspace(
-    workspace_id: UUID,
-) -> Workspace:
-    qs = (
-        Workspace.objects.all()
-        .annotate(total_projects=Count("projects"))
-        .filter(id=workspace_id)
-    )
-    return await qs.aget()
+async def get_workspace(workspace_id: UUID, get_total_project=False) -> Workspace:
+    qs = Workspace.objects.all()
+    if get_total_project:
+        qs = qs.annotate(total_projects=Count("projects"))
+    return await qs.aget(id=workspace_id)
 
 
 ##########################################################

@@ -17,12 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 
 import pytest
 
 from memberships.choices import InvitationStatus
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from workspaces.invitations import repositories
 from workspaces.invitations.models import WorkspaceInvitation
 
@@ -120,6 +120,7 @@ async def test_list_workspace_invitations_all_pending_users():
             "workspace_id": workspace.id,
             "status": InvitationStatus.PENDING,
         },
+        order_by=["user__full_name", "email"],
     )
     assert len(response) == 5
     assert response[0].email == user_a.email
@@ -127,6 +128,63 @@ async def test_list_workspace_invitations_all_pending_users():
     assert response[2].email == email_x
     assert response[3].email == email_y
     assert response[4].email == email_z
+
+
+async def test_list_workspace_invitations_pending_first():
+    workspace = await f.create_workspace()
+    user_a = await f.create_user(full_name="A", email="a@user.com")
+    user_b = await f.create_user(full_name="B", email="b@user.com")
+    email_a = user_a.email
+    email_b = user_b.email
+    email_x = "x@notauser.com"
+    email_y = "y@notauser.com"
+    email_z = "z@notauser.com"
+
+    await f.create_workspace_invitation(
+        email=email_a,
+        user=user_a,
+        workspace=workspace,
+        status=InvitationStatus.PENDING,
+    )
+    await f.create_workspace_invitation(
+        email=email_b,
+        user=user_b,
+        workspace=workspace,
+        status=InvitationStatus.REVOKED,
+    )
+    await f.create_workspace_invitation(
+        email=email_z,
+        user=None,
+        workspace=workspace,
+        status=InvitationStatus.PENDING,
+    )
+    await f.create_workspace_invitation(
+        email=email_x,
+        user=None,
+        workspace=workspace,
+        status=InvitationStatus.ACCEPTED,
+    )
+    await f.create_workspace_invitation(
+        email=email_y,
+        user=None,
+        workspace=workspace,
+        status=InvitationStatus.PENDING,
+    )
+
+    response = await repositories.list_invitations(
+        WorkspaceInvitation,
+        filters={
+            "workspace_id": workspace.id,
+        },
+        order_by=["user__full_name", "email"],
+        order_priorities={"status": InvitationStatus.PENDING},
+    )
+    assert len(response) == 5
+    assert response[0].email == user_a.email
+    assert response[1].email == email_y
+    assert response[2].email == email_z
+    assert response[3].email == user_b.email
+    assert response[4].email == email_x
 
 
 async def test_list_workspace_invitations_single_pending_user():
@@ -303,7 +361,7 @@ async def test_get_workspace_invitation_by_id() -> None:
 async def get_workspace_invitation_by_id_not_found() -> None:
     with pytest.raises(WorkspaceInvitation.DoesNotExist):
         await repositories.get_invitation(
-            WorkspaceInvitation, filters={"id": uuid.uuid1()}
+            WorkspaceInvitation, filters={"id": NOT_EXISTING_UUID}
         )
 
 

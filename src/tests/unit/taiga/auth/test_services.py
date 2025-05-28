@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 from unittest.mock import Mock, patch
 
 import pytest
@@ -26,6 +25,7 @@ from auth import services as auth_serv
 from auth.services import exceptions as ex
 from ninja_jwt.tokens import AccessToken, RefreshToken
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from users.models import User
 
 ##########################################################
@@ -176,7 +176,7 @@ async def test_authenticate_error_inactive_user():
 
 
 async def test_deny_refresh_token_success():
-    user1 = f.build_user(id=uuid.uuid1(), is_active=True)
+    user1 = f.build_user(id=NOT_EXISTING_UUID, is_active=True)
     token = Mock()  # this is the code of the future refresh_token
 
     with patch("tokens.base.tokens_services", autospec=True) as fake_tokens_services:
@@ -196,7 +196,7 @@ async def test_deny_refresh_token_success():
 
 
 async def test_deny_refresh_token_error_bad_refresh_token():
-    user1 = f.build_user(id=uuid.uuid1(), is_active=True)
+    user1 = f.build_user(id=NOT_EXISTING_UUID, is_active=True)
     invalid_token = "invalid_token"
 
     with patch("tokens.base.tokens_services", autospec=True) as fake_tokens_services:
@@ -207,8 +207,8 @@ async def test_deny_refresh_token_error_bad_refresh_token():
 
 
 async def test_deny_refresh_token_error_unauthorized_user():
-    user1 = f.build_user(id=uuid.uuid1(), is_active=True)
-    user2 = f.build_user(id=uuid.uuid1(), is_active=True)
+    user1 = f.build_user(id=NOT_EXISTING_UUID, is_active=True)
+    user2 = f.build_user(id=NOT_EXISTING_UUID, is_active=True)
 
     with patch("tokens.base.tokens_services", autospec=True) as fake_tokens_services:
         fake_tokens_services.token_is_denied.return_value = False

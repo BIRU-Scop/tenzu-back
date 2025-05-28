@@ -18,7 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 
 import functools
-import operator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Final, Generator
@@ -27,10 +26,7 @@ from babel import UnknownLocaleError, localedata
 from babel.core import Locale, get_locale_identifier, parse_locale
 from babel.support import Translations
 
-from base.i18n import choices as i18n_choices
-from base.i18n.choices import ScriptType, TextDirection
 from base.i18n.exceptions import UnknownLocaleIdentifierError
-from base.i18n.schemas import LanguageSchema
 
 # NOTE: There are two concepts that must be differentiated: the code and the identifier of a Locale object.
 #
@@ -45,19 +41,6 @@ ROOT_DIR: Final[Path] = Path(__file__).resolve().parent.parent.parent  # src/ten
 TRANSLATION_DIRECTORY: Final[Path] = ROOT_DIR.joinpath("locale")
 FALLBACK_LOCALE_CODE: Final[str] = "en-US"
 FALLBACK_LOCALE: Final[Locale] = Locale.parse(FALLBACK_LOCALE_CODE, sep="-")
-
-
-def get_locale_code(identifier_or_locale: str | Locale) -> str:
-    """
-    To identify a Locale we will use its "code", defined in CLDR.core, using `"-"` as a separator. This method returns
-    the code that identifies a Locale instance. Valid codes are: en, en-US or zh-Hans, for example.
-
-    :param identifier_or_locale: a locale object or identifier (like a code but with `"_"` as separator)
-    :type identifier_or_locale: str | Locale
-    :return a valid Locale code
-    :rtype str
-    """
-    return get_locale_identifier(parse_locale(str(identifier_or_locale)), sep="-")
 
 
 class I18N:
@@ -77,6 +60,18 @@ class I18N:
         Initialize translation with the current config language.
         """
         self.reset_lang()
+
+    def get_locale_code(self, identifier_or_locale: str | Locale) -> str:
+        """
+        To identify a Locale we will use its "code", defined in CLDR.core, using `"-"` as a separator. This method returns
+        the code that identifies a Locale instance. Valid codes are: en, en-US or zh-Hans, for example.
+
+        :param identifier_or_locale: a locale object or identifier (like a code but with `"_"` as separator)
+        :type identifier_or_locale: str | Locale
+        :return a valid Locale code
+        :rtype str
+        """
+        return get_locale_identifier(parse_locale(str(identifier_or_locale)), sep="-")
 
     def _get_locale(self, code: str) -> Locale | None:
         """
@@ -184,7 +179,7 @@ class I18N:
         locales = []
         for p in TRANSLATION_DIRECTORY.glob("*"):
             if p.is_dir():
-                code = get_locale_code(p.parts[-1])
+                code = self.get_locale_code(p.parts[-1])
                 if locale := self._get_locale(code):
                     locales.append(locale)
 
@@ -216,7 +211,7 @@ class I18N:
         :rtype list[str]
         """
         locale_ids = [
-            get_locale_code(loc_id) for loc_id in localedata.locale_identifiers()
+            self.get_locale_code(loc_id) for loc_id in localedata.locale_identifiers()
         ]
         locale_ids.sort()
         return locale_ids
@@ -229,50 +224,7 @@ class I18N:
         :return a list of locale codes
         :rtype list[str]
         """
-        return [get_locale_code(loc) for loc in self.locales]
-
-    @functools.cached_property
-    def available_languages_info(self) -> list[LanguageSchema]:
-        """
-        List with the info for all the available languages.
-
-        The languages order will be as follow:
-
-        - First for the writing system (alphabet or script type) in this order: Latin, Cyrillic, Greek, Hebrew, Arabic,
-          Chinese and derivatives, and others.
-        - Second alphabetically for its language name.
-
-        :return a list of `LanguageSchema` objects
-        :rtype list[tenzu.base.i18n.schemas.LanguageSchema]
-        """
-        from django.conf import settings
-
-        langs: list[LanguageSchema] = []
-        for loc in i18n.locales:
-            code = get_locale_code(loc)
-            script_type = i18n_choices.get_script_type(loc.language)
-            name = (
-                loc.display_name.title()
-                if loc.display_name and script_type is ScriptType.LATIN
-                else loc.display_name or code
-            )
-            english_name = loc.english_name or code
-            text_direction = TextDirection(loc.text_direction)
-            is_default = code == settings.LANGUAGE_CODE
-
-            langs.append(
-                LanguageSchema(
-                    code=code,
-                    name=name,
-                    english_name=english_name,
-                    text_direction=text_direction,
-                    is_default=is_default,
-                    script_type=script_type,
-                )
-            )
-
-        langs.sort(key=operator.attrgetter("script_type", "name"))
-        return langs
+        return [self.get_locale_code(loc) for loc in self.locales]
 
 
 i18n = I18N()

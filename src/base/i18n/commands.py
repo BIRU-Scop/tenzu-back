@@ -27,7 +27,6 @@ from base.i18n import (
     FALLBACK_LOCALE_CODE,
     ROOT_DIR,
     TRANSLATION_DIRECTORY,
-    get_locale_code,
     i18n,
 )
 from base.utils import pprint
@@ -53,7 +52,7 @@ def list_languages() -> None:
     table.add_column("Extra", style="italic")
 
     for loc in i18n.locales:
-        code = get_locale_code(loc)
+        code = i18n.get_locale_code(loc)
         name = loc.english_name
         language = loc.language_name
         territory = loc.territory_name

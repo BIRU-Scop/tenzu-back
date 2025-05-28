@@ -16,7 +16,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-import uuid
 
 import pytest
 
@@ -27,6 +26,7 @@ from projects.memberships import repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects.models import Project
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 
 pytestmark = pytest.mark.django_db
 
@@ -44,6 +44,7 @@ async def test_create_project_membership(project_template):
     membership = await repositories.create_project_membership(
         user=user, project=project, role=role
     )
+    await project.arefresh_from_db(fields=["memberships"])
     memberships = [m async for m in project.memberships.all()]
     assert membership in memberships
 
@@ -124,7 +125,7 @@ async def test_get_project_membership_doesnotexist():
     with pytest.raises(ProjectMembership.DoesNotExist):
         await repositories.get_membership(
             ProjectMembership,
-            filters={"user_id": uuid.uuid1(), "project_id": uuid.uuid1()},
+            filters={"user_id": NOT_EXISTING_UUID, "project_id": NOT_EXISTING_UUID},
         )
 
 
@@ -377,6 +378,13 @@ async def test_list_project_roles(project_template):
     res = await repositories.list_roles(ProjectRole, filters={"project_id": project.id})
     assert len(res) == 4
     assert sum(1 for role in res if role.is_owner) == 1
+    assert all(not hasattr(role, "total_members") for role in res)
+    res = await repositories.list_roles(
+        ProjectRole, filters={"project_id": project.id}, get_total_members=True
+    )
+    assert len(res) == 4
+    assert res[0].total_members == 1
+    assert all(role.total_members == 0 for role in res[1:])
 
 
 ##########################################################

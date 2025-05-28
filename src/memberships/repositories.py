@@ -59,6 +59,7 @@ ProjectMembershipSelectRelated = list[
         "role",
         "user",
     ]
+    | None
 ]
 WorkspaceMembershipSelectRelated = list[
     Literal[
@@ -66,6 +67,7 @@ WorkspaceMembershipSelectRelated = list[
         "role",
         "user",
     ]
+    | None
 ]
 MembershipSelectRelated = (
     ProjectMembershipSelectRelated | WorkspaceMembershipSelectRelated
@@ -95,8 +97,8 @@ class WorkspaceRoleFilters(_RoleFilters, total=False):
 
 RoleFilters = ProjectRoleFilters | WorkspaceRoleFilters
 
-ProjectRoleSelectRelated = list[Literal["project",]]
-WorkspaceRoleSelectRelated = list[Literal["workspace",]]
+ProjectRoleSelectRelated = list[Literal["project",] | None]
+WorkspaceRoleSelectRelated = list[Literal["workspace",] | None]
 RoleSelectRelated = ProjectRoleSelectRelated | WorkspaceRoleSelectRelated
 TR = TypeVar("TR", bound=Role)
 
@@ -133,6 +135,7 @@ ProjectInvitationSelectRelated = list[
         "project__workspace",
         "invited_by",
     ]
+    | None
 ]
 WorkspaceInvitationSelectRelated = list[
     Literal[
@@ -141,6 +144,7 @@ WorkspaceInvitationSelectRelated = list[
         "workspace",
         "invited_by",
     ]
+    | None
 ]
 InvitationSelectRelated = (
     ProjectInvitationSelectRelated | WorkspaceInvitationSelectRelated
@@ -162,7 +166,7 @@ TI = TypeVar("TI", bound=Invitation)
 async def list_memberships(
     model: type[TM],
     filters: MembershipFilters = {},
-    select_related: MembershipSelectRelated = [],
+    select_related: MembershipSelectRelated = [None],
     order_by: MembershipOrderBy = ["user__full_name"],
     offset: int | None = None,
     limit: int | None = None,
@@ -289,8 +293,11 @@ async def list_roles(
     filters: RoleFilters = {},
     offset: int | None = None,
     limit: int | None = None,
+    get_total_members=False,
 ) -> list[TR]:
     qs = model.objects.all().filter(**filters)
+    if get_total_members:
+        qs = qs.annotate(total_members=Count("memberships"))
 
     if limit is not None and offset is not None:
         limit += offset
@@ -306,9 +313,12 @@ async def list_roles(
 async def get_role(
     model: type[TR],
     filters: RoleFilters = {},
-    select_related: RoleSelectRelated = [],
+    select_related: RoleSelectRelated = [None],
+    get_total_members=False,
 ) -> TR:
     qs = model.objects.all().filter(**filters).select_related(*select_related)
+    if get_total_members:
+        qs = qs.annotate(total_members=Count("memberships"))
     return await qs.aget()
 
 
@@ -350,15 +360,31 @@ async def list_invitations(
     filters: InvitationFilters = {},
     offset: int | None = None,
     limit: int | None = None,
-    select_related: InvitationSelectRelated = [],
-    order_by: InvitationOrderBy = ["user__full_name", "email"],
+    select_related: InvitationSelectRelated = [None],
+    order_by: InvitationOrderBy = [],
+    order_priorities: InvitationFilters = {},
 ) -> list[TI]:
-    qs = (
-        model.objects.all()
-        .filter(**filters)
-        .select_related(*select_related)
-        .order_by(*order_by)
+    """
+    order_priorities:
+    use order_priorities to add possibility to priorise based on some conditions
+    for exemple if order_priorities = {"status": PENDING, resent_at__ge: now()}
+    this will result in the following queryset:
+    qs.annotate(priority1=Q(status=PENDING), priority2=Q(resent_at__ge=now()).order_by("-priority1", "-priority2")
+    """
+    qs = model.objects.all().filter(**filters).select_related(*select_related)
+    qs = qs.annotate(
+        **{
+            f"priority{i}": Q(**{priority_field: priority_value})
+            for i, (priority_field, priority_value) in enumerate(
+                order_priorities.items()
+            )
+        }
     )
+    if order_by or order_priorities:
+        # only replace default order_by if defined
+        qs = qs.order_by(
+            *(f"-priority{i}" for i in range(len(order_priorities))), *order_by
+        )
 
     if limit is not None and offset is not None:
         limit += offset
@@ -375,7 +401,7 @@ async def get_invitation(
     model: type[TI],
     filters: InvitationFilters = {},
     q_filter: Q | None = None,
-    select_related: InvitationSelectRelated = [],
+    select_related: InvitationSelectRelated = [None],
 ) -> TI:
     qs = model.objects.all().filter(**filters).select_related(*select_related)
     if q_filter:

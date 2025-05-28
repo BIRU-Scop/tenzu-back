@@ -43,7 +43,7 @@ async def list_workspace_memberships(workspace: Workspace) -> list[WorkspaceMemb
     return await memberships_repositories.list_memberships(
         WorkspaceMembership,
         filters={"workspace_id": workspace.id},
-        select_related=["user", "role", "workspace"],
+        select_related=["user"],
     )
 
 
@@ -53,13 +53,12 @@ async def list_workspace_memberships(workspace: Workspace) -> list[WorkspaceMemb
 
 
 async def get_workspace_membership(
-    workspace_id: UUID,
-    username: str,
+    membership_id: UUID,
 ) -> WorkspaceMembership | None:
     return await memberships_repositories.get_membership(
         WorkspaceMembership,
-        filters={"workspace_id": workspace_id, "user__username": username},
-        select_related=["workspace", "user", "role"],
+        filters={"id": membership_id},
+        select_related=["user", "role", "workspace"],
     )
 
 
@@ -69,12 +68,12 @@ async def get_workspace_membership(
 
 
 async def update_workspace_membership(
-    membership: WorkspaceMembership, role_slug: str, user: User
+    membership: WorkspaceMembership, role_id: UUID, user: User
 ) -> WorkspaceMembership:
     user_role = getattr(user, "workspace_role", None)
 
     updated_membership = await memberships_services.update_membership(
-        membership=membership, role_slug=role_slug, user_role=user_role
+        membership=membership, role_id=role_id, user_role=user_role
     )
 
     await memberships_events.emit_event_when_workspace_membership_is_updated(
@@ -131,12 +130,12 @@ async def delete_workspace_membership(
 ##########################################################
 
 
-async def create_default_workspace_membership(workspace: Workspace, user: User):
+async def create_default_workspace_membership(workspace_id: UUID, user: User):
     role = await get_workspace_role(
-        workspace.id, _DEFAULT_WORKSPACE_MEMBERSHIP_ROLE_SLUG
+        workspace_id, _DEFAULT_WORKSPACE_MEMBERSHIP_ROLE_SLUG
     )
     await memberships_repositories.create_workspace_membership(
-        workspace=workspace, role=role, user=user
+        workspace=role.workspace, role=role, user=user
     )
 
 
@@ -147,7 +146,7 @@ async def create_default_workspace_membership(workspace: Workspace, user: User):
 
 async def list_workspace_roles(workspace: Workspace) -> list[WorkspaceRole]:
     return await memberships_repositories.list_roles(
-        WorkspaceRole, filters={"workspace_id": workspace.id}
+        WorkspaceRole, filters={"workspace_id": workspace.id}, get_total_members=True
     )
 
 

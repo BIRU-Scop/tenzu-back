@@ -19,6 +19,7 @@
 
 from asgiref.sync import sync_to_async
 
+from ..utils import set_prefetched_qs_cache
 from .base import Factory, factory
 
 
@@ -26,14 +27,26 @@ class WorkflowFactory(Factory):
     name = factory.Sequence(lambda n: f"Workflow {n}")
     slug = factory.Sequence(lambda n: f"workflow-{n}")
     order = factory.Sequence(lambda n: n)
-    statuses = factory.RelatedFactoryList(
-        "tests.utils.factories.WorkflowStatusFactory", "workflow", size=3
-    )
     project = factory.SubFactory("tests.utils.factories.ProjectFactory")
+
+    @factory.post_generation
+    def statuses(self, create, extracted, **kwargs):
+        if extracted is None:
+            return
+
+        if not create:
+            set_prefetched_qs_cache(self, {"statuses": extracted})
+            self._prefetched_objects_cache = {"statuses": extracted}
+            for status in extracted:
+                status.workflow = self
+        elif isinstance(extracted, int):
+            statuses = [
+                WorkflowStatusFactory.create(workflow=self) for _ in range(extracted)
+            ]
+            set_prefetched_qs_cache(self, {"statuses": statuses})
 
     class Meta:
         model = "workflows.Workflow"
-        skip_postgeneration_save = True
 
 
 class WorkflowStatusFactory(Factory):

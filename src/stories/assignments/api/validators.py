@@ -17,8 +17,8 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from commons.validators import BaseModel, StrNotEmpty
+from commons.validators import B64UUID, BaseModel, StrNotEmpty
 
 
 class StoryAssignmentValidator(BaseModel):
-    username: StrNotEmpty
+    user_id: B64UUID

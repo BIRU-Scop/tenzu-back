@@ -39,7 +39,6 @@ from workflows.serializers import (
     ReorderWorkflowStatusesSerializer,
     WorkflowSerializer,
 )
-from workflows.serializers import services as serializers_services
 from workflows.services import exceptions as ex
 
 ##########################################################
@@ -49,22 +48,25 @@ from workflows.services import exceptions as ex
 
 @transaction_atomic_async
 async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
-    workflows = await workflows_repositories.list_workflows(
-        filters={"project_id": project.id}, order_by=["-order"]
-    )
+    workflow_orders = [
+        w
+        async for w in workflows_repositories.list_workflows_qs(
+            filters={"project_id": project.id}, order_by=["-order"]
+        ).values_list("order", flat=True)
+    ]
 
     # validate num workflows
-    num_workflows = len(workflows) if workflows else 0
+    num_workflows = len(workflow_orders) if workflow_orders else 0
     if num_workflows >= settings.MAX_NUM_WORKFLOWS:
         raise ex.MaxNumWorkflowCreatedError("Maximum number of workflows is reached")
 
     # calculate order
-    order = DEFAULT_ORDER_OFFSET + (workflows[0].order if workflows else 0)
+    order = DEFAULT_ORDER_OFFSET + (workflow_orders[0] if workflow_orders else 0)
 
     workflow = await workflows_repositories.create_workflow(
         project=project, name=name, order=order
     )
-    if not workflows:
+    if not workflow_orders:
         await projects_repositories.update_project(
             project,
             values={
@@ -85,14 +87,16 @@ async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
             "Try to run migrations again and check if the error persist."
         ) from e
 
-    await workflows_repositories.apply_default_workflow_statuses(
+    workflow_statuses = await workflows_repositories.apply_default_workflow_statuses(
         template=template, workflow=workflow
     )
-    workflow_statuses = await workflows_repositories.list_workflow_statuses(
-        workflow_id=workflow.id
-    )
-    serialized_workflow = serializers_services.serialize_workflow(
-        workflow=workflow, workflow_statuses=workflow_statuses
+    serialized_workflow = WorkflowSerializer(
+        id=workflow.id,
+        project_id=workflow.project_id,
+        name=workflow.name,
+        slug=workflow.slug,
+        order=workflow.order,
+        statuses=workflow_statuses,
     )
 
     # emit event
@@ -108,23 +112,18 @@ async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
 ##########################################################
 
 
-async def list_workflows(project_id: UUID) -> list[WorkflowSerializer]:
-    workflows = await workflows_repositories.list_workflows(
-        filters={
-            "project_id": project_id,
-        },
-        prefetch_related=["statuses"],
-    )
-
-    return [
-        serializers_services.serialize_workflow(
-            workflow=workflow,
-            workflow_statuses=await workflows_repositories.list_workflow_statuses(
-                workflow_id=workflow.id
-            ),
+async def list_workflows(project_id: UUID) -> list[Workflow]:
+    workflows = [
+        w
+        async for w in workflows_repositories.list_workflows_qs(
+            filters={
+                "project_id": project_id,
+            },
+            prefetch_related=["statuses"],
         )
-        for workflow in workflows
     ]
+
+    return workflows
 
 
 ##########################################################
@@ -138,7 +137,9 @@ async def get_workflow_by_slug(project_id: UUID, workflow_slug: str) -> Workflow
             "project_id": project_id,
             "slug": workflow_slug,
         },
-        select_related=["project", "project__workspace"],
+        select_related=[
+            "project",
+        ],
     )
 
 
@@ -147,49 +148,9 @@ async def get_workflow_by_id(workflow_id: UUID) -> Workflow | None:
         filters={
             "id": workflow_id,
         },
-        select_related=["project", "project__workspace"],
-    )
-
-
-async def get_workflow_detail(workflow_id: UUID) -> WorkflowSerializer:
-    workflow = cast(
-        Workflow,
-        await workflows_repositories.get_workflow(
-            filters={
-                "id": workflow_id,
-            },
-            select_related=["project"],
-        ),
-    )
-    workflow_statuses = await workflows_repositories.list_workflow_statuses(
-        workflow_id=workflow.id
-    )
-    return serializers_services.serialize_workflow(
-        workflow=workflow, workflow_statuses=workflow_statuses
-    )
-
-
-async def get_delete_workflow_detail(workflow_id: UUID) -> DeleteWorkflowSerializer:
-    workflow = cast(
-        Workflow,
-        await workflows_repositories.get_workflow(
-            filters={
-                "id": workflow_id,
-            },
-            select_related=["project"],
-        ),
-    )
-    workflow_statuses = await workflows_repositories.list_workflow_statuses(
-        workflow_id=workflow.id
-    )
-    workflow_stories = await stories_services.list_stories(
-        project_id=workflow.project_id, workflow_slug=workflow.slug, get_assignees=False
-    )
-
-    return serializers_services.serialize_delete_workflow_detail(
-        workflow=workflow,
-        workflow_statuses=workflow_statuses,
-        workflow_stories=workflow_stories,
+        select_related=[
+            "project",
+        ],
     )
 
 
@@ -201,12 +162,11 @@ async def get_delete_workflow_detail(workflow_id: UUID) -> DeleteWorkflowSeriali
 @transaction_atomic_async
 async def update_workflow(
     workflow: Workflow, updated_by: User, values: dict[str, Any] = {}
-) -> WorkflowSerializer:
+) -> Workflow:
     previous_slug = workflow.slug
     updated_workflow = await workflows_repositories.update_workflow(
         workflow=workflow, values=values
     )
-    updated_workflow_detail = await get_workflow_detail(workflow_id=updated_workflow.id)
 
     if (
         previous_slug != updated_workflow.slug
@@ -221,10 +181,10 @@ async def update_workflow(
         workflows_events.emit_event_when_workflow_is_updated
     )(
         project=workflow.project,
-        workflow=updated_workflow_detail,
+        workflow=updated_workflow,
     )
 
-    return updated_workflow_detail
+    return updated_workflow
 
 
 ##########################################################
@@ -248,8 +208,6 @@ async def delete_workflow(
          last status of the specified workflow).
     :return: bool
     """
-    # recover the workflow's detail before being deleted
-    workflow_detail = await get_delete_workflow_detail(workflow_id=workflow.id)
     target_workflow = None
     if target_workflow_slug:
         try:
@@ -272,14 +230,7 @@ async def delete_workflow(
         )
 
         if statuses_to_move:
-            target_workflow_statuses = (
-                await workflows_repositories.list_workflow_statuses(
-                    workflow_id=target_workflow.id,
-                    order_by=["-order"],
-                    offset=0,
-                    limit=1,
-                )
-            )
+            target_workflow_statuses = list(target_workflow.statuses.all())
             #  no statuses in the target_workflow (no valid anchor). The order of the statuses will be preserved
             if not target_workflow_statuses:
                 await reorder_workflow_statuses(
@@ -295,7 +246,7 @@ async def delete_workflow(
                     status_ids=[status.id for status in statuses_to_move],
                     reorder={
                         "place": "after",
-                        "status_id": target_workflow_statuses[0].id,
+                        "status_id": target_workflow_statuses[-1].id,
                     },
                     source_workflow=workflow,
                 )
@@ -308,19 +259,18 @@ async def delete_workflow(
                 workflow.project, deleted_by
             )
 
-        target_workflow_detail = None
-        # events will render the final statuses in the target_workflow AFTER any reorder process
-        if target_workflow:
-            target_workflow_detail = await get_workflow_detail(
-                workflow_id=target_workflow.id
-            )
-
         await transaction_on_commit_async(
             workflows_events.emit_event_when_workflow_is_deleted
         )(
             project=workflow.project,
-            workflow=workflow_detail,
-            target_workflow=target_workflow_detail,
+            workflow=DeleteWorkflowSerializer(
+                id=workflow.id,
+                name=workflow.name,
+                slug=workflow.slug,
+                order=workflow.order,
+                statuses=list(workflow.statuses.all()),
+            ),
+            target_workflow=target_workflow,
         )
         return True
 
@@ -335,15 +285,9 @@ async def delete_workflow(
 async def create_workflow_status(
     name: str, color: int, workflow: Workflow
 ) -> WorkflowStatus:
-    latest_status = await workflows_repositories.list_workflow_statuses(
-        workflow_id=workflow.id, order_by=["-order"], offset=0, limit=1
-    )
-    # TODO prevent concurrency for order by using subquery
-    order = DEFAULT_ORDER_OFFSET + (latest_status[0].order if latest_status else 0)
-
     # Create workflow status
     workflow_status = await workflows_repositories.create_workflow_status(
-        name=name, color=color, order=order, workflow=workflow
+        name=name, color=color, workflow=workflow
     )
 
     # Emit event
@@ -359,18 +303,13 @@ async def create_workflow_status(
 ##########################################################
 
 
-async def get_workflow_status(
-    workflow_id: UUID, status_id: UUID
-) -> WorkflowStatus | None:
+async def get_workflow_status(status_id: UUID) -> WorkflowStatus | None:
     return await workflows_repositories.get_workflow_status(
         status_id=status_id,
-        filters={
-            "workflow_id": workflow_id,
-        },
         select_related=[
             "workflow",
             "workflow__project",
-            "workflow__project__workspace",
+            "workflow__project",
         ],
     )
 
@@ -536,10 +475,8 @@ async def reorder_workflow_statuses(
             new_workflow_id=target_workflow.id,
         )
 
-    reorder_status_serializer = (
-        serializers_services.serialize_reorder_workflow_statuses(
-            workflow=target_workflow, status_ids=status_ids, reorder=reorder
-        )
+    reorder_status_serializer = ReorderWorkflowStatusesSerializer(
+        workflow=target_workflow, status_ids=status_ids, reorder=reorder
     )
 
     # event
@@ -577,7 +514,6 @@ async def delete_workflow_status(
     if target_status_id:
         try:
             target_status = await get_workflow_status(
-                workflow_id=workflow_status.workflow_id,
                 status_id=target_status_id,
             )
         except WorkflowStatus.DoesNotExist as e:

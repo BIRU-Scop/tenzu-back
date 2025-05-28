@@ -25,9 +25,9 @@ from django.http.request import HttpRequest
 
 from base.db import admin
 from base.db.admin import forms
-from base.i18n import i18n
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
+from system.services import get_available_languages_info
 from users.models import AuthData, User
 from workspaces.memberships.models import WorkspaceMembership
 
@@ -125,7 +125,7 @@ class UserAdmin(DjangoUserAdmin):
             form.base_fields["lang"].widget = forms.widgets.Select(
                 choices=(
                     (lang.code, lang.english_name)
-                    for lang in i18n.available_languages_info
+                    for lang in get_available_languages_info()
                 )
             )
 
