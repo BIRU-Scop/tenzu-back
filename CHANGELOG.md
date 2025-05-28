@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.16](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.15...v0.0.1-staging.16) (2025-05-28)
+
+
+### Features
+
+* add date fields in invitation serializer and return pending invitation first in list api ([eaee543](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/eaee5433bef23ccd1e49195cf4583c42d2bfd36b))
+* add email field to user nested ([7d7e5f3](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/7d7e5f3828ad2202603fc641806973d4226536ec))
+* add get role and total_number ([b0158ef](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/b0158efb17b47912d5024f9eab6d374e7660f673))
+* remove nested stories from delete workflow event ([8b7a673](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/8b7a673a5ef346978b3cf04e22a4788e4f90b949))
+* standardise all apis to follow new rules about avoiding unnecessary url parameters and keeping dependant objects in path ([8868303](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/88683033a7b914db5ec6be6d061245a9aad6bc7c))
+* standardise api by using object id instead of related user username ([1bfd319](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/1bfd319a9803ac32dcb28f190d8ad522561865d1))
+* standardise apis by using role_id instead of role_slug in forms ([1803ceb](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/1803ceba4f7540983dbb5e7776c26ba366ce9138))
+* switch from role slug to role ID for project role API operations and add total_members field ([acbdd2f](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/acbdd2fba87651fd922ff9d900b19ddf68bf5eba))
+* upscale default resend limit for invitation and serialise num_email_sent ([6019f85](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/6019f85c9ccd647cfeb8104966534fb277d939e3))
+
+
+### Bug Fixes
+
+* make language api returns camelCase and refactor language service ([8d6fd95](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/8d6fd95115a7126be15de886aa737e4221957c1c))
+* prevent crash on incoherent existing invitation ([15d7e00](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/15d7e0016b77699760643d00bcb51e051e5aca51))
+* prevent error on resend because workspace had not been prefetched for project invitation ([9172c51](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/9172c51192ca5a01bb400b9229890231ff5bca6a))
+
 ## [0.0.1-staging.15](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.14...v0.0.1-staging.15) (2025-05-02)
 
 
