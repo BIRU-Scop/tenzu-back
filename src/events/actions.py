@@ -24,7 +24,7 @@ from pydantic import Field
 from typing_extensions import Annotated
 
 from base.utils.uuid import decode_b64str_to_uuid
-from commons.exceptions.api import ForbiddenError
+from commons.exceptions.api import AuthorizationError, ForbiddenError
 from events import channels
 from events.events import Event
 from ninja_jwt.authentication import JWTBaseAuthentication
@@ -112,7 +112,7 @@ async def can_user_subscribe_to_project_channel(
             permissions=ProjectPermissionsCheck.VIEW.value, user=user, obj=project
         )
         return True
-    except ForbiddenError:
+    except (ForbiddenError, AuthorizationError):
         return False
 
 
@@ -218,7 +218,7 @@ async def can_user_subscribe_to_workspace_channel(
             permissions=WorkspacePermissionsCheck.VIEW.value, user=user, obj=workspace
         )
         return True
-    except ForbiddenError:
+    except (ForbiddenError, AuthorizationError):
         return False
 
 
