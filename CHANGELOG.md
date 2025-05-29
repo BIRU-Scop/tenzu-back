@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.17](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.16...v0.0.1-staging.17) (2025-05-29)
+
+
+### Bug Fixes
+
+* catch all possible permission error when checking user channel subscription permission ([897ca29](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/897ca2965416dd1c2ada6b17a3292aaa09b5e0d9))
+* prevent crash on accepting project invitation when trying to acces unprefetched workspace ([6f649b3](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/6f649b3be45b421c30036e1992c6e70a2bbf8c8c))
+
 ## [0.0.1-staging.16](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.15...v0.0.1-staging.16) (2025-05-28)
 
 
