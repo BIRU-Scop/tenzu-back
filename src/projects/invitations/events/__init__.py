@@ -87,7 +87,7 @@ async def emit_event_when_project_invitation_is_accepted(
         type=ACCEPT_PROJECT_INVITATION,
     )
     await events_manager.publish_on_workspace_channel(
-        workspace=invitation.project.workspace,
+        workspace=invitation.project.workspace_id,
         type=ACCEPT_PROJECT_INVITATION,
     )
     if invitation.user:
