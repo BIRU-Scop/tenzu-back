@@ -35,6 +35,7 @@ pytestmark = pytest.mark.django_db
 
 
 async def test_list_workspace_memberships(
+    project_template,
     client,
 ):
     workspace = await f.create_workspace()
@@ -53,12 +54,20 @@ async def test_list_workspace_memberships(
     await f.create_workspace_membership(
         user=pj_member2, workspace=workspace, role=general_member_role
     )
+    await f.create_project(project_template, workspace=workspace)
+    project = await f.create_project(project_template, workspace=workspace)
+    role = await project.roles.aget(slug="member")
+    await f.create_project_membership(user=pj_member2, project=project, role=role)
 
     client.login(pj_member)
 
     response = await client.get(f"/workspaces/{workspace.b64id}/memberships")
     assert response.status_code == status.HTTP_200_OK, response.data
-    assert len(response.json()) == 3  # 2 explicitly created + owner membership
+    res = response.json()
+    assert len(res) == 3  # 2 explicitly created + owner membership
+    assert res[0]["totalProjectsIsMember"] == 2
+    assert res[1]["totalProjectsIsMember"] == 0
+    assert res[2]["totalProjectsIsMember"] == 1
 
 
 async def test_list_workspace_memberships_wrong_id(
@@ -152,6 +161,7 @@ async def test_update_workspace_membership_role_user_without_permission(
 
 
 async def test_update_workspace_membership_role_ok(
+    project_template,
     client,
 ):
     workspace = await f.create_workspace()
@@ -170,6 +180,10 @@ async def test_update_workspace_membership_role_ok(
     membership = await f.create_workspace_membership(
         user=user2, workspace=workspace, role=general_admin_role
     )
+    await f.create_project(project_template, workspace=workspace)
+    project = await f.create_project(project_template, workspace=workspace)
+    role = await project.roles.aget(slug="member")
+    await f.create_project_membership(user=user2, project=project, role=role)
 
     client.login(workspace.created_by)
     data = {"role_id": member_role.b64id}
@@ -177,11 +191,14 @@ async def test_update_workspace_membership_role_ok(
         f"workspaces/memberships/{membership.b64id}", json=data
     )
     assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.json()["totalProjectsIsMember"] == 1
+
     client.login(user1)
     response = await client.patch(
         f"workspaces/memberships/{membership.b64id}", json=data
     )
     assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.json()["totalProjectsIsMember"] == 1
 
 
 async def test_update_workspace_membership_role_owner_and_not_owner(

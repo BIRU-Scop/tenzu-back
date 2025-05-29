@@ -35,6 +35,11 @@ T = TypeVar("T", Project, Workspace)
 # membership type
 ##########################################################
 
+TOTAL_PROJECTS_IS_MEMBER_ANNOTATION = Count(
+    "workspace__projects",
+    filter=Q(workspace__projects__memberships__user_id=F("user_id")),
+)
+
 
 class _MembershipFilters(TypedDict, total=False):
     user__username: str
@@ -52,6 +57,13 @@ class WorkspaceMembershipFilters(_MembershipFilters, total=False):
 
 
 MembershipFilters = ProjectMembershipFilters | WorkspaceMembershipFilters
+
+
+class WorkspaceMembershipAnnotation(TypedDict, total=False):
+    total_projects_is_member: type(TOTAL_PROJECTS_IS_MEMBER_ANNOTATION)
+
+
+MembershipAnnotation = WorkspaceMembershipAnnotation
 
 ProjectMembershipSelectRelated = list[
     Literal[
@@ -168,6 +180,7 @@ async def list_memberships(
     filters: MembershipFilters = {},
     select_related: MembershipSelectRelated = [None],
     order_by: MembershipOrderBy = ["user__full_name"],
+    annotations: MembershipAnnotation = {},
     offset: int | None = None,
     limit: int | None = None,
 ) -> list[TM]:
@@ -176,6 +189,7 @@ async def list_memberships(
         .filter(**filters)
         .select_related(*select_related)
         .order_by(*order_by)
+        .annotate(**annotations)
     )
 
     if limit is not None and offset is not None:
@@ -193,8 +207,14 @@ async def get_membership(
     model: type[TM],
     filters: MembershipFilters = {},
     select_related: MembershipSelectRelated = ["user", "role"],
+    annotations: MembershipAnnotation = {},
 ) -> TM:
-    qs = model.objects.all().filter(**filters).select_related(*select_related)
+    qs = (
+        model.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+        .annotate(**annotations)
+    )
     return await qs.aget()
 
 

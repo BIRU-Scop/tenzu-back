@@ -27,6 +27,7 @@ class WorkspaceMembershipSerializer(BaseModel):
     user: UserNestedSerializer
     role_id: UUIDB64
     workspace_id: UUIDB64
+    total_projects_is_member: int
 
 
 class WorkspaceRolesSerializer(RoleSerializer):

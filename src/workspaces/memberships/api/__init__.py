@@ -30,7 +30,6 @@ from commons.exceptions.api.errors import (
 )
 from commons.validators import B64UUID
 from memberships.api.validators import MembershipValidator
-from memberships.serializers import RoleSerializer
 from memberships.services.exceptions import OwnerRoleNotAuthorisedError
 from permissions import check_permissions
 from workspaces.memberships import services as memberships_services
@@ -77,7 +76,9 @@ async def list_workspace_memberships(
         user=request.user,
         obj=workspace,
     )
-    return await memberships_services.list_workspace_memberships(workspace=workspace)
+    return await memberships_services.list_workspace_memberships(
+        workspace=workspace, get_total_projects=True
+    )
 
 
 ##########################################################
@@ -106,7 +107,9 @@ async def update_workspace_membership(
     """
     Update workspace membership
     """
-    membership = await get_workspace_membership_or_404(membership_id=membership_id)
+    membership = await get_workspace_membership_or_404(
+        membership_id=membership_id, get_total_projects=True
+    )
 
     await check_permissions(
         permissions=WorkspaceMembershipPermissionsCheck.MODIFY.value,
@@ -194,10 +197,12 @@ async def list_workspace_roles(request, workspace_id: Path[B64UUID]):
 ################################################
 
 
-async def get_workspace_membership_or_404(membership_id: UUID) -> WorkspaceMembership:
+async def get_workspace_membership_or_404(
+    membership_id: UUID, get_total_projects=False
+) -> WorkspaceMembership:
     try:
         membership = await memberships_services.get_workspace_membership(
-            membership_id=membership_id
+            membership_id=membership_id, get_total_projects=get_total_projects
         )
     except WorkspaceMembership.DoesNotExist as e:
         raise ex.NotFoundError(f"Membership {membership_id} not found") from e
