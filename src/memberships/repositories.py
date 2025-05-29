@@ -19,7 +19,7 @@
 from typing import Any, Literal, TypedDict, TypeVar
 from uuid import UUID
 
-from django.db.models import Case, Count, Q, QuerySet, When
+from django.db.models import Count, F, Q, QuerySet
 
 from base.db.utils import Q_for_related
 from memberships.choices import InvitationStatus
@@ -271,7 +271,7 @@ def only_owner_collective_queryset(model: type[T], user: User) -> QuerySet[T]:
     """
     qs = model.objects.all()
     qs = qs.annotate(
-        num_owners=Count(Case(When(memberships__role__is_owner=True, then=1)))
+        num_owners=Count("memberships", filter=Q(memberships__role__is_owner=True))
     ).filter(num_owners=1)
     qs = qs.annotate(num_members=Count("members")).filter(num_members__gt=1)
     qs = qs.filter(
