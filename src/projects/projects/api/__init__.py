@@ -166,9 +166,7 @@ async def get_project(request, project_id: Path[B64UUID]) -> ProjectDetailSerial
 ##########################################################
 
 
-# WARNING: route has been passed from PATCH  to POST
-# Django ninja ignored Form data (by multiform or url-encode) if it's not a POST route
-@projects_router.post(
+@projects_router.patch(
     "/projects/{project_id}",
     url_name="project.update",
     summary="Update project",

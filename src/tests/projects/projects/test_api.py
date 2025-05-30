@@ -291,7 +291,7 @@ async def test_update_project_files_200_ok(client, project_template):
     data = {"name": "New name", "description": "new description"}
 
     client.login(project.created_by)
-    response = await client.post(
+    response = await client.patch(
         f"/projects/{project.b64id}",
         data=data,
         FILES={"logo": logo},
@@ -313,7 +313,7 @@ async def test_update_project_files_200_ok_no_logo_change(client, project_templa
     data = {"name": "New name", "description": "new description"}
 
     client.login(project.created_by)
-    response = await client.post(
+    response = await client.patch(
         f"/projects/{project.b64id}",
         data=data,
         FILES={},
@@ -332,7 +332,7 @@ async def test_update_project_files_200_ok_delete_logo(client, project_template)
     data = {"name": "New name", "description": "new description"}
 
     client.login(project.created_by)
-    response = await client.post(
+    response = await client.patch(
         f"/projects/{project.b64id}",
         data=data,
         FILES={"logo": None},
@@ -350,7 +350,7 @@ async def test_update_project_200_ok_delete_description(client, project_template
     data = {"description": ""}
 
     client.login(project.created_by)
-    response = await client.post(f"/projects/{project.b64id}", data=data)
+    response = await client.patch(f"/projects/{project.b64id}", data=data)
     assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["name"] == project.name
@@ -363,13 +363,13 @@ async def test_update_project_422_empty_name(client, project_template):
     data = {"name": ""}
 
     client.login(project.created_by)
-    response = await client.post(f"/projects/{project.b64id}", data=data)
+    response = await client.patch(f"/projects/{project.b64id}", data=data)
     assert response.status_code == 422, response.data
 
     data = {"name": None}
 
     client.login(project.created_by)
-    response = await client.post(f"/projects/{project.b64id}", data=data)
+    response = await client.patch(f"/projects/{project.b64id}", data=data)
     assert response.status_code == 200, response.data
     assert response.json()["name"] == project.name
 
@@ -390,7 +390,7 @@ async def test_update_project_200_ok_member(client, project_template):
     data = {"name": "new name"}
 
     client.login(user)
-    response = await client.post(f"/projects/{project.b64id}", data=data)
+    response = await client.patch(f"/projects/{project.b64id}", data=data)
     assert response.status_code == 200, response.data
     updated_project = response.json()
     assert updated_project["userRole"]["isOwner"] is False
@@ -415,7 +415,7 @@ async def test_update_project_403_forbidden_member_without_permissions(
 
     data = {"name": "new name"}
     client.login(user)
-    response = await client.post(f"/projects/{project.b64id}", data=data)
+    response = await client.patch(f"/projects/{project.b64id}", data=data)
     assert response.status_code == 403, response.data
 
 
@@ -425,7 +425,7 @@ async def test_update_project_403_forbidden_not_member(client, project_template)
 
     data = {"name": "new name"}
     client.login(other_user)
-    response = await client.post(f"/projects/{project.b64id}", data=data)
+    response = await client.patch(f"/projects/{project.b64id}", data=data)
     assert response.status_code == 403, response.data
 
 
@@ -436,7 +436,7 @@ async def test_update_project_404_not_found_project_b64id(
     data = {"name": "new name"}
 
     client.login(user)
-    response = await client.post(f"/projects/{NOT_EXISTING_B64ID}", data=data)
+    response = await client.patch(f"/projects/{NOT_EXISTING_B64ID}", data=data)
     assert response.status_code == 404, response.data
 
 
@@ -445,7 +445,7 @@ async def test_update_project_422_unprocessable_project_b64id(client):
     data = {"name": "new name"}
 
     client.login(user)
-    response = await client.post(f"/projects/{INVALID_B64ID}", data=data)
+    response = await client.patch(f"/projects/{INVALID_B64ID}", data=data)
     assert response.status_code == 422, response.data
 
 
