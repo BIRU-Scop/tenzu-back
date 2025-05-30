@@ -112,6 +112,8 @@ RoleFilters = ProjectRoleFilters | WorkspaceRoleFilters
 ProjectRoleSelectRelated = list[Literal["project",] | None]
 WorkspaceRoleSelectRelated = list[Literal["workspace",] | None]
 RoleSelectRelated = ProjectRoleSelectRelated | WorkspaceRoleSelectRelated
+
+RoleOrderBy = list[Literal["order", "name"]]
 TR = TypeVar("TR", bound=Role)
 
 ##########################################################
@@ -276,6 +278,8 @@ def only_member_queryset(
     returns a queryset for all object where user is the only member
     """
     qs = model.objects.all()
+    # add explicite order_by so it doesn't get removed by groupby implicit query in annotate
+    qs = qs.order_by(*qs.query.order_by or model._meta.ordering)
     qs = qs.annotate(num_members=Count("members")).filter(num_members=1)
     qs = qs.filter(
         **{
@@ -290,6 +294,8 @@ def only_owner_collective_queryset(model: type[T], user: User) -> QuerySet[T]:
     returns a queryset for all projects where user is the only owner and other members exists
     """
     qs = model.objects.all()
+    # add explicite order_by so it doesn't get removed by groupby implicit query in annotate
+    qs = qs.order_by(*qs.query.order_by or model._meta.ordering)
     qs = qs.annotate(
         num_owners=Count("memberships", filter=Q(memberships__role__is_owner=True))
     ).filter(num_owners=1)
@@ -311,11 +317,12 @@ def only_owner_collective_queryset(model: type[T], user: User) -> QuerySet[T]:
 async def list_roles(
     model: type[TR],
     filters: RoleFilters = {},
+    order_by: RoleOrderBy = ["order", "name"],
     offset: int | None = None,
     limit: int | None = None,
     get_total_members=False,
 ) -> list[TR]:
-    qs = model.objects.all().filter(**filters)
+    qs = model.objects.all().filter(**filters).order_by(*order_by)
     if get_total_members:
         qs = qs.annotate(total_members=Count("memberships"))
 
