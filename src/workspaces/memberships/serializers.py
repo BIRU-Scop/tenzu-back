@@ -19,13 +19,11 @@
 
 
 from base.serializers import UUIDB64, BaseModel
-from memberships.serializers import RoleSerializer
+from memberships.serializers import MembershipBaseSerializer, RoleSerializer
 from users.serializers.nested import UserNestedSerializer
 
 
-class WorkspaceMembershipSerializer(BaseModel):
-    user: UserNestedSerializer
-    role_id: UUIDB64
+class WorkspaceMembershipSerializer(MembershipBaseSerializer):
     workspace_id: UUIDB64
     total_projects_is_member: int
 

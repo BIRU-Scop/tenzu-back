@@ -17,12 +17,17 @@
 # You can contact BIRU at ask@biru.sh
 import datetime
 
-from pydantic import ConfigDict, EmailStr, field_validator, validator
-from pydantic_core.core_schema import ValidationInfo
+from pydantic import ConfigDict, EmailStr
 
 from base.serializers import UUIDB64, BaseModel
 from memberships.choices import InvitationStatus
 from users.serializers.nested import UserNestedSerializer
+
+
+class MembershipBaseSerializer(BaseModel):
+    id: UUIDB64
+    user: UserNestedSerializer
+    role_id: UUIDB64
 
 
 class RoleSerializer(BaseModel):
