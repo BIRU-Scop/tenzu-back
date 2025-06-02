@@ -19,7 +19,6 @@
 from operator import attrgetter
 
 import pytest
-from fastapi import status
 
 from memberships.choices import InvitationStatus
 from permissions import choices
@@ -62,7 +61,7 @@ async def test_list_workspace_memberships(
     client.login(pj_member)
 
     response = await client.get(f"/workspaces/{workspace.b64id}/memberships")
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
     res = response.json()
     assert len(res) == 3  # 2 explicitly created + owner membership
     assert res[0]["totalProjectsIsMember"] == 2
@@ -77,7 +76,7 @@ async def test_list_workspace_memberships_wrong_id(
 
     client.login(workspace.created_by)
     response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}/memberships")
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
 async def test_list_workspace_memberships_not_a_member(
@@ -88,7 +87,7 @@ async def test_list_workspace_memberships_not_a_member(
 
     client.login(not_a_member)
     response = await client.get(f"/workspaces/{workspace.b64id}/memberships")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
     # even invitee can't see members
     general_admin_role = await f.create_workspace_role(
@@ -104,7 +103,7 @@ async def test_list_workspace_memberships_not_a_member(
         status=InvitationStatus.PENDING,
     )
     response = await client.get(f"/workspaces/{workspace.b64id}/memberships")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 ##########################################################
@@ -124,7 +123,7 @@ async def test_update_workspace_membership_role_membership_not_exist(
     response = await client.patch(
         f"workspaces/memberships/{NOT_EXISTING_B64ID}", json=data
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
 async def test_update_workspace_membership_role_user_without_permission(
@@ -149,7 +148,7 @@ async def test_update_workspace_membership_role_user_without_permission(
     response = await client.patch(
         f"/workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
     await f.create_workspace_membership(
         user=user1, workspace=workspace, role=readonlymember_role
@@ -157,7 +156,7 @@ async def test_update_workspace_membership_role_user_without_permission(
     response = await client.patch(
         f"/workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 async def test_update_workspace_membership_role_ok(
@@ -190,14 +189,14 @@ async def test_update_workspace_membership_role_ok(
     response = await client.patch(
         f"workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
     assert response.json()["totalProjectsIsMember"] == 1
 
     client.login(user1)
     response = await client.patch(
         f"workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
     assert response.json()["totalProjectsIsMember"] == 1
 
 
@@ -228,14 +227,14 @@ async def test_update_workspace_membership_role_owner_and_not_owner(
     response = await client.patch(
         f"/workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
     # change role of owner
     owner_membership = list(workspace.memberships.all())[0]
     data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/workspaces/memberships/{owner_membership.b64id}", json=data
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 async def test_update_workspace_membership_role_owner_and_owner(
@@ -261,13 +260,13 @@ async def test_update_workspace_membership_role_owner_and_owner(
     response = await client.patch(
         f"/workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
     # change role of owner
     data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
 
 
 ##########################################################
@@ -282,7 +281,7 @@ async def test_delete_workspace_membership_not_exist(
 
     client.login(workspace.created_by)
     response = await client.delete(f"/workspaces/memberships/{NOT_EXISTING_B64ID}")
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
 async def test_delete_workspace_membership_without_permissions(
@@ -305,9 +304,10 @@ async def test_delete_workspace_membership_without_permissions(
 
     client.login(user1)
     response = await client.delete(f"/workspaces/memberships/{membership.b64id}")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
+@pytest.mark.django_db(transaction=True)
 async def test_delete_workspace_membership_role_ok(
     client,
 ):
@@ -328,7 +328,7 @@ async def test_delete_workspace_membership_role_ok(
 
     client.login(user1)
     response = await client.delete(f"/workspaces/memberships/{membership.b64id}")
-    assert response.status_code == status.HTTP_204_NO_CONTENT, response.data
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_workspace_membership_only_owner(client):
@@ -337,7 +337,7 @@ async def test_delete_workspace_membership_only_owner(client):
 
     client.login(workspace.created_by)
     response = await client.delete(f"/workspaces/memberships/{owner_membership.b64id}")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.data
+    assert response.status_code == 400, response.data
 
 
 async def test_delete_workspace_membership_role_owner_and_not_owner(
@@ -357,7 +357,7 @@ async def test_delete_workspace_membership_role_owner_and_not_owner(
 
     client.login(user)
     response = await client.delete(f"/workspaces/memberships/{owner_membership.b64id}")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
 
 async def test_delete_workspace_membership_role_owner_and_owner(
@@ -372,7 +372,7 @@ async def test_delete_workspace_membership_role_owner_and_owner(
 
     client.login(workspace.created_by)
     response = await client.delete(f"/workspaces/memberships/{membership.b64id}")
-    assert response.status_code == status.HTTP_204_NO_CONTENT, response.data
+    assert response.status_code == 204, response.data
 
 
 async def test_delete_workspace_membership_self_request(
@@ -391,7 +391,7 @@ async def test_delete_workspace_membership_self_request(
 
     client.login(member)
     response = await client.delete(f"/workspaces/memberships/{membership.b64id}")
-    assert response.status_code == status.HTTP_204_NO_CONTENT, response.data
+    assert response.status_code == 204, response.data
 
 
 ##########################################################
@@ -418,7 +418,7 @@ async def test_list_workspace_roles(
     client.login(pj_member)
 
     response = await client.get(f"/workspaces/{workspace.b64id}/roles")
-    assert response.status_code == status.HTTP_200_OK, response.data
+    assert response.status_code == 200, response.data
     assert len(response.json()) == 5  # 4 factory default + newly created
 
 
@@ -429,7 +429,7 @@ async def test_list_workspace_roles_wrong_id(
 
     client.login(workspace.created_by)
     response = await client.get(f"/workspaces/{NOT_EXISTING_B64ID}/roles")
-    assert response.status_code == status.HTTP_404_NOT_FOUND, response.data
+    assert response.status_code == 404, response.data
 
 
 async def test_list_workspace_roles_not_a_member(
@@ -440,7 +440,7 @@ async def test_list_workspace_roles_not_a_member(
 
     client.login(not_a_member)
     response = await client.get(f"/workspaces/{workspace.b64id}/roles")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data
 
     # even invitee can't see members
     general_admin_role = await f.create_workspace_role(
@@ -456,4 +456,4 @@ async def test_list_workspace_roles_not_a_member(
         status=InvitationStatus.PENDING,
     )
     response = await client.get(f"/workspaces/{workspace.b64id}/roles")
-    assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+    assert response.status_code == 403, response.data

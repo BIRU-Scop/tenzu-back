@@ -32,6 +32,7 @@ pytestmark = pytest.mark.django_db
 ##########################################################
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_create_workflow_200_ok(client, project_template):
     project = await f.create_project(project_template)
     data = {"name": "New workflow"}
@@ -335,6 +336,7 @@ async def test_get_workflow_by_slug_422_unprocessable_project_b64id(
 #################################################################
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_update_workflow_200_ok(client, project_template):
     project = await f.create_project(project_template)
     workflow = await f.create_workflow(project=project)
@@ -425,6 +427,7 @@ async def test_delete_workflow_204_ok_owner(client, project_template):
     assert response.status_code == 204, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_workflow_204_ok_member_with_permission(client, project_template):
     project = await f.create_project(project_template)
     deleted_workflow = await f.create_workflow(project=project)
@@ -594,6 +597,7 @@ async def test_create_workflow_status_invalid_workflow(client, project_template)
 ##########################################################
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_reorder_statuses_200_ok_with_reorder_ok(client, project_template):
     project = await f.create_project(project_template)
     workflow = await sync_to_async(project.workflows.first)()
@@ -833,7 +837,7 @@ async def test_update_status_422_unprocessable_wf_status_b64id(
 
 
 ################################################################################
-# WorkflowStatus DELETE /projects/workflows/<wf_slug>/statuses/<ws_slug>
+# WorkflowStatus DELETE /projects/workflows/statuses/<status_id>
 ################################################################################
 
 
@@ -851,6 +855,7 @@ async def test_delete_workflow_status_204_ok_owner(client, project_template):
     assert response.status_code == 204, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_workflow_status_204_ok_member_with_permission(
     client, project_template
 ):
