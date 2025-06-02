@@ -247,7 +247,8 @@ async def update_membership(membership: TM, values: dict[str, Any] = {}) -> TM:
 
 
 async def delete_membership(membership: TM) -> int:
-    count, _ = await membership.adelete()
+    # don't call membership.adelete directly since it will set id to None and we might need it for events
+    count, _ = await membership.__class__.objects.filter(id=membership.id).adelete()
     return count
 
 

@@ -111,7 +111,8 @@ async def bulk_create_project_roles(roles: list[ProjectRole]) -> list[ProjectRol
 
 
 async def delete_project_role(role: ProjectRole) -> int:
-    count, _ = await role.adelete()
+    # don't call role.adelete directly since it will set id to None and we might need it for events
+    count, _ = await ProjectRole.objects.filter(id=role.id).adelete()
     return count
 
 

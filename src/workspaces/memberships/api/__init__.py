@@ -39,7 +39,7 @@ from workspaces.memberships.permissions import (
     WorkspaceRolePermissionsCheck,
 )
 from workspaces.memberships.serializers import (
-    WorkspaceMembershipSerializer,
+    WorkspaceMembershipDetailSerializer,
     WorkspaceRolesSerializer,
 )
 from workspaces.workspaces.api import get_workspace_or_404
@@ -57,7 +57,7 @@ workspace_membership_router = Router()
     url_name="workspace.memberships.list",
     summary="List workspace memberships",
     response={
-        200: list[WorkspaceMembershipSerializer],
+        200: list[WorkspaceMembershipDetailSerializer],
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
@@ -91,7 +91,7 @@ async def list_workspace_memberships(
     url_name="workspace.memberships.update",
     summary="Update workspace membership",
     response={
-        200: WorkspaceMembershipSerializer,
+        200: WorkspaceMembershipDetailSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,

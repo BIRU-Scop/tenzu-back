@@ -18,12 +18,15 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64
 from memberships.serializers import MembershipBaseSerializer, RoleSerializer
-from users.serializers.nested import UserNestedSerializer
 
 
-class WorkspaceMembershipSerializer(MembershipBaseSerializer):
+class WorkspaceMembershipSummarySerializer(MembershipBaseSerializer):
+    workspace_id: UUIDB64
+
+
+class WorkspaceMembershipDetailSerializer(WorkspaceMembershipSummarySerializer):
     workspace_id: UUIDB64
     total_projects_is_member: int
 
