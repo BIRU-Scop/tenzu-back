@@ -86,6 +86,31 @@ async def test_list_workspace_memberships():
     assert len(memberships) == 3  # 2 explicitly created + owner membership
 
 
+async def test_list_workspace_memberships_total_projects(project_template):
+    owner = await f.create_user()
+    user1 = await f.create_user()
+    workspace = await f.create_workspace(created_by=owner)
+    role = await workspace.roles.aget(slug="member")
+    await f.create_workspace_membership(user=user1, workspace=workspace, role=role)
+    await f.create_project(project_template, workspace=workspace, created_by=owner)
+    project = await f.create_project(
+        project_template, workspace=workspace, created_by=owner
+    )
+    role = await project.roles.aget(slug="member")
+    await f.create_project_membership(user=user1, project=project, role=role)
+
+    memberships = await repositories.list_memberships(
+        WorkspaceMembership,
+        filters={"workspace_id": workspace.id},
+        annotations={
+            "total_projects_is_member": repositories.TOTAL_PROJECTS_IS_MEMBER_ANNOTATION
+        },
+    )
+    assert len(memberships) == 2  # user1 + owner
+    assert memberships[0].total_projects_is_member == 2
+    assert memberships[1].total_projects_is_member == 1
+
+
 ##########################################################
 # get_workspace_membership
 ##########################################################
@@ -123,6 +148,25 @@ async def test_get_workspace_membership():
     )
     assert membership.workspace == workspace
     assert membership.user == user
+
+
+async def test_get_workspace_membership_total_projects(project_template):
+    user = await f.create_user()
+    workspace = await f.create_workspace(created_by=user)
+    await f.create_project(project_template, workspace=workspace, created_by=user)
+    await f.create_project(project_template, workspace=workspace, created_by=user)
+
+    membership = await repositories.get_membership(
+        WorkspaceMembership,
+        filters={"user_id": user.id, "workspace_id": workspace.id},
+        select_related=["workspace", "user"],
+        annotations={
+            "total_projects_is_member": repositories.TOTAL_PROJECTS_IS_MEMBER_ANNOTATION
+        },
+    )
+    assert membership.workspace == workspace
+    assert membership.user == user
+    assert membership.total_projects_is_member == 2
 
 
 async def test_get_workspace_membership_doesnotexist():

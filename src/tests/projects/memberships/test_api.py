@@ -142,6 +142,7 @@ async def test_update_project_membership_role_user_without_permission(
     assert response.status_code == 403, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_update_project_membership_role_ok(client, project_template):
     project = await f.create_project(project_template)
     roles = list(project.roles.all())
@@ -268,6 +269,7 @@ async def test_delete_project_membership_without_permissions(client, project_tem
     assert response.status_code == 403, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_project_membership_role_ok(client, project_template):
     project = await f.create_project(project_template)
     user1 = await f.create_user()
@@ -463,6 +465,7 @@ async def test_create_project_role_not_valid_permissions(client, project_templat
     assert response.status_code == 422, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_create_project_role_ok(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()
@@ -626,6 +629,7 @@ async def test_update_project_role_not_valid_permissions(client, project_templat
     assert response.status_code == 422, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_update_project_role_ok(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()
@@ -787,6 +791,7 @@ async def test_delete_project_role_ok(client, project_template):
     assert response.status_code == 204, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_project_role_ok_move_to(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()

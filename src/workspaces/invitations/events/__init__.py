@@ -58,12 +58,12 @@ async def emit_event_when_workspace_invitation_is_updated(
     invitation: WorkspaceInvitation,
 ) -> None:
     await events_manager.publish_on_workspace_channel(
-        workspace=invitation.workspace,
+        workspace=invitation.workspace_id,
         type=UPDATE_WORKSPACE_INVITATION,
     )
-    if invitation.user:
+    if invitation.user_id:
         await events_manager.publish_on_user_channel(
-            user=invitation.user,
+            user=invitation.user_id,
             type=UPDATE_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
                 workspace=invitation.workspace_id,
@@ -85,9 +85,9 @@ async def emit_event_when_workspace_invitation_is_accepted(
         workspace=invitation.workspace,
         type=ACCEPT_WORKSPACE_INVITATION,
     )
-    if invitation.user:
+    if invitation.user_id:
         await events_manager.publish_on_user_channel(
-            user=invitation.user,
+            user=invitation.user_id,
             type=ACCEPT_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
                 workspace=invitation.workspace_id,

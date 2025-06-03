@@ -209,8 +209,7 @@ async def list_stories_to_reorder(
     ref__in: list[int], filters: StoryFilters = {}
 ) -> list[Story]:
     """
-    This method is very similar to "list_stories" except this has to keep
-    the order of the input references.
+    This method keeps the order of the input references.
     """
     qs = (
         Story.objects.all()

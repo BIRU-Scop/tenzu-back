@@ -39,3 +39,5 @@ NINJA_JWT = {
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
 }
+
+USER_EMAIL_ALLOWED_DOMAINS = []

@@ -318,6 +318,7 @@ async def test_get_workspace_invitation_revoked_does_not_exist(client):
 #########################################################################
 
 
+@pytest.mark.django_db(transaction=True)
 async def test_accept_workspace_invitation_200_ok(client):
     user = await f.create_user()
     invitation = await f.create_workspace_invitation(email=user.email)
@@ -376,6 +377,7 @@ async def test_accept_workspace_invitations_anonymous_user(
     assert response.status_code == 401, response.data
 
 
+@pytest.mark.django_db(transaction=True)
 async def test_accept_user_workspace_invitation_ok(
     client,
 ):

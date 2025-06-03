@@ -210,9 +210,9 @@ async def update_project_invitation(
         role_id=role_id,
         user_role=user_role,
     )
-    await transaction_on_commit_async(
-        invitations_events.emit_event_when_project_invitation_is_updated
-    )(invitation=updated_invitation)
+    await invitations_events.emit_event_when_project_invitation_is_updated(
+        invitation=updated_invitation
+    )
 
     return updated_invitation
 

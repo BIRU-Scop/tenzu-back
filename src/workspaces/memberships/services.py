@@ -16,11 +16,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from typing import cast
 from uuid import UUID
 
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from memberships import services as memberships_services
+from memberships.repositories import WorkspaceMembershipAnnotation
 from memberships.services import exceptions as ex
 from memberships.services import is_membership_the_only_owner  # noqa
 from projects.memberships.models import ProjectMembership
@@ -39,11 +40,18 @@ _DEFAULT_WORKSPACE_MEMBERSHIP_ROLE_SLUG = "readonly-member"
 ##########################################################
 
 
-async def list_workspace_memberships(workspace: Workspace) -> list[WorkspaceMembership]:
+async def list_workspace_memberships(
+    workspace: Workspace, get_total_projects=False
+) -> list[WorkspaceMembership]:
     return await memberships_repositories.list_memberships(
         WorkspaceMembership,
         filters={"workspace_id": workspace.id},
         select_related=["user"],
+        annotations={
+            "total_projects_is_member": memberships_repositories.TOTAL_PROJECTS_IS_MEMBER_ANNOTATION
+        }
+        if get_total_projects
+        else cast(WorkspaceMembershipAnnotation, {}),
     )
 
 
@@ -53,12 +61,17 @@ async def list_workspace_memberships(workspace: Workspace) -> list[WorkspaceMemb
 
 
 async def get_workspace_membership(
-    membership_id: UUID,
+    membership_id: UUID, get_total_projects=False
 ) -> WorkspaceMembership | None:
     return await memberships_repositories.get_membership(
         WorkspaceMembership,
         filters={"id": membership_id},
         select_related=["user", "role", "workspace"],
+        annotations={
+            "total_projects_is_member": memberships_repositories.TOTAL_PROJECTS_IS_MEMBER_ANNOTATION
+        }
+        if get_total_projects
+        else cast(WorkspaceMembershipAnnotation, {}),
     )
 
 

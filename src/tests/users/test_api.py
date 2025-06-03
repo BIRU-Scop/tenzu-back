@@ -94,6 +94,7 @@ async def test_create_user_email_already_exists(client):
 ##########################################################
 
 
+@pytest.mark.django_db(transaction=True)
 async def test_verify_user_ok(client):
     user = await f.create_user(is_active=False)
 
@@ -104,6 +105,7 @@ async def test_verify_user_ok(client):
     assert response.json()["projectInvitation"] is None
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_verify_user_ok_accepting_pj_invitation(client, project_template):
     user = await f.create_user(is_active=False)
     project = await f.create_project(project_template)
@@ -126,6 +128,7 @@ async def test_verify_user_ok_accepting_pj_invitation(client, project_template):
     assert response.json()["projectInvitation"] is not None
 
 
+@pytest.mark.django_db(transaction=True)
 async def test_verify_user_ok_accepting_ws_invitation(client):
     user = await f.create_user(is_active=False)
     workspace = await f.create_workspace()
@@ -265,6 +268,7 @@ async def test_delete_user_204_ok(client):
     assert not await User.objects.aexists()
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_user_204_complex_data(client, project_template):
     user = await f.create_user(username="user", is_active=True)
     other_user = await f.create_user(username="other_user", is_active=True)

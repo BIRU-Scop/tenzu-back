@@ -406,7 +406,8 @@ async def update_user(user: User, values: dict[str, Any] = {}) -> User:
 
 
 async def delete_user(user: User) -> int:
-    count, _ = await user.adelete()
+    # don't call user.adelete directly since it will set id to None and we might need it for events
+    count, _ = await User.objects.filter(id=user.id).adelete()
     return count
 
 

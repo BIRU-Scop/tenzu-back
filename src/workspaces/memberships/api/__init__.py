@@ -30,7 +30,6 @@ from commons.exceptions.api.errors import (
 )
 from commons.validators import B64UUID
 from memberships.api.validators import MembershipValidator
-from memberships.serializers import RoleSerializer
 from memberships.services.exceptions import OwnerRoleNotAuthorisedError
 from permissions import check_permissions
 from workspaces.memberships import services as memberships_services
@@ -40,7 +39,7 @@ from workspaces.memberships.permissions import (
     WorkspaceRolePermissionsCheck,
 )
 from workspaces.memberships.serializers import (
-    WorkspaceMembershipSerializer,
+    WorkspaceMembershipDetailSerializer,
     WorkspaceRolesSerializer,
 )
 from workspaces.workspaces.api import get_workspace_or_404
@@ -58,7 +57,7 @@ workspace_membership_router = Router()
     url_name="workspace.memberships.list",
     summary="List workspace memberships",
     response={
-        200: list[WorkspaceMembershipSerializer],
+        200: list[WorkspaceMembershipDetailSerializer],
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
@@ -77,7 +76,9 @@ async def list_workspace_memberships(
         user=request.user,
         obj=workspace,
     )
-    return await memberships_services.list_workspace_memberships(workspace=workspace)
+    return await memberships_services.list_workspace_memberships(
+        workspace=workspace, get_total_projects=True
+    )
 
 
 ##########################################################
@@ -90,7 +91,7 @@ async def list_workspace_memberships(
     url_name="workspace.memberships.update",
     summary="Update workspace membership",
     response={
-        200: WorkspaceMembershipSerializer,
+        200: WorkspaceMembershipDetailSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -106,7 +107,9 @@ async def update_workspace_membership(
     """
     Update workspace membership
     """
-    membership = await get_workspace_membership_or_404(membership_id=membership_id)
+    membership = await get_workspace_membership_or_404(
+        membership_id=membership_id, get_total_projects=True
+    )
 
     await check_permissions(
         permissions=WorkspaceMembershipPermissionsCheck.MODIFY.value,
@@ -194,10 +197,12 @@ async def list_workspace_roles(request, workspace_id: Path[B64UUID]):
 ################################################
 
 
-async def get_workspace_membership_or_404(membership_id: UUID) -> WorkspaceMembership:
+async def get_workspace_membership_or_404(
+    membership_id: UUID, get_total_projects=False
+) -> WorkspaceMembership:
     try:
         membership = await memberships_services.get_workspace_membership(
-            membership_id=membership_id
+            membership_id=membership_id, get_total_projects=get_total_projects
         )
     except WorkspaceMembership.DoesNotExist as e:
         raise ex.NotFoundError(f"Membership {membership_id} not found") from e

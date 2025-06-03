@@ -19,6 +19,7 @@
 from django.db.models import QuerySet
 
 from memberships.repositories import (  # noqa
+    TOTAL_PROJECTS_IS_MEMBER_ANNOTATION,
     delete_membership,
     exists_membership,
     get_membership,

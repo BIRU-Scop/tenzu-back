@@ -60,26 +60,22 @@ async def emit_event_when_project_is_deleted(
     project: Project,
     deleted_by: User,
 ) -> None:
+    content = DeleteProjectContent(
+        project=project.id,
+        name=project.name,
+        deleted_by=deleted_by,
+        workspace=workspace_id,
+    )
     # for ws-authorised readers (members in invitees), both in the home page and in the ws-detail
     await events_manager.publish_on_workspace_channel(
         workspace=workspace_id,
         type=PROJECT_DELETE,
-        content=DeleteProjectContent(
-            project=project.id,
-            name=project.name,
-            deleted_by=deleted_by,
-            workspace=workspace_id,
-        ),
+        content=content,
     )
 
     # for anyuser in the project detail
     await events_manager.publish_on_project_channel(
         project=project,
         type=PROJECT_DELETE,
-        content=DeleteProjectContent(
-            project=project.id,
-            name=project.name,
-            deleted_by=deleted_by,
-            workspace=workspace_id,
-        ),
+        content=content,
     )
