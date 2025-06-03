@@ -105,12 +105,37 @@ async def update_project_membership(
 ##########################################################
 
 
+async def _handle_succession(
+    membership: ProjectMembership, user: User, successor_user_id: UUID | None = None
+):
+    if successor_user_id is not None:
+        try:
+            successor_membership = await memberships_repositories.get_membership(
+                ProjectMembership,
+                filters={
+                    "user_id": successor_user_id,
+                    "project_id": membership.project_id,
+                },
+                select_related=["user"],
+            )
+        except ProjectMembership.DoesNotExist as e:
+            raise ex.MembershipIsTheOnlyOwnerError(
+                f"Membership is the only project owner and member {successor_user_id} can't be found in project"
+            ) from e
+        else:
+            await update_project_membership(
+                successor_membership, membership.role_id, user=user
+            )
+    else:
+        raise ex.MembershipIsTheOnlyOwnerError("Membership is the only project owner")
+
+
 @transaction_atomic_async
 async def delete_project_membership(
-    membership: ProjectMembership,
+    membership: ProjectMembership, user: User, successor_user_id: UUID | None = None
 ) -> bool:
     if await memberships_services.is_membership_the_only_owner(membership):
-        raise ex.MembershipIsTheOnlyOwnerError("Membership is the only project owner")
+        await _handle_succession(membership, user, successor_user_id)
 
     deleted = await memberships_repositories.delete_membership(membership)
     if deleted > 0:

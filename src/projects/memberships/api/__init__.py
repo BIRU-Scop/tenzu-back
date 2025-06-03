@@ -39,6 +39,7 @@ from permissions import check_permissions
 from projects.memberships import services as memberships_services
 from projects.memberships.api.validators import (
     CreateRoleValidator,
+    DeleteProjectQuery,
     DeleteRoleQuery,
     UpdateRoleValidator,
 )
@@ -149,7 +150,9 @@ async def update_project_membership(
     by_alias=True,
 )
 async def delete_project_membership(
-    request, membership_id: Path[B64UUID]
+    request,
+    membership_id: Path[B64UUID],
+    query_params: Query[DeleteProjectQuery],
 ) -> tuple[int, None]:
     """
     Delete a project membership
@@ -162,7 +165,11 @@ async def delete_project_membership(
         obj=membership,
     )
 
-    await memberships_services.delete_project_membership(membership=membership)
+    await memberships_services.delete_project_membership(
+        membership=membership,
+        user=request.user,
+        successor_user_id=query_params.successor_user_id,
+    )
     return 204, None
 
 

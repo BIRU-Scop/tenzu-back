@@ -20,9 +20,13 @@ from typing import Annotated
 
 from pydantic import StringConstraints
 
-from base.serializers import UUIDB64
 from commons.validators import B64UUID, BaseModel
 from permissions.validators import ProjectPermissionsField
+
+
+class DeleteProjectQuery(BaseModel):
+    successor_user_id: B64UUID | None = None
+
 
 _RoleName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
