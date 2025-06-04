@@ -152,6 +152,14 @@ async def delete_workspace_membership(
 ) -> tuple[int, None]:
     """
     Delete a workspace membership
+    If the deleted member is the only owner of some projects in this workspace:
+        - if current user is a workspace owner, they will inherit the owner role from the deleted member
+        - otherwise a forbidden error will be raised
+
+    Query params:
+
+    * **successor_user_id:** the user's id who'll inherit the owner role from the user
+        - if not received, and user is unique owner of the associated workspace, an error will be returned
     """
     membership = await get_workspace_membership_or_404(membership_id=membership_id)
     await check_permissions(

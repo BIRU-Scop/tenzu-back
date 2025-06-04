@@ -315,6 +315,12 @@ async def test_delete_project_membership_only_owner_bad_successor(
     assert response.status_code == 400, response.data
     assert str(user.id) in response.data["error"]["msg"]
 
+    # successor is deleted member
+    response = await client.delete(
+        f"/projects/memberships/{owner_membership.b64id}?successorUserId={owner_membership.user.b64id}"
+    )
+    assert response.status_code == 400, response.data
+
 
 @pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_project_membership_only_owner_ok_successor(

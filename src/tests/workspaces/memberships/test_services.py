@@ -323,18 +323,32 @@ async def test_delete_workspace_membership_self_only_one_owner_bad_successor():
             "workspaces.memberships.services.memberships_events", autospec=True
         ) as fake_membership_events,
         patch_db_transaction(),
-        pytest.raises(ex.MembershipIsTheOnlyOwnerError),
     ):
         fake_membership_service.is_membership_the_only_owner.return_value = True
+        # same successor as deleted member
+        with pytest.raises(ex.SameSuccessorAsCurrentMember):
+            await services.delete_workspace_membership(
+                membership=membership,
+                user=membership.user,
+                successor_user_id=membership.user.id,
+            )
+        fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
+            membership
+        )
+        fake_membership_repository.delete_memberships.assert_not_awaited()
+        fake_membership_events.emit_event_when_workspace_membership_is_deleted.assert_not_awaited()
+
+        fake_membership_service.is_membership_the_only_owner.reset_mock()
         fake_membership_repository.get_membership.side_effect = (
             WorkspaceMembership.DoesNotExist
         )
-
-        await services.delete_workspace_membership(
-            membership=membership,
-            user=membership.user,
-            successor_user_id=NOT_EXISTING_UUID,
-        )
+        # successor is not found
+        with pytest.raises(ex.MembershipIsTheOnlyOwnerError):
+            await services.delete_workspace_membership(
+                membership=membership,
+                user=membership.user,
+                successor_user_id=NOT_EXISTING_UUID,
+            )
         fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
             membership
         )

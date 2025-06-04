@@ -353,6 +353,12 @@ async def test_delete_workspace_membership_only_owner_bad_successor(client):
     assert response.status_code == 400, response.data
     assert str(user.id) in response.data["error"]["msg"]
 
+    # successor is deleted member
+    response = await client.delete(
+        f"/workspaces/memberships/{owner_membership.b64id}?successorUserId={owner_membership.user.b64id}"
+    )
+    assert response.status_code == 400, response.data
+
 
 async def test_delete_workspace_membership_only_owner_ok_successor(client):
     workspace = await f.create_workspace()

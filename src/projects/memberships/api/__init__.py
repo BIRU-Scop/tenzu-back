@@ -154,6 +154,11 @@ async def delete_project_membership(
 ) -> tuple[int, None]:
     """
     Delete a project membership
+
+    Query params:
+
+    * **successor_user_id:** the user's id who'll inherit the owner role from the user
+        - if not received, and user is unique owner of the associated project, an error will be returned
     """
     membership = await get_project_membership_or_404(membership_id=membership_id)
 

@@ -109,6 +109,10 @@ async def _handle_membership_succession(
     membership: WorkspaceMembership, user: User, successor_user_id: UUID | None = None
 ):
     if successor_user_id is not None:
+        if successor_user_id == user.id:
+            raise ex.SameSuccessorAsCurrentMember(
+                "The to-be-deleted member and successor user cannot be the same"
+            )
         try:
             successor_membership = await memberships_repositories.get_membership(
                 WorkspaceMembership,
