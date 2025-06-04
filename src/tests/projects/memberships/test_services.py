@@ -277,7 +277,7 @@ async def test_update_project_membership_role_view_story_deleted():
             membership=updated_membership
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
-            filters={"project_id": project.id, "username": user.username}
+            filters={"story__project_id": project.id, "user_id": user.id}
         )
 
 
@@ -430,8 +430,8 @@ async def test_delete_project_membership_only_one_owner_successor_ok():
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
             filters={
-                "project_id": project.id,
-                "username": membership.user.username,
+                "story__project_id": project.id,
+                "user_id": membership.user_id,
             }
         )
         fake_project_invitations_repository.delete_invitation.assert_awaited_once_with(
@@ -480,8 +480,8 @@ async def test_delete_project_membership_ok():
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
             filters={
-                "project_id": project.id,
-                "username": membership.user.username,
+                "story__project_id": project.id,
+                "user_id": membership.user_id,
             }
         )
         fake_project_invitations_repository.delete_invitation.assert_awaited_once_with(
@@ -707,7 +707,7 @@ async def test_update_project_role_permissions_view_story_deleted():
             role=role
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
-            filters={"role_id": role.id}
+            filters={"user__project_memberships__role_id": role.id}
         )
 
 

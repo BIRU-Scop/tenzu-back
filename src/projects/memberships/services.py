@@ -92,8 +92,8 @@ async def update_project_membership(
     if view_story_is_deleted:
         await story_assignments_repositories.delete_stories_assignments(
             filters={
-                "project_id": membership.project_id,
-                "username": membership.user.username,
+                "story__project_id": membership.project_id,
+                "user_id": membership.user_id,
             }
         )
 
@@ -148,8 +148,8 @@ async def delete_project_membership(
         # Delete stories assignments
         await story_assignments_repositories.delete_stories_assignments(
             filters={
-                "project_id": membership.project_id,
-                "username": membership.user.username,
+                "story__project_id": membership.project_id,
+                "user_id": membership.user_id,
             }
         )
         # Delete project invitations
@@ -248,7 +248,7 @@ async def update_project_role(
         # Unassign stories for user if the new permissions don't have view_story
         if view_story_is_deleted:
             await story_assignments_repositories.delete_stories_assignments(
-                filters={"role_id": role.id}
+                filters={"user__project_memberships__role_id": role.id}
             )
 
     return updated_role
