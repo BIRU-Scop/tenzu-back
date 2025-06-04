@@ -19,7 +19,7 @@
 
 from uuid import UUID
 
-from ninja import Path, Router
+from ninja import Path, Query, Router
 
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
@@ -29,8 +29,11 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_422,
 )
 from commons.validators import B64UUID
-from memberships.api.validators import MembershipValidator
-from memberships.services.exceptions import OwnerRoleNotAuthorisedError
+from memberships.api.validators import DeleteMembershipQuery, MembershipValidator
+from memberships.services.exceptions import (
+    ExistingOwnerProjectMembershipsAndNotOwnerError,
+    OwnerRoleNotAuthorisedError,
+)
 from permissions import check_permissions
 from workspaces.memberships import services as memberships_services
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
@@ -145,6 +148,7 @@ async def update_workspace_membership(
 async def delete_workspace_membership(
     request,
     membership_id: Path[B64UUID],
+    query_params: Query[DeleteMembershipQuery],
 ) -> tuple[int, None]:
     """
     Delete a workspace membership
@@ -156,7 +160,14 @@ async def delete_workspace_membership(
         obj=membership,
     )
 
-    await memberships_services.delete_workspace_membership(membership=membership)
+    try:
+        await memberships_services.delete_workspace_membership(
+            membership=membership,
+            user=request.user,
+            successor_user_id=query_params.successor_user_id,
+        )
+    except ExistingOwnerProjectMembershipsAndNotOwnerError as e:
+        raise ex.ForbiddenError(str(e))
 
     return 204, None
 

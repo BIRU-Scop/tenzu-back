@@ -105,7 +105,7 @@ async def update_project_membership(
 ##########################################################
 
 
-async def _handle_succession(
+async def _handle_membership_succession(
     membership: ProjectMembership, user: User, successor_user_id: UUID | None = None
 ):
     if successor_user_id is not None:
@@ -135,9 +135,11 @@ async def delete_project_membership(
     membership: ProjectMembership, user: User, successor_user_id: UUID | None = None
 ) -> bool:
     if await memberships_services.is_membership_the_only_owner(membership):
-        await _handle_succession(membership, user, successor_user_id)
+        await _handle_membership_succession(membership, user, successor_user_id)
 
-    deleted = await memberships_repositories.delete_membership(membership)
+    deleted = await memberships_repositories.delete_memberships(
+        ProjectMembership, {"id": membership.id}
+    )
     if deleted > 0:
         # Delete stories assignments
         await story_assignments_repositories.delete_stories_assignments(

@@ -331,7 +331,7 @@ async def test_delete_workspace_membership_role_ok(
     assert response.status_code == 204, response.data
 
 
-async def test_delete_workspace_membership_only_owner(client):
+async def test_delete_workspace_membership_only_owner_bad_successor(client):
     workspace = await f.create_workspace()
     owner_membership = list(workspace.memberships.all())[0]
 
@@ -339,10 +339,36 @@ async def test_delete_workspace_membership_only_owner(client):
     response = await client.delete(f"/workspaces/memberships/{owner_membership.b64id}")
     assert response.status_code == 400, response.data
 
+    # invalid successor
+    response = await client.delete(
+        f"/workspaces/memberships/{owner_membership.b64id}?successorUserId={NOT_EXISTING_B64ID}"
+    )
+    assert response.status_code == 400, response.data
 
-async def test_delete_workspace_membership_role_owner_and_not_owner(
-    client,
-):
+    # successor not in project
+    user = await f.create_user()
+    response = await client.delete(
+        f"/workspaces/memberships/{owner_membership.b64id}?successorUserId={user.b64id}"
+    )
+    assert response.status_code == 400, response.data
+    assert str(user.id) in response.data["error"]["msg"]
+
+
+async def test_delete_workspace_membership_only_owner_ok_successor(client):
+    workspace = await f.create_workspace()
+    owner_membership = list(workspace.memberships.all())[0]
+    other_membership = await f.create_workspace_membership(workspace=workspace)
+
+    client.login(workspace.created_by)
+    response = await client.delete(
+        f"/workspaces/memberships/{owner_membership.b64id}?successorUserId={other_membership.user.b64id}"
+    )
+    assert response.status_code == 204, response.data
+    await other_membership.arefresh_from_db()
+    assert other_membership.role_id == owner_membership.role_id
+
+
+async def test_delete_workspace_membership_not_owner(client, project_template):
     workspace = await f.create_workspace()
     owner_membership = list(workspace.memberships.all())[0]
     user = await f.create_user()
@@ -356,12 +382,27 @@ async def test_delete_workspace_membership_role_owner_and_not_owner(
     )
 
     client.login(user)
+    # trying to delete ws owner
     response = await client.delete(f"/workspaces/memberships/{owner_membership.b64id}")
     assert response.status_code == 403, response.data
 
+    # trying to delete owner of a project of the ws
+    other_admin_user = await f.create_user()
+    general_admin_membership = await f.create_workspace_membership(
+        user=other_admin_user, workspace=workspace, role=general_admin_role
+    )
+    await f.create_project(
+        project_template, created_by=other_admin_user, workspace=workspace
+    )
+    response = await client.delete(
+        f"/workspaces/memberships/{general_admin_membership.b64id}"
+    )
+    assert response.status_code == 403, response.data
 
+
+@pytest.mark.django_db(transaction=True)
 async def test_delete_workspace_membership_role_owner_and_owner(
-    client,
+    client, project_template
 ):
     workspace = await f.create_workspace()
     user = await f.create_user()
@@ -374,9 +415,50 @@ async def test_delete_workspace_membership_role_owner_and_owner(
     response = await client.delete(f"/workspaces/memberships/{membership.b64id}")
     assert response.status_code == 204, response.data
 
+    # ok event if deleted member is only owner of some projects
+    membership = await f.create_workspace_membership(
+        user=user, workspace=workspace, role=owner_role
+    )
+    project_ws_owner_is_member = await f.create_project(
+        project_template, workspace=workspace, created_by=user
+    )
+    general_role = await project_ws_owner_is_member.roles.filter(
+        is_owner=False
+    ).afirst()
+    await f.create_project_membership(
+        user=workspace.created_by, project=project_ws_owner_is_member, role=general_role
+    )
+    project_ws_owner_not_member = await f.create_project(
+        project_template, workspace=workspace, created_by=user
+    )
+    general_role = await project_ws_owner_not_member.roles.filter(
+        is_owner=False
+    ).afirst()
+    other_member = await f.create_user()
+    await f.create_project_membership(
+        user=other_member,
+        project=project_ws_owner_not_member,
+        role=general_role,
+    )
+    project_only_1_member = await f.create_project(
+        project_template, workspace=workspace, created_by=user
+    )
+    response = await client.delete(f"/workspaces/memberships/{membership.b64id}")
+    assert response.status_code == 204, response.data
+    assert [m async for m in project_ws_owner_is_member.members.all()] == [
+        workspace.created_by
+    ]
+    assert sorted(
+        [m async for m in project_ws_owner_not_member.members.all()],
+        key=attrgetter("id"),
+    ) == [workspace.created_by, other_member]
+    assert [m async for m in project_only_1_member.members.all()] == [
+        workspace.created_by
+    ]
 
-async def test_delete_workspace_membership_self_request(
-    client,
+
+async def test_delete_workspace_membership_self_member_request(
+    client, project_template
 ):
     workspace = await f.create_workspace()
     member = await f.create_user()
@@ -392,6 +474,16 @@ async def test_delete_workspace_membership_self_request(
     client.login(member)
     response = await client.delete(f"/workspaces/memberships/{membership.b64id}")
     assert response.status_code == 204, response.data
+
+    # error if user existing project
+    await f.create_project(project_template, workspace=workspace, created_by=member)
+
+    membership = await f.create_workspace_membership(
+        user=member, workspace=workspace, role=general_member_role
+    )
+    client.login(member)
+    response = await client.delete(f"/workspaces/memberships/{membership.b64id}")
+    assert response.status_code == 400, response.data
 
 
 ##########################################################

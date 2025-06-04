@@ -29,8 +29,7 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_422,
 )
 from commons.validators import B64UUID
-from memberships.api.validators import MembershipValidator
-from memberships.serializers import RoleSerializer
+from memberships.api.validators import DeleteMembershipQuery, MembershipValidator
 from memberships.services.exceptions import (
     NonEditableRoleError,
     OwnerRoleNotAuthorisedError,
@@ -39,7 +38,6 @@ from permissions import check_permissions
 from projects.memberships import services as memberships_services
 from projects.memberships.api.validators import (
     CreateRoleValidator,
-    DeleteProjectQuery,
     DeleteRoleQuery,
     UpdateRoleValidator,
 )
@@ -152,7 +150,7 @@ async def update_project_membership(
 async def delete_project_membership(
     request,
     membership_id: Path[B64UUID],
-    query_params: Query[DeleteProjectQuery],
+    query_params: Query[DeleteMembershipQuery],
 ) -> tuple[int, None]:
     """
     Delete a project membership

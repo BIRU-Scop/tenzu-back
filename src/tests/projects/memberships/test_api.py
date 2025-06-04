@@ -366,7 +366,7 @@ async def test_delete_project_membership_role_owner_and_owner(client, project_te
     assert response.status_code == 204, response.data
 
 
-async def test_delete_project_membership_self_request(client, project_template):
+async def test_delete_project_membership_self_member_request(client, project_template):
     project = await f.create_project(project_template)
     member = await f.create_user()
     member_role = await f.create_project_role(

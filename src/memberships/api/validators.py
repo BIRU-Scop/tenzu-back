@@ -37,6 +37,10 @@ class MembershipValidator(BaseModel):
     role_id: B64UUID
 
 
+class DeleteMembershipQuery(BaseModel):
+    successor_user_id: B64UUID | None = None
+
+
 # --- Invitations
 
 

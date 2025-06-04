@@ -20,7 +20,8 @@ from django.db.models import QuerySet
 
 from memberships.repositories import (  # noqa
     TOTAL_PROJECTS_IS_MEMBER_ANNOTATION,
-    delete_membership,
+    bulk_update_or_create_memberships,
+    delete_memberships,
     exists_membership,
     get_membership,
     get_role,
@@ -28,7 +29,7 @@ from memberships.repositories import (  # noqa
     list_members,
     list_memberships,
     list_roles,
-    only_owner_collective_queryset,
+    only_owner_queryset,
     update_membership,
     update_role,
 )

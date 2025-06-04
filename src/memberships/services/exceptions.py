@@ -36,6 +36,10 @@ class ExistingProjectMembershipsError(TenzuServiceException):
     pass
 
 
+class ExistingOwnerProjectMembershipsAndNotOwnerError(TenzuServiceException):
+    pass
+
+
 class NoRelatedWorkspaceMembershipsError(TenzuServiceException):
     pass
 

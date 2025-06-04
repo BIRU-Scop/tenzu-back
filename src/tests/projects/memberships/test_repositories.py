@@ -149,6 +149,49 @@ async def test_update_project_membership(project_template):
     assert updated_membership.role == new_role
 
 
+async def test_bulk_update_or_create_memberships(project_template):
+    project = await f.create_project(project_template)
+    role = await f.create_project_role(project=project)
+    owner_role = await project.roles.aget(is_owner=True)
+    ws_role = project.workspace.roles.first()
+
+    user1 = await f.create_user()
+    await f.create_workspace_membership(
+        user=user1, workspace=project.workspace, role=ws_role
+    )
+    member_membership = await repositories.create_project_membership(
+        user=user1, project=project, role=role
+    )
+    user2 = await f.create_user()
+    await f.create_workspace_membership(
+        user=user2, workspace=project.workspace, role=ws_role
+    )
+    owner_membership = await repositories.create_project_membership(
+        user=user2, project=project, role=owner_role
+    )
+    user3 = await f.create_user()
+
+    new_memberships = [
+        ProjectMembership(
+            user=member_membership.user, project=project, role=owner_role
+        ),
+        ProjectMembership(user=owner_membership.user, project=project, role=owner_role),
+        ProjectMembership(user=user3, project=project, role=owner_role),
+    ]
+
+    assert not await user3.project_memberships.aexists()
+    await repositories.bulk_update_or_create_memberships(new_memberships)
+
+    updated_memberships = await repositories.bulk_update_or_create_memberships(
+        new_memberships
+    )
+    assert len(updated_memberships) == 3
+    assert all(
+        membership.role_id == owner_role.id for membership in updated_memberships
+    )
+    assert await user3.project_memberships.aexists()
+
+
 ##########################################################
 # delete_project_membership
 ##########################################################
@@ -161,7 +204,9 @@ async def test_delete_project_membership(project_template) -> None:
     membership = await f.create_project_membership(
         user=user, project=project, role=role
     )
-    deleted = await repositories.delete_membership(membership)
+    deleted = await repositories.delete_memberships(
+        ProjectMembership, {"id": membership.id}
+    )
     assert deleted == 1
     memberships = [m async for m in project.memberships.all()]
     assert len(memberships) == 1
@@ -277,7 +322,7 @@ async def test_list_projects_user_only_member(project_template):
 
 
 ##########################################################
-# misc - only_owner_collective_queryset
+# misc - only_owner_queryset
 ##########################################################
 
 
@@ -322,11 +367,22 @@ async def test_list_projects_user_only_owner_but_not_only_member(project_templat
     await f.create_project_membership(user=user, project=pj1_ws5)
 
     pj_list = [
-        pj async for pj in repositories.only_owner_collective_queryset(Project, user)
+        pj
+        async for pj in repositories.only_owner_queryset(
+            Project, user, is_collective=True
+        )
     ]
 
     assert len(pj_list) == 1
     assert pj_list[0].name == pj1_ws3.name
+
+    pj_list = [
+        pj
+        async for pj in repositories.only_owner_queryset(
+            Project, user, is_collective=False
+        )
+    ]
+    assert len(pj_list) == 4
 
 
 ##########################################################

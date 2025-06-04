@@ -311,7 +311,7 @@ async def test_delete_project_membership_only_one_owner_without_successor():
         fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
             membership
         )
-        fake_membership_repository.delete_membership.assert_not_awaited()
+        fake_membership_repository.delete_memberships.assert_not_awaited()
         fake_membership_events.emit_event_when_project_membership_is_deleted.assert_not_awaited()
 
 
@@ -357,7 +357,7 @@ async def test_delete_project_membership_only_one_owner_bad_successor():
             select_related=["user"],
         )
         fake_update_project_membership.assert_not_awaited()
-        fake_membership_repository.delete_membership.assert_not_awaited()
+        fake_membership_repository.delete_memberships.assert_not_awaited()
         fake_membership_events.emit_event_when_project_membership_is_deleted.assert_not_awaited()
 
 
@@ -392,7 +392,7 @@ async def test_delete_project_membership_only_one_owner_successor_ok():
         ) as fake_update_project_membership,
         patch_db_transaction(),
     ):
-        fake_membership_repository.delete_membership.return_value = 1
+        fake_membership_repository.delete_memberships.return_value = 1
         fake_project_invitations_repository.invitation_username_or_email_query.return_value = None
         fake_membership_service.is_membership_the_only_owner.return_value = True
         fake_membership_repository.get_membership.return_value = successor_membership
@@ -406,8 +406,8 @@ async def test_delete_project_membership_only_one_owner_successor_ok():
         fake_update_project_membership.assert_awaited_once_with(
             successor_membership, owner_role.id, user=None
         )
-        fake_membership_repository.delete_membership.assert_awaited_once_with(
-            membership
+        fake_membership_repository.delete_memberships.assert_awaited_once_with(
+            ProjectMembership, {"id": membership.id}
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
             filters={
@@ -451,11 +451,11 @@ async def test_delete_project_membership_ok():
         ) as fake_membership_events,
         patch_db_transaction(),
     ):
-        fake_membership_repository.delete_membership.return_value = 1
+        fake_membership_repository.delete_memberships.return_value = 1
         fake_project_invitations_repository.invitation_username_or_email_query.return_value = None
         await services.delete_project_membership(membership=membership, user=None)
-        fake_membership_repository.delete_membership.assert_awaited_once_with(
-            membership
+        fake_membership_repository.delete_memberships.assert_awaited_once_with(
+            ProjectMembership, {"id": membership.id}
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
             filters={

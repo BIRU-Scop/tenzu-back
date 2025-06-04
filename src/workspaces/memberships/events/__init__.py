@@ -38,7 +38,7 @@ async def emit_event_when_workspace_membership_is_updated(
     )
 
     await events_manager.publish_on_workspace_channel(
-        workspace=membership.workspace,
+        workspace=membership.workspace_id,
         type=UPDATE_WORKSPACE_MEMBERSHIP,
         content=content,
     )

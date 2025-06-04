@@ -31,6 +31,11 @@ from workspaces.workspaces.models import Workspace
 
 T = TypeVar("T", Project, Workspace)
 
+
+class ProjectFilters(TypedDict, total=False):
+    workspace_id: UUID
+
+
 ##########################################################
 # membership type
 ##########################################################
@@ -42,6 +47,7 @@ TOTAL_PROJECTS_IS_MEMBER_ANNOTATION = Count(
 
 
 class _MembershipFilters(TypedDict, total=False):
+    id: UUID
     user__username: str
     user_id: UUID
     role__permissions__contains: list[str]
@@ -241,14 +247,26 @@ async def update_membership(membership: TM, values: dict[str, Any] = {}) -> TM:
     return membership
 
 
+async def bulk_update_or_create_memberships(memberships: list[TM]) -> list[TM]:
+    if not memberships:
+        return []
+    model = memberships[0].__class__
+    reference_fields = memberships[0].reference_model_filter.keys()
+    return await model.objects.abulk_create(
+        memberships,
+        update_conflicts=True,
+        update_fields=["role_id"],
+        unique_fields=["user_id", *reference_fields],
+    )
+
+
 ##########################################################
 # delete membership
 ##########################################################
 
 
-async def delete_membership(membership: TM) -> int:
-    # don't call membership.adelete directly since it will set id to None and we might need it for events
-    count, _ = await membership.__class__.objects.filter(id=membership.id).adelete()
+async def delete_memberships(model: type[TM], filters: MembershipFilters) -> int:
+    count, _ = await model.objects.filter(**filters).adelete()
     return count
 
 
@@ -290,9 +308,12 @@ def only_member_queryset(
     return qs.distinct()
 
 
-def only_owner_collective_queryset(model: type[T], user: User) -> QuerySet[T]:
+def only_owner_queryset(
+    model: type[T], user: User, is_collective=False, filters: ProjectFilters = {}
+) -> QuerySet[T]:
     """
-    returns a queryset for all projects where user is the only owner and other members exists
+    returns a queryset for all projects where user is the only owner
+    if is_collective=True, only return projects with more than one member
     """
     qs = model.objects.all()
     # add explicite order_by so it doesn't get removed by groupby implicit query in annotate
@@ -300,12 +321,14 @@ def only_owner_collective_queryset(model: type[T], user: User) -> QuerySet[T]:
     qs = qs.annotate(
         num_owners=Count("memberships", filter=Q(memberships__role__is_owner=True))
     ).filter(num_owners=1)
-    qs = qs.annotate(num_members=Count("members")).filter(num_members__gt=1)
+    if is_collective:
+        qs = qs.annotate(num_members=Count("members")).filter(num_members__gt=1)
     qs = qs.filter(
         **{
             "memberships__user_id": user.id,
             "memberships__role__is_owner": True,
-        }
+        },
+        **filters,
     )
     return qs.distinct()
 
