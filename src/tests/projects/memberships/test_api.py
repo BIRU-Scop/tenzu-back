@@ -831,6 +831,7 @@ async def test_delete_project_role_move_to_owner(client, project_template):
     assert response.status_code == 204, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_project_role_ok(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()

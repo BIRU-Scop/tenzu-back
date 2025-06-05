@@ -119,7 +119,7 @@ async def emit_event_when_project_role_is_updated(
 
 
 async def emit_event_when_project_role_is_deleted(
-    role: ProjectRole, target_role: ProjectRole
+    role: ProjectRole, target_role: ProjectRole | None
 ) -> None:
     """
     This event is emitted whenever the permissions list or name changes for a role
