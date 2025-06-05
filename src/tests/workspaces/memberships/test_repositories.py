@@ -351,6 +351,30 @@ async def test_list_workspaces_user_only_member(project_template):
 
 
 ##########################################################
+# misc - workspace_member_projects_list
+##########################################################
+
+
+async def test_workspace_member_projects_list(project_template):
+    user = await f.create_user()
+    other_user = await f.create_user()
+    ws1 = await f.create_workspace(created_by=user)
+    owner_membership = list(ws1.memberships.all())[0]
+    await f.create_project(template=project_template, created_by=user, workspace=ws1)
+    await f.create_project(template=project_template, created_by=user, workspace=ws1)
+    await f.create_project_membership(user=user, project__workspace=ws1)
+    await f.create_project_membership(user=other_user, project__workspace=ws1)
+
+    ws2 = await f.create_workspace(created_by=other_user)
+    await f.create_project(template=project_template, created_by=user, workspace=ws2)
+    await f.create_project_membership(user=user, project__workspace=ws2)
+
+    ws_list = await repositories.workspace_member_projects_list(owner_membership)
+
+    assert len(ws_list) == 3
+
+
+##########################################################
 # misc - only_owner_queryset
 ##########################################################
 

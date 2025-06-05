@@ -35,6 +35,7 @@ from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import events as memberships_events
 from workspaces.memberships import repositories as memberships_repositories
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
+from workspaces.memberships.serializers import WorkspaceMembershipDeleteInfoSerializer
 from workspaces.workspaces.models import Workspace
 
 _DEFAULT_WORKSPACE_MEMBERSHIP_ROLE_SLUG = "readonly-member"
@@ -237,6 +238,27 @@ async def delete_workspace_membership(
         return True
 
     return False
+
+
+async def get_workspace_membership_delete_info(
+    membership: WorkspaceMembership,
+) -> WorkspaceMembershipDeleteInfoSerializer:
+    only_owner_projects = [
+        pj
+        async for pj in memberships_repositories.only_owner_queryset(
+            Project, membership.user, filters={"workspace_id": membership.workspace_id}
+        ).values_list("name", flat=True)
+    ]
+
+    return WorkspaceMembershipDeleteInfoSerializer(
+        is_unique_owner=not await memberships_repositories.has_other_owner_memberships(
+            membership=membership
+        ),
+        member_of_projects=await memberships_repositories.workspace_member_projects_list(
+            membership
+        ),
+        unique_owner_of_projects=only_owner_projects,
+    )
 
 
 ##########################################################

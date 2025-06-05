@@ -42,7 +42,8 @@ from workspaces.memberships.permissions import (
     WorkspaceRolePermissionsCheck,
 )
 from workspaces.memberships.serializers import (
-    WorkspaceMembershipDetailSerializer,
+    WorkspaceMembershipDeleteInfoSerializer,
+    WorkspaceMembershipSerializer,
     WorkspaceRolesSerializer,
 )
 from workspaces.workspaces.api import get_workspace_or_404
@@ -60,7 +61,7 @@ workspace_membership_router = Router()
     url_name="workspace.memberships.list",
     summary="List workspace memberships",
     response={
-        200: list[WorkspaceMembershipDetailSerializer],
+        200: list[WorkspaceMembershipSerializer],
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
@@ -94,7 +95,7 @@ async def list_workspace_memberships(
     url_name="workspace.memberships.update",
     summary="Update workspace membership",
     response={
-        200: WorkspaceMembershipDetailSerializer,
+        200: WorkspaceMembershipSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -125,6 +126,40 @@ async def update_workspace_membership(
         )
     except OwnerRoleNotAuthorisedError as e:
         raise ex.ForbiddenError(str(e))
+
+
+##########################################################
+# delete info workspace memberships
+##########################################################
+
+
+@workspace_membership_router.get(
+    "/workspaces/memberships/{membership_id}/delete-info",
+    url_name="workspace.memberships.delete-info",
+    summary="Get workspace membership delete-info",
+    response={
+        200: WorkspaceMembershipDeleteInfoSerializer,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def get_workspace_membership_delete_info(
+    request,
+    membership_id: Path[B64UUID],
+) -> WorkspaceMembershipDeleteInfoSerializer:
+    """
+    Get some info before deleting a membership.
+    """
+    membership = await get_workspace_membership_or_404(membership_id=membership_id)
+    await check_permissions(
+        permissions=WorkspaceMembershipPermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=membership,
+    )
+    return await memberships_services.get_workspace_membership_delete_info(
+        membership=membership
+    )
 
 
 ##########################################################
