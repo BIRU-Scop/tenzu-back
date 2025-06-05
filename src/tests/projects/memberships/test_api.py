@@ -269,7 +269,6 @@ async def test_delete_project_membership_without_permissions(client, project_tem
     assert response.status_code == 403, response.data
 
 
-@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_project_membership_role_ok(client, project_template):
     project = await f.create_project(project_template)
     user1 = await f.create_user()
@@ -291,13 +290,53 @@ async def test_delete_project_membership_role_ok(client, project_template):
     assert response.status_code == 204, response.data
 
 
-async def test_delete_project_membership_only_owner(client, project_template):
+async def test_delete_project_membership_only_owner_bad_successor(
+    client, project_template
+):
+    # no successor
     project = await f.create_project(project_template)
     owner_membership = list(project.memberships.all())[0]
 
     client.login(project.created_by)
     response = await client.delete(f"/projects/memberships/{owner_membership.b64id}")
     assert response.status_code == 400, response.data
+
+    # invalid successor
+    response = await client.delete(
+        f"/projects/memberships/{owner_membership.b64id}?successorUserId={NOT_EXISTING_B64ID}"
+    )
+    assert response.status_code == 400, response.data
+
+    # successor not in project
+    user = await f.create_user()
+    response = await client.delete(
+        f"/projects/memberships/{owner_membership.b64id}?successorUserId={user.b64id}"
+    )
+    assert response.status_code == 400, response.data
+    assert str(user.id) in response.data["error"]["msg"]
+
+    # successor is deleted member
+    response = await client.delete(
+        f"/projects/memberships/{owner_membership.b64id}?successorUserId={owner_membership.user.b64id}"
+    )
+    assert response.status_code == 400, response.data
+
+
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
+async def test_delete_project_membership_only_owner_ok_successor(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    owner_membership = list(project.memberships.all())[0]
+    other_membership = await f.create_project_membership(project=project)
+
+    client.login(project.created_by)
+    response = await client.delete(
+        f"/projects/memberships/{owner_membership.b64id}?successorUserId={other_membership.user.b64id}"
+    )
+    assert response.status_code == 204, response.data
+    await other_membership.arefresh_from_db()
+    assert other_membership.role_id == owner_membership.role_id
 
 
 async def test_delete_project_membership_role_owner_and_not_owner(
@@ -333,7 +372,7 @@ async def test_delete_project_membership_role_owner_and_owner(client, project_te
     assert response.status_code == 204, response.data
 
 
-async def test_delete_project_membership_self_request(client, project_template):
+async def test_delete_project_membership_self_member_request(client, project_template):
     project = await f.create_project(project_template)
     member = await f.create_user()
     member_role = await f.create_project_role(

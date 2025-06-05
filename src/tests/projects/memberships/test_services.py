@@ -25,7 +25,7 @@ from memberships.services import exceptions as ex
 from permissions.choices import ProjectPermissions
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import services
-from projects.memberships.models import ProjectRole
+from projects.memberships.models import ProjectMembership, ProjectRole
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_UUID
 from tests.utils.utils import patch_db_transaction
@@ -277,7 +277,7 @@ async def test_update_project_membership_role_view_story_deleted():
             membership=updated_membership
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
-            filters={"project_id": project.id, "username": user.username}
+            filters={"story__project_id": project.id, "user_id": user.id}
         )
 
 
@@ -286,7 +286,7 @@ async def test_update_project_membership_role_view_story_deleted():
 #######################################################
 
 
-async def test_delete_project_membership_only_one_owner():
+async def test_delete_project_membership_only_one_owner_without_successor():
     project = f.build_project()
     owner_role = f.build_project_role(project=project, is_owner=True)
     membership = f.build_project_membership(
@@ -307,12 +307,143 @@ async def test_delete_project_membership_only_one_owner():
     ):
         fake_membership_service.is_membership_the_only_owner.return_value = True
 
-        await services.delete_project_membership(membership=membership)
+        await services.delete_project_membership(
+            membership=membership, user=membership.user
+        )
         fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
             membership
         )
-        fake_membership_repository.delete_membership.assert_not_awaited()
+        fake_membership_repository.delete_memberships.assert_not_awaited()
         fake_membership_events.emit_event_when_project_membership_is_deleted.assert_not_awaited()
+
+
+async def test_delete_project_membership_only_one_owner_bad_successor():
+    project = f.build_project()
+    owner_role = f.build_project_role(project=project, is_owner=False)
+    membership = f.build_project_membership(
+        user=project.created_by, project=project, role=owner_role
+    )
+    with (
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "projects.memberships.services.memberships_services", autospec=True
+        ) as fake_membership_service,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
+        patch(
+            "projects.memberships.services.update_project_membership", autospec=True
+        ) as fake_update_project_membership,
+        patch_db_transaction(),
+    ):
+        fake_membership_service.is_membership_the_only_owner.return_value = True
+        # same successor as deleted member
+        with pytest.raises(ex.SameSuccessorAsCurrentMember):
+            await services.delete_project_membership(
+                membership=membership,
+                user=membership.user,
+                successor_user_id=membership.user.id,
+            )
+        fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
+            membership
+        )
+        fake_update_project_membership.assert_not_awaited()
+        fake_membership_repository.delete_memberships.assert_not_awaited()
+        fake_membership_events.emit_event_when_project_membership_is_deleted.assert_not_awaited()
+
+        fake_membership_service.is_membership_the_only_owner.reset_mock()
+        fake_membership_repository.get_membership.side_effect = (
+            ProjectMembership.DoesNotExist
+        )
+        # successor is not found
+        with pytest.raises(ex.MembershipIsTheOnlyOwnerError):
+            await services.delete_project_membership(
+                membership=membership,
+                user=membership.user,
+                successor_user_id=NOT_EXISTING_UUID,
+            )
+        fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
+            membership
+        )
+        fake_membership_repository.get_membership.assert_awaited_once_with(
+            ProjectMembership,
+            filters={
+                "user_id": NOT_EXISTING_UUID,
+                "project_id": project.id,
+            },
+            select_related=["user"],
+        )
+        fake_update_project_membership.assert_not_awaited()
+        fake_membership_repository.delete_memberships.assert_not_awaited()
+        fake_membership_events.emit_event_when_project_membership_is_deleted.assert_not_awaited()
+
+
+async def test_delete_project_membership_only_one_owner_successor_ok():
+    project = f.build_project()
+    owner_role = f.build_project_role(project=project, is_owner=False)
+    membership = f.build_project_membership(
+        user=project.created_by, project=project, role=owner_role
+    )
+    successor = f.build_user()
+    successor_membership = f.build_project_membership(user=successor, project=project)
+    with (
+        patch(
+            "projects.memberships.services.memberships_repositories", autospec=True
+        ) as fake_membership_repository,
+        patch(
+            "projects.memberships.services.memberships_services", autospec=True
+        ) as fake_membership_service,
+        patch(
+            "projects.memberships.services.story_assignments_repositories",
+            autospec=True,
+        ) as fake_story_assignments_repository,
+        patch(
+            "projects.memberships.services.project_invitations_repositories",
+            autospec=True,
+        ) as fake_project_invitations_repository,
+        patch(
+            "projects.memberships.services.memberships_events", autospec=True
+        ) as fake_membership_events,
+        patch(
+            "projects.memberships.services.update_project_membership", autospec=True
+        ) as fake_update_project_membership,
+        patch_db_transaction(),
+    ):
+        fake_membership_repository.delete_memberships.return_value = 1
+        fake_project_invitations_repository.invitation_username_or_email_query.return_value = None
+        fake_membership_service.is_membership_the_only_owner.return_value = True
+        fake_membership_repository.get_membership.return_value = successor_membership
+
+        await services.delete_project_membership(
+            membership=membership, user=membership.user, successor_user_id=successor.id
+        )
+        fake_membership_service.is_membership_the_only_owner.assert_awaited_once_with(
+            membership
+        )
+        fake_update_project_membership.assert_awaited_once_with(
+            successor_membership, owner_role.id, user=membership.user
+        )
+        fake_membership_repository.delete_memberships.assert_awaited_once_with(
+            ProjectMembership, {"id": membership.id}
+        )
+        fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
+            filters={
+                "story__project_id": project.id,
+                "user_id": membership.user_id,
+            }
+        )
+        fake_project_invitations_repository.delete_invitation.assert_awaited_once_with(
+            ProjectInvitation,
+            filters={
+                "project_id": project.id,
+            },
+            q_filter=None,
+        )
+        fake_membership_events.emit_event_when_project_membership_is_deleted.assert_awaited_once_with(
+            membership=membership
+        )
 
 
 async def test_delete_project_membership_ok():
@@ -339,16 +470,18 @@ async def test_delete_project_membership_ok():
         ) as fake_membership_events,
         patch_db_transaction(),
     ):
-        fake_membership_repository.delete_membership.return_value = 1
+        fake_membership_repository.delete_memberships.return_value = 1
         fake_project_invitations_repository.invitation_username_or_email_query.return_value = None
-        await services.delete_project_membership(membership=membership)
-        fake_membership_repository.delete_membership.assert_awaited_once_with(
-            membership
+        await services.delete_project_membership(
+            membership=membership, user=membership.user
+        )
+        fake_membership_repository.delete_memberships.assert_awaited_once_with(
+            ProjectMembership, {"id": membership.id}
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
             filters={
-                "project_id": project.id,
-                "username": membership.user.username,
+                "story__project_id": project.id,
+                "user_id": membership.user_id,
             }
         )
         fake_project_invitations_repository.delete_invitation.assert_awaited_once_with(
@@ -574,7 +707,7 @@ async def test_update_project_role_permissions_view_story_deleted():
             role=role
         )
         fake_story_assignments_repository.delete_stories_assignments.assert_awaited_once_with(
-            filters={"role_id": role.id}
+            filters={"user__project_memberships__role_id": role.id}
         )
 
 

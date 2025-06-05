@@ -379,7 +379,7 @@ def _list_users_by_fullname_or_username(
 async def get_user(
     filters: UserFilters = {},
     q_filter: Q | None = None,
-) -> User | None:
+) -> User:
     qs = User.objects.all().filter(**filters)
     if q_filter:
         qs = qs.filter(q_filter)

@@ -20,12 +20,12 @@
 from base.serializers import BaseModel
 from memberships.serializers import RoleSerializer
 from workspaces.memberships.serializers import (
-    WorkspaceMembershipSummarySerializer,
+    WorkspaceMembershipNestedSerializer,
 )
 
 
 class WorkspaceMembershipContent(BaseModel):
-    membership: WorkspaceMembershipSummarySerializer
+    membership: WorkspaceMembershipNestedSerializer
 
 
 class WorkspaceRoleContent(RoleSerializer):

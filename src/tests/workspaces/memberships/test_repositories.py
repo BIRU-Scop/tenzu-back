@@ -197,6 +197,42 @@ async def test_update_workspace_membership():
     assert updated_membership.role == new_role
 
 
+async def test_bulk_update_or_create_memberships():
+    workspace = await f.create_workspace()
+    role = await f.create_workspace_role(workspace=workspace)
+    owner_role = await workspace.roles.aget(is_owner=True)
+
+    user = await f.create_user()
+    member_membership = await repositories.create_workspace_membership(
+        user=user, workspace=workspace, role=role
+    )
+    user = await f.create_user()
+    owner_membership = await repositories.create_workspace_membership(
+        user=user, workspace=workspace, role=owner_role
+    )
+    user = await f.create_user()
+
+    new_memberships = [
+        WorkspaceMembership(
+            user=member_membership.user, workspace=workspace, role=owner_role
+        ),
+        WorkspaceMembership(
+            user=owner_membership.user, workspace=workspace, role=owner_role
+        ),
+        WorkspaceMembership(user=user, workspace=workspace, role=owner_role),
+    ]
+
+    assert not await user.workspace_memberships.aexists()
+    updated_memberships = await repositories.bulk_update_or_create_memberships(
+        new_memberships
+    )
+    assert len(updated_memberships) == 3
+    assert all(
+        membership.role_id == owner_role.id for membership in updated_memberships
+    )
+    assert await user.workspace_memberships.aexists()
+
+
 ##########################################################
 # delete workspace memberships
 ##########################################################
@@ -210,7 +246,9 @@ async def test_delete_workspace_membership() -> None:
     membership = await f.create_workspace_membership(
         workspace=workspace, user=member, role=role
     )
-    deleted = await repositories.delete_membership(membership)
+    deleted = await repositories.delete_memberships(
+        WorkspaceMembership, {"id": membership.id}
+    )
     assert deleted == 1
     memberships = [m async for m in workspace.memberships.all()]
     assert len(memberships) == 1
@@ -313,7 +351,31 @@ async def test_list_workspaces_user_only_member(project_template):
 
 
 ##########################################################
-# misc - only_owner_collective_queryset
+# misc - workspace_member_projects_list
+##########################################################
+
+
+async def test_workspace_member_projects_list(project_template):
+    user = await f.create_user()
+    other_user = await f.create_user()
+    ws1 = await f.create_workspace(created_by=user)
+    owner_membership = list(ws1.memberships.all())[0]
+    await f.create_project(template=project_template, created_by=user, workspace=ws1)
+    await f.create_project(template=project_template, created_by=user, workspace=ws1)
+    await f.create_project_membership(user=user, project__workspace=ws1)
+    await f.create_project_membership(user=other_user, project__workspace=ws1)
+
+    ws2 = await f.create_workspace(created_by=other_user)
+    await f.create_project(template=project_template, created_by=user, workspace=ws2)
+    await f.create_project_membership(user=user, project__workspace=ws2)
+
+    ws_list = await repositories.workspace_member_projects_list(owner_membership)
+
+    assert len(ws_list) == 3
+
+
+##########################################################
+# misc - only_owner_queryset
 ##########################################################
 
 
@@ -339,11 +401,21 @@ async def test_list_projects_user_only_owner_but_not_only_member(project_templat
     await f.create_workspace_membership(user=user, workspace=ws3)
 
     ws_list = [
-        ws async for ws in repositories.only_owner_collective_queryset(Workspace, user)
+        ws
+        async for ws in repositories.only_owner_queryset(
+            Workspace, user, is_collective=True
+        )
     ]
-
     assert len(ws_list) == 1
     assert ws_list[0].name == ws1.name
+
+    ws_list = [
+        ws
+        async for ws in repositories.only_owner_queryset(
+            Workspace, user, is_collective=False
+        )
+    ]
+    assert len(ws_list) == 3
 
 
 ##########################################################

@@ -28,11 +28,19 @@ class MembershipWithRoleThatDoNotBelong(TenzuServiceException):
     pass
 
 
+class SameSuccessorAsCurrentMember(TenzuServiceException):
+    pass
+
+
 class MembershipIsTheOnlyOwnerError(TenzuServiceException):
     pass
 
 
 class ExistingProjectMembershipsError(TenzuServiceException):
+    pass
+
+
+class ExistingOwnerProjectMembershipsAndNotOwnerError(TenzuServiceException):
     pass
 
 

@@ -19,7 +19,7 @@
 
 from uuid import UUID
 
-from ninja import Path, Router
+from ninja import Path, Query, Router
 
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
@@ -29,8 +29,11 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_422,
 )
 from commons.validators import B64UUID
-from memberships.api.validators import MembershipValidator
-from memberships.services.exceptions import OwnerRoleNotAuthorisedError
+from memberships.api.validators import DeleteMembershipQuery, MembershipValidator
+from memberships.services.exceptions import (
+    ExistingOwnerProjectMembershipsAndNotOwnerError,
+    OwnerRoleNotAuthorisedError,
+)
 from permissions import check_permissions
 from workspaces.memberships import services as memberships_services
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
@@ -39,7 +42,8 @@ from workspaces.memberships.permissions import (
     WorkspaceRolePermissionsCheck,
 )
 from workspaces.memberships.serializers import (
-    WorkspaceMembershipDetailSerializer,
+    WorkspaceMembershipDeleteInfoSerializer,
+    WorkspaceMembershipSerializer,
     WorkspaceRolesSerializer,
 )
 from workspaces.workspaces.api import get_workspace_or_404
@@ -57,7 +61,7 @@ workspace_membership_router = Router()
     url_name="workspace.memberships.list",
     summary="List workspace memberships",
     response={
-        200: list[WorkspaceMembershipDetailSerializer],
+        200: list[WorkspaceMembershipSerializer],
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
@@ -91,7 +95,7 @@ async def list_workspace_memberships(
     url_name="workspace.memberships.update",
     summary="Update workspace membership",
     response={
-        200: WorkspaceMembershipDetailSerializer,
+        200: WorkspaceMembershipSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -125,6 +129,40 @@ async def update_workspace_membership(
 
 
 ##########################################################
+# delete info workspace memberships
+##########################################################
+
+
+@workspace_membership_router.get(
+    "/workspaces/memberships/{membership_id}/delete-info",
+    url_name="workspace.memberships.delete-info",
+    summary="Get workspace membership delete-info",
+    response={
+        200: WorkspaceMembershipDeleteInfoSerializer,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def get_workspace_membership_delete_info(
+    request,
+    membership_id: Path[B64UUID],
+) -> WorkspaceMembershipDeleteInfoSerializer:
+    """
+    Get some info before deleting a membership.
+    """
+    membership = await get_workspace_membership_or_404(membership_id=membership_id)
+    await check_permissions(
+        permissions=WorkspaceMembershipPermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=membership,
+    )
+    return await memberships_services.get_workspace_membership_delete_info(
+        membership=membership
+    )
+
+
+##########################################################
 # delete workspace membership
 ##########################################################
 
@@ -145,9 +183,18 @@ async def update_workspace_membership(
 async def delete_workspace_membership(
     request,
     membership_id: Path[B64UUID],
+    query_params: Query[DeleteMembershipQuery],
 ) -> tuple[int, None]:
     """
     Delete a workspace membership
+    If the deleted member is the only owner of some projects in this workspace:
+        - if current user is a workspace owner, they will inherit the owner role from the deleted member
+        - otherwise a forbidden error will be raised
+
+    Query params:
+
+    * **successor_user_id:** the user's id who'll inherit the owner role from the user
+        - if not received, and user is unique owner of the associated workspace, an error will be returned
     """
     membership = await get_workspace_membership_or_404(membership_id=membership_id)
     await check_permissions(
@@ -156,7 +203,14 @@ async def delete_workspace_membership(
         obj=membership,
     )
 
-    await memberships_services.delete_workspace_membership(membership=membership)
+    try:
+        await memberships_services.delete_workspace_membership(
+            membership=membership,
+            user=request.user,
+            successor_user_id=query_params.successor_user_id,
+        )
+    except ExistingOwnerProjectMembershipsAndNotOwnerError as e:
+        raise ex.ForbiddenError(str(e))
 
     return 204, None
 

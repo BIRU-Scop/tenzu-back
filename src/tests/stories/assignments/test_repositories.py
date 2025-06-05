@@ -51,11 +51,11 @@ async def test_get_story_assignment() -> None:
     story_assignment = await f.create_story_assignment()
     story_assignment_test = await repositories.get_story_assignment(
         filters={
-            "project_id": story_assignment.story.project_id,
-            "ref": story_assignment.story.ref,
-            "username": story_assignment.user.username,
+            "story__project_id": story_assignment.story.project_id,
+            "story__ref": story_assignment.story.ref,
+            "user_id": story_assignment.user_id,
         },
-        select_related=["story", "user", "project"],
+        select_related=["story", "user", "story__project"],
     )
     assert story_assignment.user.username == story_assignment_test.user.username
     assert story_assignment.story.id == story_assignment_test.story.id
@@ -71,7 +71,7 @@ async def test_delete_stories_assignments() -> None:
     deleted = await repositories.delete_stories_assignments(
         filters={
             "story_id": story_assignment.story.id,
-            "username": story_assignment.user.username,
+            "user_id": story_assignment.user_id,
         },
     )
     assert deleted == 1

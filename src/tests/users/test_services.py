@@ -874,11 +874,11 @@ async def test_delete_user_success():
         patch("users.services.users_events", autospec=True) as fake_users_events,
         patch_db_transaction(),
     ):
-        fake_ws_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
-            return_value=False
+        fake_ws_memberships_repositories.only_owner_queryset.return_value.aexists = (
+            AsyncMock(return_value=False)
         )
-        fake_pj_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
-            return_value=False
+        fake_pj_memberships_repositories.only_owner_queryset.return_value.aexists = (
+            AsyncMock(return_value=False)
         )
 
         # projects where user is the only pj member
@@ -914,11 +914,11 @@ async def test_delete_user_success():
         deleted_user = await services.delete_user(user=user)
 
         # owner checks
-        fake_ws_memberships_repositories.only_owner_collective_queryset.assert_called_once_with(
-            Workspace, user
+        fake_ws_memberships_repositories.only_owner_queryset.assert_called_once_with(
+            Workspace, user, is_collective=True
         )
-        fake_pj_memberships_repositories.only_owner_collective_queryset.assert_called_once_with(
-            Project, user
+        fake_pj_memberships_repositories.only_owner_queryset.assert_called_once_with(
+            Project, user, is_collective=True
         )
 
         # projects deletion
@@ -1028,15 +1028,15 @@ async def test_delete_user_error_only_owner():
         patch_db_transaction(),
     ):
         with pytest.raises(MembershipIsTheOnlyOwnerError):
-            fake_ws_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
+            fake_ws_memberships_repositories.only_owner_queryset.return_value.aexists = AsyncMock(
                 return_value=True
             )
             await services.delete_user(user=user)
         with pytest.raises(MembershipIsTheOnlyOwnerError):
-            fake_ws_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
+            fake_ws_memberships_repositories.only_owner_queryset.return_value.aexists = AsyncMock(
                 return_value=False
             )
-            fake_pj_memberships_repositories.only_owner_collective_queryset.return_value.aexists = AsyncMock(
+            fake_pj_memberships_repositories.only_owner_queryset.return_value.aexists = AsyncMock(
                 return_value=True
             )
             await services.delete_user(user=user)

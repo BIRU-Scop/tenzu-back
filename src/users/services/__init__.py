@@ -283,14 +283,14 @@ async def update_user(user: User, full_name: str, lang: str, password: str) -> U
 @transaction_atomic_async
 async def delete_user(user: User) -> bool:
     # Check that there is no workspace or project where the user is the only owner and there are other members
-    if await ws_memberships_repositories.only_owner_collective_queryset(
-        Workspace, user
+    if await ws_memberships_repositories.only_owner_queryset(
+        Workspace, user, is_collective=True
     ).aexists():
         raise MembershipIsTheOnlyOwnerError(
             "Can't delete a user when they are still the only owner of some workspaces"
         )
-    if await pj_memberships_repositories.only_owner_collective_queryset(
-        Project, user
+    if await pj_memberships_repositories.only_owner_queryset(
+        Project, user, is_collective=True
     ).aexists():
         raise MembershipIsTheOnlyOwnerError(
             "Can't delete a user when they are still the only owner of some projects"
@@ -375,14 +375,14 @@ async def delete_user(user: User) -> bool:
 async def get_user_delete_info(user: User) -> UserDeleteInfoSerializer:
     only_owner_collective_workspaces = [
         ws
-        async for ws in ws_memberships_repositories.only_owner_collective_queryset(
-            Workspace, user
+        async for ws in ws_memberships_repositories.only_owner_queryset(
+            Workspace, user, is_collective=True
         )
     ]
     only_owner_collective_projects = [
         pj
-        async for pj in pj_memberships_repositories.only_owner_collective_queryset(
-            Project, user
+        async for pj in pj_memberships_repositories.only_owner_queryset(
+            Project, user, is_collective=True
         )
     ]
     only_member_workspaces = [

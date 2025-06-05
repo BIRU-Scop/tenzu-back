@@ -44,13 +44,15 @@ TI = TypeVar("TI", bound=Invitation)
 
 
 async def update_membership(membership: TM, role_id: UUID, user_role: Role) -> TM:
+    # use meta to avoid having to prefetch role field
+    role_model = membership._meta.get_field("role").related_model
     try:
         role = await memberships_repositories.get_role(
-            membership.role.__class__,
+            role_model,
             filters={**membership.reference_model_filter, "id": role_id},
         )
 
-    except membership.role.DoesNotExist as e:
+    except role_model.DoesNotExist as e:
         raise ex.NonExistingRoleError("Role does not exist") from e
 
     if not role.is_owner:

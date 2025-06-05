@@ -24,13 +24,18 @@ from memberships import services as memberships_services
 from memberships.repositories import WorkspaceMembershipAnnotation
 from memberships.services import exceptions as ex
 from memberships.services import is_membership_the_only_owner  # noqa
+from projects.invitations import repositories as project_invitations_repositories
+from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
+from projects.projects.models import Project
+from stories.assignments import repositories as story_assignments_repositories
 from users.models import User
 from workspaces.invitations import repositories as workspace_invitations_repositories
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import events as memberships_events
 from workspaces.memberships import repositories as memberships_repositories
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
+from workspaces.memberships.serializers import WorkspaceMembershipDeleteInfoSerializer
 from workspaces.workspaces.models import Workspace
 
 _DEFAULT_WORKSPACE_MEMBERSHIP_ROLE_SLUG = "readonly-member"
@@ -101,24 +106,121 @@ async def update_workspace_membership(
 ##########################################################
 
 
+async def _handle_membership_succession(
+    membership: WorkspaceMembership, user: User, successor_user_id: UUID | None = None
+):
+    if successor_user_id is not None:
+        if successor_user_id == user.id:
+            raise ex.SameSuccessorAsCurrentMember(
+                "The to-be-deleted member and successor user cannot be the same"
+            )
+        try:
+            successor_membership = await memberships_repositories.get_membership(
+                WorkspaceMembership,
+                filters={
+                    "user_id": successor_user_id,
+                    "workspace_id": membership.workspace_id,
+                },
+                select_related=["user"],
+            )
+        except WorkspaceMembership.DoesNotExist as e:
+            raise ex.MembershipIsTheOnlyOwnerError(
+                f"Membership is the only project owner and member {successor_user_id} can't be found in project"
+            ) from e
+        else:
+            await update_workspace_membership(
+                successor_membership, membership.role_id, user=user
+            )
+    else:
+        raise ex.MembershipIsTheOnlyOwnerError("Membership is the only workspace owner")
+
+
+async def _handle_membership_projects_succession(
+    membership: WorkspaceMembership, user: User
+):
+    owner_project_values = [
+        pj_values
+        async for pj_values in memberships_repositories.only_owner_queryset(
+            Project, membership.user, filters={"workspace_id": membership.workspace_id}
+        ).values("id", "memberships__role_id")
+    ]
+    if not owner_project_values:
+        return
+    if not user.workspace_role.is_owner:
+        raise ex.ExistingOwnerProjectMembershipsAndNotOwnerError(
+            "Can't delete a user when they are still the only owner of some projects if you're not a workspace owner"
+        )
+    owner_project_memberships = [
+        ProjectMembership(
+            user=user,
+            project_id=pj_values["id"],
+            role_id=pj_values["memberships__role_id"],
+        )
+        for pj_values in owner_project_values
+    ]
+    await memberships_repositories.bulk_update_or_create_memberships(
+        owner_project_memberships
+    )
+
+
+@transaction_atomic_async
+async def _delete_inner_projects_membership(membership: WorkspaceMembership) -> bool:
+    deleted = await memberships_repositories.delete_memberships(
+        ProjectMembership,
+        {
+            "project__workspace_id": membership.workspace_id,
+            "user_id": membership.user_id,
+        },
+    )
+    if deleted > 0:
+        # Delete stories assignments
+        await story_assignments_repositories.delete_stories_assignments(
+            filters={
+                "story__project__workspace_id": membership.workspace_id,
+                "user_id": membership.user_id,
+            }
+        )
+        # Delete project invitations
+        await project_invitations_repositories.delete_invitation(
+            ProjectInvitation,
+            filters={
+                "project__workspace_id": membership.workspace_id,
+            },
+            q_filter=project_invitations_repositories.invitation_username_or_email_query(
+                membership.user.email
+            ),
+        )
+        return True
+
+    return False
+
+
 @transaction_atomic_async
 async def delete_workspace_membership(
-    membership: WorkspaceMembership,
+    membership: WorkspaceMembership, user: User, successor_user_id: UUID | None = None
 ) -> bool:
     if await memberships_services.is_membership_the_only_owner(membership):
-        raise ex.MembershipIsTheOnlyOwnerError("Membership is the only workspace owner")
-    if await memberships_repositories.exists_membership(
-        ProjectMembership,
-        filters={
-            "user": membership.user,
-            "project__workspace_id": membership.workspace_id,
-        },
-    ):
-        raise ex.ExistingProjectMembershipsError(
-            "You can't delete this workspace membership while the user is still a member of some projects"
-        )
+        await _handle_membership_succession(membership, user, successor_user_id)
+    if user.id == membership.user_id:
+        # user is deleting themself
+        if await memberships_repositories.exists_membership(
+            ProjectMembership,
+            filters={
+                "user": membership.user,
+                "project__workspace_id": membership.workspace_id,
+            },
+        ):
+            raise ex.ExistingProjectMembershipsError(
+                "You can't delete this workspace membership while the user is still a member of some projects"
+            )
+    else:
+        # user is deleting someone else
+        await _handle_membership_projects_succession(membership, user)
 
-    deleted = await memberships_repositories.delete_membership(membership)
+    await _delete_inner_projects_membership(membership)
+    deleted = await memberships_repositories.delete_memberships(
+        WorkspaceMembership, {"id": membership.id}
+    )
     if deleted > 0:
         # Delete workspace invitations
         await workspace_invitations_repositories.delete_invitation(
@@ -136,6 +238,27 @@ async def delete_workspace_membership(
         return True
 
     return False
+
+
+async def get_workspace_membership_delete_info(
+    membership: WorkspaceMembership,
+) -> WorkspaceMembershipDeleteInfoSerializer:
+    only_owner_projects = [
+        pj
+        async for pj in memberships_repositories.only_owner_queryset(
+            Project, membership.user, filters={"workspace_id": membership.workspace_id}
+        ).values_list("name", flat=True)
+    ]
+
+    return WorkspaceMembershipDeleteInfoSerializer(
+        is_unique_owner=not await memberships_repositories.has_other_owner_memberships(
+            membership=membership
+        ),
+        member_of_projects=await memberships_repositories.workspace_member_projects_list(
+            membership
+        ),
+        unique_owner_of_projects=only_owner_projects,
+    )
 
 
 ##########################################################
