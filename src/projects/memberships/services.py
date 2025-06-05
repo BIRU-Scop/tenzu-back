@@ -177,7 +177,7 @@ async def delete_project_membership(
 
 async def list_project_roles(project: Project) -> list[ProjectRole]:
     return await memberships_repositories.list_roles(
-        ProjectRole, filters={"project_id": project.id}, get_total_members=True
+        ProjectRole, filters={"project_id": project.id}, get_members_details=True
     )
 
 
@@ -186,12 +186,12 @@ async def list_project_roles(project: Project) -> list[ProjectRole]:
 ##########################################################
 
 
-async def get_project_role(role_id: UUID, get_total_members=False) -> ProjectRole:
+async def get_project_role(role_id: UUID, get_members_details=False) -> ProjectRole:
     return await memberships_repositories.get_role(
         ProjectRole,
         filters={"id": role_id},
         select_related=["project"],
-        get_total_members=get_total_members,
+        get_members_details=get_members_details,
     )
 
 
@@ -210,6 +210,7 @@ async def create_project_role(
         project_id=project_id,
     )
     role.total_members = 0
+    role.has_invitees = False
     # Emit event
     await transaction_on_commit_async(
         memberships_events.emit_event_when_project_role_is_created

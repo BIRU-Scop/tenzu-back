@@ -561,7 +561,7 @@ async def test_list_project_role():
         ret = await services.list_project_roles(project)
 
         fake_ws_memberships_repo.list_roles.assert_awaited_once_with(
-            ProjectRole, filters={"project_id": project.id}, get_total_members=True
+            ProjectRole, filters={"project_id": project.id}, get_members_details=True
         )
         assert ret == [role]
 
@@ -587,7 +587,7 @@ async def test_get_project_role():
             ProjectRole,
             filters={"id": role.id},
             select_related=["project"],
-            get_total_members=False,
+            get_members_details=False,
         )
         assert ret == role
 

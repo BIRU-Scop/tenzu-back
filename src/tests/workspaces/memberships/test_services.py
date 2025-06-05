@@ -672,7 +672,7 @@ async def test_list_workspace_role():
         fake_ws_memberships_repo.list_roles.assert_awaited_once_with(
             WorkspaceRole,
             filters={"workspace_id": workspace.id},
-            get_total_members=True,
+            get_members_details=True,
         )
         assert ret == [role]
 

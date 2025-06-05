@@ -19,7 +19,7 @@
 from typing import Any, Literal, TypedDict, TypeVar
 from uuid import UUID
 
-from django.db.models import Count, F, Q, QuerySet
+from django.db.models import Count, Exists, F, OuterRef, Q, QuerySet
 
 from base.db.utils import Q_for_related
 from memberships.choices import InvitationStatus
@@ -344,11 +344,21 @@ async def list_roles(
     order_by: RoleOrderBy = ["order", "name"],
     offset: int | None = None,
     limit: int | None = None,
-    get_total_members=False,
+    get_members_details=False,
 ) -> list[TR]:
     qs = model.objects.all().filter(**filters).order_by(*order_by)
-    if get_total_members:
+    if get_members_details:
         qs = qs.annotate(total_members=Count("memberships"))
+        # use meta to avoid having to prefetch role field
+        invitation_model = model._meta.get_field("invitations").related_model
+        qs = qs.annotate(
+            has_invitees=Exists(
+                invitation_model.objects.filter(
+                    status=InvitationStatus.PENDING,
+                    role_id=OuterRef("pk"),
+                )
+            ),
+        ).distinct()
 
     if limit is not None and offset is not None:
         limit += offset
@@ -365,11 +375,21 @@ async def get_role(
     model: type[TR],
     filters: RoleFilters = {},
     select_related: RoleSelectRelated = [None],
-    get_total_members=False,
+    get_members_details=False,
 ) -> TR:
     qs = model.objects.all().filter(**filters).select_related(*select_related)
-    if get_total_members:
+    if get_members_details:
         qs = qs.annotate(total_members=Count("memberships"))
+        # use meta to avoid having to prefetch role field
+        invitation_model = model._meta.get_field("invitations").related_model
+        qs = qs.annotate(
+            has_invitees=Exists(
+                invitation_model.objects.filter(
+                    status=InvitationStatus.PENDING,
+                    role_id=OuterRef("pk"),
+                )
+            ),
+        )
     return await qs.aget()
 
 
