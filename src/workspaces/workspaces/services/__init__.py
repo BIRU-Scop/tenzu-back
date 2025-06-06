@@ -20,6 +20,7 @@
 from typing import Any
 from uuid import UUID
 
+from permissions.choices import WorkspacePermissions
 from projects.projects import repositories as projects_repositories
 from users.models import User
 from workspaces.memberships import repositories as ws_memberships_repositories
@@ -48,6 +49,8 @@ async def create_workspace(
         color=workspace.color,
         user_role=owner_role,
         user_is_invited=False,
+        user_is_member=True,
+        user_can_create_projects=True,
         total_projects=0,
     )
 
@@ -99,6 +102,14 @@ async def get_user_workspace(
         color=workspace.color,
         user_role=user.workspace_role,
         user_is_invited=user.is_invited or False,
+        user_is_member=user.workspace_role is not None,
+        user_can_create_projects=(
+            user.workspace_role is not None
+            and (
+                WorkspacePermissions.CREATE_PROJECT.value
+                in user.workspace_role.permissions
+            )
+        ),
         total_projects=workspace.total_projects,
     )
 
@@ -119,6 +130,14 @@ async def update_workspace(
         color=workspace.color,
         user_role=user.workspace_role,
         user_is_invited=False,
+        user_is_member=user.workspace_role is not None,
+        user_can_create_projects=(
+            user.workspace_role is not None
+            and (
+                WorkspacePermissions.CREATE_PROJECT.value
+                in user.workspace_role.permissions
+            )
+        ),
         total_projects=workspace.total_projects,
     )
 
