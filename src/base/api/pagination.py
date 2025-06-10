@@ -21,7 +21,7 @@ from dataclasses import dataclass
 
 from django.conf import settings
 from django.http import HttpResponse
-from fastapi import Query
+from pydantic import Field
 
 from base.serializers import BaseModel
 
@@ -33,9 +33,9 @@ class Pagination:
 
 
 class PaginationQuery(BaseModel):
-    offset: int = Query(0, ge=0, description="Page offset number")
-    limit: int = Query(
-        settings.DEFAULT_PAGE_SIZE,
+    offset: int = Field(default=0, ge=0, description="Page offset number")
+    limit: int = Field(
+        default=settings.DEFAULT_PAGE_SIZE,
         ge=1,
         le=settings.MAX_PAGE_SIZE,
         description=f"Page size (max. {settings.MAX_PAGE_SIZE})",

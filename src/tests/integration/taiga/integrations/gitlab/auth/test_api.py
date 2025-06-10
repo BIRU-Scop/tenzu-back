@@ -22,7 +22,6 @@ from typing import Final
 
 import pytest
 from django.conf import settings
-from fastapi import status
 
 pytestmark = pytest.mark.django_db()
 
@@ -61,7 +60,7 @@ async def test_gitlab_login(client, httpx_mock):
     data = {"code": "code", "redirect_uri": "https://redirect.uri", "lang": "es-ES"}
     response = client.post("/auth/gitlab", json=data)
 
-    assert response.status_code == status.HTTP_200_OK, response.text
+    assert response.status_code == 200, response.text
     assert response.json().keys() == {"access", "refresh"}
 
 
@@ -73,7 +72,7 @@ async def test_gitlab_login_not_configured(client, httpx_mock):
     data = {"code": "code", "redirect_uri": "https://redirect.uri"}
     response = client.post("/auth/gitlab", json=data)
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    assert response.status_code == 400, response.text
 
 
 async def test_gitlab_login_incorrect_code(client, httpx_mock):
@@ -90,7 +89,7 @@ async def test_gitlab_login_incorrect_code(client, httpx_mock):
     data = {"code": "code", "redirect_uri": "https://redirect.uri"}
     response = client.post("/auth/gitlab", json=data)
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    assert response.status_code == 400, response.text
 
 
 async def test_gitlab_login_api_not_working(client, httpx_mock):
@@ -112,4 +111,4 @@ async def test_gitlab_login_api_not_working(client, httpx_mock):
     data = {"code": "code", "redirect_uri": "https://redirect.uri"}
     response = client.post("/auth/gitlab", json=data)
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    assert response.status_code == 400, response.text
