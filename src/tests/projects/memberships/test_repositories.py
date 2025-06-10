@@ -435,12 +435,17 @@ async def test_list_project_roles(project_template):
     assert len(res) == 4
     assert sum(1 for role in res if role.is_owner) == 1
     assert all(not hasattr(role, "total_members") for role in res)
+    assert all(not hasattr(role, "has_invitees") for role in res)
+
+    await f.create_project_invitation(project=project)
     res = await repositories.list_roles(
-        ProjectRole, filters={"project_id": project.id}, get_total_members=True
+        ProjectRole, filters={"project_id": project.id}, get_members_details=True
     )
-    assert len(res) == 4
+    assert len(res) == 5
     assert res[0].total_members == 1
     assert all(role.total_members == 0 for role in res[1:])
+    assert all(role.has_invitees is False for role in res[:-1])
+    assert res[-1].has_invitees is True
 
 
 ##########################################################
@@ -463,6 +468,34 @@ async def test_get_project_role_return_role(project_template):
         )
         == role
     )
+
+
+async def test_get_project_role_return_role_detail(project_template):
+    project = await f.create_project(project_template)
+    role = await f.create_project_role(
+        name="Role test",
+        slug="role-test",
+        permissions=choices.ProjectPermissions.choices,
+        is_owner=True,
+        project=project,
+    )
+    detail_role = await repositories.get_role(
+        ProjectRole, filters={"id": role.id}, get_members_details=True
+    )
+    assert detail_role == role
+    assert detail_role.total_members == 0
+    assert detail_role.has_invitees is False
+
+    await f.create_project_membership(project=project, role=role)
+    await f.create_project_invitation(project=project, role=role)
+    await f.create_project_invitation(project=project)
+    await f.create_project_membership(project=project)
+    detail_role = await repositories.get_role(
+        ProjectRole, filters={"id": role.id}, get_members_details=True
+    )
+    assert detail_role == role
+    assert detail_role.total_members == 1
+    assert detail_role.has_invitees is True
 
 
 async def test_get_project_role_return_doesnotexist(project_template):

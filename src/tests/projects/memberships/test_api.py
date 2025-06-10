@@ -53,7 +53,7 @@ async def test_list_project_memberships(client, project_template):
 
     response = await client.get(f"/projects/{project.b64id}/memberships")
     assert response.status_code == 200, response.data
-    assert len(response.json()) == 3  # 2 explicitly created + owner membership
+    assert len(response.data) == 3  # 2 explicitly created + owner membership
 
 
 async def test_list_project_memberships_wrong_id(client, project_template):
@@ -405,12 +405,19 @@ async def test_list_project_roles(client, project_template):
 
     pj_member = await f.create_user()
     await f.create_project_membership(user=pj_member, project=project, role=member_role)
+    await f.create_project_invitation(project=project, role=member_role)
 
     client.login(pj_member)
 
     response = await client.get(f"/projects/{project.b64id}/roles")
     assert response.status_code == 200, response.data
-    assert len(response.json()) == 5  # 4 default + newly created
+    assert len(response.data) == 5  # 4 default + newly created
+    # owner
+    assert response.data[0]["totalMembers"] == 1
+    assert response.data[0]["hasInvitees"] is False
+    # new role
+    assert response.data[-1]["totalMembers"] == 1
+    assert response.data[-1]["hasInvitees"] is True
 
 
 async def test_list_project_roles_wrong_id(client, project_template):
@@ -521,9 +528,11 @@ async def test_create_project_role_ok(client, project_template):
     client.login(pj_member)
     response = await client.post(f"/projects/{project.b64id}/roles", json=data)
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert data["permissions"] == res["permissions"]
     assert "Dev" == res["name"]
+    assert response.data["totalMembers"] == 0
+    assert response.data["hasInvitees"] is False
 
 
 #########################################################################
@@ -542,11 +551,14 @@ async def test_get_project_role(client, project_template):
 
     pj_member = await f.create_user()
     await f.create_project_membership(user=pj_member, project=project, role=member_role)
+    await f.create_project_invitation(project=project, role=member_role)
     client.login(pj_member)
 
     response = await client.get(f"/projects/roles/{member_role.b64id}")
     assert response.status_code == 200, response.data
-    assert len(response.json())
+    assert len(response.data)
+    assert response.data["totalMembers"] == 1
+    assert response.data["hasInvitees"] is True
 
 
 async def test_get_project_role_wrong_id(client, project_template):
@@ -686,9 +698,11 @@ async def test_update_project_role_ok(client, project_template):
     client.login(pj_member)
     response = await client.put(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert data["permissions"] == res["permissions"]
     assert "Member" == res["name"]
+    assert response.data["totalMembers"] == 0
+    assert response.data["hasInvitees"] is False
 
     data = {
         "permissions": [
@@ -699,16 +713,21 @@ async def test_update_project_role_ok(client, project_template):
     }
     response = await client.put(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert data["permissions"] == res["permissions"]
     assert data["name"] == res["name"]
+    assert response.data["totalMembers"] == 0
+    assert response.data["hasInvitees"] is False
+
     role = await project.roles.aget(slug=res["slug"])
     data = {"name": "New member 2"}
     response = await client.put(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert len(res["permissions"]) == 2
     assert data["name"] == res["name"]
+    assert response.data["totalMembers"] == 0
+    assert response.data["hasInvitees"] is False
 
 
 #########################################################################
@@ -812,6 +831,7 @@ async def test_delete_project_role_move_to_owner(client, project_template):
     assert response.status_code == 204, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_project_role_ok(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()

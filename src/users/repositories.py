@@ -202,11 +202,11 @@ def _list_project_users_by_text_qs(
 
         # 1st: Users that share the same project
         memberships = ProjectMembership.objects.filter(
-            user__id=OuterRef("pk"), project__id=project_id
+            user_id=OuterRef("pk"), project_id=project_id
         )
         pending_invitations = ProjectInvitation.objects.filter(
-            user__id=OuterRef("pk"),
-            project__id=project_id,
+            user_id=OuterRef("pk"),
+            project_id=project_id,
             status=InvitationStatus.PENDING,
         )
         project_users_qs = (

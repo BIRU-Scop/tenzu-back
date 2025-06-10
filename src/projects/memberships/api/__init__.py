@@ -272,7 +272,7 @@ async def get_project_role(
     Get project role
     """
 
-    role = await get_project_role_or_404(role_id=role_id, get_total_members=True)
+    role = await get_project_role_or_404(role_id=role_id, get_members_details=True)
     await check_permissions(
         permissions=ProjectRolePermissionsCheck.VIEW.value,
         user=request.user,
@@ -308,7 +308,7 @@ async def update_project_role(
     Update project roles
     """
 
-    role = await get_project_role_or_404(role_id=role_id, get_total_members=True)
+    role = await get_project_role_or_404(role_id=role_id, get_members_details=True)
     await check_permissions(
         permissions=ProjectRolePermissionsCheck.MODIFY.value,
         user=request.user,
@@ -385,11 +385,11 @@ async def get_project_membership_or_404(membership_id: UUID) -> ProjectMembershi
 
 
 async def get_project_role_or_404(
-    role_id: UUID, get_total_members=False
+    role_id: UUID, get_members_details=False
 ) -> ProjectRole:
     try:
         role = await memberships_services.get_project_role(
-            role_id=role_id, get_total_members=get_total_members
+            role_id=role_id, get_members_details=get_members_details
         )
     except ProjectRole.DoesNotExist as e:
         raise ex.NotFoundError(f"Role {role_id} does not exist") from e
