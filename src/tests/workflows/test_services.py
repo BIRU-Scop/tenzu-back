@@ -393,7 +393,6 @@ async def test_delete_workflow_no_target_workflow_ok():
             status2,
             status3,
         ]
-        fake_stories_services.list_stories.return_value = []
         fake_workflows_repo.delete_workflow.return_value = True
 
         ret = await services.delete_workflow(workflow=workflow, deleted_by=user)

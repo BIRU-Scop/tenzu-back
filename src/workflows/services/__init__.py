@@ -309,7 +309,6 @@ async def get_workflow_status(status_id: UUID) -> WorkflowStatus | None:
         select_related=[
             "workflow",
             "workflow__project",
-            "workflow__project",
         ],
     )
 

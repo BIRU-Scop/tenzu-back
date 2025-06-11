@@ -127,16 +127,14 @@ async def test_list_paginated_stories():
         story = f.build_story(assignees=1)
         fake_stories_repo.list_stories_qs.return_value.__aiter__.return_value = [story]
 
-        await services.list_stories(
-            project_id=story.project.id,
-            workflow_slug=story.workflow.slug,
+        await services.list_stories_for_workflow_status(
+            status_id=story.status_id,
             offset=0,
             limit=10,
         )
         fake_stories_repo.list_stories_qs.assert_called_once_with(
             filters={
-                "project_id": story.project.id,
-                "workflow__slug": story.workflow.slug,
+                "status_id": story.status_id,
             },
             offset=0,
             limit=10,
@@ -149,16 +147,14 @@ async def test_list_paginated_stories():
         fake_stories_repo.list_stories_qs.return_value.values.reset_mock()
         story = f.build_story()
         fake_stories_repo.list_stories_qs.return_value.__aiter__.return_value = [story]
-        await services.list_stories(
-            project_id=story.project.id,
-            workflow_slug=story.workflow.slug,
+        await services.list_stories_for_workflow_status(
+            status_id=story.status_id,
             offset=0,
             limit=10,
         )
         fake_stories_repo.list_stories_qs.assert_called_once_with(
             filters={
-                "project_id": story.project.id,
-                "workflow__slug": story.workflow.slug,
+                "status_id": story.status_id,
             },
             offset=0,
             limit=10,

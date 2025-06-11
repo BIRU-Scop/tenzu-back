@@ -45,7 +45,7 @@ from stories.stories.serializers import (
     StorySummarySerializer,
 )
 from stories.stories.services.exceptions import InvalidStatusError, InvalidStoryRefError
-from workflows.api import get_workflow_by_slug_or_404
+from workflows.api import get_workflow_by_slug_or_404, get_workflow_status_or_404
 
 stories_router = Router()
 
@@ -100,8 +100,8 @@ async def create_story(
 
 
 @stories_router.get(
-    "/projects/{project_id}/workflows/{workflow_slug}/stories",
-    url_name="project.stories.list",
+    "/workflows/statuses/{status_id}/stories",
+    url_name="project.workflowstatus.stories.list",
     summary="List stories",
     response={
         200: list[StorySummarySerializer],
@@ -111,29 +111,24 @@ async def create_story(
     },
     by_alias=True,
 )
-# TODO: pass to django ninja paginate
-async def list_stories(
+async def list_stories_for_workflow_status(
     request,
-    project_id: Path[B64UUID],
-    workflow_slug: Path[str],
+    status_id: Path[B64UUID],
     pagination_params: Query[PaginationQuery],
     response: HttpResponse,
 ) -> list[StorySummarySerializer]:
     """
-    List all the stories for a project workflow
+    List all the stories for a project workflow status
     """
-    workflow = await get_workflow_by_slug_or_404(
-        project_id=project_id, workflow_slug=workflow_slug
-    )
+    status = await get_workflow_status_or_404(status_id=status_id)
     await check_permissions(
-        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=workflow
+        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=status
     )
     pagination = Pagination(
         offset=pagination_params.offset, limit=pagination_params.limit
     )
-    stories = await stories_services.list_stories(
-        project_id=project_id,
-        workflow_slug=workflow_slug,
+    stories = await stories_services.list_stories_for_workflow_status(
+        status_id=status.id,
         offset=pagination_params.offset,
         limit=pagination_params.limit,
     )

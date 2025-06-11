@@ -197,7 +197,7 @@ async def test_create_story_422_unprocessable_project_b64_id(client, project_tem
 
 
 ##########################################################
-# GET /projects/<slug>/workflows/<slug>/stories
+# GET /workflows/statuses/<id>/stories
 ##########################################################
 
 
@@ -209,15 +209,14 @@ async def test_list_workflow_stories_200_ok(client, project_template):
         project=project, workflow=workflow, status=workflow_status
     )
     await f.create_story(project=project, workflow=workflow, status=workflow_status)
+    await f.create_story(project=project, workflow=workflow)
 
     assignments = [await f.create_story_assignment(story=story) for _ in range(3)]
 
     client.login(project.created_by)
-    response = await client.get(
-        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories"
-    )
+    response = await client.get(f"/workflows/statuses/{workflow_status.b64id}/stories")
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert len(res) == 2
     assert res[0]["assigneeIds"] == [
         assignment.user.b64id for assignment in reversed(assignments)
@@ -233,11 +232,9 @@ async def test_list_workflow_stories_200_ok(client, project_template):
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     client.login(pj_member)
-    response = await client.get(
-        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories"
-    )
+    response = await client.get(f"/workflows/statuses/{workflow_status.b64id}/stories")
     assert response.status_code == 200, response.data
-    assert len(response.json()) == 2
+    assert len(response.data) == 2
 
 
 async def test_list_workflow_stories_403_forbidden_user_has_not_valid_perm(
@@ -259,9 +256,7 @@ async def test_list_workflow_stories_403_forbidden_user_has_not_valid_perm(
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     client.login(pj_member)
-    response = await client.get(
-        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories"
-    )
+    response = await client.get(f"/workflows/statuses/{workflow_status.b64id}/stories")
     assert response.status_code == 403, response.data
 
 
@@ -277,59 +272,31 @@ async def test_list_workflow_stories_200_ok_with_pagination(client, project_temp
 
     client.login(project.created_by)
     response = await client.get(
-        f"/projects/{project.b64id}/workflows/{workflow.slug}/stories?offset={offset}&limit={limit}"
+        f"/workflows/statuses/{workflow_status.b64id}/stories?offset={offset}&limit={limit}"
     )
     assert response.status_code == 200, response.data
-    assert response.json()
 
-    assert len(response.json()) == 1
+    assert len(response.data) == 1
     assert response.headers["Pagination-Offset"] == "0"
     assert response.headers["Pagination-Limit"] == "1"
 
 
-async def test_list_workflow_stories_404_not_found_project_b64id(client):
-    workflow = await f.create_workflow()
+async def test_list_workflow_stories_404_not_found_status_b64id(client):
     pj_owner = await f.create_user()
 
     client.login(pj_owner)
-    response = await client.get(
-        f"/projects/{NOT_EXISTING_B64ID}/workflows/{workflow.slug}/stories"
-    )
+    response = await client.get(f"/workflows/statuses/{NOT_EXISTING_B64ID}/stories")
     assert response.status_code == 404, response.data
 
 
-async def test_list_workflow_stories_404_not_found_workflow_slug(
+async def test_list_workflow_stories_422_unprocessable_status_b64id(
     client, project_template
 ):
     project = await f.create_project(project_template)
-    pj_owner = await f.create_user()
-
-    client.login(pj_owner)
-    response = await client.get(
-        f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories"
-    )
-    assert response.status_code == 404, response.data
-
-
-async def test_list_workflow_stories_422_unprocessable_project_b64id(client):
-    workflow = await f.create_workflow()
-    pj_owner = await f.create_user()
-
-    client.login(pj_owner)
-    response = await client.get(
-        f"/projects/{INVALID_B64ID}/workflows/{workflow.slug}/stories"
-    )
-    assert response.status_code == 422, response.data
-
-
-async def test_list_story_invalid_workflow(client, project_template):
-    project = await f.create_project(project_template)
 
     client.login(project.created_by)
-    response = await client.get(
-        f"/projects/{project.b64id}/workflows/{NOT_EXISTING_SLUG}/stories"
-    )
-    assert response.status_code == 404, response.data
+    response = await client.get(f"/workflows/statuses/{INVALID_B64ID}/stories")
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -350,7 +317,7 @@ async def test_get_story_200_ok(client, project_template):
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert res["ref"] == story.ref
     assert res["assigneeIds"] == [
         assignment.user.b64id for assignment in reversed(assignments)
@@ -367,7 +334,7 @@ async def test_get_story_200_ok(client, project_template):
     client.login(pj_member)
     response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
     assert response.status_code == 200, response.data
-    assert response.json()["ref"] == story.ref
+    assert response.data["ref"] == story.ref
 
 
 async def test_get_story_403_forbidden_user_has_not_valid_perm(
@@ -442,8 +409,8 @@ async def test_update_story_200_ok_unprotected_attribute_status_ok(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
     assert response.status_code == 200, response.data
-    assert response.json()["ref"] == story.ref
-    version = response.json()["version"]
+    assert response.data["ref"] == story.ref
+    version = response.data["version"]
     assert version > story.version
 
     pj_member = await f.create_user()
@@ -460,7 +427,7 @@ async def test_update_story_200_ok_unprotected_attribute_status_ok(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
     assert response.status_code == 200, response.data
-    assert response.json()["ref"] == story.ref
+    assert response.data["ref"] == story.ref
 
 
 async def test_update_story_400_wrong_version(client, project_template):
@@ -633,7 +600,7 @@ async def test_reorder_stories_with_reorder_ok(client, project_template):
     )
 
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert "statusId" in res
     assert "reorder" in res
     assert "stories" in res
@@ -653,7 +620,7 @@ async def test_reorder_stories_with_reorder_ok(client, project_template):
     )
 
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert "statusId" in res
     assert "reorder" in res
     assert "stories" in res
@@ -708,7 +675,7 @@ async def test_reorder_stories_without_reorder_ok(client, project_template):
     )
 
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert "statusId" in res
     assert "reorder" in res
     assert "stories" in res
