@@ -122,10 +122,14 @@ test:
     TENZU_TOKENS__SIGNING_KEY: secret2
   script:
     - cd $CI_PROJECT_DIR/src/
-    - pytest . --junitxml=result.xml
+    - pytest . --cov --cov-report=xml:coverage-report.xml  --cov-report=term --no-cov-on-fail --junitxml=pytest-report.xml --cov-config=.coveragerc
+  coverage: '/^TOTAL.+?(\d+\%)$/'
   artifacts:
     reports:
-      junit: $CI_PROJECT_DIR/src/result.xml
+      junit: $CI_PROJECT_DIR/src/pytest-report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: $CI_PROJECT_DIR/src/coverage-report.xml
   rules:
     - if: '$CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'

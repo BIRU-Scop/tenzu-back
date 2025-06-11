@@ -3,7 +3,6 @@ channels[daphne]
 channels_redis
 django-extensions
 # Common API packages
-fastapi
 pydantic[email]>2
 # add
 pydantic-settings
@@ -27,7 +26,6 @@ easy-thumbnails # Images and thumbnails
 django-nonrelated-inlines # admin
 
 # Mailing module
-#Fastapi-Mailman # Email sender
 jinja2 # Templates system
 
 # Task Queue Module

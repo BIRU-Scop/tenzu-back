@@ -32,9 +32,6 @@ WorkflowStatusName = Annotated[
 WorkflowName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=250)
 ]
-WorkflowSlug = Annotated[
-    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=250)
-]
 
 
 class CreateWorkflowValidator(BaseModel):
@@ -42,7 +39,7 @@ class CreateWorkflowValidator(BaseModel):
 
 
 class DeleteWorkflowQuery(BaseModel):
-    move_to: WorkflowSlug | None = None
+    move_to: B64UUID | None = None
 
 
 class CreateWorkflowStatusValidator(BaseModel):

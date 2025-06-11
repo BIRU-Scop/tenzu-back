@@ -422,7 +422,7 @@ async def test_delete_workflow_204_ok_owner(client, project_template):
 
     client.login(project.created_by)
     response = await client.delete(
-        f"/workflows/{deleted_workflow.b64id}?moveTo={target_workflow.slug}"
+        f"/workflows/{deleted_workflow.b64id}?moveTo={target_workflow.b64id}"
     )
     assert response.status_code == 204, response.data
 
@@ -447,7 +447,7 @@ async def test_delete_workflow_204_ok_member_with_permission(client, project_tem
 
     client.login(pj_member)
     response = await client.delete(
-        f"/workflows/{deleted_workflow.b64id}?moveTo={target_workflow.slug}"
+        f"/workflows/{deleted_workflow.b64id}?moveTo={target_workflow.b64id}"
     )
     assert response.status_code == 204, response.data
 
@@ -493,7 +493,7 @@ async def test_delete_workflow_422_invalid_b64id(client, project_template):
     assert response.status_code == 422, response.data
 
 
-async def test_delete_workflow_422_empty_move_to_slug(client, project_template):
+async def test_delete_workflow_422_empty_move_to(client, project_template):
     project = await f.create_project(project_template)
     workflow = await f.create_workflow(project=project)
     client.login(project.created_by)
@@ -502,12 +502,13 @@ async def test_delete_workflow_422_empty_move_to_slug(client, project_template):
     assert response.status_code == 422, response.data
 
 
-async def test_delete_workflow_422_long_move_to_slug(client, project_template):
+async def test_delete_workflow_422_invalid_move_to(client, project_template):
     project = await f.create_project(project_template)
     workflow = await f.create_workflow(project=project)
     client.login(project.created_by)
-    long_string = "slug_" * 100
-    response = await client.delete(f"/workflows/{workflow.b64id}?moveTo={long_string}")
+    response = await client.delete(
+        f"/workflows/{workflow.b64id}?moveTo={INVALID_B64ID}"
+    )
     assert response.status_code == 422, response.data
 
 

@@ -194,7 +194,7 @@ async def update_workflow(
 
 @transaction_atomic_async
 async def delete_workflow(
-    workflow: Workflow, deleted_by: User, target_workflow_slug: str | None = None
+    workflow: Workflow, deleted_by: User, target_workflow_id: UUID | None = None
 ) -> bool:
     """
     This method deletes a workflow, providing the option to first migrate its workflow statuses to another workflow
@@ -202,21 +202,27 @@ async def delete_workflow(
 
     :param workflow: the workflow to delete
     :param deleted_by: the user which has deleted this workflow
-    :param target_workflow_slug: the workflow slug to which move their statuses from the workflow being deleted
+    :param target_workflow_id: the workflow slug to which move their statuses from the workflow being deleted
         - if not received, the workflow, statuses and its contained stories will be deleted
         - if received, the workflow will be deleted but its statuses and stories won't (they will be appended to the
          last status of the specified workflow).
     :return: bool
     """
     target_workflow = None
-    if target_workflow_slug:
+    if target_workflow_id:
         try:
-            target_workflow = await get_workflow_by_slug(
-                project_id=workflow.project_id, workflow_slug=target_workflow_slug
+            target_workflow = await workflows_repositories.get_workflow(
+                filters={
+                    "project_id": workflow.project_id,
+                    "id": target_workflow_id,
+                },
+                select_related=[
+                    "project",
+                ],
             )
         except Workflow.DoesNotExist as e:
             raise ex.NonExistingMoveToWorkflow(
-                f"The workflow '{target_workflow_slug}' doesn't exist"
+                f"The workflow '{target_workflow_id}' doesn't exist in project {workflow.project_id}"
             ) from e
         if target_workflow.id == workflow.id:
             raise ex.SameMoveToWorkflow(
@@ -308,7 +314,6 @@ async def get_workflow_status(status_id: UUID) -> WorkflowStatus | None:
         status_id=status_id,
         select_related=[
             "workflow",
-            "workflow__project",
             "workflow__project",
         ],
     )

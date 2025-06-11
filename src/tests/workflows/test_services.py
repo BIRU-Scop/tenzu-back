@@ -393,7 +393,6 @@ async def test_delete_workflow_no_target_workflow_ok():
             status2,
             status3,
         ]
-        fake_stories_services.list_stories.return_value = []
         fake_workflows_repo.delete_workflow.return_value = True
 
         ret = await services.delete_workflow(workflow=workflow, deleted_by=user)
@@ -450,9 +449,6 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
             "workflows.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
         patch(
-            "workflows.services.get_workflow_by_slug", autospec=True
-        ) as fake_get_workflow,
-        patch(
             "workflows.services.reorder_workflow_statuses", autospec=True
         ) as fake_reorder_workflow_statuses,
         patch(
@@ -477,7 +473,7 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
             slug="target_workflow", statuses=target_workflow_statuses
         )
 
-        fake_get_workflow.return_value = target_workflow
+        fake_workflows_repo.get_workflow.return_value = target_workflow
         # the serializer response doesn't maters
         fake_reorder_workflow_statuses.return_value = ReorderWorkflowStatusesSerializer(
             workflow=WorkflowNestedSerializer(
@@ -497,7 +493,7 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         ret = await services.delete_workflow(
             workflow=deleted_workflow,
             deleted_by=user,
-            target_workflow_slug=target_workflow.slug,
+            target_workflow_id=target_workflow.slug,
         )
         # asserts
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
@@ -535,9 +531,6 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
             "workflows.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
         patch(
-            "workflows.services.get_workflow_by_slug", autospec=True
-        ) as fake_get_workflow,
-        patch(
             "workflows.services.reorder_workflow_statuses", autospec=True
         ) as fake_reorder_workflow_statuses,
         patch(
@@ -556,7 +549,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         )
         target_workflow = f.build_workflow(slug="target_workflow", statuses=[])
 
-        fake_get_workflow.return_value = target_workflow
+        fake_workflows_repo.get_workflow.return_value = target_workflow
         # the serializer response doesn't matters
         fake_reorder_workflow_statuses.return_value = ReorderWorkflowStatusesSerializer(
             workflow=WorkflowNestedSerializer(
@@ -576,7 +569,7 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         ret = await services.delete_workflow(
             workflow=deleted_workflow,
             deleted_by=user,
-            target_workflow_slug=target_workflow.slug,
+            target_workflow_id=target_workflow.slug,
         )
         # asserts
         fake_workflows_repo.list_workflow_statuses.assert_awaited_once_with(
@@ -613,9 +606,6 @@ async def test_delete_workflow_not_existing_target_workflow_exception():
             "workflows.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
         patch(
-            "workflows.services.get_workflow_by_slug", autospec=True
-        ) as fake_get_workflow,
-        patch(
             "workflows.services.reorder_workflow_statuses", autospec=True
         ) as fake_reorder_workflow_statuses,
         patch(
@@ -626,13 +616,13 @@ async def test_delete_workflow_not_existing_target_workflow_exception():
     ):
         user = f.build_user()
         deleted_workflow = f.build_workflow(slug="deleted_workflow")
-        fake_get_workflow.side_effect = Workflow.DoesNotExist
+        fake_workflows_repo.get_workflow.side_effect = Workflow.DoesNotExist
 
         # service call
         ret = await services.delete_workflow(
             workflow=deleted_workflow,
             deleted_by=user,
-            target_workflow_slug=NOT_EXISTING_SLUG,
+            target_workflow_id=NOT_EXISTING_SLUG,
         )
 
         # asserts
@@ -649,9 +639,6 @@ async def test_delete_workflow_same_target_workflow_exception():
             "workflows.services.workflows_repositories", autospec=True
         ) as fake_workflows_repo,
         patch(
-            "workflows.services.get_workflow_by_slug", autospec=True
-        ) as fake_get_workflow,
-        patch(
             "workflows.services.reorder_workflow_statuses", autospec=True
         ) as fake_reorder_workflow_statuses,
         patch(
@@ -662,13 +649,13 @@ async def test_delete_workflow_same_target_workflow_exception():
     ):
         user = f.build_user()
         deleted_workflow = f.build_workflow(slug="deleted_workflow", statuses=[])
-        fake_get_workflow.return_value = deleted_workflow
+        fake_workflows_repo.get_workflow.return_value = deleted_workflow
 
         # service call
         ret = await services.delete_workflow(
             workflow=deleted_workflow,
             deleted_by=user,
-            target_workflow_slug=deleted_workflow.slug,
+            target_workflow_id=deleted_workflow.slug,
         )
 
         # asserts

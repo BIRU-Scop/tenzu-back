@@ -21,19 +21,8 @@ from typing import List, Literal
 
 from pydantic import Field, model_serializer
 
-from base.api.ordering import OrderQuery
 from base.utils.strings import orderby_to_snake
 from commons.validators import BaseModel, StrNotEmpty
-
-CommentOrderQuery = OrderQuery(
-    allowed=[
-        "created_at",
-        "-created_at",
-    ],
-    default=[
-        "-created_at",
-    ],
-)
 
 
 class CommentOrderSortQuery(BaseModel):
