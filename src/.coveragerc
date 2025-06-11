@@ -1,6 +1,4 @@
 [run]
-source_pkgs =
-   tenzu
 omit = tests/*
 branch = True
 

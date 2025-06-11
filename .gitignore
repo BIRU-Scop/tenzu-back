@@ -337,7 +337,6 @@ cython_debug/
 # App logs
 logs/
 
-
 # Ignore volume
 static/
 media/
@@ -347,3 +346,6 @@ file_emails/
 exports/
 
 /src/mjml/node_modules/*
+
+# test reports
+src/*-report.xml
