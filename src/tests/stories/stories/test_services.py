@@ -27,6 +27,7 @@ from base.repositories.neighbors import Neighbor
 from stories.stories import repositories, services
 from stories.stories.services import exceptions as ex
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from workflows.models import Workflow, WorkflowStatus
 from workflows.serializers import WorkflowSerializer
 from workflows.serializers.nested import WorkflowStatusNestedSerializer
@@ -673,7 +674,7 @@ async def test_validate_and_process_values_to_update_ok_with_workflow():
     workflow2 = f.build_workflow(project=project, statuses=[status2])
     _ = f.build_workflow_status(workflow=workflow2)
     story2 = f.build_story(project=project, workflow=workflow2, status=status2)
-    values = {"version": story1.version, "workflow_slug": workflow2.slug}
+    values = {"version": story1.version, "workflow_id": workflow2.id}
 
     with (
         patch(
@@ -694,7 +695,7 @@ async def test_validate_and_process_values_to_update_ok_with_workflow():
         )
 
         fake_workflows_repo.get_workflow.assert_awaited_once_with(
-            filters={"project_id": story1.project_id, "slug": workflow2.slug},
+            filters={"project_id": story1.project_id, "id": workflow2.id},
             prefetch_related=["statuses"],
         )
         fake_workflows_repo.list_workflow_statuses.assert_not_awaited()
@@ -713,7 +714,7 @@ async def test_validate_and_process_values_to_update_ok_with_workflow_empty():
         "title": "new title",
         "description": "new description",
         "status_id": status.id,
-        "workflow_slug": "",
+        "workflow_id": "",
     }
 
     with (
@@ -754,7 +755,7 @@ async def test_validate_and_process_values_to_update_ok_with_workflow_empty():
 async def test_validate_and_process_values_to_update_error_wrong_workflow():
     user = f.build_user()
     story = f.build_story()
-    values = {"version": story.version, "workflow_slug": "wrong_workflow"}
+    values = {"version": story.version, "workflow_id": NOT_EXISTING_UUID}
 
     with (
         patch(
@@ -772,7 +773,7 @@ async def test_validate_and_process_values_to_update_error_wrong_workflow():
             )
 
         fake_workflows_repo.get_workflow.assert_awaited_once_with(
-            filters={"project_id": story.project_id, "slug": "wrong_workflow"},
+            filters={"project_id": story.project_id, "id": NOT_EXISTING_UUID},
             prefetch_related=["statuses"],
         )
         fake_stories_repo.list_stories_qs.assert_not_called()
@@ -785,7 +786,7 @@ async def test_validate_and_process_values_to_update_error_workflow_without_stat
     status1 = f.build_workflow_status(workflow=workflow1)
     story = f.build_story(project=project, workflow=workflow1, status=status1)
     workflow2 = f.build_workflow(project=project, statuses=[])
-    values = {"version": story.version, "workflow_slug": workflow2.slug}
+    values = {"version": story.version, "workflow_id": workflow2.id}
 
     with (
         patch(
@@ -803,7 +804,7 @@ async def test_validate_and_process_values_to_update_error_workflow_without_stat
             )
 
         fake_workflows_repo.get_workflow.assert_awaited_once_with(
-            filters={"project_id": story.project_id, "slug": workflow2.slug},
+            filters={"project_id": story.project_id, "id": workflow2.id},
             prefetch_related=["statuses"],
         )
         fake_workflows_repo.list_workflow_statuses.assert_not_awaited()
@@ -820,7 +821,7 @@ async def test_validate_and_process_values_to_update_error_workflow_and_status()
     values = {
         "version": story.version,
         "status_id": status1,
-        "workflow_slug": workflow2.slug,
+        "workflow_id": workflow2.id,
     }
 
     with (

@@ -33,8 +33,8 @@ from commons.validators import B64UUID
 from permissions import check_permissions
 from stories.stories import services as stories_services
 from stories.stories.api.validators import (
+    CreateStoryValidator,
     ReorderStoriesValidator,
-    StoryValidator,
     UpdateStoryValidator,
 )
 from stories.stories.models import Story
@@ -45,7 +45,7 @@ from stories.stories.serializers import (
     StorySummarySerializer,
 )
 from stories.stories.services.exceptions import InvalidStatusError, InvalidStoryRefError
-from workflows.api import get_workflow_by_slug_or_404, get_workflow_status_or_404
+from workflows.api import get_workflow_or_404, get_workflow_status_or_404
 
 stories_router = Router()
 
@@ -56,7 +56,7 @@ stories_router = Router()
 
 
 @stories_router.post(
-    "/projects/{project_id}/stories",
+    "/workflows/{workflow_id}/stories",
     url_name="project.stories.create",
     summary="Create a story",
     response={
@@ -69,15 +69,13 @@ stories_router = Router()
 )
 async def create_story(
     request,
-    project_id: Path[B64UUID],
-    form: StoryValidator,
+    workflow_id: Path[B64UUID],
+    form: CreateStoryValidator,
 ) -> StoryDetailSerializer:
     """
     Creates a story in the given project workflow
     """
-    workflow = await get_workflow_by_slug_or_404(
-        project_id=project_id, workflow_slug=form.workflow_slug
-    )
+    workflow = await get_workflow_or_404(workflow_id=workflow_id)
     await check_permissions(
         permissions=StoryPermissionsCheck.CREATE.value, user=request.user, obj=workflow
     )
@@ -102,7 +100,7 @@ async def create_story(
 @stories_router.get(
     "/workflows/statuses/{status_id}/stories",
     url_name="project.workflowstatus.stories.list",
-    summary="List stories",
+    summary="List stories by workflow status",
     response={
         200: list[StorySummarySerializer],
         403: ERROR_RESPONSE_403,
@@ -217,7 +215,7 @@ async def update_story(
 
 
 @stories_router.post(
-    "/projects/{project_id}/stories/reorder",
+    "/workflows/{workflow_id}/stories/reorder",
     url_name="project.stories.reorder",
     summary="Reorder stories",
     response={
@@ -230,15 +228,13 @@ async def update_story(
 )
 async def reorder_stories(
     request,
-    project_id: Path[B64UUID],
+    workflow_id: Path[B64UUID],
     form: ReorderStoriesValidator,
 ) -> ReorderStoriesSerializer:
     """
     Reorder one or more stories; it may change priority and/or status
     """
-    workflow = await get_workflow_by_slug_or_404(
-        project_id=project_id, workflow_slug=form.workflow_slug
-    )
+    workflow = await get_workflow_or_404(workflow_id=workflow_id)
     await check_permissions(
         permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=workflow
     )

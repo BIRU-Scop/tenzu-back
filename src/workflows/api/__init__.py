@@ -267,7 +267,7 @@ async def delete_workflow(
     await workflows_services.delete_workflow(
         workflow=workflow,
         deleted_by=request.user,
-        target_workflow_slug=query_params.move_to,
+        target_workflow_id=query_params.move_to,
     )
     return 204, None
 

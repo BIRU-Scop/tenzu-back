@@ -266,11 +266,11 @@ async def _validate_and_process_values_to_update(
             description_updated_at=aware_utcnow(),
         )
 
-    workflow_slug = output.pop("workflow_slug", None)
+    workflow_id = output.pop("workflow_id", None)
     if status_id := output.pop("status_id", None):
-        if workflow_slug:
+        if workflow_id:
             raise ex.InvalidStatusError(
-                "Can't set workflow_slug and status_id at the same time."
+                "Can't set workflow_id and status_id at the same time."
             )
         try:
             status = await workflows_repositories.get_workflow_status(
@@ -284,16 +284,16 @@ async def _validate_and_process_values_to_update(
                 status=status, order=await _calculate_next_order(status_id=status.id)
             )
 
-    elif workflow_slug:
+    elif workflow_id:
         try:
             workflow = await workflows_repositories.get_workflow(
-                filters={"project_id": story.project_id, "slug": workflow_slug},
+                filters={"project_id": story.project_id, "id": workflow_id},
                 prefetch_related=["statuses"],
             )
         except Workflow.DoesNotExist as e:
             raise ex.InvalidWorkflowError("The provided workflow is not valid.") from e
 
-        if workflow.slug != story.workflow.slug:
+        if workflow.id != story.workflow_id:
             statuses = list(workflow.statuses.all())  # no query because of prefetch
             if not statuses:
                 raise ex.WorkflowHasNotStatusesError(

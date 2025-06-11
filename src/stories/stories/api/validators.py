@@ -30,11 +30,10 @@ Title = Annotated[
 ]
 
 
-class StoryValidator(BaseModel):
+class CreateStoryValidator(BaseModel):
     title: Title
     description: str | None = None
     status_id: B64UUID
-    workflow_slug: str
 
 
 class UpdateStoryValidator(BaseModel):
@@ -42,11 +41,11 @@ class UpdateStoryValidator(BaseModel):
     title: Title | None = None
     description: str | None = None
     status_id: B64UUID | None = None
-    workflow_slug: str | None = None
+    workflow_id: B64UUID | None = None
 
     @model_validator(mode="after")
     def status_or_workflow(self) -> Self:
-        if self.status_id and self.workflow_slug:
+        if self.status_id and self.workflow_id:
             raise ValueError("It's not allowed to update both the status and workflow")
         return self
 
@@ -60,7 +59,6 @@ class ReorderStoriesValidator(BaseModel):
     status_id: B64UUID
     stories: Annotated[List[int], Field(min_length=1)]  # type: ignore[valid-type]
     reorder: ReorderValidator | None = None
-    workflow_slug: str
 
     @field_validator("stories")
     @classmethod
