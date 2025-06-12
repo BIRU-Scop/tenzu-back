@@ -34,6 +34,12 @@ automat==25.4.16
     # via twisted
 babel==2.17.0
     # via -r requirements/commons.in
+boto3==1.38.41
+    # via django-storages
+botocore==1.38.41
+    # via
+    #   boto3
+    #   s3transfer
 build==1.2.2.post1
     # via pip-tools
 bump-pydantic==0.8.0
@@ -91,6 +97,7 @@ django==5.2.3
     #   django-extensions
     #   django-ninja
     #   django-nonrelated-inlines
+    #   django-storages
     #   django-stubs
     #   django-stubs-ext
     #   django-watchfiles
@@ -103,6 +110,8 @@ django-extensions==4.1
 django-ninja==1.4.3
     # via -r requirements/commons.in
 django-nonrelated-inlines==0.2
+    # via -r requirements/commons.in
+django-storages==1.14.6
     # via -r requirements/commons.in
 django-stubs==5.2.0
     # via
@@ -166,6 +175,10 @@ iniconfig==2.1.0
     # via pytest
 jinja2==3.1.6
     # via -r requirements/commons.in
+jmespath==1.0.1
+    # via
+    #   boto3
+    #   botocore
 libcst==1.8.1
     # via bump-pydantic
 lxml==5.4.0
@@ -262,6 +275,7 @@ pytest-xdist==3.7.0
     # via -r requirements/devel.in
 python-dateutil==2.9.0.post0
     # via
+    #   botocore
     #   croniter
     #   freezegun
     #   procrastinate
@@ -293,6 +307,8 @@ rich==14.0.0
     # via
     #   bump-pydantic
     #   typer
+s3transfer==0.13.0
+    # via boto3
 sentry-sdk==2.29.1
     # via -r requirements/commons.in
 service-identity==24.2.0
@@ -373,6 +389,7 @@ tzdata==2025.2
     # via faker
 urllib3==2.4.0
     # via
+    #   botocore
     #   requests
     #   sentry-sdk
     #   types-requests

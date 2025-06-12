@@ -207,11 +207,19 @@ AUTHENTICATION_BACKENDS = ["auth.backends.EmailOrUsernameModelBackend"]
 # EMAIL
 
 locals().update(settings.EMAIL.model_dump())
-
-###############################################################################
+locals().update(settings.STORAGE.model_dump())
+#############s##################################################################
 # 3-PARTY LIBS
 ###############################################################################
 
+STORAGES = {
+    "default": {
+        "BACKEND": f"{settings.STORAGE.BACKEND_CLASS.value}",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # easy_thumbnails
 
