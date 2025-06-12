@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.18](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.17...v0.0.1-staging.18) (2025-06-12)
+
+
+### Features
+
+* add has_invitees field to serialised role ([c7dcaff](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/c7dcaff412f02278b79aa0cf9aa8edef9f500601))
+* add id field to serialized memberships ([45db728](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/45db7287f84770f9f6ed5f3cdcd9f322c12f079f))
+* add more info to workspace list endpoint ([4fcfcb6](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/4fcfcb6dcb92fef21841844074e8c406befcf889))
+* add possibility to name a successor when deleting a project membership ([61a654f](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/61a654fa4f00d6a580de6a6c9229338a3a72e9f6))
+* add possibility to name a successor when deleting a workspace membership, also delete nested project memberships and handle edge cases ([28d526f](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/28d526f680a52e0030df0ce78545951f69568aa9))
+* add webservice api endpoint to retrieve info useful before deleting a workspace membership ([a92402d](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/a92402ded02d64cced0a9cbf7f9608ff0887aee1))
+* list story api endpoint now use status id as parameter instead of workflow ([e7297ee](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/e7297eeca48c558c5ca1e6b1f63aa4aa90d631de))
+* **membership:** add number of project where user in member in workspace membership serializer ([6d87678](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/6d876783cb0c1f702c4e2f6a544fac1cca79b05c))
+* standardise stories api by using workflow id instead of slug ([1a83621](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/1a83621f1960ba94521f4158c401e0072b747b15))
+* switch project update back to being a patch request ([c16c7ff](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/c16c7ffcf8be78f949be616ecdbbf8b9f8f03ff6))
+
+
+### Bug Fixes
+
+* prevent crash on object deletion because of missing id when serialising events ([50c277a](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/50c277af257fe36f26f3d576932c710ba766b016))
+* prevent random ordering after using an annotate with implicite groupby ([e43ca7a](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/e43ca7aeb72d5850dc37b8b90a6780008e028749))
+* prevent successor from being same user as to-be-deleted member ([3774412](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/3774412ead8ba2a3b5ef307e0849ad63d2604f28))
+* prevent validation error when deleting a role without a successor ([787bf4c](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/787bf4c843cb8406a65f627061d2fff4a6aaec68))
+
 ## [0.0.1-staging.17](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.16...v0.0.1-staging.17) (2025-05-29)
 
 
