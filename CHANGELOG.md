@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.19](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.18...v0.0.1-staging.19) (2025-06-12)
+
+
+### Features
+
+* switch back to workflow instead of status filter when listing stories ([03df407](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/03df40791cf6b5e99b9b63e23303236e88fa84ea))
+
 ## [0.0.1-staging.18](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.17...v0.0.1-staging.18) (2025-06-12)
 
 
