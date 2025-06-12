@@ -45,7 +45,7 @@ from stories.stories.serializers import (
     StorySummarySerializer,
 )
 from stories.stories.services.exceptions import InvalidStatusError, InvalidStoryRefError
-from workflows.api import get_workflow_or_404, get_workflow_status_or_404
+from workflows.api import get_workflow_or_404
 
 stories_router = Router()
 
@@ -98,9 +98,9 @@ async def create_story(
 
 
 @stories_router.get(
-    "/workflows/statuses/{status_id}/stories",
-    url_name="project.workflowstatus.stories.list",
-    summary="List stories by workflow status",
+    "/workflows/{workflow_id}/stories",
+    url_name="project.workflow.stories.list",
+    summary="List stories by workflow",
     response={
         200: list[StorySummarySerializer],
         403: ERROR_RESPONSE_403,
@@ -109,24 +109,24 @@ async def create_story(
     },
     by_alias=True,
 )
-async def list_stories_for_workflow_status(
+async def list_stories_for_workflow(
     request,
-    status_id: Path[B64UUID],
+    workflow_id: Path[B64UUID],
     pagination_params: Query[PaginationQuery],
     response: HttpResponse,
 ) -> list[StorySummarySerializer]:
     """
-    List all the stories for a project workflow status
+    List all the stories for a project workflow
     """
-    status = await get_workflow_status_or_404(status_id=status_id)
+    workflow = await get_workflow_or_404(workflow_id=workflow_id)
     await check_permissions(
-        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=status
+        permissions=StoryPermissionsCheck.VIEW.value, user=request.user, obj=workflow
     )
     pagination = Pagination(
         offset=pagination_params.offset, limit=pagination_params.limit
     )
-    stories = await stories_services.list_stories_for_workflow_status(
-        status_id=status.id,
+    stories = await stories_services.list_stories_for_workflow(
+        workflow_id=workflow.id,
         offset=pagination_params.offset,
         limit=pagination_params.limit,
     )

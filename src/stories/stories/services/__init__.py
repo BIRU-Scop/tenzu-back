@@ -93,8 +93,8 @@ async def create_story(
 ##########################################################
 
 
-async def list_stories_for_workflow_status(
-    status_id: UUID,
+async def list_stories_for_workflow(
+    workflow_id: UUID,
     offset: int | None = None,
     limit: int | None = None,
     order_by: list | None = None,
@@ -104,7 +104,7 @@ async def list_stories_for_workflow_status(
     keys = ["ref", "title", "workflow_id", "project_id", "status_id", "version"]
     annotations = {"assignee_ids": ASSIGNEE_IDS_ANNOTATION}
     qs: QuerySet[Story, dict] = stories_repositories.list_stories_qs(
-        filters={"status_id": status_id},
+        filters={"workflow_id": workflow_id},
         offset=offset,
         limit=limit,
         order_by=order_by,

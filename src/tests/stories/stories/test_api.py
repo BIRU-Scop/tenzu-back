@@ -174,7 +174,7 @@ async def test_create_story_422_unprocessable_workflow_b64id(client, project_tem
 
 
 ##########################################################
-# GET /workflows/statuses/<id>/stories
+# GET /workflows/<id>/stories
 ##########################################################
 
 
@@ -191,10 +191,10 @@ async def test_list_workflow_stories_200_ok(client, project_template):
     assignments = [await f.create_story_assignment(story=story) for _ in range(3)]
 
     client.login(project.created_by)
-    response = await client.get(f"/workflows/statuses/{workflow_status.b64id}/stories")
+    response = await client.get(f"/workflows/{workflow.b64id}/stories")
     assert response.status_code == 200, response.data
     res = response.data
-    assert len(res) == 2
+    assert len(res) == 3
     assert res[0]["assigneeIds"] == [
         assignment.user.b64id for assignment in reversed(assignments)
     ]
@@ -209,9 +209,9 @@ async def test_list_workflow_stories_200_ok(client, project_template):
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     client.login(pj_member)
-    response = await client.get(f"/workflows/statuses/{workflow_status.b64id}/stories")
+    response = await client.get(f"/workflows/{workflow.b64id}/stories")
     assert response.status_code == 200, response.data
-    assert len(response.data) == 2
+    assert len(response.data) == 3
 
 
 async def test_list_workflow_stories_403_forbidden_user_has_not_valid_perm(
@@ -233,7 +233,7 @@ async def test_list_workflow_stories_403_forbidden_user_has_not_valid_perm(
     await f.create_project_membership(user=pj_member, project=project, role=pj_role)
 
     client.login(pj_member)
-    response = await client.get(f"/workflows/statuses/{workflow_status.b64id}/stories")
+    response = await client.get(f"/workflows/{workflow.b64id}/stories")
     assert response.status_code == 403, response.data
 
 
@@ -249,7 +249,7 @@ async def test_list_workflow_stories_200_ok_with_pagination(client, project_temp
 
     client.login(project.created_by)
     response = await client.get(
-        f"/workflows/statuses/{workflow_status.b64id}/stories?offset={offset}&limit={limit}"
+        f"/workflows/{workflow.b64id}/stories?offset={offset}&limit={limit}"
     )
     assert response.status_code == 200, response.data
 
@@ -258,21 +258,21 @@ async def test_list_workflow_stories_200_ok_with_pagination(client, project_temp
     assert response.headers["Pagination-Limit"] == "1"
 
 
-async def test_list_workflow_stories_404_not_found_status_b64id(client):
+async def test_list_workflow_stories_404_not_found_workflow_b64id(client):
     pj_owner = await f.create_user()
 
     client.login(pj_owner)
-    response = await client.get(f"/workflows/statuses/{NOT_EXISTING_B64ID}/stories")
+    response = await client.get(f"/workflows/{NOT_EXISTING_B64ID}/stories")
     assert response.status_code == 404, response.data
 
 
-async def test_list_workflow_stories_422_unprocessable_status_b64id(
+async def test_list_workflow_stories_422_unprocessable_workflow_b64id(
     client, project_template
 ):
     project = await f.create_project(project_template)
 
     client.login(project.created_by)
-    response = await client.get(f"/workflows/statuses/{INVALID_B64ID}/stories")
+    response = await client.get(f"/workflows/{INVALID_B64ID}/stories")
     assert response.status_code == 422, response.data
 
 
