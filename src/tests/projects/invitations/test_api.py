@@ -372,6 +372,7 @@ async def test_accept_project_invitation_ok(client):
     assert workspace_membership.role.slug == "readonly-member"
 
 
+@pytest.mark.django_db(transaction=True)
 async def test_accept_project_invitation_ok_pending_workspace_invitation(client):
     user = await f.create_user()
     invitation = await f.create_project_invitation(email=user.email, user=user)
@@ -502,6 +503,7 @@ async def test_accept_project_invitations_anonymous_user(client, project_templat
     assert response.status_code == 401, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_accept_user_project_invitation_ok(client, project_template):
     project = await f.create_project(project_template)
     user = await f.create_user()

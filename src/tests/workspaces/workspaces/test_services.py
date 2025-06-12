@@ -42,11 +42,22 @@ async def test_create_workspace_ok():
         patch(
             "workspaces.workspaces.services.ws_memberships_repositories", autospec=True
         ) as fake_ws_memberships_repo,
-        patch("workspaces.workspaces.services.WorkspaceDetailSerializer"),
+        patch(
+            "workspaces.workspaces.services.WorkspaceDetailSerializer"
+        ) as fake_WorkspaceDetailSerializer,
     ):
         await services.create_workspace(name=name, color=color, created_by=user)
         fake_workspaces_repo.create_workspace.assert_awaited_once()
         fake_ws_memberships_repo.create_workspace_membership.assert_awaited_once()
+        assert (
+            fake_WorkspaceDetailSerializer.call_args.kwargs["user_is_invited"] is False
+        )
+        assert fake_WorkspaceDetailSerializer.call_args.kwargs["user_is_member"] is True
+        assert (
+            fake_WorkspaceDetailSerializer.call_args.kwargs["user_can_create_projects"]
+            is True
+        )
+        assert fake_WorkspaceDetailSerializer.call_args.kwargs["total_projects"] == 0
 
 
 ##########################################################
@@ -106,6 +117,8 @@ async def test_get_user_workspace():
             color=workspace.color,
             user_role=role,
             user_is_invited=False,
+            user_is_member=True,
+            user_can_create_projects=True,
             total_projects=3,
         )
 
@@ -119,18 +132,34 @@ async def test_update_workspace_ok(tqmanager):
     workspace = f.build_workspace()
     user = f.build_user()
     values = {"name": "new name"}
+    user.workspace_role = None
+    workspace.total_projects = 3
 
     with (
         patch(
             "workspaces.workspaces.services.workspaces_repositories", autospec=True
         ) as fake_workspaces_repo,
-        patch("workspaces.workspaces.services.WorkspaceDetailSerializer"),
+        patch(
+            "workspaces.workspaces.services.WorkspaceDetailSerializer"
+        ) as fake_WorkspaceDetailSerializer,
     ):
+        fake_workspaces_repo.update_workspace.return_value = workspace
         await services.update_workspace(workspace=workspace, user=user, values=values)
         fake_workspaces_repo.update_workspace.assert_awaited_once_with(
             workspace=workspace, values=values
         )
         assert len(tqmanager.pending_jobs) == 0
+        fake_WorkspaceDetailSerializer.assert_called_with(
+            id=workspace.id,
+            name=workspace.name,
+            slug=workspace.slug,
+            color=workspace.color,
+            user_role=None,
+            user_is_invited=False,
+            user_is_member=False,
+            user_can_create_projects=False,
+            total_projects=3,
+        )
 
 
 ##########################################################

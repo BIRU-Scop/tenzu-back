@@ -19,7 +19,7 @@
 from typing import Any, Literal, TypedDict, TypeVar
 from uuid import UUID
 
-from django.db.models import Case, Count, Q, QuerySet, When
+from django.db.models import Count, Exists, F, OuterRef, Q, QuerySet
 
 from base.db.utils import Q_for_related
 from memberships.choices import InvitationStatus
@@ -31,12 +31,23 @@ from workspaces.workspaces.models import Workspace
 
 T = TypeVar("T", Project, Workspace)
 
+
+class ProjectFilters(TypedDict, total=False):
+    workspace_id: UUID
+
+
 ##########################################################
 # membership type
 ##########################################################
 
+TOTAL_PROJECTS_IS_MEMBER_ANNOTATION = Count(
+    "workspace__projects",
+    filter=Q(workspace__projects__memberships__user_id=F("user_id")),
+)
+
 
 class _MembershipFilters(TypedDict, total=False):
+    id: UUID
     user__username: str
     user_id: UUID
     role__permissions__contains: list[str]
@@ -52,6 +63,13 @@ class WorkspaceMembershipFilters(_MembershipFilters, total=False):
 
 
 MembershipFilters = ProjectMembershipFilters | WorkspaceMembershipFilters
+
+
+class WorkspaceMembershipAnnotation(TypedDict, total=False):
+    total_projects_is_member: type(TOTAL_PROJECTS_IS_MEMBER_ANNOTATION)
+
+
+MembershipAnnotation = WorkspaceMembershipAnnotation
 
 ProjectMembershipSelectRelated = list[
     Literal[
@@ -100,6 +118,8 @@ RoleFilters = ProjectRoleFilters | WorkspaceRoleFilters
 ProjectRoleSelectRelated = list[Literal["project",] | None]
 WorkspaceRoleSelectRelated = list[Literal["workspace",] | None]
 RoleSelectRelated = ProjectRoleSelectRelated | WorkspaceRoleSelectRelated
+
+RoleOrderBy = list[Literal["order", "name"]]
 TR = TypeVar("TR", bound=Role)
 
 ##########################################################
@@ -168,6 +188,7 @@ async def list_memberships(
     filters: MembershipFilters = {},
     select_related: MembershipSelectRelated = [None],
     order_by: MembershipOrderBy = ["user__full_name"],
+    annotations: MembershipAnnotation = {},
     offset: int | None = None,
     limit: int | None = None,
 ) -> list[TM]:
@@ -176,6 +197,7 @@ async def list_memberships(
         .filter(**filters)
         .select_related(*select_related)
         .order_by(*order_by)
+        .annotate(**annotations)
     )
 
     if limit is not None and offset is not None:
@@ -193,8 +215,14 @@ async def get_membership(
     model: type[TM],
     filters: MembershipFilters = {},
     select_related: MembershipSelectRelated = ["user", "role"],
+    annotations: MembershipAnnotation = {},
 ) -> TM:
-    qs = model.objects.all().filter(**filters).select_related(*select_related)
+    qs = (
+        model.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+        .annotate(**annotations)
+    )
     return await qs.aget()
 
 
@@ -219,13 +247,26 @@ async def update_membership(membership: TM, values: dict[str, Any] = {}) -> TM:
     return membership
 
 
+async def bulk_update_or_create_memberships(memberships: list[TM]) -> list[TM]:
+    if not memberships:
+        return []
+    model = memberships[0].__class__
+    reference_fields = memberships[0].reference_model_filter.keys()
+    return await model.objects.abulk_create(
+        memberships,
+        update_conflicts=True,
+        update_fields=["role_id"],
+        unique_fields=["user_id", *reference_fields],
+    )
+
+
 ##########################################################
 # delete membership
 ##########################################################
 
 
-async def delete_membership(membership: TM) -> int:
-    count, _ = await membership.adelete()
+async def delete_memberships(model: type[TM], filters: MembershipFilters) -> int:
+    count, _ = await model.objects.filter(**filters).adelete()
     return count
 
 
@@ -256,6 +297,8 @@ def only_member_queryset(
     returns a queryset for all object where user is the only member
     """
     qs = model.objects.all()
+    # add explicite order_by so it doesn't get removed by groupby implicit query in annotate
+    qs = qs.order_by(*qs.query.order_by or model._meta.ordering)
     qs = qs.annotate(num_members=Count("members")).filter(num_members=1)
     qs = qs.filter(
         **{
@@ -265,20 +308,27 @@ def only_member_queryset(
     return qs.distinct()
 
 
-def only_owner_collective_queryset(model: type[T], user: User) -> QuerySet[T]:
+def only_owner_queryset(
+    model: type[T], user: User, is_collective=False, filters: ProjectFilters = {}
+) -> QuerySet[T]:
     """
-    returns a queryset for all projects where user is the only owner and other members exists
+    returns a queryset for all projects where user is the only owner
+    if is_collective=True, only return projects with more than one member
     """
     qs = model.objects.all()
+    # add explicite order_by so it doesn't get removed by groupby implicit query in annotate
+    qs = qs.order_by(*qs.query.order_by or model._meta.ordering)
     qs = qs.annotate(
-        num_owners=Count(Case(When(memberships__role__is_owner=True, then=1)))
+        num_owners=Count("memberships", filter=Q(memberships__role__is_owner=True))
     ).filter(num_owners=1)
-    qs = qs.annotate(num_members=Count("members")).filter(num_members__gt=1)
+    if is_collective:
+        qs = qs.annotate(num_members=Count("members")).filter(num_members__gt=1)
     qs = qs.filter(
         **{
             "memberships__user_id": user.id,
             "memberships__role__is_owner": True,
-        }
+        },
+        **filters,
     )
     return qs.distinct()
 
@@ -291,13 +341,24 @@ def only_owner_collective_queryset(model: type[T], user: User) -> QuerySet[T]:
 async def list_roles(
     model: type[TR],
     filters: RoleFilters = {},
+    order_by: RoleOrderBy = ["order", "name"],
     offset: int | None = None,
     limit: int | None = None,
-    get_total_members=False,
+    get_members_details=False,
 ) -> list[TR]:
-    qs = model.objects.all().filter(**filters)
-    if get_total_members:
+    qs = model.objects.all().filter(**filters).order_by(*order_by)
+    if get_members_details:
         qs = qs.annotate(total_members=Count("memberships"))
+        # use meta to avoid having to prefetch role field
+        invitation_model = model._meta.get_field("invitations").related_model
+        qs = qs.annotate(
+            has_invitees=Exists(
+                invitation_model.objects.filter(
+                    status=InvitationStatus.PENDING,
+                    role_id=OuterRef("pk"),
+                )
+            ),
+        ).distinct()
 
     if limit is not None and offset is not None:
         limit += offset
@@ -314,11 +375,21 @@ async def get_role(
     model: type[TR],
     filters: RoleFilters = {},
     select_related: RoleSelectRelated = [None],
-    get_total_members=False,
+    get_members_details=False,
 ) -> TR:
     qs = model.objects.all().filter(**filters).select_related(*select_related)
-    if get_total_members:
+    if get_members_details:
         qs = qs.annotate(total_members=Count("memberships"))
+        # use meta to avoid having to prefetch role field
+        invitation_model = model._meta.get_field("invitations").related_model
+        qs = qs.annotate(
+            has_invitees=Exists(
+                invitation_model.objects.filter(
+                    status=InvitationStatus.PENDING,
+                    role_id=OuterRef("pk"),
+                )
+            ),
+        )
     return await qs.aget()
 
 

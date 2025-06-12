@@ -81,10 +81,14 @@ async def get_story_assignment(
     project_id: UUID,
     ref: int,
     user_id: UUID,
-) -> StoryAssignment | None:
+) -> StoryAssignment:
     return await story_assignments_repositories.get_story_assignment(
-        filters={"project_id": project_id, "ref": ref, "user_id": user_id},
-        select_related=["story", "user", "project"],
+        filters={
+            "story__project_id": project_id,
+            "story__ref": ref,
+            "user_id": user_id,
+        },
+        select_related=["story", "user", "story__project"],
     )
 
 

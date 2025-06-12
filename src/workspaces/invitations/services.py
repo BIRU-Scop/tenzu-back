@@ -196,7 +196,6 @@ async def update_user_workspaces_invitations(user: User) -> None:
     invitations = await invitations_repositories.list_invitations(
         WorkspaceInvitation,
         filters={"user": user, "status": InvitationStatus.PENDING},
-        select_related=["workspace"],
     )
     await transaction_on_commit_async(
         invitations_events.emit_event_when_workspace_invitations_are_updated
@@ -212,9 +211,9 @@ async def update_workspace_invitation(
         role_id=role_id,
         user_role=user_role,
     )
-    await transaction_on_commit_async(
-        invitations_events.emit_event_when_workspace_invitation_is_updated
-    )(invitation=updated_invitation)
+    await invitations_events.emit_event_when_workspace_invitation_is_updated(
+        invitation=updated_invitation
+    )
 
     return updated_invitation
 

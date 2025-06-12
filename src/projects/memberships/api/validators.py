@@ -20,7 +20,6 @@ from typing import Annotated
 
 from pydantic import StringConstraints
 
-from base.serializers import UUIDB64
 from commons.validators import B64UUID, BaseModel
 from permissions.validators import ProjectPermissionsField
 

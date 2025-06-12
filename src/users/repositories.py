@@ -202,11 +202,11 @@ def _list_project_users_by_text_qs(
 
         # 1st: Users that share the same project
         memberships = ProjectMembership.objects.filter(
-            user__id=OuterRef("pk"), project__id=project_id
+            user_id=OuterRef("pk"), project_id=project_id
         )
         pending_invitations = ProjectInvitation.objects.filter(
-            user__id=OuterRef("pk"),
-            project__id=project_id,
+            user_id=OuterRef("pk"),
+            project_id=project_id,
             status=InvitationStatus.PENDING,
         )
         project_users_qs = (
@@ -379,7 +379,7 @@ def _list_users_by_fullname_or_username(
 async def get_user(
     filters: UserFilters = {},
     q_filter: Q | None = None,
-) -> User | None:
+) -> User:
     qs = User.objects.all().filter(**filters)
     if q_filter:
         qs = qs.filter(q_filter)
@@ -406,7 +406,8 @@ async def update_user(user: User, values: dict[str, Any] = {}) -> User:
 
 
 async def delete_user(user: User) -> int:
-    count, _ = await user.adelete()
+    # don't call user.adelete directly since it will set id to None and we might need it for events
+    count, _ = await User.objects.filter(id=user.id).adelete()
     return count
 
 

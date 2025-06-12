@@ -36,11 +36,6 @@ File = DjangoFile
 def uploadfile_to_file(file: UploadedFile) -> File:
     """
     Convert an `ninja.UploadedFile object to a `File` object. Useful to the ORM.
-
-    :param file: a uploaded file object
-    :type file: fastapi.UploadFile
-    :return a file object
-    :rtype File
     """
     return File(name=file.name, file=file.file)
 

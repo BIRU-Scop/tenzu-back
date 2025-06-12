@@ -18,17 +18,15 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from base.serializers import UUIDB64, BaseModel
-from users.serializers.nested import UserNestedSerializer
-from memberships.serializers import RoleSerializer
+from base.serializers import UUIDB64
+from memberships.serializers import MembershipBaseSerializer, RoleSerializer
 
 
-class ProjectMembershipSerializer(BaseModel):
-    user: UserNestedSerializer
-    role_id: UUIDB64
+class ProjectMembershipSerializer(MembershipBaseSerializer):
     project_id: UUIDB64
 
 
 class ProjectRolesSerializer(RoleSerializer):
     project_id: UUIDB64
     total_members: int
+    has_invitees: bool

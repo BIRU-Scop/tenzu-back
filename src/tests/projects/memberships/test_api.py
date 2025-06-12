@@ -53,7 +53,7 @@ async def test_list_project_memberships(client, project_template):
 
     response = await client.get(f"/projects/{project.b64id}/memberships")
     assert response.status_code == 200, response.data
-    assert len(response.json()) == 3  # 2 explicitly created + owner membership
+    assert len(response.data) == 3  # 2 explicitly created + owner membership
 
 
 async def test_list_project_memberships_wrong_id(client, project_template):
@@ -142,6 +142,7 @@ async def test_update_project_membership_role_user_without_permission(
     assert response.status_code == 403, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_update_project_membership_role_ok(client, project_template):
     project = await f.create_project(project_template)
     roles = list(project.roles.all())
@@ -289,13 +290,53 @@ async def test_delete_project_membership_role_ok(client, project_template):
     assert response.status_code == 204, response.data
 
 
-async def test_delete_project_membership_only_owner(client, project_template):
+async def test_delete_project_membership_only_owner_bad_successor(
+    client, project_template
+):
+    # no successor
     project = await f.create_project(project_template)
     owner_membership = list(project.memberships.all())[0]
 
     client.login(project.created_by)
     response = await client.delete(f"/projects/memberships/{owner_membership.b64id}")
     assert response.status_code == 400, response.data
+
+    # invalid successor
+    response = await client.delete(
+        f"/projects/memberships/{owner_membership.b64id}?successorUserId={NOT_EXISTING_B64ID}"
+    )
+    assert response.status_code == 400, response.data
+
+    # successor not in project
+    user = await f.create_user()
+    response = await client.delete(
+        f"/projects/memberships/{owner_membership.b64id}?successorUserId={user.b64id}"
+    )
+    assert response.status_code == 400, response.data
+    assert str(user.id) in response.data["error"]["msg"]
+
+    # successor is deleted member
+    response = await client.delete(
+        f"/projects/memberships/{owner_membership.b64id}?successorUserId={owner_membership.user.b64id}"
+    )
+    assert response.status_code == 400, response.data
+
+
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
+async def test_delete_project_membership_only_owner_ok_successor(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    owner_membership = list(project.memberships.all())[0]
+    other_membership = await f.create_project_membership(project=project)
+
+    client.login(project.created_by)
+    response = await client.delete(
+        f"/projects/memberships/{owner_membership.b64id}?successorUserId={other_membership.user.b64id}"
+    )
+    assert response.status_code == 204, response.data
+    await other_membership.arefresh_from_db()
+    assert other_membership.role_id == owner_membership.role_id
 
 
 async def test_delete_project_membership_role_owner_and_not_owner(
@@ -331,7 +372,7 @@ async def test_delete_project_membership_role_owner_and_owner(client, project_te
     assert response.status_code == 204, response.data
 
 
-async def test_delete_project_membership_self_request(client, project_template):
+async def test_delete_project_membership_self_member_request(client, project_template):
     project = await f.create_project(project_template)
     member = await f.create_user()
     member_role = await f.create_project_role(
@@ -364,12 +405,19 @@ async def test_list_project_roles(client, project_template):
 
     pj_member = await f.create_user()
     await f.create_project_membership(user=pj_member, project=project, role=member_role)
+    await f.create_project_invitation(project=project, role=member_role)
 
     client.login(pj_member)
 
     response = await client.get(f"/projects/{project.b64id}/roles")
     assert response.status_code == 200, response.data
-    assert len(response.json()) == 5  # 4 default + newly created
+    assert len(response.data) == 5  # 4 default + newly created
+    # owner
+    assert response.data[0]["totalMembers"] == 1
+    assert response.data[0]["hasInvitees"] is False
+    # new role
+    assert response.data[-1]["totalMembers"] == 1
+    assert response.data[-1]["hasInvitees"] is True
 
 
 async def test_list_project_roles_wrong_id(client, project_template):
@@ -463,6 +511,7 @@ async def test_create_project_role_not_valid_permissions(client, project_templat
     assert response.status_code == 422, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_create_project_role_ok(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()
@@ -479,9 +528,11 @@ async def test_create_project_role_ok(client, project_template):
     client.login(pj_member)
     response = await client.post(f"/projects/{project.b64id}/roles", json=data)
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert data["permissions"] == res["permissions"]
     assert "Dev" == res["name"]
+    assert response.data["totalMembers"] == 0
+    assert response.data["hasInvitees"] is False
 
 
 #########################################################################
@@ -500,11 +551,14 @@ async def test_get_project_role(client, project_template):
 
     pj_member = await f.create_user()
     await f.create_project_membership(user=pj_member, project=project, role=member_role)
+    await f.create_project_invitation(project=project, role=member_role)
     client.login(pj_member)
 
     response = await client.get(f"/projects/roles/{member_role.b64id}")
     assert response.status_code == 200, response.data
-    assert len(response.json())
+    assert len(response.data)
+    assert response.data["totalMembers"] == 1
+    assert response.data["hasInvitees"] is True
 
 
 async def test_get_project_role_wrong_id(client, project_template):
@@ -626,6 +680,7 @@ async def test_update_project_role_not_valid_permissions(client, project_templat
     assert response.status_code == 422, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_update_project_role_ok(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()
@@ -643,9 +698,11 @@ async def test_update_project_role_ok(client, project_template):
     client.login(pj_member)
     response = await client.put(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert data["permissions"] == res["permissions"]
     assert "Member" == res["name"]
+    assert response.data["totalMembers"] == 0
+    assert response.data["hasInvitees"] is False
 
     data = {
         "permissions": [
@@ -656,16 +713,21 @@ async def test_update_project_role_ok(client, project_template):
     }
     response = await client.put(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert data["permissions"] == res["permissions"]
     assert data["name"] == res["name"]
+    assert response.data["totalMembers"] == 0
+    assert response.data["hasInvitees"] is False
+
     role = await project.roles.aget(slug=res["slug"])
     data = {"name": "New member 2"}
     response = await client.put(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert len(res["permissions"]) == 2
     assert data["name"] == res["name"]
+    assert response.data["totalMembers"] == 0
+    assert response.data["hasInvitees"] is False
 
 
 #########################################################################
@@ -769,6 +831,7 @@ async def test_delete_project_role_move_to_owner(client, project_template):
     assert response.status_code == 204, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_project_role_ok(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()
@@ -787,6 +850,7 @@ async def test_delete_project_role_ok(client, project_template):
     assert response.status_code == 204, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_project_role_ok_move_to(client, project_template):
     project = await f.create_project(project_template)
     pj_member = await f.create_user()

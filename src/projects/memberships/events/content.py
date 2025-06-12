@@ -39,4 +39,4 @@ class ProjectRoleContent(RoleSerializer):
 
 class DeleteProjectRoleContent(BaseModel):
     role: RoleSerializer
-    target_role: RoleSerializer
+    target_role: RoleSerializer | None

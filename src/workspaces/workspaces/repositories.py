@@ -31,6 +31,7 @@ from django.db.models.aggregates import Count
 from base.db.utils import Q_for_related
 from base.utils.datetime import aware_utcnow
 from memberships import repositories as memberships_repositories
+from permissions.choices import WorkspacePermissions
 from projects.projects.models import Project
 from users.models import User
 from workspaces.invitations.models import WorkspaceInvitation
@@ -112,6 +113,15 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
             user_is_member=Exists(
                 WorkspaceMembership.objects.filter(
                     user_id=user.id, workspace_id=OuterRef("pk")
+                )
+            ),
+            user_can_create_projects=Exists(
+                WorkspaceMembership.objects.filter(
+                    user_id=user.id,
+                    workspace_id=OuterRef("pk"),
+                    role__permissions__contains=[
+                        WorkspacePermissions.CREATE_PROJECT.value
+                    ],
                 )
             ),
         )

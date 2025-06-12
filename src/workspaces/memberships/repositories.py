@@ -19,7 +19,9 @@
 from django.db.models import QuerySet
 
 from memberships.repositories import (  # noqa
-    delete_membership,
+    TOTAL_PROJECTS_IS_MEMBER_ANNOTATION,
+    bulk_update_or_create_memberships,
+    delete_memberships,
     exists_membership,
     get_membership,
     get_role,
@@ -27,7 +29,7 @@ from memberships.repositories import (  # noqa
     list_members,
     list_memberships,
     list_roles,
-    only_owner_collective_queryset,
+    only_owner_queryset,
     update_membership,
     update_role,
 )
@@ -36,6 +38,7 @@ from memberships.repositories import (
 )
 from memberships.services import exceptions as ex
 from permissions.choices import WorkspacePermissions
+from projects.projects.models import Project
 from users.models import User
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.workspaces.models import Workspace
@@ -68,6 +71,20 @@ def only_workspace_member_queryset(
     prefetch_related: WorkspacePrefetchRelated = [],
 ) -> QuerySet[Workspace]:
     return _only_member_queryset(Workspace, user).prefetch_related(*prefetch_related)
+
+
+async def workspace_member_projects_list(
+    membership: WorkspaceMembership,
+) -> list[str]:
+    return [
+        pj
+        async for pj in Project.objects.all()
+        .filter(
+            memberships__user_id=membership.user_id,
+            workspace_id=membership.workspace_id,
+        )
+        .values_list("name", flat=True)
+    ]
 
 
 ##########################################################

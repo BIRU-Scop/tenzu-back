@@ -29,8 +29,7 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_422,
 )
 from commons.validators import B64UUID
-from memberships.api.validators import MembershipValidator
-from memberships.serializers import RoleSerializer
+from memberships.api.validators import DeleteMembershipQuery, MembershipValidator
 from memberships.services.exceptions import (
     NonEditableRoleError,
     OwnerRoleNotAuthorisedError,
@@ -149,10 +148,17 @@ async def update_project_membership(
     by_alias=True,
 )
 async def delete_project_membership(
-    request, membership_id: Path[B64UUID]
+    request,
+    membership_id: Path[B64UUID],
+    query_params: Query[DeleteMembershipQuery],
 ) -> tuple[int, None]:
     """
     Delete a project membership
+
+    Query params:
+
+    * **successor_user_id:** the user's id who'll inherit the owner role from the user
+        - if not received, and user is unique owner of the associated project, an error will be returned
     """
     membership = await get_project_membership_or_404(membership_id=membership_id)
 
@@ -162,7 +168,11 @@ async def delete_project_membership(
         obj=membership,
     )
 
-    await memberships_services.delete_project_membership(membership=membership)
+    await memberships_services.delete_project_membership(
+        membership=membership,
+        user=request.user,
+        successor_user_id=query_params.successor_user_id,
+    )
     return 204, None
 
 
@@ -262,7 +272,7 @@ async def get_project_role(
     Get project role
     """
 
-    role = await get_project_role_or_404(role_id=role_id, get_total_members=True)
+    role = await get_project_role_or_404(role_id=role_id, get_members_details=True)
     await check_permissions(
         permissions=ProjectRolePermissionsCheck.VIEW.value,
         user=request.user,
@@ -298,7 +308,7 @@ async def update_project_role(
     Update project roles
     """
 
-    role = await get_project_role_or_404(role_id=role_id, get_total_members=True)
+    role = await get_project_role_or_404(role_id=role_id, get_members_details=True)
     await check_permissions(
         permissions=ProjectRolePermissionsCheck.MODIFY.value,
         user=request.user,
@@ -375,11 +385,11 @@ async def get_project_membership_or_404(membership_id: UUID) -> ProjectMembershi
 
 
 async def get_project_role_or_404(
-    role_id: UUID, get_total_members=False
+    role_id: UUID, get_members_details=False
 ) -> ProjectRole:
     try:
         role = await memberships_services.get_project_role(
-            role_id=role_id, get_total_members=get_total_members
+            role_id=role_id, get_members_details=get_members_details
         )
     except ProjectRole.DoesNotExist as e:
         raise ex.NotFoundError(f"Role {role_id} does not exist") from e

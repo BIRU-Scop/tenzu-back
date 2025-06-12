@@ -92,8 +92,8 @@ async def update_project_membership(
     if view_story_is_deleted:
         await story_assignments_repositories.delete_stories_assignments(
             filters={
-                "project_id": membership.project_id,
-                "username": membership.user.username,
+                "story__project_id": membership.project_id,
+                "user_id": membership.user_id,
             }
         )
 
@@ -105,20 +105,51 @@ async def update_project_membership(
 ##########################################################
 
 
-@transaction_atomic_async
-async def delete_project_membership(
-    membership: ProjectMembership,
-) -> bool:
-    if await memberships_services.is_membership_the_only_owner(membership):
+async def _handle_membership_succession(
+    membership: ProjectMembership, user: User, successor_user_id: UUID | None = None
+):
+    if successor_user_id is not None:
+        if successor_user_id == user.id:
+            raise ex.SameSuccessorAsCurrentMember(
+                "The to-be-deleted member and successor user cannot be the same"
+            )
+        try:
+            successor_membership = await memberships_repositories.get_membership(
+                ProjectMembership,
+                filters={
+                    "user_id": successor_user_id,
+                    "project_id": membership.project_id,
+                },
+                select_related=["user"],
+            )
+        except ProjectMembership.DoesNotExist as e:
+            raise ex.MembershipIsTheOnlyOwnerError(
+                f"Membership is the only project owner and member {successor_user_id} can't be found in project"
+            ) from e
+        else:
+            await update_project_membership(
+                successor_membership, membership.role_id, user=user
+            )
+    else:
         raise ex.MembershipIsTheOnlyOwnerError("Membership is the only project owner")
 
-    deleted = await memberships_repositories.delete_membership(membership)
+
+@transaction_atomic_async
+async def delete_project_membership(
+    membership: ProjectMembership, user: User, successor_user_id: UUID | None = None
+) -> bool:
+    if await memberships_services.is_membership_the_only_owner(membership):
+        await _handle_membership_succession(membership, user, successor_user_id)
+
+    deleted = await memberships_repositories.delete_memberships(
+        ProjectMembership, {"id": membership.id}
+    )
     if deleted > 0:
         # Delete stories assignments
         await story_assignments_repositories.delete_stories_assignments(
             filters={
-                "project_id": membership.project_id,
-                "username": membership.user.username,
+                "story__project_id": membership.project_id,
+                "user_id": membership.user_id,
             }
         )
         # Delete project invitations
@@ -146,7 +177,7 @@ async def delete_project_membership(
 
 async def list_project_roles(project: Project) -> list[ProjectRole]:
     return await memberships_repositories.list_roles(
-        ProjectRole, filters={"project_id": project.id}, get_total_members=True
+        ProjectRole, filters={"project_id": project.id}, get_members_details=True
     )
 
 
@@ -155,12 +186,12 @@ async def list_project_roles(project: Project) -> list[ProjectRole]:
 ##########################################################
 
 
-async def get_project_role(role_id: UUID, get_total_members=False) -> ProjectRole:
+async def get_project_role(role_id: UUID, get_members_details=False) -> ProjectRole:
     return await memberships_repositories.get_role(
         ProjectRole,
         filters={"id": role_id},
         select_related=["project"],
-        get_total_members=get_total_members,
+        get_members_details=get_members_details,
     )
 
 
@@ -179,6 +210,7 @@ async def create_project_role(
         project_id=project_id,
     )
     role.total_members = 0
+    role.has_invitees = False
     # Emit event
     await transaction_on_commit_async(
         memberships_events.emit_event_when_project_role_is_created
@@ -217,7 +249,7 @@ async def update_project_role(
         # Unassign stories for user if the new permissions don't have view_story
         if view_story_is_deleted:
             await story_assignments_repositories.delete_stories_assignments(
-                filters={"role_id": role.id}
+                filters={"user__project_memberships__role_id": role.id}
             )
 
     return updated_role

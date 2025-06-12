@@ -37,6 +37,8 @@ class WorkspaceSummarySerializer(
     WorkspaceNestedSerializer, _WorkspaceListProjectsSummarySerializer
 ):
     user_is_invited: bool
+    user_is_member: bool
+    user_can_create_projects: bool
     model_config = ConfigDict(from_attributes=True)
 
 

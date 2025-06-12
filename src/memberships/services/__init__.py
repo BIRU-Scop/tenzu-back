@@ -35,6 +35,7 @@ from workspaces.workspaces.models import Workspace
 
 logger = logging.getLogger(__name__)
 
+TM = TypeVar("TM", bound=Membership)
 TI = TypeVar("TI", bound=Invitation)
 
 ##########################################################
@@ -42,16 +43,16 @@ TI = TypeVar("TI", bound=Invitation)
 ##########################################################
 
 
-async def update_membership(
-    membership: Membership, role_id: UUID, user_role: Role
-) -> Membership:
+async def update_membership(membership: TM, role_id: UUID, user_role: Role) -> TM:
+    # use meta to avoid having to prefetch role field
+    role_model = membership._meta.get_field("role").related_model
     try:
         role = await memberships_repositories.get_role(
-            membership.role.__class__,
+            role_model,
             filters={**membership.reference_model_filter, "id": role_id},
         )
 
-    except membership.role.DoesNotExist as e:
+    except role_model.DoesNotExist as e:
         raise ex.NonExistingRoleError("Role does not exist") from e
 
     if not role.is_owner:
@@ -75,7 +76,7 @@ async def update_membership(
 ##########################################################
 
 
-async def is_membership_the_only_owner(membership: Membership) -> bool:
+async def is_membership_the_only_owner(membership: TM) -> bool:
     if not membership.role.is_owner:
         return False
 
@@ -94,7 +95,7 @@ async def create_invitations(
     invitations: list[dict[str, str | UUID]],
     invited_by: User,
     user_role: Role,
-) -> tuple[list[Invitation], list[Invitation], int]:
+) -> tuple[list[TI], list[TI], int]:
     # create two lists with roles_slug and the emails received (either directly by the invitation's email, or by the
     # invited username's email)
     already_members = 0
@@ -438,7 +439,7 @@ async def revoke_invitation(invitation: TI, revoked_by: User) -> TI:
 ##########################################################
 
 
-def is_spam(invitation: Invitation) -> bool:
+def is_spam(invitation: TI) -> bool:
     last_send_at = (
         invitation.resent_at if invitation.resent_at else invitation.created_at
     )
@@ -453,7 +454,7 @@ def is_spam(invitation: Invitation) -> bool:
     )
 
 
-def is_invitation_for_this_user(invitation: Invitation, user: User) -> bool:
+def is_invitation_for_this_user(invitation: TI, user: User) -> bool:
     """
     Check if a  invitation if for an specific user
     """

@@ -125,10 +125,11 @@ async def delete_story_assignment(
 async def get_story_assignment_or_404(
     project_id: UUID, ref: int, user_id: UUID
 ) -> StoryAssignment:
-    story_assignment = await story_assignments_services.get_story_assignment(
-        project_id=project_id, ref=ref, user_id=user_id
-    )
-    if story_assignment is None:
-        raise ex.NotFoundError(f"User {user_id} is not assigned to story {ref}")
+    try:
+        story_assignment = await story_assignments_services.get_story_assignment(
+            project_id=project_id, ref=ref, user_id=user_id
+        )
+    except StoryAssignment.DoesNotExist as e:
+        raise ex.NotFoundError(f"User {user_id} is not assigned to story {ref}") from e
 
     return story_assignment

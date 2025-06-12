@@ -577,7 +577,6 @@ async def test_update_user_workspaces_invitations() -> None:
         fake_invitations_repositories.list_invitations.assert_awaited_once_with(
             WorkspaceInvitation,
             filters={"user": user, "status": InvitationStatus.PENDING},
-            select_related=["workspace"],
         )
         fake_invitations_events.emit_event_when_workspace_invitations_are_updated.assert_awaited_once()
 

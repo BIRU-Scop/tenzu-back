@@ -21,7 +21,6 @@ import re
 
 import pytest
 from django.conf import settings
-from fastapi import status
 
 from integrations.github import services
 
@@ -69,7 +68,7 @@ async def test_github_login(client, httpx_mock):
     data = {"code": "code", "lang": "es-ES"}
     response = client.post("/auth/github", json=data)
 
-    assert response.status_code == status.HTTP_200_OK, response.text
+    assert response.status_code == 200, response.text
     assert response.json().keys() == {"access", "refresh"}
 
 
@@ -80,7 +79,7 @@ async def test_github_login_not_configured(client, httpx_mock):
     data = {"code": "code"}
     response = client.post("/auth/github", json=data)
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    assert response.status_code == 400, response.text
 
 
 async def test_github_login_incorrect_code(client, httpx_mock):
@@ -93,7 +92,7 @@ async def test_github_login_incorrect_code(client, httpx_mock):
     data = {"code": "code"}
     response = client.post("/auth/github", json=data)
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    assert response.status_code == 400, response.text
 
 
 async def test_github_login_api_not_working(client, httpx_mock):
@@ -113,4 +112,4 @@ async def test_github_login_api_not_working(client, httpx_mock):
     data = {"code": "code"}
     response = client.post("/auth/github", json=data)
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+    assert response.status_code == 400, response.text

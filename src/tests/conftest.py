@@ -29,8 +29,8 @@ from .fixtures import *  # noqa
 # /!\ If you are using TransactionalTestCase (using "pytest.mark.django_db(transaction=True)" or "transactional_db" fixture)
 # initial data loaded in migrations will NOT be available (see https://docs.djangoproject.com/en/5.2/topics/testing/overview/#rollback-emulation)
 # If you need data migration in your test (like the ProjectTemplate instance required by "project_template" fixture)
-# Either use simple TestCase if you can, or add "serialized_rollback=True" or the "django_db_serialized_rollback" fixture
-# to make migrated data available in your tests
+# Either use simple TestCase if you can, or add the "serialized_rollback=True" argument to pytest.mark.django_db
+# or the "django_db_serialized_rollback" fixture to make migrated data available in your tests
 
 
 @pytest.fixture(autouse=True)
@@ -113,6 +113,7 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(config, items):
+    # handle some filtering options
     if config.getoption("--slow_only"):
         skip = pytest.mark.skip(reason="only execute slow test")
         for item in items:
@@ -136,3 +137,20 @@ def pytest_collection_modifyitems(config, items):
                 ):
                     item.add_marker(skip)
                     break
+
+    # make every tests using db with transaction=True but not serialized_rollback=True
+    # run at the end, otherwise you'll get flaky tests with IntegrityError: duplicate key because
+    # serialised data are loaded once by post_migrate on teardown of a test with serialized_rollback=False
+    # and a second time by serialised data when serialized_rollback=True
+    # see https://code.djangoproject.com/ticket/36429
+    def transactional_attr_order(item):
+        marker = item.get_closest_marker("django_db")
+        if (
+            marker
+            and marker.kwargs.get("transaction", False)
+            and not marker.kwargs.get("serialized_rollback", False)
+        ):
+            return 1
+        return 0
+
+    items.sort(key=transactional_attr_order)

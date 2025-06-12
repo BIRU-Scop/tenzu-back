@@ -30,30 +30,32 @@ DELETE_WORKSPACE_MEMBERSHIP = "workspacememberships.delete"
 async def emit_event_when_workspace_membership_is_updated(
     membership: WorkspaceMembership,
 ) -> None:
+    content = WorkspaceMembershipContent(membership=membership)
     await events_manager.publish_on_user_channel(
         user=membership.user,
         type=UPDATE_WORKSPACE_MEMBERSHIP,
-        content=WorkspaceMembershipContent(membership=membership),
+        content=content,
     )
 
     await events_manager.publish_on_workspace_channel(
-        workspace=membership.workspace,
+        workspace=membership.workspace_id,
         type=UPDATE_WORKSPACE_MEMBERSHIP,
-        content=WorkspaceMembershipContent(membership=membership),
+        content=content,
     )
 
 
 async def emit_event_when_workspace_membership_is_deleted(
     membership: WorkspaceMembership,
 ) -> None:
+    content = WorkspaceMembershipContent(membership=membership)
     await events_manager.publish_on_workspace_channel(
         workspace=membership.workspace,
         type=DELETE_WORKSPACE_MEMBERSHIP,
-        content=WorkspaceMembershipContent(membership=membership),
+        content=content,
     )
 
     await events_manager.publish_on_user_channel(
         user=membership.user,
         type=DELETE_WORKSPACE_MEMBERSHIP,
-        content=WorkspaceMembershipContent(membership=membership),
+        content=content,
     )
