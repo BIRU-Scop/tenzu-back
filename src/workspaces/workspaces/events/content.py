@@ -19,6 +19,12 @@
 
 from base.serializers import UUIDB64, BaseModel
 from users.serializers.nested import UserNestedSerializer
+from workspaces.workspaces.serializers import WorkspaceDetailSerializer
+
+
+class UpdateWorkspaceContent(BaseModel):
+    workspace: WorkspaceDetailSerializer
+    updated_by: UserNestedSerializer
 
 
 class DeleteWorkspaceContent(BaseModel):

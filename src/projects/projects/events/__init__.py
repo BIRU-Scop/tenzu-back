@@ -40,19 +40,27 @@ async def emit_event_when_project_permissions_are_updated(project: Project) -> N
 
 
 async def emit_event_when_project_is_updated(
-    project_detail: ProjectDetailSerializer, project_id: str, updated_by: User
+    project_detail: ProjectDetailSerializer, updated_by: User
 ) -> None:
     """
     This event is emitted whenever there's a change in the project
     :param project_detail: the detailed project affected by the changes
-    :param project_id: the project id in b64 since the one stored in project_detail is not well formatted
     :param updated_by: The user responsible for the changes
     """
-    await events_manager.publish_on_project_channel(
-        project=project_id,
+    content = UpdateProjectContent(project=project_detail, updated_by=updated_by)
+    # for pj-members and pj-invitees in the ws-detail
+    await events_manager.publish_on_workspace_channel(
+        workspace=project_detail.workspace_id,
         type=PROJECT_UPDATE,
-        content=UpdateProjectContent(project=project_detail, updated_by=updated_by),
+        content=content,
     )
+    # for pj-member in the project detail
+    await events_manager.publish_on_project_channel(
+        project=project_detail.id,
+        type=PROJECT_UPDATE,
+        content=content,
+    )
+    # TODO handle pj-members and pj-invitees on homepage
 
 
 async def emit_event_when_project_is_deleted(
@@ -66,16 +74,17 @@ async def emit_event_when_project_is_deleted(
         deleted_by=deleted_by,
         workspace=workspace_id,
     )
-    # for ws-authorised readers (members in invitees), both in the home page and in the ws-detail
+    # for pj-members and pj-invitees in the ws-detail
     await events_manager.publish_on_workspace_channel(
         workspace=workspace_id,
         type=PROJECT_DELETE,
         content=content,
     )
 
-    # for anyuser in the project detail
+    # for pj-member in the project detail
     await events_manager.publish_on_project_channel(
         project=project,
         type=PROJECT_DELETE,
         content=content,
     )
+    # TODO handle pj-members and pj-invitees on homepage

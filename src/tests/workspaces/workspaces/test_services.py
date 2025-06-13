@@ -142,6 +142,9 @@ async def test_update_workspace_ok(tqmanager):
         patch(
             "workspaces.workspaces.services.WorkspaceDetailSerializer"
         ) as fake_WorkspaceDetailSerializer,
+        patch(
+            "workspaces.workspaces.services.workspaces_events", autospec=True
+        ) as fake_projects_events,
     ):
         fake_workspaces_repo.update_workspace.return_value = workspace
         await services.update_workspace(workspace=workspace, user=user, values=values)
@@ -159,6 +162,10 @@ async def test_update_workspace_ok(tqmanager):
             user_is_member=False,
             user_can_create_projects=False,
             total_projects=3,
+        )
+        fake_projects_events.emit_event_when_workspace_is_updated.assert_awaited_once_with(
+            workspace_detail=fake_WorkspaceDetailSerializer.return_value,
+            updated_by=user,
         )
 
 

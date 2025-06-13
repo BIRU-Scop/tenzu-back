@@ -123,7 +123,7 @@ async def update_workspace(
     workspace: Workspace, user: User, values: dict[str, Any] = {}
 ) -> WorkspaceDetailSerializer:
     workspace = await _update_workspace(workspace=workspace, values=values)
-    return WorkspaceDetailSerializer(
+    workspace_detail = WorkspaceDetailSerializer(
         id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
@@ -140,6 +140,10 @@ async def update_workspace(
         ),
         total_projects=workspace.total_projects,
     )
+    await workspaces_events.emit_event_when_workspace_is_updated(
+        workspace_detail=workspace_detail, updated_by=user
+    )
+    return workspace_detail
 
 
 async def _update_workspace(

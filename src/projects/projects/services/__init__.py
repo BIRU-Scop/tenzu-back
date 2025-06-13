@@ -195,9 +195,8 @@ async def update_project(
 ) -> ProjectDetailSerializer:
     updated_project = await _update_project(project=project, values=values)
     project_detail = await get_project_detail(project=updated_project, user=updated_by)
-    project_id = updated_project.b64id
     await projects_events.emit_event_when_project_is_updated(
-        project_detail=project_detail, project_id=project_id, updated_by=updated_by
+        project_detail=project_detail, updated_by=updated_by
     )
     return project_detail
 
@@ -211,10 +210,9 @@ async def update_project_landing_page(
         project,
         values={"landing_page": get_landing_page_for_workflow(new_slug)},
     )
-    project_id = updated_project.b64id
     project_detail = await get_project_detail(project=updated_project, user=updated_by)
     await projects_events.emit_event_when_project_is_updated(
-        project_detail=project_detail, project_id=project_id, updated_by=updated_by
+        project_detail=project_detail, updated_by=updated_by
     )
     return updated_project
 
