@@ -63,13 +63,16 @@ async def emit_event_when_workspace_invitation_is_updated(
     await events_manager.publish_on_workspace_channel(
         workspace=invitation.workspace_id,
         type=UPDATE_WORKSPACE_INVITATION,
+        content=WorkspaceInvitationContent(
+            workspace_id=invitation.workspace_id, self_recipient=False
+        ),
     )
     if invitation.user_id:
         await events_manager.publish_on_user_channel(
             user=invitation.user_id,
             type=UPDATE_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
-                workspace_id=invitation.workspace_id,
+                workspace_id=invitation.workspace_id, self_recipient=True
             ),
         )
 
@@ -87,13 +90,16 @@ async def emit_event_when_workspace_invitation_is_accepted(
     await events_manager.publish_on_workspace_channel(
         workspace=invitation.workspace,
         type=ACCEPT_WORKSPACE_INVITATION,
+        content=WorkspaceInvitationContent(
+            workspace_id=invitation.workspace_id, self_recipient=False
+        ),
     )
     if invitation.user_id:
         await events_manager.publish_on_user_channel(
             user=invitation.user_id,
             type=ACCEPT_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
-                workspace_id=invitation.workspace_id,
+                workspace_id=invitation.workspace_id, self_recipient=True
             ),
         )
 
@@ -104,13 +110,16 @@ async def emit_event_when_workspace_invitation_is_revoked(
     await events_manager.publish_on_workspace_channel(
         workspace=invitation.workspace,
         type=REVOKE_WORKSPACE_INVITATION,
+        content=WorkspaceInvitationContent(
+            workspace_id=invitation.workspace_id, self_recipient=False
+        ),
     )
     if invitation.user:
         await events_manager.publish_on_user_channel(
             user=invitation.user,
             type=REVOKE_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
-                workspace_id=invitation.workspace_id,
+                workspace_id=invitation.workspace_id, self_recipient=True
             ),
         )
 
@@ -121,13 +130,16 @@ async def emit_event_when_workspace_invitation_is_denied(
     await events_manager.publish_on_workspace_channel(
         workspace=invitation.workspace,
         type=DENY_WORKSPACE_INVITATION,
+        content=WorkspaceInvitationContent(
+            workspace_id=invitation.workspace_id, self_recipient=False
+        ),
     )
     if invitation.user:
         await events_manager.publish_on_user_channel(
             user=invitation.user,
             type=DENY_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
-                workspace_id=invitation.workspace_id,
+                workspace_id=invitation.workspace_id, self_recipient=True
             ),
         )
 
@@ -138,4 +150,7 @@ async def emit_event_when_workspace_invitation_is_deleted(
     await events_manager.publish_on_workspace_channel(
         workspace=invitation.workspace,
         type=DELETE_WORKSPACE_INVITATION,
+        content=WorkspaceInvitationContent(
+            workspace_id=invitation.workspace_id, self_recipient=False
+        ),
     )

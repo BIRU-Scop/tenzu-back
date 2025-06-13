@@ -24,3 +24,4 @@ class ProjectInvitationContent(BaseModel):
     workspace_id: UUIDB64
     project_id: UUIDB64
     self_recipient: bool = False
+    user_id: UUIDB64 | None
