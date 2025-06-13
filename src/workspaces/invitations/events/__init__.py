@@ -26,7 +26,7 @@ from workspaces.workspaces.models import Workspace
 
 CREATE_WORKSPACE_INVITATION = "workspaceinvitations.create"
 UPDATE_WORKSPACE_INVITATION = "workspaceinvitations.update"
-ACCEPT_WORKSPACE_INVITATION = "workspaceinvitations.create"
+ACCEPT_WORKSPACE_INVITATION = "workspaceinvitations.accept"
 REVOKE_WORKSPACE_INVITATION = "workspaceinvitations.revoke"
 DENY_WORKSPACE_INVITATION = "workspaceinvitations.deny"
 DELETE_WORKSPACE_INVITATION = "workspaceinvitations.delete"
@@ -42,7 +42,7 @@ async def emit_event_when_workspace_invitations_are_created(
             user=invitation.user,  # type: ignore[arg-type]
             type=CREATE_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
-                workspace=invitation.workspace_id,
+                workspace_id=invitation.workspace_id, self_recipient=True
             ),
         )
 
@@ -51,6 +51,9 @@ async def emit_event_when_workspace_invitations_are_created(
         await events_manager.publish_on_workspace_channel(
             workspace=workspace,
             type=CREATE_WORKSPACE_INVITATION,
+            content=WorkspaceInvitationContent(
+                workspace_id=workspace.id, self_recipient=False
+            ),
         )
 
 
@@ -66,7 +69,7 @@ async def emit_event_when_workspace_invitation_is_updated(
             user=invitation.user_id,
             type=UPDATE_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
-                workspace=invitation.workspace_id,
+                workspace_id=invitation.workspace_id,
             ),
         )
 
@@ -90,7 +93,7 @@ async def emit_event_when_workspace_invitation_is_accepted(
             user=invitation.user_id,
             type=ACCEPT_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
-                workspace=invitation.workspace_id,
+                workspace_id=invitation.workspace_id,
             ),
         )
 
@@ -107,7 +110,7 @@ async def emit_event_when_workspace_invitation_is_revoked(
             user=invitation.user,
             type=REVOKE_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
-                workspace=invitation.workspace_id,
+                workspace_id=invitation.workspace_id,
             ),
         )
 
@@ -124,7 +127,7 @@ async def emit_event_when_workspace_invitation_is_denied(
             user=invitation.user,
             type=DENY_WORKSPACE_INVITATION,
             content=WorkspaceInvitationContent(
-                workspace=invitation.workspace_id,
+                workspace_id=invitation.workspace_id,
             ),
         )
 

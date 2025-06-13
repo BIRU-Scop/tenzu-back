@@ -21,5 +21,6 @@ from base.serializers import UUIDB64, BaseModel
 
 
 class ProjectInvitationContent(BaseModel):
-    workspace: UUIDB64
-    project: UUIDB64
+    workspace_id: UUIDB64
+    project_id: UUIDB64
+    self_recipient: bool = False
