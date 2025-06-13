@@ -36,7 +36,7 @@ from memberships.choices import InvitationStatus
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import repositories as pj_memberships_repositories
-from projects.memberships.models import ProjectRole
+from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects import services as projects_services
 from projects.projects.models import Project
 from projects.references import get_new_project_reference_id
@@ -44,8 +44,9 @@ from stories.assignments.models import StoryAssignment
 from stories.stories.models import Story
 from users.models import User
 from workflows.models import WorkflowStatus
+from workspaces.invitations import repositories as ws_invitations_repositories
 from workspaces.invitations.models import WorkspaceInvitation
-from workspaces.memberships import services as ws_memberships_services
+from workspaces.memberships import repositories as ws_memberships_repositories
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
 from workspaces.workspaces import services as workspaces_services
 from workspaces.workspaces.models import Workspace
@@ -64,14 +65,13 @@ PROJECT_LOGOS_DIR: Final[Path] = MEDIA_DIR.joinpath("projects")
 ################################
 
 
-@sync_to_async
-def create_user(
+async def create_user(
     username: str,
     full_name: str | None = None,
     email: str | None = None,
     color: int | None = None,
 ) -> User:
-    user = User.objects.create(
+    user = User(
         username=username,
         full_name=full_name or fake.name(),
         email=email or f"{username}@tenzu.demo",
@@ -79,7 +79,7 @@ def create_user(
         is_active=True,
     )
     user.set_password("123123")
-    user.save()
+    await user.asave()
     return user
 
 
@@ -102,22 +102,105 @@ async def create_workspace(
 
 async def create_workspace_memberships(workspace: Workspace, users: list[User]) -> None:
     # get users except the creator of the workspace
-    users = [u for u in users if u.id != workspace.created_by_id]
-    role = await ws_memberships_services.get_workspace_role(workspace.id, "member")
+    users_without_creator = [u for u in users if u.id != workspace.created_by_id]
+    roles = [role async for role in workspace.roles.all()]
+    owner_role = [r for r in roles if r.is_owner][0]
+    other_roles = [r for r in roles if not r.is_owner]
 
-    await WorkspaceMembership.objects.abulk_create(
+    memberships = await WorkspaceMembership.objects.abulk_create(
         [
-            WorkspaceMembership(user=user, workspace=workspace, role=role)
-            for user in users
+            WorkspaceMembership(
+                user=user, workspace=workspace, role=random.choice(other_roles)
+            )
+            for user in users_without_creator
         ]
+    )
+    # hack to fill prefetch cache so that no db refresh is needed to sync memberships
+    workspace._prefetched_objects_cache = {"roles": roles}
+    workspace._prefetched_objects_cache["memberships"] = [
+        WorkspaceMembership(
+            user=workspace.created_by, workspace=workspace, role=owner_role
+        ),
+        *memberships,
+    ]
+    workspace._prefetched_objects_cache["members"] = users
+
+
+async def create_workspace_membership(
+    user: User, workspace: Workspace, role: WorkspaceRole
+):
+    await ws_memberships_repositories.create_workspace_membership(
+        user=user, workspace=workspace, role=role
+    )
+    await create_workspace_invitation(
+        user=user, workspace=workspace, role=role, status=InvitationStatus.ACCEPTED
+    )
+
+
+async def create_workspace_invitations(
+    workspace: Workspace, invitees: list[User]
+) -> None:
+    # add accepted invitations for workspace memberships
+    invitations = [
+        WorkspaceInvitation(
+            user=m.user,
+            workspace=workspace,
+            role=m.role,
+            email=m.user.email,
+            status=InvitationStatus.ACCEPTED,
+            invited_by=workspace.created_by,
+        )
+        for m in workspace.memberships.all()
+        if m.user_id != workspace.created_by_id
+    ]
+
+    random.shuffle(invitees)
+
+    # get workspace roles
+    roles = list(workspace.roles.all())
+
+    # add between 0 and 5 pending invitations for registered users
+    num_invitees = random.randint(0, 5)
+    for user in invitees[:num_invitees]:
+        invitations.append(
+            WorkspaceInvitation(
+                user=user,
+                workspace=workspace,
+                role=random.choice(roles),
+                email=user.email,
+                status=InvitationStatus.PENDING,
+                invited_by=workspace.created_by,
+            )
+        )
+
+    # add 0, 1 or 2 pending invitations for unregistered users
+    num_invitees = random.randint(0, 2)
+    for i in range(num_invitees):
+        invitations.append(
+            WorkspaceInvitation(
+                user=None,
+                workspace=workspace,
+                role=random.choice(roles),
+                email=f"email-{i}@email.com",
+                status=InvitationStatus.PENDING,
+                invited_by=workspace.created_by,
+            )
+        )
+
+    # create invitations in bulk
+    await ws_invitations_repositories.create_invitations(
+        WorkspaceInvitation, objs=invitations
     )
 
 
 async def create_workspace_invitation(
-    user: User, workspace: Workspace, role: WorkspaceRole
+    user: User,
+    workspace: Workspace,
+    role: WorkspaceRole,
+    status=InvitationStatus.PENDING,
 ):
     return await WorkspaceInvitation.objects.acreate(
-        user=user, email=user.email, workspace=workspace, role=role
+        user=user, email=user.email, workspace=workspace, role=role, status=status
     )
 
 
@@ -172,17 +255,18 @@ async def create_project(
 
 
 async def create_project_memberships(project: Project, users: list[User]) -> None:
-    memberships_cache = []
     # get owner and other roles
-    other_roles = [r for r in project.roles.all() if r.slug != "owner"]
-    owner_role = [r for r in project.roles.all() if r.slug == "owner"][0]
+    other_roles = [r for r in project.roles.all() if not r.is_owner]
+    owner_role = [r for r in project.roles.all() if r.is_owner][0]
+    memberships_cache = [
+        ProjectMembership(user=project.created_by, project=project, role=owner_role)
+    ]
 
-    # get users except the creator of the project
-    users = [u for u in users if u.id != project.created_by_id]
+    users_without_creator = [u for u in users if u.id != project.created_by_id]
 
     # calculate owner (at least 1/3 of the members) and no owner users
-    num_owners = random.randint(0, len(users) // 3)
-    for user in users[:num_owners]:
+    num_owners = random.randint(0, len(users_without_creator) // 3)
+    for user in users_without_creator[:num_owners]:
         memberships_cache.append(
             await pj_memberships_repositories.create_project_membership(
                 user=user, project=project, role=owner_role
@@ -190,7 +274,7 @@ async def create_project_memberships(project: Project, users: list[User]) -> Non
         )
 
     if other_roles:
-        for user in users[num_owners:]:
+        for user in users_without_creator[num_owners:]:
             role = random.choice(other_roles)
             memberships_cache.append(
                 await pj_memberships_repositories.create_project_membership(
@@ -199,10 +283,19 @@ async def create_project_memberships(project: Project, users: list[User]) -> Non
             )
     # hack to fill prefetch cache so that no db refresh is needed to sync memberships
     project._prefetched_objects_cache["memberships"] = memberships_cache
-    project._prefetched_objects_cache["members"] = [m.user for m in memberships_cache]
+    project._prefetched_objects_cache["members"] = users
 
 
-async def create_project_invitations(project: Project, users: list[User]) -> None:
+async def create_project_membership(user: User, project: Project, role: ProjectRole):
+    await pj_memberships_repositories.create_project_membership(
+        user=user, project=project, role=role
+    )
+    await create_project_invitation(
+        user=user, project=project, role=role, status=InvitationStatus.ACCEPTED
+    )
+
+
+async def create_project_invitations(project: Project, invitees: list[User]) -> None:
     # add accepted invitations for project memberships
     invitations = [
         ProjectInvitation(
@@ -217,17 +310,14 @@ async def create_project_invitations(project: Project, users: list[User]) -> Non
         if m.user_id != project.created_by_id
     ]
 
-    # get no members
-    members = list(project.members.all())
-    no_members = [u for u in users if u not in members]
-    random.shuffle(no_members)
+    random.shuffle(invitees)
 
     # get project roles
     roles = list(project.roles.all())
 
-    # add 0, 1 or 2 pending invitations for registered users
-    num_users = random.randint(0, 2)
-    for user in no_members[:num_users]:
+    # add between 0 and 5 pending invitations for registered users
+    num_invitees = random.randint(0, 5)
+    for user in invitees[:num_invitees]:
         invitations.append(
             ProjectInvitation(
                 user=user,
@@ -240,8 +330,8 @@ async def create_project_invitations(project: Project, users: list[User]) -> Non
         )
 
     # add 0, 1 or 2 pending invitations for unregistered users
-    num_users = random.randint(0, 2)
-    for i in range(num_users):
+    num_invitees = random.randint(0, 2)
+    for i in range(num_invitees):
         invitations.append(
             ProjectInvitation(
                 user=None,
@@ -259,9 +349,11 @@ async def create_project_invitations(project: Project, users: list[User]) -> Non
     )
 
 
-async def create_project_invitation(user: User, project: Project, role: ProjectRole):
+async def create_project_invitation(
+    user: User, project: Project, role: ProjectRole, status=InvitationStatus.PENDING
+):
     return await ProjectInvitation.objects.acreate(
-        user=user, email=user.email, project=project, role=role
+        user=user, email=user.email, project=project, role=role, status=status
     )
 
 
@@ -289,14 +381,18 @@ async def create_stories(
         statuses = list(workflow.statuses.all())
 
         for i in range(num_stories_to_create):
+            status_index = random.randint(0, len(statuses) - 1)
             stories.append(
                 await _create_story(
-                    status=random.choice(statuses),
+                    status=statuses[status_index],
                     created_by=random.choice(members),
                     # first N stories will be spaced using offset, others will not (to easily test for edge cases)
-                    order=DEFAULT_ORDER_OFFSET * i
+                    order=DEFAULT_ORDER_OFFSET * (status_index + 1) * i
                     if i < DEFAULT_ORDER_OFFSET
-                    else DEFAULT_ORDER_OFFSET * DEFAULT_ORDER_OFFSET + i,
+                    else DEFAULT_ORDER_OFFSET
+                    * (status_index + 1)
+                    * DEFAULT_ORDER_OFFSET
+                    + i,
                     save=False,
                 )
             )

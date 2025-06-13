@@ -24,7 +24,6 @@ from commons.utils import transaction_atomic_async
 from memberships.choices import InvitationStatus
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.models import ProjectInvitation
-from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectRole
 from projects.projects.models import Project
 from users import repositories as users_repositories
@@ -69,10 +68,10 @@ async def _create_scenario_freelance_working_for_herself() -> None:
         WorkspaceRole,
         filters={"workspace_id": workspace.id, "slug": "readonly-member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userd0, workspace=workspace, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=usera1, workspace=workspace, role=workspace_role
     )
 
@@ -90,7 +89,7 @@ async def _create_scenario_freelance_working_for_herself() -> None:
         ProjectRole,
         filters={"project_id": ong_proj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=ong_proj, user=userd0, role=project_role
     )
 
@@ -103,7 +102,7 @@ async def _create_scenario_freelance_working_for_herself() -> None:
         ProjectRole,
         filters={"project_id": next_idea_proj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=next_idea_proj, user=usera1, role=project_role
     )
 
@@ -159,25 +158,25 @@ async def _create_scenario_freelance_working_for_others() -> None:
         WorkspaceRole,
         filters={"workspace_id": ws_projects.id, "slug": "readonly-member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userb1, workspace=ws_projects, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userb2, workspace=ws_projects, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userb3, workspace=ws_projects, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userf0, workspace=ws_projects, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=usera1, workspace=ws_projects, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userd1, workspace=ws_projects, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userd0, workspace=ws_projects, role=workspace_role
     )
     # ws random-name with one other member
@@ -186,7 +185,7 @@ async def _create_scenario_freelance_working_for_others() -> None:
         WorkspaceRole,
         filters={"workspace_id": ws_random_name.id, "slug": "readonly-member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userd0, workspace=ws_random_name, role=workspace_role
     )
 
@@ -212,13 +211,13 @@ async def _create_scenario_freelance_working_for_others() -> None:
         ProjectRole,
         filters={"project_id": proj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userb1, role=project_role
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userb2, role=project_role
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userb3, role=project_role
     )
 
@@ -236,7 +235,7 @@ async def _create_scenario_freelance_working_for_others() -> None:
         ProjectRole,
         filters={"project_id": proj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userf0, role=project_role
     )
 
@@ -247,20 +246,20 @@ async def _create_scenario_freelance_working_for_others() -> None:
         ProjectRole,
         filters={"project_id": proj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userb1, role=project_role
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=usera1, role=project_role
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userd1, role=project_role
     )
     project_owner_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": proj.id, "slug": "owner"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userd0, role=project_owner_role
     )
 
@@ -274,7 +273,7 @@ async def _create_scenario_freelance_working_for_others() -> None:
         ProjectRole,
         filters={"project_id": proj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userd0, role=project_role
     )
 
@@ -329,7 +328,7 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
         raise Exception("User userc0 not found")
     # usersdx total 150
     usersdx = [
-        await factories.create_user(username=f"userd{i+1}") for i in range(1, 150)
+        await factories.create_user(username=f"userd{i + 1}") for i in range(1, 150)
     ]  # userd1 already exist
     created_by = userd0
 
@@ -343,10 +342,11 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
         WorkspaceRole,
         filters={"workspace_id": ws_internal.id, "slug": "readonly-member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userc0, workspace=ws_internal, role=workspace_role
     )
     await factories.create_workspace_memberships(workspace=ws_internal, users=usersdx)
+    await factories.create_workspace_invitations(workspace=ws_internal, invitees=[])
     ws_projects = await factories.create_workspace(
         created_by=created_by, name="Projects"
     )
@@ -354,10 +354,11 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
         WorkspaceRole,
         filters={"workspace_id": ws_projects.id, "slug": "readonly-member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_memberships(workspace=ws_projects, users=usersdx)
+    await factories.create_workspace_invitations(workspace=ws_projects, invitees=[])
+    await factories.create_workspace_membership(
         user=userc0, workspace=ws_projects, role=workspace_role
     )
-    await factories.create_workspace_memberships(workspace=ws_projects, users=usersdx)
 
     # ws "Personal" with no other members
     ws_personal = await factories.create_workspace(created_by=userd0, name="Personal")
@@ -385,7 +386,7 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
         ProjectRole,
         filters={"project_id": proj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userc0, role=project_role
     )
 
@@ -404,7 +405,7 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
             ProjectRole,
             filters={"project_id": proj.id, "slug": "member"},
         )
-        await pj_memberships_repositories.create_project_membership(
+        await factories.create_project_membership(
             project=proj, user=userc0, role=project_role
         )
 
@@ -425,7 +426,9 @@ async def _create_scenario_manager_in_society_working_for_others() -> None:
                 )
 
             # PROJECT INVITATIONS
-            await factories.create_project_invitations(project=project, users=usersdx)
+            await factories.create_project_invitations(
+                project=project, invitees=usersdx[num_members:]
+            )
 
         # STORIES
         await factories.create_stories(project=project, with_comments=True)
@@ -442,7 +445,7 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
     usere1 = await factories.create_user(username="usere1")
     # usersex total 50
     usersex = [
-        await factories.create_user(username=f"usere{i+1}") for i in range(1, 50)
+        await factories.create_user(username=f"usere{i + 1}") for i in range(1, 50)
     ]  # usere1 already exist
     created_by = usere0
 
@@ -454,7 +457,7 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
         WorkspaceRole,
         filters={"workspace_id": ws_random_name1.id, "slug": "readonly-member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=usere1, workspace=ws_random_name1, role=workspace_role
     )
     ws_random_name2 = await factories.create_workspace(created_by=created_by)
@@ -462,7 +465,7 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
         WorkspaceRole,
         filters={"workspace_id": ws_random_name2.id, "slug": "readonly-member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=usere1, workspace=ws_random_name2, role=workspace_role
     )
     ws_random_name3 = await factories.create_workspace(created_by=created_by)
@@ -474,6 +477,7 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
     # ws with ws-members between 0-4 of usersex
     for ws in workspaces:
         await factories.create_workspace_memberships(workspace=ws, users=usersex)
+        await factories.create_workspace_invitations(workspace=ws, invitees=[])
 
     # ws "Personal" with one other member
     ws_personal = await factories.create_workspace(
@@ -483,7 +487,7 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
         WorkspaceRole,
         filters={"workspace_id": ws_personal.id, "slug": "readonly-member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=userc0, workspace=ws_personal, role=workspace_role
     )
 
@@ -503,7 +507,7 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
             ProjectRole,
             filters={"project_id": proj.id, "slug": "member"},
         )
-        await pj_memberships_repositories.create_project_membership(
+        await factories.create_project_membership(
             project=proj, user=usere1, role=project_role
         )
 
@@ -517,7 +521,7 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
         ProjectRole,
         filters={"project_id": proj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=usere1, role=project_role
     )
 
@@ -554,7 +558,7 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
         ProjectRole,
         filters={"project_id": proj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         project=proj, user=userc0, role=project_role
     )
 
@@ -574,7 +578,9 @@ async def _create_scenario_manager_in_society_with_big_client() -> None:
                 )
 
             # PROJECT INVITATIONS
-            await factories.create_project_invitations(project=project, users=usersex)
+            await factories.create_project_invitations(
+                project=project, invitees=usersex[num_members:]
+            )
 
         if project.name == "Birthday party":
             # PROJECT INVITATIONS
@@ -596,7 +602,7 @@ async def _create_scenario_manager_in_society_with_own_product() -> None:
     userf3 = await factories.create_user(username="userf3")
     # usersfx total 40
     usersfx = [
-        await factories.create_user(username=f"userf{i+1}") for i in range(3, 40)
+        await factories.create_user(username=f"userf{i + 1}") for i in range(3, 40)
     ]  # userf1, userf2, userf3 already exist
     created_by = userf0
 
@@ -608,9 +614,9 @@ async def _create_scenario_manager_in_society_with_own_product() -> None:
         created_by=created_by, name="Projects"
     )
     await factories.create_workspace_memberships(
-        workspace=ws_projects, users=[userf1, userf2, userf3]
+        workspace=ws_projects, users=[userf0, userf1, userf2, userf3, *usersfx]
     )
-    await factories.create_workspace_memberships(workspace=ws_projects, users=usersfx)
+    await factories.create_workspace_invitations(workspace=ws_projects, invitees=[])
     # ws "Personal" with no other members
     ws_personal = await factories.create_workspace(
         created_by=created_by, name="Personal"
@@ -658,7 +664,9 @@ async def _create_scenario_manager_in_society_with_own_product() -> None:
                 )
 
             # PROJECT INVITATIONS
-            await factories.create_project_invitations(project=project, users=usersfx)
+            await factories.create_project_invitations(
+                project=project, invitees=usersfx[num_members:]
+            )
 
         # STORIES
         await factories.create_stories(project=project, with_comments=True)
@@ -669,7 +677,7 @@ async def _create_scenario_manager_in_big_society_with_own_product() -> None:
     userg0 = await factories.create_user(username="userg0")
     # usersgx total 100
     usersgx = [
-        await factories.create_user(username=f"userg{i+1}") for i in range(0, 100)
+        await factories.create_user(username=f"userg{i + 1}") for i in range(0, 100)
     ]
 
     created_by = userg0
@@ -693,6 +701,7 @@ async def _create_scenario_manager_in_big_society_with_own_product() -> None:
     workspaces = [ws_inner, ws_marketing, ws_support, ws_events, ws_mobile, ws_desktop]
     for ws in workspaces:
         await factories.create_workspace_memberships(workspace=ws, users=usersgx)
+        await factories.create_workspace_invitations(workspace=ws, invitees=[])
 
     # PROJECTS
     # it applies a template and creates also owner and member roles
@@ -743,7 +752,9 @@ async def _create_scenario_manager_in_big_society_with_own_product() -> None:
         )
 
         # PROJECT INVITATIONS
-        await factories.create_project_invitations(project=project, users=usersgx)
+        await factories.create_project_invitations(
+            project=project, invitees=usersgx[num_members:]
+        )
 
         # STORIES
         await factories.create_stories(project=project, with_comments=True)
