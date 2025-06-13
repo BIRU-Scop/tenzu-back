@@ -31,11 +31,7 @@ django.setup()
 import typer
 
 from base.i18n.commands import cli as i18n_cli
-from base.sampledata.commands import cli as sampledata_cli
-from commons.storage.commands import cli as storage_cli
 from emails.commands import cli as emails_cli
-from notifications.commands import cli as notifications_cli
-from users.commands import cli as users_cli
 
 cli = typer.Typer(
     name="Tenzu Manager",
@@ -53,10 +49,6 @@ def main() -> None:
 # Load module commands
 cli.add_typer(emails_cli, name="emails")
 cli.add_typer(i18n_cli, name="i18n")
-cli.add_typer(notifications_cli, name="notifications")
-cli.add_typer(sampledata_cli, name="sampledata")
-cli.add_typer(storage_cli, name="storage")
-cli.add_typer(users_cli, name="users")
 
 
 if __name__ == "__main__":

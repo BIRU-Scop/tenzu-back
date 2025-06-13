@@ -18,12 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 
 import asyncio
-import functools
 from collections.abc import Coroutine
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, TypeVar
-
-import anyio
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
@@ -31,16 +28,3 @@ T = TypeVar("T")
 def run_async_as_sync(coroutine: Coroutine[Any, Any, T]) -> T:
     pool = ThreadPoolExecutor(1)
     return pool.submit(asyncio.run, coroutine).result()
-
-
-async def run_until_first_complete(
-    *args: tuple[Callable[..., Any], dict[str, Any]],
-) -> None:
-    async with anyio.create_task_group() as task_group:
-
-        async def run(func: Callable[[], Coroutine[None, None, None]]) -> None:
-            await func()
-            task_group.cancel_scope.cancel()
-
-        for func, kwargs in args:
-            task_group.start_soon(run, functools.partial(func, **kwargs))

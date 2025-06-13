@@ -58,7 +58,8 @@ async def load_test_data() -> None:
     # USERS. Create users
     print("  - Creating sample users")
     all_users = await _create_users()
-    users = all_users[:10]
+    num_members = 10
+    users = all_users[:num_members]
 
     # WORKSPACES
     # create one basic workspace per user
@@ -66,15 +67,14 @@ async def load_test_data() -> None:
     workspaces = []
     for user in users:
         workspace = await factories.create_workspace(created_by=user)
+        # WORKSPACE MEMBERSHIP&INVITATIONS
+        await factories.create_workspace_memberships(workspace=workspace, users=users)
+        await factories.create_workspace_invitations(
+            workspace=workspace, invitees=all_users[num_members:]
+        )
         workspaces.append(workspace)
 
-    # create memberships for workspaces
-    for workspace in workspaces:
-        await factories.create_workspace_memberships(workspace=workspace, users=users)
-
-    # PROJECTS
     print("  - Creating sample projects")
-    projects = []
     for workspace in workspaces:
         # create one project (kanban) in each workspace with the same creator
         # it applies a template and creates also owner and other roles
@@ -84,15 +84,14 @@ async def load_test_data() -> None:
 
         # add other users to different roles
         full_project = await factories.get_project_with_related_info(project.id)
+
+        # PROJECT MEMBERSHIP&INVITATIONS
         await factories.create_project_memberships(project=full_project, users=users)
-        projects.append(full_project)
-
-    for project in projects:
-        # PROJECT INVITATIONS
-        await factories.create_project_invitations(project=project, users=users)
-
+        await factories.create_project_invitations(
+            project=full_project, invitees=all_users[num_members:]
+        )
         # STORIES
-        await factories.create_stories(project=project, with_comments=True)
+        await factories.create_stories(project=full_project, with_comments=True)
 
     # CUSTOM PROJECTS
     print("  - Creating scenarios to check permissions")
@@ -101,6 +100,7 @@ async def load_test_data() -> None:
         created_by=custom_user, name="Custom workspace"
     )
     await factories.create_workspace_memberships(workspace=workspace, users=all_users)
+    await factories.create_workspace_invitations(workspace=workspace, invitees=[])
     await _create_empty_project(created_by=custom_user, workspace=workspace)
     await _create_project_with_several_roles(
         created_by=custom_user, workspace=workspace, users=users
@@ -239,9 +239,9 @@ async def _create_project_with_several_roles(
     await _create_project_role(project=project, name="UX/UI")
     await _create_project_role(project=project, name="Developer")
     await _create_project_role(project=project, name="Stakeholder")
-    await factories.create_project_memberships(
-        await factories.get_project_with_related_info(project.id), users=users
-    )
+    project = await factories.get_project_with_related_info(project.id)
+    await factories.create_project_memberships(project, users=users)
+    await factories.create_project_invitations(project, invitees=[])
 
 
 async def _create_project_membership_scenario() -> None:
@@ -258,7 +258,7 @@ async def _create_project_membership_scenario() -> None:
         WorkspaceRole,
         filters={"workspace_id": workspace.id, "slug": "member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user1001, workspace=workspace, role=workspace_role
     )
     # project: user1000 pj-owner, user1001 pj-member
@@ -272,7 +272,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
     # project: user1000 pj-owner, user1001 pj-member without permissions
@@ -286,7 +286,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member", "editable": True},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
     project_role.permissions = []
@@ -330,7 +330,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
     # project: user1000 pj-owner, user1001 pj-member
@@ -344,7 +344,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
     # project: user1000 pj-owner, user1001 pj-member
@@ -358,7 +358,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
     # project: user1000 pj-owner, user1001 pj-member
@@ -372,7 +372,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
     # project: user1000 pj-owner, user1001 pj-member
@@ -386,7 +386,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
 
@@ -398,7 +398,7 @@ async def _create_project_membership_scenario() -> None:
         WorkspaceRole,
         filters={"workspace_id": workspace.id, "slug": "member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user1001, workspace=workspace, role=workspace_role
     )
     # project: user1000 pj-owner, user1001 not pj-member
@@ -419,7 +419,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
     project_role.permissions = []
@@ -433,7 +433,7 @@ async def _create_project_membership_scenario() -> None:
         WorkspaceRole,
         filters={"workspace_id": workspace.id, "slug": "member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user1001, workspace=workspace, role=workspace_role
     )
 
@@ -502,21 +502,21 @@ async def _create_project_membership_scenario() -> None:
         WorkspaceRole,
         filters={"workspace_id": workspace.id, "slug": "admin"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user1001, workspace=workspace, role=workspace_role
     )
     workspace_role = await ws_memberships_repositories.get_role(
         WorkspaceRole,
         filters={"workspace_id": workspace.id, "slug": "readonly-member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user1002, workspace=workspace, role=workspace_role
     )
     workspace_role = await ws_memberships_repositories.get_role(
         WorkspaceRole,
         filters={"workspace_id": workspace.id, "slug": "member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user1003, workspace=workspace, role=workspace_role
     )
     # project: u1000 pj-owner, u1002 pj-member without permissions, u1001/u1003 no pj-member
@@ -534,7 +534,7 @@ async def _create_project_membership_scenario() -> None:
     )
     project_role.permissions = []
     await project_role.asave()
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1002, project=project, role=project_role
     )
     # project: u1000 pj-owner, u1002 pj-member view_story, u1001/u1003 no pj-members
@@ -550,7 +550,7 @@ async def _create_project_membership_scenario() -> None:
     )
     project_role.permissions = [ProjectPermissions.VIEW_STORY]
     await project_role.asave()
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1002, project=project, role=project_role
     )
 
@@ -562,7 +562,7 @@ async def _create_project_membership_scenario() -> None:
         WorkspaceRole,
         filters={"workspace_id": workspace.id, "slug": "member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user1001, workspace=workspace, role=workspace_role
     )
     await factories.create_workspace_invitation(
@@ -585,7 +585,7 @@ async def _create_project_membership_scenario() -> None:
     )
     project_role.permissions = [ProjectPermissions.VIEW_STORY]
     await project_role.asave()
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
 
@@ -597,10 +597,10 @@ async def _create_project_membership_scenario() -> None:
         WorkspaceRole,
         filters={"workspace_id": workspace.id, "slug": "member"},
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user1001, workspace=workspace, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user1002, workspace=workspace, role=workspace_role
     )
     await factories.create_workspace_invitation(
@@ -619,7 +619,7 @@ async def _create_project_membership_scenario() -> None:
     )
     project_role.permissions = [ProjectPermissions.VIEW_STORY]
     await project_role.asave()
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=user1002, project=project, role=project_role
     )
 
@@ -666,7 +666,7 @@ async def _create_scenario_with_invitations() -> None:
         filters={"workspace_id": ws1.id, "slug": "member"},
     )
     # user901 is member of ws1
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user901, workspace=ws1, role=workspace_role
     )
 
@@ -675,7 +675,7 @@ async def _create_scenario_with_invitations() -> None:
         filters={"workspace_id": ws2.id, "slug": "member"},
     )
     # user901 is member of ws2
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user901, workspace=ws2, role=workspace_role
     )
 
@@ -684,7 +684,7 @@ async def _create_scenario_with_invitations() -> None:
         filters={"workspace_id": ws3.id, "slug": "member"},
     )
     # user901 is member of ws3
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user901, workspace=ws3, role=workspace_role
     )
     # user902 is invited to ws3
@@ -791,11 +791,11 @@ async def _create_scenario_for_searches() -> None:
     )
 
     # elettescar is member of ws1
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=elettescar, workspace=ws1, role=workspace_role
     )
     # electra is member of ws1
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=electra, workspace=ws1, role=workspace_role
     )
 
@@ -805,7 +805,7 @@ async def _create_scenario_for_searches() -> None:
         ProjectRole,
         filters={"project_id": pj1.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
+    await factories.create_project_membership(
         user=electra, project=pj1, role=project_role
     )
 
@@ -843,13 +843,13 @@ async def _create_scenario_for_revoke() -> None:
         filters={"workspace_id": ws.id, "slug": "member"},
     )
 
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user4, workspace=ws, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user2, workspace=ws, role=workspace_role
     )
-    await ws_memberships_repositories.create_workspace_membership(
+    await factories.create_workspace_membership(
         user=user3, workspace=ws, role=workspace_role
     )
 
@@ -858,9 +858,7 @@ async def _create_scenario_for_revoke() -> None:
         ProjectRole,
         filters={"project_id": pj.id, "slug": "member"},
     )
-    await pj_memberships_repositories.create_project_membership(
-        user=user3, project=pj, role=project_role
-    )
+    await factories.create_project_membership(user=user3, project=pj, role=project_role)
 
 
 async def _create_scenario_with_1k_stories(
@@ -877,6 +875,7 @@ async def _create_scenario_with_1k_stories(
     )
     full_project = await factories.get_project_with_related_info(project.id)
     await factories.create_project_memberships(full_project, users=users)
+    await factories.create_project_invitations(full_project, invitees=[])
 
     await factories.create_stories(
         project=full_project, min_stories=1000, with_comments=True
@@ -897,6 +896,7 @@ async def _create_scenario_with_2k_stories_and_40_workflow_statuses(
     )
     project = await factories.get_project_with_related_info(project.id)
     await factories.create_project_memberships(project, users=users)
+    await factories.create_project_invitations(project, invitees=[])
 
     workflow = [w async for w in project.workflows.all()][0]
     statuses_cache = [s async for s in workflow.statuses.all()]
