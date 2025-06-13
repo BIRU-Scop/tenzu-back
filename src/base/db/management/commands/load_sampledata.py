@@ -15,12 +15,11 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from asgiref.sync import async_to_sync
 from django.core.management.base import BaseCommand
 
 from base.sampledata.demo_data import load_demo_data
 from base.sampledata.test_data import load_test_data
-from base.utils.concurrency import run_async_as_sync
 
 
 class Command(BaseCommand):
@@ -32,6 +31,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if not options["no_test"]:
-            run_async_as_sync(load_test_data())
+            async_to_sync(load_test_data)()
         if not options["no_demo"]:
-            run_async_as_sync(load_demo_data())
+            async_to_sync(load_demo_data)()
