@@ -26,6 +26,8 @@ from projects.memberships.serializers import (
 
 class ProjectMembershipContent(BaseModel):
     membership: ProjectMembershipSerializer
+    role: RoleSerializer
+    self_recipient: bool = False
 
 
 class DeleteProjectMembershipContent(BaseModel):
@@ -33,8 +35,8 @@ class DeleteProjectMembershipContent(BaseModel):
     workspace_id: UUIDB64
 
 
-class ProjectRoleContent(RoleSerializer):
-    pass
+class ProjectRoleContent(BaseModel):
+    role: RoleSerializer
 
 
 class DeleteProjectRoleContent(BaseModel):

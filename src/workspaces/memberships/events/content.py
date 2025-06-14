@@ -26,7 +26,5 @@ from workspaces.memberships.serializers import (
 
 class WorkspaceMembershipContent(BaseModel):
     membership: WorkspaceMembershipNestedSerializer
-
-
-class WorkspaceRoleContent(RoleSerializer):
-    pass
+    role: RoleSerializer
+    self_recipient: bool = False
