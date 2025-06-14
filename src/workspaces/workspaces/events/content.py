@@ -28,6 +28,6 @@ class UpdateWorkspaceContent(BaseModel):
 
 
 class DeleteWorkspaceContent(BaseModel):
-    workspace: UUIDB64
+    workspace_id: UUIDB64
     name: str
     deleted_by: UserNestedSerializer

@@ -69,10 +69,10 @@ async def emit_event_when_project_is_deleted(
     deleted_by: User,
 ) -> None:
     content = DeleteProjectContent(
-        project=project.id,
+        project_id=project.id,
         name=project.name,
         deleted_by=deleted_by,
-        workspace=workspace_id,
+        workspace_id=workspace_id,
     )
     # for pj-members and pj-invitees in the ws-detail
     await events_manager.publish_on_workspace_channel(

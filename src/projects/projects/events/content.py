@@ -28,7 +28,7 @@ class UpdateProjectContent(BaseModel):
 
 
 class DeleteProjectContent(BaseModel):
-    project: UUIDB64
+    project_id: UUIDB64
     name: str
-    workspace: UUIDB64
+    workspace_id: UUIDB64
     deleted_by: UserNestedSerializer

@@ -56,7 +56,7 @@ async def emit_event_when_workspace_is_deleted(
         workspace=workspace,
         type=DELETE_WORKSPACE,
         content=DeleteWorkspaceContent(
-            workspace=workspace.id, name=workspace.name, deleted_by=deleted_by
+            workspace_id=workspace.id, name=workspace.name, deleted_by=deleted_by
         ),
     )
     # TODO handle ws-members and ws-invitees on homepage
