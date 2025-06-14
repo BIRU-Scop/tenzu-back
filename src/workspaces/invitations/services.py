@@ -84,7 +84,7 @@ async def create_workspace_invitations(
         )
 
     return CreateInvitationsSerializer(
-        invitations=invitations_to_send, already_members=already_members
+        invitations=invitations_to_publish, already_members=already_members
     )
 
 
