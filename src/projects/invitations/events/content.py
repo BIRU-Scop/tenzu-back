@@ -18,6 +18,8 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.serializers import UUIDB64, BaseModel
+from projects.memberships.serializers import ProjectMembershipSerializer
+from workspaces.memberships.serializers import WorkspaceMembershipSerializer
 
 
 class ProjectInvitationContent(BaseModel):
@@ -25,3 +27,8 @@ class ProjectInvitationContent(BaseModel):
     project_id: UUIDB64
     self_recipient: bool = False
     user_id: UUIDB64 | None
+
+
+class ProjectAcceptInvitationContent(ProjectInvitationContent):
+    membership: ProjectMembershipSerializer
+    workspace_membership: WorkspaceMembershipSerializer | None

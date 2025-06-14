@@ -20,8 +20,12 @@
 from typing import Iterable
 
 from events import events_manager
-from workspaces.invitations.events.content import WorkspaceInvitationContent
+from workspaces.invitations.events.content import (
+    WorkspaceAcceptInvitationContent,
+    WorkspaceInvitationContent,
+)
 from workspaces.invitations.models import WorkspaceInvitation
+from workspaces.memberships.models import WorkspaceMembership
 from workspaces.workspaces.models import Workspace
 
 CREATE_WORKSPACE_INVITATION = "workspaceinvitations.create"
@@ -85,22 +89,24 @@ async def emit_event_when_workspace_invitations_are_updated(
 
 
 async def emit_event_when_workspace_invitation_is_accepted(
-    invitation: WorkspaceInvitation,
+    invitation: WorkspaceInvitation, membership: WorkspaceMembership
 ) -> None:
+    content = WorkspaceAcceptInvitationContent(
+        workspace_id=invitation.workspace_id,
+        membership=membership,
+        self_recipient=False,
+    )
     await events_manager.publish_on_workspace_channel(
         workspace=invitation.workspace,
         type=ACCEPT_WORKSPACE_INVITATION,
-        content=WorkspaceInvitationContent(
-            workspace_id=invitation.workspace_id, self_recipient=False
-        ),
+        content=content,
     )
+    content.self_recipient = True
     if invitation.user_id:
         await events_manager.publish_on_user_channel(
             user=invitation.user_id,
             type=ACCEPT_WORKSPACE_INVITATION,
-            content=WorkspaceInvitationContent(
-                workspace_id=invitation.workspace_id, self_recipient=True
-            ),
+            content=content,
         )
 
 

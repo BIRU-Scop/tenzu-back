@@ -266,11 +266,13 @@ async def get_workspace_membership_delete_info(
 ##########################################################
 
 
-async def create_default_workspace_membership(workspace_id: UUID, user: User):
+async def create_default_workspace_membership(
+    workspace_id: UUID, user: User
+) -> WorkspaceMembership:
     role = await get_workspace_role(
         workspace_id, _DEFAULT_WORKSPACE_MEMBERSHIP_ROLE_SLUG
     )
-    await memberships_repositories.create_workspace_membership(
+    return await memberships_repositories.create_workspace_membership(
         workspace=role.workspace, role=role, user=user
     )
 

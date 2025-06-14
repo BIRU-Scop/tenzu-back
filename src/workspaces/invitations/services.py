@@ -231,12 +231,13 @@ async def accept_workspace_invitation(
         invitation=invitation,
     )
 
-    await memberships_repositories.create_workspace_membership(
+    membership = await memberships_repositories.create_workspace_membership(
         workspace=invitation.workspace, role=invitation.role, user=invitation.user
     )
+    membership.total_projects_is_member = 0
     await transaction_on_commit_async(
         invitations_events.emit_event_when_workspace_invitation_is_accepted
-    )(invitation=invitation)
+    )(invitation=invitation, membership=membership)
 
     return invitation
 

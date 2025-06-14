@@ -224,17 +224,21 @@ async def update_project_invitation(
 
 @transaction_atomic_async
 async def accept_project_invitation(invitation: ProjectInvitation) -> ProjectInvitation:
-    await _sync_related_workspace_membership(invitation)
+    workspace_membership = await _sync_related_workspace_membership(invitation)
     invitation = await memberships_services.accept_invitation(
         invitation=invitation,
     )
 
-    await memberships_repositories.create_project_membership(
+    membership = await memberships_repositories.create_project_membership(
         project=invitation.project, role=invitation.role, user=invitation.user
     )
     await transaction_on_commit_async(
         invitations_events.emit_event_when_project_invitation_is_accepted
-    )(invitation=invitation)
+    )(
+        invitation=invitation,
+        membership=membership,
+        workspace_membership=workspace_membership,
+    )
 
     return invitation
 
@@ -353,7 +357,9 @@ async def _generate_project_invitation_token(invitation: ProjectInvitation) -> s
     return str(await ProjectInvitationToken.create_for_object(invitation))
 
 
-async def _sync_related_workspace_membership(pj_invitation: ProjectInvitation):
+async def _sync_related_workspace_membership(
+    pj_invitation: ProjectInvitation,
+) -> WorkspaceMembership | None:
     # find existing membership first, do nothing then
     if await memberships_repositories.exists_membership(
         WorkspaceMembership,
@@ -362,7 +368,7 @@ async def _sync_related_workspace_membership(pj_invitation: ProjectInvitation):
             "user_id": pj_invitation.user_id,
         },
     ):
-        return
+        return None
     # find existing invitation, accept it
     try:
         ws_invitation: WorkspaceInvitation = (
@@ -378,8 +384,12 @@ async def _sync_related_workspace_membership(pj_invitation: ProjectInvitation):
         )
     except WorkspaceInvitation.DoesNotExist:
         # there is no existing membership nor pending invitation, create workspace default membership
-        await workspaces_memberships_services.create_default_workspace_membership(
-            pj_invitation.project.workspace_id, pj_invitation.user
+        membership = (
+            await workspaces_memberships_services.create_default_workspace_membership(
+                pj_invitation.project.workspace_id, pj_invitation.user
+            )
         )
-    else:
-        await workspaces_invitations_services.accept_workspace_invitation(ws_invitation)
+        membership.total_projects_is_member = 1
+        return membership
+    await workspaces_invitations_services.accept_workspace_invitation(ws_invitation)
+    return None
