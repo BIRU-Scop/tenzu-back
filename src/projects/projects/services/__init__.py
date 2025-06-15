@@ -124,6 +124,11 @@ async def _create_project(
     )
     created_by.project_role = owner_role
 
+    project.user_is_invited = False
+    await transaction_on_commit_async(
+        projects_events.emit_event_when_project_is_created
+    )(project=project)
+
     return project
 
 

@@ -32,6 +32,7 @@ pytestmark = pytest.mark.django_db
 ##########################################################
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_create_project_200_ok_being_workspace_member(client):
     workspace = await f.create_workspace()
     data = {"name": "Project test", "color": 1}
@@ -454,6 +455,7 @@ async def test_update_project_422_unprocessable_project_b64id(client):
 ##########################################################
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_project_204_no_content_being_proj_owner(client, project_template):
     project = await f.create_project(project_template)
 
