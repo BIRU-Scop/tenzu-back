@@ -22,17 +22,20 @@ from memberships.serializers import RoleSerializer
 from projects.memberships.serializers import (
     ProjectMembershipSerializer,
 )
+from projects.projects.serializers import ProjectSummarySerializer
 
 
 class ProjectMembershipContent(BaseModel):
     membership: ProjectMembershipSerializer
     role: RoleSerializer
     self_recipient: bool = False
+    project: ProjectSummarySerializer | None
 
 
 class DeleteProjectMembershipContent(BaseModel):
     membership: ProjectMembershipSerializer
     workspace_id: UUIDB64
+    self_recipient: bool = False
 
 
 class ProjectRoleContent(BaseModel):

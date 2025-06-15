@@ -28,3 +28,8 @@ class WorkspaceMembershipContent(BaseModel):
     membership: WorkspaceMembershipNestedSerializer
     role: RoleSerializer
     self_recipient: bool = False
+
+
+class DeleteWorkspaceMembershipContent(BaseModel):
+    membership: WorkspaceMembershipNestedSerializer
+    self_recipient: bool = False

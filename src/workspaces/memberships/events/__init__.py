@@ -19,6 +19,7 @@
 
 from events import events_manager
 from workspaces.memberships.events.content import (
+    DeleteWorkspaceMembershipContent,
     WorkspaceMembershipContent,
 )
 from workspaces.memberships.models import WorkspaceMembership
@@ -49,13 +50,17 @@ async def emit_event_when_workspace_membership_is_updated(
 async def emit_event_when_workspace_membership_is_deleted(
     membership: WorkspaceMembership,
 ) -> None:
-    content = WorkspaceMembershipContent(membership=membership)
+    content = DeleteWorkspaceMembershipContent(
+        membership=membership, self_recipient=False
+    )
+    # for anyuser in the workspace member page
     await events_manager.publish_on_workspace_channel(
         workspace=membership.workspace,
         type=DELETE_WORKSPACE_MEMBERSHIP,
         content=content,
     )
-
+    content.self_recipient = True
+    # for deleted user in home or workspace detail
     await events_manager.publish_on_user_channel(
         user=membership.user,
         type=DELETE_WORKSPACE_MEMBERSHIP,

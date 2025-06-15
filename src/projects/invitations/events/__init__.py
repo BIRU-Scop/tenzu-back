@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from typing import Iterable
+from uuid import UUID
 
 from events import events_manager
 from projects.invitations.events.content import (
@@ -187,15 +188,15 @@ async def emit_event_when_project_invitation_is_denied(
 
 
 async def emit_event_when_project_invitation_is_deleted(
-    invitation: ProjectInvitation,
+    invitation_or_membership: ProjectInvitation | ProjectMembership, workspace_id: UUID
 ) -> None:
     await events_manager.publish_on_project_channel(
-        project=invitation.project,
+        project=invitation_or_membership.project_id,
         type=DELETE_PROJECT_INVITATION,
         content=ProjectInvitationContent(
-            user_id=invitation.user_id,
-            workspace_id=invitation.project.workspace_id,
-            project_id=invitation.project.id,
+            user_id=invitation_or_membership.user_id,
+            workspace_id=workspace_id,
+            project_id=invitation_or_membership.project_id,
             self_recipient=False,
         ),
     )

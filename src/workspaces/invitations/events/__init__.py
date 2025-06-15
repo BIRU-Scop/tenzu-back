@@ -151,12 +151,12 @@ async def emit_event_when_workspace_invitation_is_denied(
 
 
 async def emit_event_when_workspace_invitation_is_deleted(
-    invitation: WorkspaceInvitation,
+    invitation_or_membership: WorkspaceInvitation | WorkspaceMembership,
 ) -> None:
     await events_manager.publish_on_workspace_channel(
-        workspace=invitation.workspace,
+        workspace=invitation_or_membership.workspace,
         type=DELETE_WORKSPACE_INVITATION,
         content=WorkspaceInvitationContent(
-            workspace_id=invitation.workspace_id, self_recipient=False
+            workspace_id=invitation_or_membership.workspace_id, self_recipient=False
         ),
     )

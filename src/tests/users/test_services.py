@@ -975,7 +975,7 @@ async def test_delete_user_success():
             select_related=["workspace"],
         )
         fake_ws_invitations_events.emit_event_when_workspace_invitation_is_deleted.assert_awaited_once_with(
-            invitation=inv1_ws3
+            invitation_or_membership=inv1_ws3
         )
 
         # pj memberships
@@ -985,13 +985,13 @@ async def test_delete_user_success():
             select_related=["user", "project"],
         )
         fake_pj_memberships_events.emit_event_when_project_membership_is_deleted.assert_any_await(
-            membership=pj_member1_pj1_ws1
+            membership=pj_member1_pj1_ws1, workspace_id=ws1.id
         )
         fake_pj_memberships_events.emit_event_when_project_membership_is_deleted.assert_any_await(
-            membership=pj_member1_pj2_ws1
+            membership=pj_member1_pj2_ws1, workspace_id=ws1.id
         )
         fake_pj_memberships_events.emit_event_when_project_membership_is_deleted.assert_any_await(
-            membership=pj_member1_pj1_ws3
+            membership=pj_member1_pj1_ws3, workspace_id=ws3.id
         )
 
         # pj invitations
@@ -1001,7 +1001,7 @@ async def test_delete_user_success():
             select_related=["project"],
         )
         fake_pj_invitations_events.emit_event_when_project_invitation_is_deleted.assert_awaited_once_with(
-            invitation=inv1_pj1_ws3
+            invitation_or_membership=inv1_pj1_ws3, workspace_id=ws3.id
         )
 
         # user deleted

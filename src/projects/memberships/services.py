@@ -26,6 +26,7 @@ from memberships import services as memberships_services
 from memberships.services import exceptions as ex
 from memberships.services import is_membership_the_only_owner  # noqa
 from permissions.choices import ProjectPermissions
+from projects.invitations import events as pj_invitations_events
 from projects.invitations import repositories as project_invitations_repositories
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import events as memberships_events
@@ -164,7 +165,13 @@ async def delete_project_membership(
         )
         await transaction_on_commit_async(
             memberships_events.emit_event_when_project_membership_is_deleted
-        )(membership=membership)
+        )(membership=membership, workspace_id=membership.project.workspace_id)
+        await transaction_on_commit_async(
+            pj_invitations_events.emit_event_when_project_invitation_is_deleted
+        )(
+            invitation_or_membership=membership,
+            workspace_id=membership.project.workspace_id,
+        )
         return True
 
     return False

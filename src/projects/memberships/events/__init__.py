@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from uuid import UUID
 
 from events import events_manager
 from projects.memberships.events.content import (
@@ -25,19 +26,31 @@ from projects.memberships.events.content import (
     ProjectRoleContent,
 )
 from projects.memberships.models import ProjectMembership, ProjectRole
+from projects.memberships.serializers import ProjectMembershipSerializer
+from projects.projects.models import Project
+from users.models import User
 
 UPDATE_PROJECT_MEMBERSHIP = "projectmemberships.update"
 DELETE_PROJECT_MEMBERSHIP = "projectmemberships.delete"
 
 
 async def emit_event_when_project_membership_is_updated(
-    membership: ProjectMembership,
+    membership: ProjectMembership, user: User = None, project: Project = None
 ) -> None:
+    user = user or membership.user
     content = ProjectMembershipContent(
-        membership=membership, role=membership.role, self_recipient=True
+        membership=ProjectMembershipSerializer(
+            project_id=membership.project_id,
+            role_id=membership.role_id,
+            id=membership.id,
+            user=user,
+        ),
+        role=membership.role,
+        project=project,
+        self_recipient=True,
     )
     await events_manager.publish_on_user_channel(
-        user=membership.user,
+        user=user,
         type=UPDATE_PROJECT_MEMBERSHIP,
         content=content,
     )
@@ -50,21 +63,29 @@ async def emit_event_when_project_membership_is_updated(
 
 
 async def emit_event_when_project_membership_is_deleted(
-    membership: ProjectMembership,
+    membership: ProjectMembership, workspace_id: UUID, user: User = None
 ) -> None:
+    user = user or membership.user
     content = DeleteProjectMembershipContent(
-        membership=membership, workspace_id=membership.project.workspace_id
+        membership=ProjectMembershipSerializer(
+            project_id=membership.project_id,
+            role_id=membership.role_id,
+            id=membership.id,
+            user=user,
+        ),
+        workspace_id=workspace_id,
+        self_recipient=False,
     )
-    # for anyuser in the project detail or pj-admins in setting members
+    # for anyuser in the project detail
     await events_manager.publish_on_project_channel(
-        project=membership.project,
+        project=membership.project_id,
         type=DELETE_PROJECT_MEMBERSHIP,
         content=content,
     )
-
-    # for deleted user in her home or in project detail
+    content.self_recipient = True
+    # for deleted user in home, workspace of project detail or project detail
     await events_manager.publish_on_user_channel(
-        user=membership.user,
+        user=user,
         type=DELETE_PROJECT_MEMBERSHIP,
         content=content,
     )

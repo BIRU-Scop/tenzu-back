@@ -22,6 +22,7 @@ from memberships.repositories import (  # noqa
     TOTAL_PROJECTS_IS_MEMBER_ANNOTATION,
     bulk_update_or_create_memberships,
     delete_memberships,
+    delete_memberships_with_objects,
     exists_membership,
     get_membership,
     get_role,

@@ -265,6 +265,15 @@ async def bulk_update_or_create_memberships(memberships: list[TM]) -> list[TM]:
 ##########################################################
 
 
+async def delete_memberships_with_objects(
+    model: type[TM], filters: MembershipFilters
+) -> tuple[int, list[TM]]:
+    memberships_qs = model.objects.select_for_update().filter(**filters)
+    memberships = [membership async for membership in memberships_qs]
+    count, _ = await memberships_qs.adelete()
+    return count, memberships
+
+
 async def delete_memberships(model: type[TM], filters: MembershipFilters) -> int:
     count, _ = await model.objects.filter(**filters).adelete()
     return count

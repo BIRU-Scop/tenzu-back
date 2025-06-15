@@ -336,7 +336,7 @@ async def delete_user(user: User) -> bool:
     for ws_invitation in ws_invitations:
         await transaction_on_commit_async(
             ws_invitations_events.emit_event_when_workspace_invitation_is_deleted
-        )(invitation=ws_invitation)
+        )(invitation_or_membership=ws_invitation)
 
     # event for deletion of pj memberships
     pj_memberships = await pj_memberships_repositories.list_memberships(
@@ -347,7 +347,7 @@ async def delete_user(user: User) -> bool:
     for pj_membership in pj_memberships:
         await transaction_on_commit_async(
             pj_memberships_events.emit_event_when_project_membership_is_deleted
-        )(membership=pj_membership)
+        )(membership=pj_membership, workspace_id=pj_membership.project.workspace_id)
 
     # event for deletion of pj invitations
     pj_invitations = await pj_invitations_repositories.list_invitations(
@@ -358,7 +358,10 @@ async def delete_user(user: User) -> bool:
     for pj_invitation in pj_invitations:
         await transaction_on_commit_async(
             pj_invitations_events.emit_event_when_project_invitation_is_deleted
-        )(invitation=pj_invitation)
+        )(
+            invitation_or_membership=pj_invitation,
+            workspace_id=pj_invitation.project.workspace_id,
+        )
 
     # delete user
     deleted_user = await users_repositories.delete_user(user)

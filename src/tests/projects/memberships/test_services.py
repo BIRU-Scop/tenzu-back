@@ -442,7 +442,7 @@ async def test_delete_project_membership_only_one_owner_successor_ok():
             q_filter=None,
         )
         fake_membership_events.emit_event_when_project_membership_is_deleted.assert_awaited_once_with(
-            membership=membership
+            membership=membership, workspace_id=project.workspace_id
         )
 
 
@@ -492,7 +492,7 @@ async def test_delete_project_membership_ok():
             q_filter=None,
         )
         fake_membership_events.emit_event_when_project_membership_is_deleted.assert_awaited_once_with(
-            membership=membership
+            membership=membership, workspace_id=project.workspace_id
         )
 
 
