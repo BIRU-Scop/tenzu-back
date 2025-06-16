@@ -48,7 +48,7 @@ from projects.memberships.permissions import (
 )
 from projects.memberships.serializers import (
     ProjectMembershipSerializer,
-    ProjectRolesSerializer,
+    ProjectRoleSerializer,
 )
 from projects.projects.api import get_project_or_404
 
@@ -186,7 +186,7 @@ async def delete_project_membership(
     url_name="project.roles.list",
     summary="List project roles",
     response={
-        200: list[ProjectRolesSerializer],
+        200: list[ProjectRoleSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -217,7 +217,7 @@ async def list_project_roles(request, project_id: Path[B64UUID]):
     url_name="project.roles.create",
     summary="Create project roles",
     response={
-        200: ProjectRolesSerializer,
+        200: ProjectRoleSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -256,7 +256,7 @@ async def create_project_role(
     url_name="project.roles.get",
     summary="get project role",
     response={
-        200: ProjectRolesSerializer,
+        200: ProjectRoleSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -291,7 +291,7 @@ async def get_project_role(
     url_name="project.roles.put",
     summary="Update project roles",
     response={
-        200: ProjectRolesSerializer,
+        200: ProjectRoleSerializer,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,

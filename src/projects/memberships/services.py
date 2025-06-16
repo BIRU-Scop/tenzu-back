@@ -309,7 +309,7 @@ async def delete_project_role(
         # TODO handle concurrency issue where target_role_id was provided
         #  but a membership or invitation was created in the meantime
         raise ex.RequiredMoveToRole(
-            "Some memberships or invitations use this role, you need to provide a role then can use instead"
+            "Some memberships or invitations use this role, you need to provide a replacement role"
         )
 
     if deleted > 0:

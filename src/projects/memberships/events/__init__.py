@@ -100,8 +100,7 @@ async def emit_event_when_project_role_is_created(
     role: ProjectRole,
 ) -> None:
     """
-    This event is emitted whenever the permissions list or name changes for a role
-    :param role: The project role affected by the permission change
+    This event is emitted whenever a role is created
     """
     await events_manager.publish_on_project_channel(
         project=role.project,
@@ -128,14 +127,14 @@ async def emit_event_when_project_role_is_deleted(
     role: ProjectRole, target_role: ProjectRole | None
 ) -> None:
     """
-    This event is emitted whenever the permissions list or name changes for a role
-    :param role: The project role affected by the permission change
+    This event is emitted whenever a role is deleted
     """
     await events_manager.publish_on_project_channel(
         project=role.project,
         type=DELETE_PROJECT_ROLE,
         content=DeleteProjectRoleContent(
-            role=role,
+            role_id=role.id,
             target_role=target_role,
+            project_id=role.project_id,
         ),
     )

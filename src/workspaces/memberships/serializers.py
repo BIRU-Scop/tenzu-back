@@ -36,5 +36,5 @@ class WorkspaceMembershipDeleteInfoSerializer(BaseModel):
     unique_owner_of_projects: list[str]
 
 
-class WorkspaceRolesSerializer(RoleSerializer):
+class WorkspaceRoleSerializer(RoleSerializer):
     workspace_id: UUIDB64
