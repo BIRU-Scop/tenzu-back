@@ -24,12 +24,15 @@ from memberships import services as memberships_services
 from memberships.repositories import WorkspaceMembershipAnnotation
 from memberships.services import exceptions as ex
 from memberships.services import is_membership_the_only_owner  # noqa
+from projects.invitations import events as pj_invitations_events
 from projects.invitations import repositories as project_invitations_repositories
 from projects.invitations.models import ProjectInvitation
+from projects.memberships import events as pj_memberships_events
 from projects.memberships.models import ProjectMembership
 from projects.projects.models import Project
 from stories.assignments import repositories as story_assignments_repositories
 from users.models import User
+from workspaces.invitations import events as ws_invitations_events
 from workspaces.invitations import repositories as workspace_invitations_repositories
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships import events as memberships_events
@@ -158,14 +161,31 @@ async def _handle_membership_projects_succession(
         )
         for pj_values in owner_project_values
     ]
-    await memberships_repositories.bulk_update_or_create_memberships(
-        owner_project_memberships
+    owner_project_memberships = (
+        await memberships_repositories.bulk_update_or_create_memberships(
+            owner_project_memberships
+        )
     )
+    # do another query to select project and role that are needed in the event
+    owner_project_memberships = await memberships_repositories.list_memberships(
+        ProjectMembership,
+        filters={"id__in": [m.id for m in owner_project_memberships]},
+        select_related=["project", "role"],
+        order_by=[],
+    )
+    for pj_membership in owner_project_memberships:
+        pj_membership.project.user_is_invited = False
+        await transaction_on_commit_async(
+            pj_memberships_events.emit_event_when_project_membership_is_updated
+        )(membership=pj_membership, user=user, project=pj_membership.project)
 
 
 @transaction_atomic_async
 async def _delete_inner_projects_membership(membership: WorkspaceMembership) -> bool:
-    deleted = await memberships_repositories.delete_memberships(
+    (
+        deleted,
+        pj_memberships,
+    ) = await memberships_repositories.delete_memberships_with_objects(
         ProjectMembership,
         {
             "project__workspace_id": membership.workspace_id,
@@ -190,6 +210,20 @@ async def _delete_inner_projects_membership(membership: WorkspaceMembership) -> 
                 membership.user.email
             ),
         )
+        for pj_membership in pj_memberships:
+            await transaction_on_commit_async(
+                pj_memberships_events.emit_event_when_project_membership_is_deleted
+            )(
+                membership=pj_membership,
+                workspace_id=membership.workspace_id,
+                user=membership.user,
+            )
+            await transaction_on_commit_async(
+                pj_invitations_events.emit_event_when_project_invitation_is_deleted
+            )(
+                invitation_or_membership=pj_membership,
+                workspace_id=membership.workspace_id,
+            )
         return True
 
     return False
@@ -235,6 +269,9 @@ async def delete_workspace_membership(
         await transaction_on_commit_async(
             memberships_events.emit_event_when_workspace_membership_is_deleted
         )(membership=membership)
+        await transaction_on_commit_async(
+            ws_invitations_events.emit_event_when_workspace_invitation_is_deleted
+        )(invitation_or_membership=membership)
         return True
 
     return False
@@ -266,11 +303,13 @@ async def get_workspace_membership_delete_info(
 ##########################################################
 
 
-async def create_default_workspace_membership(workspace_id: UUID, user: User):
+async def create_default_workspace_membership(
+    workspace_id: UUID, user: User
+) -> WorkspaceMembership:
     role = await get_workspace_role(
         workspace_id, _DEFAULT_WORKSPACE_MEMBERSHIP_ROLE_SLUG
     )
-    await memberships_repositories.create_workspace_membership(
+    return await memberships_repositories.create_workspace_membership(
         workspace=role.workspace, role=role, user=user
     )
 

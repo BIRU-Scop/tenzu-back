@@ -290,7 +290,6 @@ async def test_update_project_ok(tqmanager):
         fake_updated_project_detail = fake_get_project_detail.return_value
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
             project_detail=fake_updated_project_detail,
-            project_id=fake_updated_project.b64id,
             updated_by=user,
         )
 
@@ -324,7 +323,6 @@ async def test_update_project_ok_with_new_logo(tqmanager):
         fake_updated_project_detail = fake_get_project_detail.return_value
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
             project_detail=fake_updated_project_detail,
-            project_id=fake_updated_project.b64id,
             updated_by=user,
         )
 
@@ -363,7 +361,6 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
         fake_updated_project_detail = fake_get_project_detail.return_value
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
             project_detail=fake_updated_project_detail,
-            project_id=fake_updated_project.b64id,
             updated_by=user,
         )
 
@@ -406,7 +403,6 @@ async def test_update_project_landing_page_ok():
 
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
             project_detail=fake_updated_project_detail,
-            project_id=fake_updated_project.b64id,
             updated_by=user,
         )
 
@@ -440,7 +436,6 @@ async def test_update_project_landing_page_ok_empty_value():
 
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
             project_detail=fake_updated_project_detail,
-            project_id=fake_updated_project.b64id,
             updated_by=user,
         )
 
@@ -475,7 +470,6 @@ async def test_update_project_landing_page_ok_new_slug():
 
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
             project_detail=fake_updated_project_detail,
-            project_id=fake_updated_project.b64id,
             updated_by=user,
         )
 

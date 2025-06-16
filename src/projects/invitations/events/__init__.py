@@ -18,15 +18,21 @@
 # You can contact BIRU at ask@biru.sh
 
 from typing import Iterable
+from uuid import UUID
 
 from events import events_manager
-from projects.invitations.events.content import ProjectInvitationContent
+from projects.invitations.events.content import (
+    ProjectAcceptInvitationContent,
+    ProjectInvitationContent,
+)
 from projects.invitations.models import ProjectInvitation
+from projects.memberships.models import ProjectMembership
 from projects.projects.models import Project
+from workspaces.memberships.models import WorkspaceMembership
 
 CREATE_PROJECT_INVITATION = "projectinvitations.create"
 UPDATE_PROJECT_INVITATION = "projectinvitations.update"
-ACCEPT_PROJECT_INVITATION = "projectinvitations.create"
+ACCEPT_PROJECT_INVITATION = "projectinvitations.accept"
 REVOKE_PROJECT_INVITATION = "projectinvitations.revoke"
 DENY_PROJECT_INVITATION = "projectinvitations.deny"
 DELETE_PROJECT_INVITATION = "projectinvitations.delete"
@@ -41,8 +47,10 @@ async def emit_event_when_project_invitations_are_created(
             user=invitation.user,  # type: ignore[arg-type]
             type=CREATE_PROJECT_INVITATION,
             content=ProjectInvitationContent(
-                workspace=project.workspace_id,
-                project=invitation.project_id,
+                user_id=invitation.user_id,
+                workspace_id=project.workspace_id,
+                project_id=invitation.project_id,
+                self_recipient=True,
             ),
         )
 
@@ -51,6 +59,12 @@ async def emit_event_when_project_invitations_are_created(
         await events_manager.publish_on_project_channel(
             project=project,
             type=CREATE_PROJECT_INVITATION,
+            content=ProjectInvitationContent(
+                user_id=invitation.user_id,
+                workspace_id=project.workspace_id,
+                project_id=project.id,
+                self_recipient=False,
+            ),
         )
 
 
@@ -60,14 +74,22 @@ async def emit_event_when_project_invitation_is_updated(
     await events_manager.publish_on_project_channel(
         project=invitation.project,
         type=UPDATE_PROJECT_INVITATION,
+        content=ProjectInvitationContent(
+            user_id=invitation.user_id,
+            workspace_id=invitation.project.workspace_id,
+            project_id=invitation.project.id,
+            self_recipient=False,
+        ),
     )
     if invitation.user:
         await events_manager.publish_on_user_channel(
             user=invitation.user,
             type=UPDATE_PROJECT_INVITATION,
             content=ProjectInvitationContent(
-                workspace=invitation.project.workspace_id,
-                project=invitation.project_id,
+                user_id=invitation.user_id,
+                workspace_id=invitation.project.workspace_id,
+                project_id=invitation.project_id,
+                self_recipient=True,
             ),
         )
 
@@ -81,23 +103,35 @@ async def emit_event_when_project_invitations_are_updated(
 
 async def emit_event_when_project_invitation_is_accepted(
     invitation: ProjectInvitation,
+    membership: ProjectMembership,
+    workspace_membership: WorkspaceMembership | None,
 ) -> None:
+    content = ProjectAcceptInvitationContent(
+        user_id=invitation.user_id,
+        workspace_id=invitation.project.workspace_id,
+        project_id=invitation.project.id,
+        self_recipient=False,
+        membership=membership,
+        workspace_membership=workspace_membership,
+    )
     await events_manager.publish_on_project_channel(
         project=invitation.project,
         type=ACCEPT_PROJECT_INVITATION,
+        content=content,
     )
-    await events_manager.publish_on_workspace_channel(
-        workspace=invitation.project.workspace_id,
-        type=ACCEPT_PROJECT_INVITATION,
-    )
+    if workspace_membership is not None:
+        # for workspace members update
+        await events_manager.publish_on_workspace_channel(
+            workspace=workspace_membership.workspace_id,
+            type=ACCEPT_PROJECT_INVITATION,
+            content=content,
+        )
+    content.self_recipient = True
     if invitation.user:
         await events_manager.publish_on_user_channel(
             user=invitation.user,
             type=ACCEPT_PROJECT_INVITATION,
-            content=ProjectInvitationContent(
-                workspace=invitation.project.workspace_id,
-                project=invitation.project_id,
-            ),
+            content=content,
         )
 
 
@@ -107,14 +141,22 @@ async def emit_event_when_project_invitation_is_revoked(
     await events_manager.publish_on_project_channel(
         project=invitation.project,
         type=REVOKE_PROJECT_INVITATION,
+        content=ProjectInvitationContent(
+            user_id=invitation.user_id,
+            workspace_id=invitation.project.workspace_id,
+            project_id=invitation.project.id,
+            self_recipient=False,
+        ),
     )
     if invitation.user:
         await events_manager.publish_on_user_channel(
             user=invitation.user,
             type=REVOKE_PROJECT_INVITATION,
             content=ProjectInvitationContent(
-                workspace=invitation.project.workspace_id,
-                project=invitation.project_id,
+                user_id=invitation.user_id,
+                workspace_id=invitation.project.workspace_id,
+                project_id=invitation.project_id,
+                self_recipient=True,
             ),
         )
 
@@ -125,26 +167,36 @@ async def emit_event_when_project_invitation_is_denied(
     await events_manager.publish_on_project_channel(
         project=invitation.project,
         type=DENY_PROJECT_INVITATION,
-    )
-    await events_manager.publish_on_workspace_channel(
-        workspace=invitation.project.workspace_id,
-        type=DENY_PROJECT_INVITATION,
+        content=ProjectInvitationContent(
+            user_id=invitation.user_id,
+            workspace_id=invitation.project.workspace_id,
+            project_id=invitation.project.id,
+            self_recipient=False,
+        ),
     )
     if invitation.user:
         await events_manager.publish_on_user_channel(
             user=invitation.user,
             type=DENY_PROJECT_INVITATION,
             content=ProjectInvitationContent(
-                workspace=invitation.project.workspace_id,
-                project=invitation.project_id,
+                user_id=invitation.user_id,
+                workspace_id=invitation.project.workspace_id,
+                project_id=invitation.project_id,
+                self_recipient=True,
             ),
         )
 
 
 async def emit_event_when_project_invitation_is_deleted(
-    invitation: ProjectInvitation,
+    invitation_or_membership: ProjectInvitation | ProjectMembership, workspace_id: UUID
 ) -> None:
     await events_manager.publish_on_project_channel(
-        project=invitation.project,
+        project=invitation_or_membership.project_id,
         type=DELETE_PROJECT_INVITATION,
+        content=ProjectInvitationContent(
+            user_id=invitation_or_membership.user_id,
+            workspace_id=workspace_id,
+            project_id=invitation_or_membership.project_id,
+            self_recipient=False,
+        ),
     )

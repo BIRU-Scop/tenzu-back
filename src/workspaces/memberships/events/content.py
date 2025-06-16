@@ -26,7 +26,10 @@ from workspaces.memberships.serializers import (
 
 class WorkspaceMembershipContent(BaseModel):
     membership: WorkspaceMembershipNestedSerializer
+    role: RoleSerializer
+    self_recipient: bool = False
 
 
-class WorkspaceRoleContent(RoleSerializer):
-    pass
+class DeleteWorkspaceMembershipContent(BaseModel):
+    membership: WorkspaceMembershipNestedSerializer
+    self_recipient: bool = False

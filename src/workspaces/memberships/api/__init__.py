@@ -44,7 +44,7 @@ from workspaces.memberships.permissions import (
 from workspaces.memberships.serializers import (
     WorkspaceMembershipDeleteInfoSerializer,
     WorkspaceMembershipSerializer,
-    WorkspaceRolesSerializer,
+    WorkspaceRoleSerializer,
 )
 from workspaces.workspaces.api import get_workspace_or_404
 
@@ -225,7 +225,7 @@ async def delete_workspace_membership(
     url_name="workspace.roles.list",
     summary="List workspace roles",
     response={
-        200: list[WorkspaceRolesSerializer],
+        200: list[WorkspaceRoleSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

@@ -26,7 +26,7 @@ class ProjectMembershipSerializer(MembershipBaseSerializer):
     project_id: UUIDB64
 
 
-class ProjectRolesSerializer(RoleSerializer):
+class ProjectRoleSerializer(RoleSerializer):
     project_id: UUIDB64
     total_members: int
     has_invitees: bool

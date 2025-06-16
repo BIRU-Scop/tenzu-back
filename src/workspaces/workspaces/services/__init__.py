@@ -20,6 +20,7 @@
 from typing import Any
 from uuid import UUID
 
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from permissions.choices import WorkspacePermissions
 from projects.projects import repositories as projects_repositories
 from users.models import User
@@ -42,7 +43,7 @@ async def create_workspace(
     workspace, owner_role = await _create_workspace(
         name=name, color=color, created_by=created_by
     )
-    return WorkspaceDetailSerializer(
+    workspace_detail = WorkspaceDetailSerializer(
         id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
@@ -53,8 +54,13 @@ async def create_workspace(
         user_can_create_projects=True,
         total_projects=0,
     )
+    await transaction_on_commit_async(
+        workspaces_events.emit_event_when_workspace_is_created
+    )(workspace_detail=workspace_detail, created_by=created_by)
+    return workspace_detail
 
 
+@transaction_atomic_async
 async def _create_workspace(
     name: str, color: int, created_by: User
 ) -> tuple[Workspace, WorkspaceRole]:
@@ -123,7 +129,7 @@ async def update_workspace(
     workspace: Workspace, user: User, values: dict[str, Any] = {}
 ) -> WorkspaceDetailSerializer:
     workspace = await _update_workspace(workspace=workspace, values=values)
-    return WorkspaceDetailSerializer(
+    workspace_detail = WorkspaceDetailSerializer(
         id=workspace.id,
         name=workspace.name,
         slug=workspace.slug,
@@ -140,6 +146,10 @@ async def update_workspace(
         ),
         total_projects=workspace.total_projects,
     )
+    await workspaces_events.emit_event_when_workspace_is_updated(
+        workspace_detail=workspace_detail, updated_by=user
+    )
+    return workspace_detail
 
 
 async def _update_workspace(

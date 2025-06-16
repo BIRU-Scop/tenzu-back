@@ -18,7 +18,13 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.serializers import UUIDB64, BaseModel
+from workspaces.memberships.serializers import WorkspaceMembershipSerializer
 
 
 class WorkspaceInvitationContent(BaseModel):
-    workspace: UUIDB64
+    workspace_id: UUIDB64
+    self_recipient: bool = False
+
+
+class WorkspaceAcceptInvitationContent(WorkspaceInvitationContent):
+    membership: WorkspaceMembershipSerializer
