@@ -34,7 +34,7 @@ include:
       prefix: test-
       destination: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
       rules:
-        - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH || $CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
+        - if: '($CI_COMMIT_REF_PROTECTED == "false" && $CI_PIPELINE_SOURCE != "merge_request_event") || $CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
           changes:
             - "buildrun/docker/tenzu/Dockerfile"
             - "buildrun/docker/tenzu/requirements/devel.txt"
@@ -132,7 +132,7 @@ test:
         path: $CI_PROJECT_DIR/src/coverage-report.xml
   rules:
     - if: '$CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_REF_PROTECTED == "false" && $CI_PIPELINE_SOURCE != "merge_request_event"'
 check_migration:
   stage: test
   image:
@@ -152,5 +152,5 @@ check_migration:
     - python manage.py makemigrations --check
   rules:
     - if: '$CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
-    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_REF_PROTECTED == "false" && $CI_PIPELINE_SOURCE != "merge_request_event"'
 
