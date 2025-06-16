@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.21](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.20...v0.0.1-staging.21) (2025-06-16)
+
+
+### Features
+
+* realtime invitation changes ([8383ceb](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/8383cebeaa7e39a92e26807f757479fc33ec1c98))
+* realtime invitation creation ([f854317](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/f854317eeb407659fd9b41d1029ac0d76888d0fc))
+* realtime membership deletion ([8c80a1b](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/8c80a1b16f3514737269a3e1967e1bf4cd79882f))
+* realtime membership update ([9e74151](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/9e74151fef307aef926072c5500f6fb1e77f429b))
+* realtime project creation ([ef4599f](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/ef4599fc795a47dd7dc14c339d4d48552521ede3))
+* realtime roles ([2ac978d](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/2ac978d683345310b4809127f91d06d6a5d1c08b))
+* realtime workspace creation ([99da657](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/99da6570806bfddb88aff13140d807a0ac323870))
+* realtime workspace update ([56689a4](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/56689a459281017d5cb7c30b4a4a8cf9c2600403))
+
+
+### Bug Fixes
+
+* serialise all modified invitation on bulk create, not just sent ones ([f837505](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/f837505d05ca5f45dc79aba1ff6ecdcaa0a0f9b8))
+
 ## [0.0.1-staging.20](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.19...v0.0.1-staging.20) (2025-06-13)
 
 ## [0.0.1-staging.19](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.18...v0.0.1-staging.19) (2025-06-12)
