@@ -21,22 +21,29 @@ from base.serializers import UUIDB64, BaseModel
 from memberships.serializers import RoleSerializer
 from projects.memberships.serializers import (
     ProjectMembershipSerializer,
+    ProjectRoleSerializer,
 )
+from projects.projects.serializers import ProjectSummarySerializer
 
 
 class ProjectMembershipContent(BaseModel):
     membership: ProjectMembershipSerializer
+    role: RoleSerializer
+    self_recipient: bool = False
+    project: ProjectSummarySerializer | None
 
 
 class DeleteProjectMembershipContent(BaseModel):
     membership: ProjectMembershipSerializer
     workspace_id: UUIDB64
+    self_recipient: bool = False
 
 
-class ProjectRoleContent(RoleSerializer):
-    pass
+class ProjectRoleContent(BaseModel):
+    role: ProjectRoleSerializer
 
 
 class DeleteProjectRoleContent(BaseModel):
-    role: RoleSerializer
+    role_id: UUIDB64
     target_role: RoleSerializer | None
+    project_id: UUIDB64

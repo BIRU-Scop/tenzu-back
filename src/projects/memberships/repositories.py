@@ -23,6 +23,7 @@ from django.db.models import QuerySet
 from memberships.repositories import (  # noqa
     bulk_update_or_create_memberships,
     delete_memberships,
+    delete_memberships_with_objects,
     exists_membership,
     get_membership,
     get_role,

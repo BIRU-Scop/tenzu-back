@@ -41,6 +41,7 @@ async def test_create_workspace_being_anonymous(client):
     assert response.status_code == 401, response.data
 
 
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_create_workspace_success(client):
     user = await f.create_user()
     data = {
