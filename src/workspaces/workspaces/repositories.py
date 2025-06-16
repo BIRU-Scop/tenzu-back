@@ -101,8 +101,8 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
     ws_qs = (
         Workspace.objects.filter(
             Q(memberships__user_id=user.id)
-            | user_invited_query
-            | user_pj_in_ws_invited_query
+            # | user_invited_query
+            # | user_pj_in_ws_invited_query
         )
         .annotate(
             user_is_invited=Exists(
@@ -138,6 +138,7 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
         .order_by("user_is_member", "-created_at")
         .distinct()
     )
+    print(ws_qs.query)
 
     return [ws async for ws in ws_qs]
 
