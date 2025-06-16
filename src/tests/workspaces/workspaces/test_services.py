@@ -23,6 +23,7 @@ import pytest
 
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_UUID
+from tests.utils.utils import patch_db_transaction
 from workspaces.workspaces import services
 from workspaces.workspaces.services import exceptions as ex
 
@@ -43,12 +44,20 @@ async def test_create_workspace_ok():
             "workspaces.workspaces.services.ws_memberships_repositories", autospec=True
         ) as fake_ws_memberships_repo,
         patch(
-            "workspaces.workspaces.services.WorkspaceDetailSerializer"
+            "workspaces.workspaces.services.WorkspaceDetailSerializer", autospec=True
         ) as fake_WorkspaceDetailSerializer,
+        patch(
+            "workspaces.workspaces.services.workspaces_events", autospec=True
+        ) as fake_workspaces_events,
+        patch_db_transaction(),
     ):
         await services.create_workspace(name=name, color=color, created_by=user)
         fake_workspaces_repo.create_workspace.assert_awaited_once()
         fake_ws_memberships_repo.create_workspace_membership.assert_awaited_once()
+        fake_workspaces_events.emit_event_when_workspace_is_created.assert_awaited_once_with(
+            workspace_detail=fake_WorkspaceDetailSerializer.return_value,
+            created_by=user,
+        )
         assert (
             fake_WorkspaceDetailSerializer.call_args.kwargs["user_is_invited"] is False
         )

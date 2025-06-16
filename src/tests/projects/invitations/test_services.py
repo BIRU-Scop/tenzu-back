@@ -850,7 +850,9 @@ async def test_accept_project_invitation_existing_workspace_membership() -> None
             project=project, role=role, user=user
         )
         fake_invitations_events.emit_event_when_project_invitation_is_accepted.assert_awaited_once_with(
-            invitation=invitation
+            invitation=invitation,
+            membership=fake_pj_memberships_repo.create_project_membership.return_value,
+            workspace_membership=None,
         )
         fake_pj_memberships_repo.exists_membership.assert_awaited_once_with(
             WorkspaceMembership,
@@ -912,7 +914,9 @@ async def test_accept_project_invitation_existing_workspace_invitation() -> None
             project=project, role=role, user=user
         )
         fake_invitations_events.emit_event_when_project_invitation_is_accepted.assert_awaited_once_with(
-            invitation=invitation
+            invitation=invitation,
+            membership=fake_pj_memberships_repo.create_project_membership.return_value,
+            workspace_membership=None,
         )
         fake_pj_memberships_repo.exists_membership.assert_awaited_once_with(
             WorkspaceMembership,
@@ -984,7 +988,9 @@ async def test_accept_project_invitation_no_workspace_membership_nor_invitation(
             project=project, role=role, user=user
         )
         fake_invitations_events.emit_event_when_project_invitation_is_accepted.assert_awaited_once_with(
-            invitation=invitation
+            invitation=invitation,
+            membership=fake_pj_memberships_repo.create_project_membership.return_value,
+            workspace_membership=fake_workspaces_memberships_services.create_default_workspace_membership.return_value,
         )
         fake_pj_memberships_repo.exists_membership.assert_awaited_once_with(
             WorkspaceMembership,

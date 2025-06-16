@@ -616,7 +616,8 @@ async def test_accept_workspace_invitation() -> None:
             workspace=workspace, role=invitation.role, user=user
         )
         fake_invitations_events.emit_event_when_workspace_invitation_is_accepted.assert_awaited_once_with(
-            invitation=invitation
+            invitation=invitation,
+            membership=fake_ws_memberships_repo.create_workspace_membership.return_value,
         )
 
 
