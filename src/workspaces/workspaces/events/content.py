@@ -22,6 +22,10 @@ from users.serializers.nested import UserNestedSerializer
 from workspaces.workspaces.serializers import WorkspaceDetailSerializer
 
 
+class CreateWorkspaceContent(BaseModel):
+    workspace: WorkspaceDetailSerializer
+
+
 class UpdateWorkspaceContent(BaseModel):
     workspace: WorkspaceDetailSerializer
     updated_by: UserNestedSerializer

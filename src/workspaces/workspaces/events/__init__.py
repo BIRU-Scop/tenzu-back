@@ -20,14 +20,28 @@
 from events import events_manager
 from users.models import AnyUser, User
 from workspaces.workspaces.events.content import (
+    CreateWorkspaceContent,
     DeleteWorkspaceContent,
     UpdateWorkspaceContent,
 )
 from workspaces.workspaces.models import Workspace
 from workspaces.workspaces.serializers import WorkspaceDetailSerializer
 
+CREATE_WORKSPACE = "workspaces.create"
 UPDATE_WORKSPACE = "workspaces.update"
 DELETE_WORKSPACE = "workspaces.delete"
+
+
+async def emit_event_when_workspace_is_created(
+    workspace_detail: WorkspaceDetailSerializer, created_by: User
+) -> None:
+    content = CreateWorkspaceContent(workspace=workspace_detail)
+    # for creator other windows on homepage
+    await events_manager.publish_on_user_channel(
+        user=created_by,
+        type=CREATE_WORKSPACE,
+        content=content,
+    )
 
 
 async def emit_event_when_workspace_is_updated(
