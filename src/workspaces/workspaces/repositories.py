@@ -25,6 +25,7 @@ from django.db.models import (
     OuterRef,
     Prefetch,
     Q,
+    Value,
 )
 from django.db.models.aggregates import Count
 
@@ -34,7 +35,6 @@ from memberships import repositories as memberships_repositories
 from permissions.choices import WorkspacePermissions
 from projects.projects.models import Project
 from users.models import User
-from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships.models import WorkspaceMembership
 from workspaces.workspaces.models import Workspace
 
@@ -69,6 +69,48 @@ async def create_workspace(name: str, color: int, created_by: User) -> Workspace
 ##########################################################
 
 
+def _make_ws_query(
+    filters,
+    user,
+    member_projects_qs,
+    invited_projects_qs,
+    is_invited: bool,
+    is_member: bool,
+    user_can_create_projects: bool | None,
+):
+    user_can_create_projects = (
+        Value(user_can_create_projects)
+        if user_can_create_projects is not None
+        else Exists(
+            WorkspaceMembership.objects.filter(
+                user_id=user.id,
+                workspace_id=OuterRef("pk"),
+                role__permissions__contains=[WorkspacePermissions.CREATE_PROJECT.value],
+            )
+        )
+    )
+    return (
+        Workspace.objects.filter(filters)
+        .annotate(
+            user_is_invited=Value(is_invited),
+            user_is_member=Value(is_member),
+            user_can_create_projects=user_can_create_projects,
+        )
+        .prefetch_related(
+            Prefetch(
+                "projects", queryset=member_projects_qs, to_attr="user_member_projects"
+            ),
+            Prefetch(
+                "projects",
+                queryset=invited_projects_qs,
+                to_attr="user_invited_projects",
+            ),
+        )
+        .order_by("-created_at")
+        .distinct()
+    )
+
+
 async def list_user_workspaces_overview(user: User) -> list[Workspace]:
     # --- Utility queries and querysets
     #####
@@ -95,52 +137,53 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
         Project.objects.filter(user_invited_query).distinct().order_by("-created_at")
     )
     #####
-
+    ws_qs_invited = _make_ws_query(
+        user_invited_query,
+        user,
+        member_projects_qs,
+        invited_projects_qs,
+        is_invited=True,
+        is_member=False,
+        user_can_create_projects=False,
+    )
+    ws_qs_user_pj_in_ws_invited_query = _make_ws_query(
+        user_pj_in_ws_invited_query,
+        user,
+        member_projects_qs,
+        invited_projects_qs,
+        is_invited=False,
+        is_member=False,
+        user_can_create_projects=False,
+    )
+    ws_qs = _make_ws_query(
+        Q(memberships__user_id=user.id),
+        user,
+        member_projects_qs,
+        invited_projects_qs,
+        is_invited=False,
+        is_member=True,
+        user_can_create_projects=None,
+    )
     # queryset for all workspaces where user is member or invited
     # (either directly to workspace or to one of its projects)
-    ws_qs = (
-        Workspace.objects.filter(
-            Q(memberships__user_id=user.id)
-            # | user_invited_query
-            # | user_pj_in_ws_invited_query
+    workspaces = [ws async for ws in ws_qs]
+    workspace_ids = [ws.id for ws in workspaces]
+    ws_invited = [ws async for ws in ws_qs_invited.exclude(id__in=workspace_ids)]
+    pj_ws_invited = [
+        ws
+        async for ws in ws_qs_user_pj_in_ws_invited_query.exclude(
+            id__in=[
+                *workspace_ids,
+                *[ws.id for ws in ws_invited],
+            ]
         )
-        .annotate(
-            user_is_invited=Exists(
-                WorkspaceInvitation.objects.filter(
-                    pending_user_invitation_query, workspace_id=OuterRef("pk")
-                )
-            ),
-            user_is_member=Exists(
-                WorkspaceMembership.objects.filter(
-                    user_id=user.id, workspace_id=OuterRef("pk")
-                )
-            ),
-            user_can_create_projects=Exists(
-                WorkspaceMembership.objects.filter(
-                    user_id=user.id,
-                    workspace_id=OuterRef("pk"),
-                    role__permissions__contains=[
-                        WorkspacePermissions.CREATE_PROJECT.value
-                    ],
-                )
-            ),
-        )
-        .prefetch_related(
-            Prefetch(
-                "projects", queryset=member_projects_qs, to_attr="user_member_projects"
-            ),
-            Prefetch(
-                "projects",
-                queryset=invited_projects_qs,
-                to_attr="user_invited_projects",
-            ),
-        )
-        .order_by("user_is_member", "-created_at")
-        .distinct()
-    )
-    print(ws_qs.query)
+    ]
 
-    return [ws async for ws in ws_qs]
+    return [
+        *ws_invited,
+        *pj_ws_invited,
+        *workspaces,
+    ]
 
 
 ##########################################################
