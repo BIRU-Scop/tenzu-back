@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://tenzu.net/media/images/tenzu_logo_full_animated_HRtDXL8.original.svg" alt="Tenzu logo" width="200" />
+<img src="https://tenzu.net/media/images/tenzu_logo_full_animated_ufu8CCw.original.svg" alt="Tenzu logo" width="200" />
 
 <a href="https://tenzu.net"><b>Website</b></a> •
 <a href="https://tenzu.net/docs"><b>Documentation</b></a> •
@@ -19,7 +19,7 @@
 Our mission is to help all actors in a project team, from Techs through Product and Designers up to Leaders, 
 share knowledge and learnings to make informed decisions.
 
-![tenzu screenshot](https://tenzu.net/media/images/tenzu-screenshoot-RS_kMgBpJ0.original.png)
+![tenzu screenshot](https://tenzu.net/media/images/tenzu_demo.original.webp)
 
 ## Features
 - *Project spaces*: Multiple project space organised by workspaces
