@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.24](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.23...v0.0.1-staging.24) (2025-06-19)
+
+
+### Bug Fixes
+
+* prevent hash direct matching ([128e817](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/128e8175d8a6ad414cf8ed13673966611808828c))
+
 ## [0.0.1-staging.23](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.22...v0.0.1-staging.23) (2025-06-17)
 
 ## [0.0.1-staging.22](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.21...v0.0.1-staging.22) (2025-06-16)
