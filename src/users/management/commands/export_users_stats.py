@@ -28,6 +28,10 @@ from django.db.models import Q, QuerySet
 from users.models import User
 
 
+def add_salt(email: str):
+    return f"tenzu:{email}"
+
+
 class Command(BaseCommand):
     help = "Export anonymised users registration, useful for stats without collecting any personal data"
 
@@ -81,7 +85,7 @@ class Command(BaseCommand):
                 writer.writerow(
                     {
                         "email_hash": hashlib.sha512(
-                            user.email.encode("utf-8", "backslashreplace")
+                            add_salt(user.email).encode("utf-8", "backslashreplace")
                         ).hexdigest(),
                         "date_joined": user.date_joined.isoformat(),
                     }
