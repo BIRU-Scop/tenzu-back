@@ -406,7 +406,7 @@ async def test_delete_workspace_membership_not_owner(client, project_template):
     assert response.status_code == 403, response.data
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_delete_workspace_membership_role_owner_and_owner(
     client, project_template
 ):
