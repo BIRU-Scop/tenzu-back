@@ -16,13 +16,29 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
 import shutil
 from pathlib import Path
 
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from procrastinate.contrib.django import app
+from storages.backends.s3 import S3Storage
+
+from projects.projects.models import Project
 
 
 @app.task
-async def delete_old_logo(path: str) -> None:
-    shutil.rmtree(Path(path).parent)
+async def delete_old_logo(file_name: str) -> None:
+    # we need to delete parent folder to also delete any created thumbnails
+    path = str(Path(file_name).parent)
+    storage = Project._meta.get_field("logo").storage
+
+    if isinstance(storage, S3Storage):
+        storage.bucket.objects.filter(Prefix=path).delete()
+    elif isinstance(storage, FileSystemStorage):
+        path = Path(settings.MEDIA_ROOT, path)
+        shutil.rmtree(str(path))
+    else:
+        raise ValueError(
+            "Deletion is only supported for S3Storage and FileSystemStorage"
+        )

@@ -21,37 +21,21 @@ from datetime import datetime
 from typing import TypedDict
 from uuid import UUID
 
-from django.db.models import QuerySet
 from django.db.models.deletion import RestrictedError
 
 from base.utils.datetime import aware_utcnow
 from base.utils.files import File
 from commons.storage.models import StoragedObject
+from commons.utils import transaction_atomic_async
 
 ##########################################################
 # filters and querysets
 ##########################################################
 
 
-DEFAULT_QUERYSET = StoragedObject.objects.all()
-
-
 class StoragedObjectFilters(TypedDict, total=False):
     id: UUID
-    deleted_before: datetime
-
-
-async def _apply_filters_to_queryset(
-    qs: QuerySet[StoragedObject],
-    filters: StoragedObjectFilters = {},
-) -> QuerySet[StoragedObject]:
-    filter_data = dict(filters.copy())
-
-    if "deleted_before" in filter_data:
-        deleted_before = filter_data.pop("deleted_before")
-        filter_data["deleted_at__lt"] = deleted_before
-
-    return qs.filter(**filter_data)
+    deleted_at__lt: datetime
 
 
 ##########################################################
@@ -73,7 +57,7 @@ async def create_storaged_object(
 async def list_storaged_objects(
     filters: StoragedObjectFilters = {},
 ) -> list[StoragedObject]:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
+    qs = StoragedObject.objects.all().filter(**filters)
     return [so async for so in qs]
 
 
@@ -82,19 +66,20 @@ async def list_storaged_objects(
 ########################################################
 
 
+@transaction_atomic_async
 async def delete_storaged_object(
     storaged_object: StoragedObject,
 ) -> bool:
     try:
-        await storaged_object.adelete()
-        storaged_object.file.delete(save=False)
-        return True
+        await transaction_atomic_async(storaged_object.adelete)()
     except RestrictedError:
         # This happens when you try to delete a StoragedObject that is being used by someone
         # (using ForeignKey with on_delete=PROTECT).
-
         # TODO: log this
         return False
+    else:
+        storaged_object.file.delete(save=False)
+        return True
 
 
 def mark_storaged_object_as_deleted(

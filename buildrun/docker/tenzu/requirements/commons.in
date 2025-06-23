@@ -41,6 +41,9 @@ babel
 PyJWT # For auth
 cryptography # For auth
 
+# storage
+django-storages[s3]
+
 # Utils & tools
 faker # For sampledata
 python-json-logger # JSON logger

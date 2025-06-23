@@ -60,7 +60,7 @@ async def emit_event_when_project_invitations_are_created(
             project=project,
             type=CREATE_PROJECT_INVITATION,
             content=ProjectInvitationContent(
-                user_id=invitation.user_id,
+                user_id=None,
                 workspace_id=project.workspace_id,
                 project_id=project.id,
                 self_recipient=False,

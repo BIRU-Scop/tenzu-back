@@ -23,6 +23,9 @@ services:
         condition: service_healthy
       tenzu-redis:
         condition: service_healthy
+      tenzu-minio:
+        condition: service_started
+
     command: ["python", "./manage.py", "runserver", "0.0.0.0:8000", "--settings=configurations.dev"]
 #    ports:
 #      - 8000:8000
@@ -95,6 +98,20 @@ services:
       - tenzu-media:/public/media
     networks:
       - tenzu
+  tenzu-minio:
+    image: bitnami/minio:latest
+    environment:
+      MINIO_ROOT_USER: "tenzu"
+      MINIO_ROOT_PASSWORD: "tenzu123123"
+      MINIO_DEFAULT_BUCKETS: "tenzu"
+      MINIO_BROWSER: "on"
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    networks:
+      tenzu:
+    volumes:
+      - tenzu-minio:/bitnami/minio/data
   compile-dep:
     image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
     build:
@@ -131,6 +148,6 @@ volumes:
   tenzu-db-data:
   tenzu-media:
   tenzu-static:
-
+  tenzu-minio:
 networks:
   tenzu:

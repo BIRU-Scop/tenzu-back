@@ -207,11 +207,29 @@ AUTHENTICATION_BACKENDS = ["auth.backends.EmailOrUsernameModelBackend"]
 # EMAIL
 
 locals().update(settings.EMAIL.model_dump())
-
-###############################################################################
+#############s##################################################################
 # 3-PARTY LIBS
 ###############################################################################
 
+# storage
+
+locals().update(
+    settings.STORAGE.model_dump(
+        include=[
+            field_name
+            for field_name, _field_value in settings.STORAGE
+            if field_name.startswith("AWS_")
+        ]
+    )
+)
+STORAGES = {
+    "default": {
+        "BACKEND": f"{settings.STORAGE.BACKEND_CLASS.value}",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # easy_thumbnails
 
