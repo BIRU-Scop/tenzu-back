@@ -43,7 +43,7 @@ async def test_clean_deleted_storaged_objects():
         )
 
         fake_storage_repositories.list_storaged_objects.assert_awaited_once_with(
-            filters={"deleted_before": before_datetime}
+            filters={"deleted_at__lt": before_datetime}
         )
 
         fake_storage_repositories.delete_storaged_object.assert_has_awaits(

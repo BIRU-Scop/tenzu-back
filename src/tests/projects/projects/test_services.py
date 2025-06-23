@@ -493,6 +493,7 @@ async def test_delete_project_fail():
         patch(
             "projects.projects.services.users_repositories", autospec=True
         ) as users_repositories,
+        patch_db_transaction(),
     ):
         fake_projects_repo.delete_projects.return_value = 0
 

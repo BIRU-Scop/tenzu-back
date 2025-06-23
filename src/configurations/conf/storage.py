@@ -25,7 +25,6 @@ from typing_extensions import Self
 class StorageBackends(StrEnum):
     FileSystemStorage = "django.core.files.storage.FileSystemStorage"
     S3Storage = "storages.backends.s3.S3Storage"
-    StaticFilesStorage = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 
 class StorageSettings(BaseModel):

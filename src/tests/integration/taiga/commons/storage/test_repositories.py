@@ -86,12 +86,12 @@ async def test_list_storage_objects_filters_by_deleted_datetime():
 
     assert (
         await repositories.list_storaged_objects(
-            filters={"deleted_before": aware_utcnow() - timedelta(days=4)}
+            filters={"deleted_at__lt": aware_utcnow() - timedelta(days=4)}
         )
         == []
     )
     assert await repositories.list_storaged_objects(
-        filters={"deleted_before": aware_utcnow() - timedelta(days=2)}
+        filters={"deleted_at__lt": aware_utcnow() - timedelta(days=2)}
     ) == [storaged_object2]
 
 

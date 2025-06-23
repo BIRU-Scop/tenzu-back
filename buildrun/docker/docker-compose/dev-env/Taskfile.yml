@@ -49,6 +49,7 @@ tasks:
       # cannot use execute-service because dotenv are not supported in internal/included tasks
       - docker compose exec tenzu-db dropdb -f -U $TENZU_DB__USER  -p 5432 --if-exists $TENZU_DB__NAME
       - docker compose exec tenzu-db createdb -U $TENZU_DB__USER  -p 5432 $TENZU_DB__NAME
+      - docker compose exec tenzu-minio mc rm --force --recursive local/$TENZU_STORAGE__AWS_STORAGE_BUCKET_NAME
       - task: manage
         vars:
           CLI_ARGS: "migrate --no-input"
