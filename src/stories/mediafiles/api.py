@@ -40,35 +40,35 @@ mediafiles_router = Router()
 ################################################
 
 
-@mediafiles_router.post(
-    "/projects/{project_id}/stories/{int:ref}/mediafiles",
-    url_name="project.story.mediafiles.create",
-    summary="Create mediafiles and attach to a story",
-    response={
-        200: list[MediafileSerializer],
-        403: ERROR_RESPONSE_403,
-        404: ERROR_RESPONSE_404,
-        422: ERROR_RESPONSE_422,
-    },
-    by_alias=True,
-)
-async def create_story_mediafiles(
-    request,
-    project_id: Path[B64UUID],
-    ref: Path[int],
-    files: list[UploadedFile] = File(...),
-) -> list[Mediafile]:
-    """
-    Add some mediafiles to a story
-    """
-    story = await get_story_or_404(project_id, ref)
-    await check_permissions(
-        permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
-    )
-
-    return await mediafiles_services.create_mediafiles(
-        files=files,
-        project=story.project,
-        object=story,
-        created_by=request.user,
-    )
+# @mediafiles_router.post(
+#     "/projects/{project_id}/stories/{int:ref}/mediafiles",
+#     url_name="project.story.mediafiles.create",
+#     summary="Create mediafiles and attach to a story",
+#     response={
+#         200: list[MediafileSerializer],
+#         403: ERROR_RESPONSE_403,
+#         404: ERROR_RESPONSE_404,
+#         422: ERROR_RESPONSE_422,
+#     },
+#     by_alias=True,
+# )
+# async def create_story_mediafiles(
+#     request,
+#     project_id: Path[B64UUID],
+#     ref: Path[int],
+#     files: list[UploadedFile] = File(...),
+# ) -> list[Mediafile]:
+#     """
+#     Add some mediafiles to a story
+#     """
+#     story = await get_story_or_404(project_id, ref)
+#     await check_permissions(
+#         permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=story
+#     )
+#
+#     return await mediafiles_services.create_mediafiles(
+#         files=files,
+#         project=story.project,
+#         object=story,
+#         created_by=request.user,
+#     )
