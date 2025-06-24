@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.25](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.24...v0.0.1-staging.25) (2025-06-24)
+
+
+### Features
+
+* add s3-storage ([566d6cd](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/566d6cdf40758f9d529fb2eb6173ffbba7d87b1a))
+* remove mediafile endpoint ([e0909f0](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/e0909f018c7bd350dadbb89ef8b2eadc11336e0f))
+
+
+### Bug Fixes
+
+* make all file operations works with s3 storage ([912dd6c](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/912dd6c4037efc00003839b97b8ad91fa31ab4fe))
+* prevent error when creating invitation for non-users only ([9f8a1d4](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/9f8a1d4dbd80a18931f7cefcf27b1e264dfa8c0c))
+
 ## [0.0.1-staging.24](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.23...v0.0.1-staging.24) (2025-06-19)
 
 
