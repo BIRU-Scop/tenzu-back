@@ -14,7 +14,7 @@
 
 # About
 
-[Tenzu](https://tenzu.app/) is your open-source companion tool to launch digital projects
+[Tenzu](https://tenzu.net/) is your open-source companion tool to launch digital projects
 
 Our mission is to help all actors in a project team, from Techs through Product and Designers up to Leaders, 
 share knowledge and learnings to make informed decisions.
