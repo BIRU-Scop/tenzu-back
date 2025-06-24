@@ -24,7 +24,7 @@ from commons.storage import repositories as storage_repositories
 
 async def clean_deleted_storaged_objects(before: datetime) -> int:
     storaged_objects = await storage_repositories.list_storaged_objects(
-        filters={"deleted_before": before}
+        filters={"deleted_at__lt": before}
     )
     deleted = 0
     for storaged_object in storaged_objects:

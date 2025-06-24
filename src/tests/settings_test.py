@@ -41,3 +41,12 @@ NINJA_JWT = {
 }
 
 USER_EMAIL_ALLOWED_DOMAINS = []
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}

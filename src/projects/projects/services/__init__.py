@@ -21,7 +21,6 @@ from functools import partial
 from typing import Any
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
 from django.conf import settings
 from ninja import UploadedFile
 
@@ -236,7 +235,7 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
 
         # Mark a file to-delete
         if project.logo:
-            file_to_delete = project.logo.path
+            file_to_delete = project.logo.name
 
     # Update project
     updated_project = await projects_repositories.update_project(
@@ -245,7 +244,7 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
 
     # Delete old file if existed
     if file_to_delete:
-        await sync_to_async(projects_tasks.delete_old_logo.defer)(path=file_to_delete)
+        await projects_tasks.delete_old_logo.defer_async(file_name=file_to_delete)
 
     return updated_project
 
@@ -255,20 +254,19 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
 ##########################################################
 
 
+@transaction_atomic_async
 async def delete_project(project: Project, deleted_by: User) -> bool:
     # Mark the file to delete
     file_to_delete = None
     if project.logo:
-        file_to_delete = project.logo.path
+        file_to_delete = project.logo.name
 
     deleted = await projects_repositories.delete_projects(project_id=project.id)
 
     if deleted > 0:
         # Delete old file if existed
         if file_to_delete:
-            await sync_to_async(projects_tasks.delete_old_logo.defer)(
-                path=file_to_delete
-            )
+            await projects_tasks.delete_old_logo.defer_async(file_name=file_to_delete)
 
         # Emit event
         await transaction_on_commit_async(
