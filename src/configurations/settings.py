@@ -85,7 +85,6 @@ INSTALLED_APPS = [
     "base.db",
     "commons.storage",
     "emails",
-    "mediafiles",
     "notifications",
     "projects.invitations",
     "projects.memberships",

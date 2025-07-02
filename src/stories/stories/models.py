@@ -29,7 +29,6 @@ from base.db.models.mixins import (
 from base.occ.models import VersionedMixin
 from comments.mixins import RelatedCommentsMixin
 from commons.ordering import OrderedMixin
-from mediafiles.mixins import RelatedMediafilesMixin
 from projects.references.mixins import ProjectReferenceMixin
 
 
@@ -43,7 +42,6 @@ class Story(
     DescriptionUpdatedMetaInfoMixin,
     RelatedAttachmentsMixin,
     RelatedCommentsMixin,
-    RelatedMediafilesMixin,
 ):
     title = models.CharField(
         max_length=500, null=False, blank=False, verbose_name="title"
