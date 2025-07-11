@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -71,7 +71,7 @@ def get_size(file: IO[Any]) -> int:
     return size
 
 
-def normailize_filename(filename: str) -> str:
+def normalize_filename(filename: str) -> str:
     """
     Normalize a filename. It will be
 
@@ -94,7 +94,7 @@ def get_obfuscated_file_path(instance: Any, filename: str, base_path: str = "") 
     Generates a path for a file by obfuscating it, using a hash as the name of the directory
     in which it will be stored.
 
-    NOTE: This function is useful for use in a Dajngo model with FileField or ImageField to
+    NOTE: This function is useful for use in a Django model with FileField or ImageField to
     define the upload_to attribute.
 
     :param instance: a Django Model instance
@@ -106,7 +106,7 @@ def get_obfuscated_file_path(instance: Any, filename: str, base_path: str = "") 
     :return an obfuscated path
     :rtype str
     """
-    basename = normailize_filename(filename)
+    basename = normalize_filename(filename)
 
     hs = hashlib.sha256()
     hs.update(aware_utcnow().isoformat().encode("utf-8", "strict"))

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,6 +20,7 @@
 import logging.config
 from datetime import timedelta
 from functools import lru_cache
+from importlib import import_module
 from pathlib import Path
 
 from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
@@ -66,6 +67,8 @@ class Settings(BaseSettings):
     EXTRA_CORS: list[AnyHttpUrl] = Field(default_factory=list)
 
     API_VERSION: str = "v1"
+
+    EXTRA_DEPS: list[str] = Field(default_factory=list)
 
     # Database
     DB: DbSettings = DbSettings()
@@ -161,12 +164,17 @@ class Settings(BaseSettings):
         env_prefix="TENZU_",
         env_nested_delimiter="__",
         case_sensitive=True,
+        extra="allow",
     )
 
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    for extra_dep in settings.EXTRA_DEPS:
+        extra_settings = import_module(f"{extra_dep}.settings")
+        setattr(settings, extra_dep.upper(), extra_settings.settings)
+    return settings
 
 
 logging.config.dictConfig(LOGGING_CONFIG)

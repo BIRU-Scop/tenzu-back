@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     "procrastinate.contrib.django",
     "corsheaders",
     "django_extensions",
+    *settings.EXTRA_DEPS,
 ]
 
 MIDDLEWARE = [
