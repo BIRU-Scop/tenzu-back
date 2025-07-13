@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,11 +24,11 @@ from asgiref.sync import sync_to_async
 from django.db.models import Exists, OuterRef, Q
 
 from base.db.utils import Q_for_related
-from base.utils.datetime import aware_utcnow
 from base.utils.files import File
 from commons.utils import transaction_atomic_async
 from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus
+from ninja_jwt.utils import aware_utcnow
 from projects import references
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import repositories as pj_memberships_repositories

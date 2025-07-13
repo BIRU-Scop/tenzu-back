@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,8 +20,8 @@
 from unittest.mock import AsyncMock, PropertyMock, patch
 from uuid import uuid1
 
-from base.utils.datetime import aware_utcnow
 from comments import services
+from ninja_jwt.utils import aware_utcnow
 from tests.utils import factories as f
 
 #####################################################

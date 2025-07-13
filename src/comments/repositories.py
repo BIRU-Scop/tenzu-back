@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,8 +24,8 @@ from asgiref.sync import sync_to_async
 from django.db.models import Model, QuerySet
 
 from base.db.models import BaseModel, get_contenttype_for_model
-from base.utils.datetime import aware_utcnow
 from comments.models import Comment
+from ninja_jwt.utils import aware_utcnow
 from users.models import User
 
 ##########################################################

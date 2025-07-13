@@ -26,9 +26,9 @@ from django.core.files.base import File as DjangoFile
 from django.db.models.fields.files import FieldFile  # noqa
 from ninja import UploadedFile
 
-from base.utils.datetime import aware_utcnow
 from base.utils.iterators import split_by_n
 from base.utils.slug import slugify
+from ninja_jwt.utils import aware_utcnow
 
 File = DjangoFile
 

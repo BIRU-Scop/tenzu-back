@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,9 +19,9 @@
 
 import pytest
 
-from base.utils.datetime import aware_utcnow
 from comments import repositories
 from comments.models import Comment
+from ninja_jwt.utils import aware_utcnow
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db

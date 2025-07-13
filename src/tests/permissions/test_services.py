@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,14 +16,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import datetime
 from dataclasses import dataclass
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from base.utils import datetime
-from base.utils.datetime import aware_utcnow
 from commons.exceptions import api as ex
+from ninja_jwt.utils import aware_utcnow
 from permissions import (
     AllowAny,
     And,

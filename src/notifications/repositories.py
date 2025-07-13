@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,7 +24,7 @@ from uuid import UUID
 
 from django.db.models import Count, Q
 
-from base.utils.datetime import aware_utcnow
+from ninja_jwt.utils import aware_utcnow
 from notifications.models import Notification
 from users.models import User
 

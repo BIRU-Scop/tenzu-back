@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,7 +20,7 @@
 from unittest.mock import call, patch
 
 from base.serializers import BaseModel
-from base.utils.datetime import aware_utcnow
+from ninja_jwt.utils import aware_utcnow
 from notifications import services
 from tests.utils import factories as f
 

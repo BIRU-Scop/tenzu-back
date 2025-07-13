@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,7 +23,6 @@ from uuid import UUID
 from django.db.models import Model
 
 from base.api import Pagination
-from base.utils.datetime import aware_utcnow
 from comments import repositories as comments_repositories
 from comments.events import (
     EventOnCreateCallable,
@@ -33,6 +32,7 @@ from comments.events import (
 from comments.models import Comment
 from comments.notifications import NotificationOnCreateCallable
 from comments.repositories import CommentFilters, CommentOrderBy
+from ninja_jwt.utils import aware_utcnow
 from users.models import User
 
 ##########################################################

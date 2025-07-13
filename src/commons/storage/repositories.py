@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,10 +23,10 @@ from uuid import UUID
 
 from django.db.models.deletion import RestrictedError
 
-from base.utils.datetime import aware_utcnow
 from base.utils.files import File
 from commons.storage.models import StoragedObject
 from commons.utils import transaction_atomic_async
+from ninja_jwt.utils import aware_utcnow
 
 ##########################################################
 # filters and querysets
