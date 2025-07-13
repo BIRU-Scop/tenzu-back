@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -25,6 +25,7 @@ from ninja import UploadedFile
 from attachments import repositories as attachments_repositories
 from attachments.events import EventOnCreateCallable, EventOnDeleteCallable
 from attachments.models import Attachment
+from base.db.models import get_contenttype_for_model
 from users.models import User
 
 ##########################################################
@@ -59,8 +60,11 @@ async def list_attachments(
     content_object: Model,
 ) -> list[Attachment]:
     return await attachments_repositories.list_attachments(
-        filters={"content_object": content_object},
-        prefetch_related=["content_object", "project"],
+        filters={
+            "object_content_type": await get_contenttype_for_model(content_object),
+            "object_id": content_object.id,
+        },
+        prefetch_related=["content_object", "content_object__project"],
     )
 
 
@@ -74,7 +78,7 @@ async def get_attachment(
 ) -> Attachment:
     return await attachments_repositories.get_attachment(
         filters={"id": attachment_id},
-        prefetch_related=["content_object", "project"],
+        prefetch_related=["content_object", "content_object__project"],
     )
 
 

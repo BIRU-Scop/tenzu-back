@@ -17,13 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
-from django.db.models import Model, QuerySet
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Model
 
-from base.db.models import BaseModel, get_contenttype_for_model
 from comments.models import Comment
 from ninja_jwt.utils import aware_utcnow
 from users.models import User
@@ -33,44 +33,11 @@ from users.models import User
 ##########################################################
 
 
-DEFAULT_QUERYSET = Comment.objects.all()
-
-
 class CommentFilters(TypedDict, total=False):
     id: UUID
-    content_object: Model
-
-
-async def _apply_filters_to_queryset(
-    qs: QuerySet[Comment],
-    filters: CommentFilters = {},
-) -> QuerySet[Comment]:
-    filter_data = dict(filters.copy())
-
-    if "content_object" in filters:
-        content_object = cast(BaseModel, filter_data.pop("content_object"))
-        filter_data["object_content_type"] = await get_contenttype_for_model(
-            content_object
-        )
-        filter_data["object_id"] = content_object.id
-
-    return qs.filter(**filter_data)
-
-
-class CommentExcludes(TypedDict, total=False):
-    deleted: bool
-
-
-async def _apply_excludes_to_queryset(
-    qs: QuerySet[Comment],
-    excludes: CommentExcludes = {},
-) -> QuerySet[Comment]:
-    excludes_data = dict(excludes.copy())
-
-    if "deleted" in excludes_data and excludes_data.pop("deleted"):
-        excludes_data["deleted_by__isnull"] = False
-
-    return qs.exclude(**excludes_data)
+    object_content_type: ContentType
+    object_id: UUID
+    deleted_by__isnull: bool
 
 
 CommentSelectRelated = list[
@@ -81,38 +48,13 @@ CommentSelectRelated = list[
     | None
 ]
 
-
-async def _apply_select_related_to_queryset(
-    qs: QuerySet[Comment],
-    select_related: CommentSelectRelated = [None],
-) -> QuerySet[Comment]:
-    return qs.select_related(*select_related)
-
-
 CommentPrefetchRelated = list[
     Literal[
         "content_object",
-        "project",
-        "workspace",
+        "content_object__project",
+        "content_object__project__workspace",
     ]
 ]
-
-
-async def _apply_prefetch_related_to_queryset(
-    qs: QuerySet[Comment],
-    prefetch_related: CommentPrefetchRelated,
-) -> QuerySet[Comment]:
-    prefetch_related_data = []
-
-    for key in prefetch_related:
-        if key == "workspace":
-            prefetch_related_data.append("content_object__project__workspace")
-        elif key == "project":
-            prefetch_related_data.append("content_object__project")
-        else:
-            prefetch_related_data.append(key)
-
-    return qs.prefetch_related(*prefetch_related_data)
 
 
 CommentOrderBy = list[
@@ -121,13 +63,6 @@ CommentOrderBy = list[
         "-created_at",
     ]
 ]
-
-
-async def _apply_order_by_to_queryset(
-    qs: QuerySet[Comment],
-    order_by: CommentOrderBy,
-) -> QuerySet[Comment]:
-    return qs.order_by(*order_by)
 
 
 ##########################################################
@@ -159,9 +94,12 @@ async def list_comments(
     offset: int | None = None,
     limit: int | None = None,
 ) -> list[Comment]:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = await _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    qs = await _apply_order_by_to_queryset(order_by=order_by, qs=qs)
+    qs = (
+        Comment.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+        .order_by(*order_by)
+    )
 
     if limit is not None and offset is not None:
         limit += offset
@@ -178,13 +116,12 @@ async def get_comment(
     filters: CommentFilters = {},
     select_related: CommentSelectRelated = [None],
     prefetch_related: CommentPrefetchRelated = [],
-    excludes: CommentExcludes = {},
 ) -> Comment:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = await _apply_excludes_to_queryset(qs=qs, excludes=excludes)
-    qs = await _apply_select_related_to_queryset(qs=qs, select_related=select_related)
-    qs = await _apply_prefetch_related_to_queryset(
-        qs=qs, prefetch_related=prefetch_related
+    qs = (
+        Comment.objects.all()
+        .filter(**filters)
+        .select_related(*select_related)
+        .prefetch_related(*prefetch_related)
     )
     return await qs.aget()
 
@@ -210,7 +147,7 @@ def update_comment(comment: Comment, values: dict[str, Any] = {}) -> Comment:
 
 
 async def delete_comments(filters: CommentFilters = {}) -> int:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
+    qs = Comment.objects.all().filter(**filters)
     count, _ = await qs.adelete()
     return count
 
@@ -220,9 +157,6 @@ async def delete_comments(filters: CommentFilters = {}) -> int:
 ##########################################################
 
 
-async def get_total_comments(
-    filters: CommentFilters = {}, excludes: CommentExcludes = {}
-) -> int:
-    qs = await _apply_filters_to_queryset(qs=DEFAULT_QUERYSET, filters=filters)
-    qs = await _apply_excludes_to_queryset(qs=qs, excludes=excludes)
+async def get_total_comments(filters: CommentFilters = {}) -> int:
+    qs = Comment.objects.all().filter(**filters)
     return await qs.acount()

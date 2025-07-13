@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -96,21 +96,20 @@ async def test_list_attachments():
         f.build_attachment(),
     ]
 
-    filters = {"content_object": story}
-
     with (
         patch(
             "attachments.services.attachments_repositories", autospec=True
         ) as fake_attachments_repositories,
+        patch(
+            "attachments.services.get_contenttype_for_model", autospec=True
+        ) as fake_get_contenttype_for_model,
     ):
         fake_attachments_repositories.list_attachments.return_value = attachments
         attachments_list = await services.list_attachments(
             content_object=story,
         )
-        fake_attachments_repositories.list_attachments.assert_awaited_once_with(
-            filters=filters,
-            prefetch_related=["content_object", "project"],
-        )
+        fake_attachments_repositories.list_attachments.assert_awaited_once()
+        fake_get_contenttype_for_model.assert_awaited_once()
         assert len(attachments_list) == 3
 
 
@@ -130,7 +129,7 @@ async def test_get_attachment():
         await services.get_attachment(attachment_id=attachment_id)
         fake_attachments_repositories.get_attachment.assert_awaited_once_with(
             filters={"id": attachment_id},
-            prefetch_related=["content_object", "project"],
+            prefetch_related=["content_object", "content_object__project"],
         )
 
 

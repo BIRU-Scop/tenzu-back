@@ -19,6 +19,7 @@
 
 import pytest
 
+from base.db.models import get_contenttype_for_model
 from comments import repositories
 from comments.models import Comment
 from ninja_jwt.utils import aware_utcnow
@@ -61,7 +62,10 @@ async def test_list_comments_by_content_object():
     await f.create_comment(content_object=story2)
 
     comments = await repositories.list_comments(
-        filters={"content_object": story1},
+        filters={
+            "object_content_type": await get_contenttype_for_model(story1),
+            "object_id": story1.id,
+        },
     )
     assert len(comments) == 2
     assert comment11 in comments
@@ -81,17 +85,15 @@ async def test_get_comment():
     comment22 = await f.create_comment(content_object=story2)
 
     assert await repositories.get_comment(filters={"id": comment22.id}) == comment22
-    assert (
-        await repositories.get_comment(filters={"content_object": story1}) == comment11
-    )
+    content_filters = {
+        "object_content_type": await get_contenttype_for_model(story1),
+        "object_id": story1.id,
+    }
+    assert await repositories.get_comment(filters={**content_filters}) == comment11
     with pytest.raises(Comment.DoesNotExist):
-        await repositories.get_comment(
-            filters={"content_object": story1, "id": comment21.id}
-        )
+        await repositories.get_comment(filters={**content_filters, "id": comment21.id})
     assert (
-        await repositories.get_comment(
-            filters={"content_object": story1, "id": comment11.id}
-        )
+        await repositories.get_comment(filters={**content_filters, "id": comment11.id})
         == comment11
     )
 
@@ -123,8 +125,24 @@ async def test_delete_comments():
     await f.create_comment(content_object=story2)
     await f.create_comment(content_object=story2)
 
-    assert await repositories.delete_comments(filters={"content_object": story1}) == 0
-    assert await repositories.delete_comments(filters={"content_object": story2}) == 2
+    assert (
+        await repositories.delete_comments(
+            filters={
+                "object_content_type": await get_contenttype_for_model(story1),
+                "object_id": story1.id,
+            }
+        )
+        == 0
+    )
+    assert (
+        await repositories.delete_comments(
+            filters={
+                "object_content_type": await get_contenttype_for_model(story2),
+                "object_id": story2.id,
+            }
+        )
+        == 2
+    )
 
 
 ##########################################################
@@ -140,7 +158,10 @@ async def test_get_total_comments_by_content_object():
     await f.create_comment(content_object=story2)
 
     total_comments = await repositories.get_total_comments(
-        filters={"content_object": story1}
+        filters={
+            "object_content_type": await get_contenttype_for_model(story1),
+            "object_id": story1.id,
+        }
     )
     assert total_comments == 2
 
@@ -155,7 +176,10 @@ async def test_get_total_comments_not_deleted():
     )
 
     total_comments = await repositories.get_total_comments(
-        filters={"content_object": story1},
-        excludes={"deleted": True},
+        filters={
+            "object_content_type": await get_contenttype_for_model(story1),
+            "object_id": story1.id,
+            "deleted_by__isnull": True,
+        },
     )
     assert total_comments == 2
