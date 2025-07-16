@@ -32,6 +32,7 @@ WORKDIR /tenzu
 
 # pass required env var so it does not crash validation, they will not be used
 RUN TENZU_SECRET_KEY=secret TENZU_TOKENS__SIGNING_KEY=secret2 python ./__main__.py i18n compile-catalog
+RUN TENZU_SECRET_KEY=secret TENZU_TOKENS__SIGNING_KEY=secret2 ./manage.py collectstatic --noinput
 
 ####
 # DEVELOPMENT

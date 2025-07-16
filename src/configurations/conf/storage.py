@@ -27,6 +27,17 @@ class StorageBackends(StrEnum):
     S3Storage = "storages.backends.s3.S3Storage"
 
 
+class StaticStorageBackends(StrEnum):
+    StaticFilesStorage = "django.contrib.staticfiles.storage.StaticFilesStorage"
+    ManifestStaticFilesStorage = (
+        "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+    )
+    CompressedManifestWhitenoiseStorage = (
+        "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    )
+    CompressedWhitenoiseStorage = "whitenoise.storage.CompressedStaticFilesStorage"
+
+
 class StorageSettings(BaseModel):
     AWS_ACCESS_KEY_ID: str | None = None
     AWS_S3_SECRET_ACCESS_KEY: str | None = None
@@ -38,7 +49,9 @@ class StorageSettings(BaseModel):
     )
     DAYS_TO_STORE_DELETED_STORAGED_OBJECTS: int = 90  # 90 day
     BACKEND_CLASS: StorageBackends = StorageBackends.FileSystemStorage
-    STATIC_BACKEND_CLASS: str = "django.contrib.staticfiles.storage.StaticFilesStorage"
+    STATIC_BACKEND_CLASS: StaticStorageBackends = (
+        StaticStorageBackends.CompressedManifestWhitenoiseStorage
+    )
 
     @model_validator(mode="after")
     def validate_storage_backend(self) -> Self:

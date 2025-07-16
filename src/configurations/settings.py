@@ -73,6 +73,7 @@ CORS_ALLOW_HEADERS = (*default_headers, "correlation-id")
 
 INSTALLED_APPS = [
     *(extra_dep.app for extra_dep in settings.EXTRA_DEPS if extra_dep.app is not None),
+    "whitenoise.runserver_nostatic",
     "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -109,6 +110,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -247,7 +249,7 @@ STORAGES = {
         "BACKEND": f"{settings.STORAGE.BACKEND_CLASS.value}",
     },
     "staticfiles": {
-        "BACKEND": settings.STORAGE.STATIC_BACKEND_CLASS,
+        "BACKEND": f"{settings.STORAGE.STATIC_BACKEND_CLASS.value}",
     },
 }
 
