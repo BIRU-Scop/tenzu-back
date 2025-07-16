@@ -113,5 +113,6 @@ api.add_router("", tags=["auth"], router=google_integration_router)
 api.add_router("", tags=["system"], router=health_router)
 
 for extra_dep in settings.EXTRA_DEPS:
-    extra_api = import_module(f"{extra_dep}.api")
-    api.add_router("", tags=[extra_dep], router=extra_api.router)
+    if extra_dep.api is not None:
+        extra_api = import_module(extra_dep.api)
+        api.add_router("", tags=getattr(extra_api, "tags", []), router=extra_api.router)

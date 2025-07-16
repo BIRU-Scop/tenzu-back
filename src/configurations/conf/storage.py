@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -38,6 +38,7 @@ class StorageSettings(BaseModel):
     )
     DAYS_TO_STORE_DELETED_STORAGED_OBJECTS: int = 90  # 90 day
     BACKEND_CLASS: StorageBackends = StorageBackends.FileSystemStorage
+    STATIC_BACKEND_CLASS: str = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
     @model_validator(mode="after")
     def validate_storage_backend(self) -> Self:
