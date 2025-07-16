@@ -43,6 +43,7 @@ class StorageSettings(BaseModel):
     AWS_S3_SECRET_ACCESS_KEY: str | None = None
     AWS_STORAGE_BUCKET_NAME: str | None = None
     AWS_S3_ENDPOINT_URL: str | None = None
+    AWS_S3_FILE_OVERWRITE: bool = False
 
     CLEAN_DELETED_STORAGE_OBJECTS_CRON: str = (
         "0 4 * * *"  # default: once a day, at 4:00 AM
