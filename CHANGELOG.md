@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.26](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.25...v0.0.1-staging.26) (2025-07-17)
+
+
+### Features
+
+* add build setup to add extra dependencies to the project and handle licence year dynamically ([a95bf35](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/a95bf354b71285252b81b85c2f8d37980df8f316))
+* compatibility with s3 for stat command and prevent file overwrite by default ([0a1ff29](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/0a1ff29362d56047862afc057623889afa22f788))
+* handle http 424 ([43c3396](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/43c3396c96d92bac5f73c701aa709968edbd0222))
+* make extra dependency more configurable and add whitenoise in dev environment ([9909c2d](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/9909c2d90c8b48e47c7bf68d941000dc5ec527ff))
+* remove mediafiles module ([08dd382](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/08dd382998da13ecebbc3bb7f7f3c1f6ba04945c))
+* standardise repository for comments and attachement by removing all apply functions ([38b9015](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/38b9015f557e987787c5d02c4813e0e1dae23987))
+* update example stories description data to use the format of blocknotejs ([7e46830](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/7e468309f363c0ac5e9b9491ee9f7218193fe7c2))
+
 ## [0.0.1-staging.25](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.24...v0.0.1-staging.25) (2025-06-24)
 
 
