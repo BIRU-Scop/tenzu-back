@@ -21,7 +21,6 @@ from django.http.request import HttpRequest
 
 from base.db import admin
 from comments.admin import CommentInline
-from mediafiles.admin import MediafileInline
 from stories.stories.models import Story
 
 
@@ -75,7 +74,6 @@ class StoryAdmin(admin.ModelAdmin):
         "workflow",
         "status",
         "order",
-        "total_mediafiles",
         "total_comments",
     ]
     list_filter = ("project", "created_by")
@@ -89,7 +87,6 @@ class StoryAdmin(admin.ModelAdmin):
     ]
     ordering = ("project__name", "workflow__order", "status__order", "order")
     inlines = [
-        MediafileInline,
         CommentInline,
     ]
 
@@ -97,14 +94,9 @@ class StoryAdmin(admin.ModelAdmin):
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(
             comments_count=Count("comments"),
-            mediafiles_count=Count("mediafiles"),
         )
         return queryset
 
     @admin.display(description="# comments", ordering="comments_count")
     def total_comments(self, obj: Story) -> int:
         return obj.comments_count  # type: ignore[attr-defined]
-
-    @admin.display(description="# mediafiles", ordering="mediafiles_count")
-    def total_mediafiles(self, obj: Story) -> int:
-        return obj.mediafiles_count  # type: ignore[attr-defined]

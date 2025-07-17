@@ -40,7 +40,6 @@ from projects.projects.api import projects_router
 from stories.assignments.api import assignments_router as stories_assignments_router
 from stories.attachments.api import attachments_router as stories_attachments_router
 from stories.comments.api import comments_router as stories_comments_router
-from stories.mediafiles.api import mediafiles_router as stories_mediafiles_router
 from stories.stories.api import stories_router as stories_router
 from system.api import system_router
 from users.api import users_router
@@ -96,7 +95,6 @@ api.add_router("", tags=["system"], router=system_router)
 api.add_router("", tags=["stories"], router=stories_router)
 api.add_router("", tags=["stories", "assignments"], router=stories_assignments_router)
 api.add_router("", tags=["stories", "comments"], router=stories_comments_router)
-api.add_router("", tags=["stories", "mediafiles"], router=stories_mediafiles_router)
 api.add_router("", tags=["stories", "attachments"], router=stories_attachments_router)
 api.add_router("", tags=["users"], router=users_router)
 api.add_router("", tags=["notifications"], router=notifications_router)
