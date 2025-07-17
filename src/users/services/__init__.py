@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,7 +23,6 @@ from django.conf import settings
 
 from auth import services as auth_services
 from base.api.pagination import Pagination
-from base.utils.datetime import aware_utcnow
 from commons.colors import generate_random_color
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from emails.emails import Emails
@@ -32,6 +31,7 @@ from memberships.choices import InvitationStatus
 from memberships.services import exceptions as invitations_ex
 from memberships.services.exceptions import MembershipIsTheOnlyOwnerError
 from ninja_jwt.exceptions import TokenError
+from ninja_jwt.utils import aware_utcnow
 from projects.invitations import events as pj_invitations_events
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations import services as project_invitations_services

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -30,8 +30,8 @@ from django.db.models import (
 from django.db.models.aggregates import Count
 
 from base.db.utils import Q_for_related
-from base.utils.datetime import aware_utcnow
 from memberships import repositories as memberships_repositories
+from ninja_jwt.utils import aware_utcnow
 from permissions.choices import WorkspacePermissions
 from projects.projects.models import Project
 from users.models import User

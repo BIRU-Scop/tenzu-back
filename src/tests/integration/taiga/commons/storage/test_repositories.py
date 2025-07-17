@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,8 +23,8 @@ from uuid import uuid1
 import pytest
 from asgiref.sync import sync_to_async
 
-from base.utils.datetime import aware_utcnow
 from commons.storage import repositories
+from ninja_jwt.utils import aware_utcnow
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db

@@ -40,6 +40,8 @@ botocore==1.38.41
     # via
     #   boto3
     #   s3transfer
+brotli==1.1.0
+    # via whitenoise
 certifi==2025.4.26
     # via
     #   httpcore
@@ -309,5 +311,7 @@ webencodings==0.5.1
     #   tinycss2
 websockets==15.0.1
     # via uvicorn
+whitenoise==6.9.0
+    # via -r requirements/commons.in
 zope-interface==7.2
     # via twisted

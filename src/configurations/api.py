@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -15,6 +15,8 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from importlib import import_module
+
 from django.conf import settings
 from ninja import NinjaAPI, Router, Swagger
 
@@ -38,7 +40,6 @@ from projects.projects.api import projects_router
 from stories.assignments.api import assignments_router as stories_assignments_router
 from stories.attachments.api import attachments_router as stories_attachments_router
 from stories.comments.api import comments_router as stories_comments_router
-from stories.mediafiles.api import mediafiles_router as stories_mediafiles_router
 from stories.stories.api import stories_router as stories_router
 from system.api import system_router
 from users.api import users_router
@@ -94,7 +95,6 @@ api.add_router("", tags=["system"], router=system_router)
 api.add_router("", tags=["stories"], router=stories_router)
 api.add_router("", tags=["stories", "assignments"], router=stories_assignments_router)
 api.add_router("", tags=["stories", "comments"], router=stories_comments_router)
-api.add_router("", tags=["stories", "mediafiles"], router=stories_mediafiles_router)
 api.add_router("", tags=["stories", "attachments"], router=stories_attachments_router)
 api.add_router("", tags=["users"], router=users_router)
 api.add_router("", tags=["notifications"], router=notifications_router)
@@ -109,3 +109,8 @@ api.add_router("", tags=["auth"], router=github_integration_router)
 api.add_router("", tags=["auth"], router=gitlab_integration_router)
 api.add_router("", tags=["auth"], router=google_integration_router)
 api.add_router("", tags=["system"], router=health_router)
+
+for extra_dep in settings.EXTRA_DEPS:
+    if extra_dep.api is not None:
+        extra_api = import_module(extra_dep.api)
+        api.add_router("", tags=getattr(extra_api, "tags", []), router=extra_api.router)

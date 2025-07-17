@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,7 +23,7 @@ from uuid import UUID
 from django.db.models import Model
 
 from base.api import Pagination
-from base.utils.datetime import aware_utcnow
+from base.db.models import get_contenttype_for_model
 from comments import repositories as comments_repositories
 from comments.events import (
     EventOnCreateCallable,
@@ -33,6 +33,7 @@ from comments.events import (
 from comments.models import Comment
 from comments.notifications import NotificationOnCreateCallable
 from comments.repositories import CommentFilters, CommentOrderBy
+from ninja_jwt.utils import aware_utcnow
 from users.models import User
 
 ##########################################################
@@ -72,7 +73,10 @@ async def list_paginated_comments(
     limit: int,
     order_by: CommentOrderBy = ["-created_at"],
 ) -> tuple[Pagination, int, list[Comment]]:
-    filters: CommentFilters = {"content_object": content_object}
+    filters: CommentFilters = {
+        "object_content_type": await get_contenttype_for_model(content_object),
+        "object_id": content_object.id,
+    }
     comments = await comments_repositories.list_comments(
         filters=filters,
         select_related=["created_by", "deleted_by"],
@@ -82,8 +86,7 @@ async def list_paginated_comments(
     )
 
     total_not_deleted_comments = await comments_repositories.get_total_comments(
-        filters=filters,
-        excludes={"deleted": True},
+        filters={**filters, "deleted_by__isnull": True},
     )
     pagination = Pagination(offset=offset, limit=limit)
 
@@ -97,10 +100,13 @@ async def list_paginated_comments(
 
 async def get_comment(comment_id: UUID) -> Comment:
     return await comments_repositories.get_comment(
-        filters={"id": comment_id},
+        filters={"id": comment_id, "deleted_by__isnull": True},
         select_related=["created_by", "deleted_by"],
-        prefetch_related=["content_object", "project", "workspace"],
-        excludes={"deleted": True},
+        prefetch_related=[
+            "content_object",
+            "content_object__project",
+            "content_object__project__workspace",
+        ],
     )
 
 

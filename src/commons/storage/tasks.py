@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,8 +22,8 @@ from datetime import timedelta
 from django.conf import settings
 from procrastinate.contrib.django import app
 
-from base.utils.datetime import aware_utcnow
 from commons.storage import services as storage_services
+from ninja_jwt.utils import aware_utcnow
 
 logger = logging.getLogger(__name__)
 

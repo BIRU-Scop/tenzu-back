@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,8 +24,8 @@ from uuid import UUID
 from django.db.models import QuerySet
 
 from base.repositories.neighbors import Neighbor
-from base.utils.datetime import aware_utcnow
 from commons.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
+from ninja_jwt.utils import aware_utcnow
 from projects.projects.models import Project
 from stories.stories import events as stories_events
 from stories.stories import notifications as stories_notifications

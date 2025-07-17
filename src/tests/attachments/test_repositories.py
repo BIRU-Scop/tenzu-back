@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,6 +21,7 @@ import pytest
 
 from attachments import repositories
 from attachments.models import Attachment
+from base.db.models import get_contenttype_for_model
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -77,7 +78,10 @@ async def test_list_attachments_by_content_object():
     await f.create_attachment(content_object=story2)
 
     attachments = await repositories.list_attachments(
-        filters={"content_object": story1}
+        filters={
+            "object_content_type": await get_contenttype_for_model(story1),
+            "object_id": story1.id,
+        }
     )
 
     assert len(attachments) == 2
@@ -93,7 +97,12 @@ async def test_list_attachments_paginated_by_content_object():
     await f.create_attachment(content_object=story2)
 
     attachments = await repositories.list_attachments(
-        filters={"content_object": story1}, offset=0, limit=1
+        filters={
+            "object_content_type": await get_contenttype_for_model(story1),
+            "object_id": story1.id,
+        },
+        offset=0,
+        limit=1,
     )
 
     assert len(attachments) == 1
@@ -116,17 +125,21 @@ async def test_get_attachment():
         await repositories.get_attachment(filters={"id": attachment22.id})
         == attachment22
     )
+    content_object_filters = {
+        "object_content_type": await get_contenttype_for_model(story1),
+        "object_id": story1.id,
+    }
     assert (
-        await repositories.get_attachment(filters={"content_object": story1})
+        await repositories.get_attachment(filters=content_object_filters)
         == attachment11
     )
     with pytest.raises(Attachment.DoesNotExist):
         await repositories.get_attachment(
-            filters={"content_object": story1, "id": attachment21.id}
+            filters={**content_object_filters, "id": attachment21.id}
         )
     assert (
         await repositories.get_attachment(
-            filters={"content_object": story1, "id": attachment11.id}
+            filters={**content_object_filters, "id": attachment11.id}
         )
         == attachment11
     )
@@ -144,8 +157,20 @@ async def test_delete_attachments():
     await f.create_attachment(content_object=story2)
 
     assert (
-        await repositories.delete_attachments(filters={"content_object": story1}) == 0
+        await repositories.delete_attachments(
+            filters={
+                "object_content_type": await get_contenttype_for_model(story1),
+                "object_id": story1.id,
+            }
+        )
+        == 0
     )
     assert (
-        await repositories.delete_attachments(filters={"content_object": story2}) == 2
+        await repositories.delete_attachments(
+            filters={
+                "object_content_type": await get_contenttype_for_model(story2),
+                "object_id": story2.id,
+            }
+        )
+        == 2
     )

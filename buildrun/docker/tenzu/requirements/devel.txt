@@ -40,6 +40,8 @@ botocore==1.38.41
     # via
     #   boto3
     #   s3transfer
+brotli==1.1.0
+    # via whitenoise
 build==1.2.2.post1
     # via pip-tools
 bump-pydantic==0.8.0
@@ -417,5 +419,7 @@ websockets==15.0.1
     # via uvicorn
 wheel==0.45.1
     # via pip-tools
+whitenoise==6.9.0
+    # via -r requirements/commons.in
 zope-interface==7.2
     # via twisted

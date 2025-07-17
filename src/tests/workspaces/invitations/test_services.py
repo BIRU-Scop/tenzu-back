@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,9 +23,9 @@ from unittest.mock import patch
 import pytest
 from django.test import override_settings
 
-from base.utils.datetime import aware_utcnow
 from memberships.choices import InvitationStatus
 from memberships.services import exceptions as ex
+from ninja_jwt.utils import aware_utcnow
 from tests.utils import factories as f
 from tests.utils.utils import patch_db_transaction
 from workspaces.invitations import services

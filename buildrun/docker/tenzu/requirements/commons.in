@@ -43,6 +43,7 @@ cryptography # For auth
 
 # storage
 django-storages[s3]
+whitenoise[brotli]
 
 # Utils & tools
 faker # For sampledata

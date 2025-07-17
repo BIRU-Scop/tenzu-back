@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,11 +23,11 @@ from uuid import UUID
 from django.conf import settings
 
 from base.utils import emails
-from base.utils.datetime import aware_utcnow
 from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus
 from memberships.models import Invitation, Membership, Role
 from memberships.services import exceptions as ex
+from ninja_jwt.utils import aware_utcnow
 from projects.projects.models import Project
 from users import services as users_services
 from users.models import AnyUser, User
