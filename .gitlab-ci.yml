@@ -9,6 +9,7 @@ include:
       application-name: api
       dockerfile: buildrun/docker/tenzu/Dockerfile
       target: production-image
+      build-arg: 'EXTRA_PACKAGES=${EXTRA_PACKAGES}'
   - component: $CI_SERVER_FQDN/biru/project-components/release@0.0.16
     inputs:
       token: $DEV_TOKEN
@@ -32,12 +33,14 @@ include:
       dockerfile: ${CI_PROJECT_DIR}/buildrun/docker/tenzu/Dockerfile
       target: dev-image
       prefix: test-
+      build-arg: 'EXTRA_PACKAGES=${EXTRA_PACKAGES}'
       destination: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
       rules:
         - if: '($CI_COMMIT_REF_PROTECTED == "false" && $CI_PIPELINE_SOURCE != "merge_request_event") || $CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
           changes:
             - "buildrun/docker/tenzu/Dockerfile"
             - "buildrun/docker/tenzu/requirements/devel.txt"
+            - ".gitlab-ci.yml"
 
 stages:
   - build

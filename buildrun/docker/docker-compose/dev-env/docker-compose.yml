@@ -1,10 +1,15 @@
-services:
-  tenzu-back:
+x-dev-image: &dev-image
     image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
     build:
-      target: dev-image
       context: ../../../../
       dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+      target: dev-image
+      args:
+        - EXTRA_PACKAGES=${EXTRA_PACKAGES:-}
+
+services:
+  tenzu-back:
+    <<: *dev-image
     volumes:
       - ../../../../src/:/tenzu/
       - tenzu-static:/public/static
@@ -30,6 +35,7 @@ services:
 #    ports:
 #      - 8000:8000
   tenzu-worker:
+    <<: *dev-image
     command: "python manage.py procrastinate worker"
     volumes:
       - ../../../../src/:/tenzu/
@@ -37,11 +43,6 @@ services:
       - tenzu-media:/public/media
     networks:
       - tenzu
-    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
-    build:
-      target: dev-image
-      context: ../../../../
-      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
     env_file:
       - ../../${MODULE_NAME}/dev.env
       - ../../${MODULE_NAME}/secrets.env
@@ -63,7 +64,6 @@ services:
       retries: 5
     ports:
       - 5432:5432
-
     volumes:
       - tenzu-db-data:/var/lib/postgresql/data
     networks:
@@ -81,11 +81,11 @@ services:
 
   caddy:
     image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}-caddy:develop
-    env_file:
-      - ../../caddy/caddy.env
     build:
       context: ../../caddy
       dockerfile: ./Dockerfile
+    env_file:
+      - ../../caddy/caddy.env
     ports:
       - "80:80"
       - "443:443"
@@ -113,11 +113,7 @@ services:
     volumes:
       - tenzu-minio:/bitnami/minio/data
   compile-dep:
-    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
-    build:
-      context: ../../../../
-      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
-      target: dev-image
+    <<: *dev-image
     working_dir: /tenzu
     profiles:
       - compile
@@ -128,11 +124,7 @@ services:
     volumes:
       - ../../${MODULE_NAME}/requirements/:/tenzu/requirements/
   compile-dep-upgrade:
-    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
-    build:
-      context: ../../../../
-      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
-      target: dev-image
+    <<: *dev-image
     working_dir: /tenzu
     restart: on-failure
     profiles:

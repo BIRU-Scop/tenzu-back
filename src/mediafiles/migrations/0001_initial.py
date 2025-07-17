@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,8 +22,8 @@ from django.conf import settings
 from django.db import migrations, models
 
 import base.db.models
-import base.utils.datetime
 import mediafiles.models
+import ninja_jwt.utils
 
 
 class Migration(migrations.Migration):
@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                 (
                     "created_at",
                     models.DateTimeField(
-                        default=base.utils.datetime.aware_utcnow,
+                        default=ninja_jwt.utils.aware_utcnow,
                         verbose_name="created at",
                     ),
                 ),

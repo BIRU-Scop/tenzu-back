@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -27,17 +27,32 @@ class StorageBackends(StrEnum):
     S3Storage = "storages.backends.s3.S3Storage"
 
 
+class StaticStorageBackends(StrEnum):
+    StaticFilesStorage = "django.contrib.staticfiles.storage.StaticFilesStorage"
+    ManifestStaticFilesStorage = (
+        "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+    )
+    CompressedManifestWhitenoiseStorage = (
+        "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    )
+    CompressedWhitenoiseStorage = "whitenoise.storage.CompressedStaticFilesStorage"
+
+
 class StorageSettings(BaseModel):
     AWS_ACCESS_KEY_ID: str | None = None
     AWS_S3_SECRET_ACCESS_KEY: str | None = None
     AWS_STORAGE_BUCKET_NAME: str | None = None
     AWS_S3_ENDPOINT_URL: str | None = None
+    AWS_S3_FILE_OVERWRITE: bool = False
 
     CLEAN_DELETED_STORAGE_OBJECTS_CRON: str = (
         "0 4 * * *"  # default: once a day, at 4:00 AM
     )
     DAYS_TO_STORE_DELETED_STORAGED_OBJECTS: int = 90  # 90 day
     BACKEND_CLASS: StorageBackends = StorageBackends.FileSystemStorage
+    STATIC_BACKEND_CLASS: StaticStorageBackends = (
+        StaticStorageBackends.CompressedManifestWhitenoiseStorage
+    )
 
     @model_validator(mode="after")
     def validate_storage_backend(self) -> Self:

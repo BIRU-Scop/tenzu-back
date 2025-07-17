@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -44,6 +44,14 @@ locals().update(
     }
 )
 
+locals().update(
+    {
+        field_name: field_value
+        for extra_dep in settings.EXTRA_DEPS
+        for field_name, field_value in extra_dep.settings.items()
+    }
+)
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -64,6 +72,8 @@ CORS_ALLOW_HEADERS = (*default_headers, "correlation-id")
 # Application definition
 
 INSTALLED_APPS = [
+    *(extra_dep.app for extra_dep in settings.EXTRA_DEPS if extra_dep.app is not None),
+    "whitenoise.runserver_nostatic",
     "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -100,6 +110,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -110,6 +121,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "ninja.compatibility.files.fix_request_files_middleware",
 ]
+for extra_dep in settings.EXTRA_DEPS:
+    middleware, index = extra_dep.middleware
+    if middleware is not None:
+        MIDDLEWARE.insert(index, middleware)
 
 ROOT_URLCONF = "configurations.urls"
 
@@ -202,7 +217,14 @@ NINJA_JWT = {
     "JSON_ENCODER": DjangoJSONEncoder,
 }
 
-AUTHENTICATION_BACKENDS = ["auth.backends.EmailOrUsernameModelBackend"]
+AUTHENTICATION_BACKENDS = [
+    "auth.backends.EmailOrUsernameModelBackend",
+    *(
+        extra_dep.auth
+        for extra_dep in settings.EXTRA_DEPS
+        if extra_dep.auth is not None
+    ),
+]
 
 # EMAIL
 
@@ -227,7 +249,7 @@ STORAGES = {
         "BACKEND": f"{settings.STORAGE.BACKEND_CLASS.value}",
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": f"{settings.STORAGE.STATIC_BACKEND_CLASS.value}",
     },
 }
 

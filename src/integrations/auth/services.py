@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,10 +20,10 @@
 from django.conf import settings
 
 from auth import services as auth_services
-from base.utils import datetime
 from emails.emails import Emails
 from emails.tasks import send_email
 from ninja_jwt.schema import TokenObtainPairOutputSchema
+from ninja_jwt.utils import aware_utcnow
 from users import repositories as users_repositories
 from users import services as users_services
 from users.models import User
@@ -88,7 +88,7 @@ async def send_social_login_warning_email(
     context = {
         "full_name": full_name,
         "login_method": login_method,
-        "login_time": datetime.aware_utcnow(),
+        "login_time": aware_utcnow(),
     }
     await send_email.defer(
         email_name=Emails.SOCIAL_LOGIN_WARNING.value,

@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -29,7 +29,7 @@ from django.conf import settings
 from procrastinate.contrib.django import app
 
 #
-from base.utils.datetime import aware_utcnow
+from ninja_jwt.utils import aware_utcnow
 from notifications import services as notifications_services
 
 #

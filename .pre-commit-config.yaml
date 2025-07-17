@@ -55,5 +55,6 @@ repos:
       - id: insert-license
         files: '(src/).*\.py$'
         args:
+          - --use-current-year
           - --license-filepath
           - .license_header_template.txt          # defaults to: LICENSE.txt

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@ from datetime import timedelta
 
 import pytest
 
-from base.utils.datetime import aware_utcnow
+from ninja_jwt.utils import aware_utcnow
 from notifications import repositories
 from notifications.models import Notification
 from tests.utils import factories as f

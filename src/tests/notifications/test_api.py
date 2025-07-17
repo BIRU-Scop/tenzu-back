@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,7 +19,7 @@
 
 import pytest
 
-from base.utils.datetime import aware_utcnow
+from ninja_jwt.utils import aware_utcnow
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
 

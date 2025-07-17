@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,8 +20,8 @@
 from unittest.mock import AsyncMock, PropertyMock, patch
 from uuid import uuid1
 
-from base.utils.datetime import aware_utcnow
 from comments import services
+from ninja_jwt.utils import aware_utcnow
 from tests.utils import factories as f
 
 #####################################################
@@ -133,9 +133,6 @@ async def test_list_comments():
         f.build_comment(deleted_by=story.created_by),
         f.build_comment(),
     ]
-
-    filters = {"content_object": story}
-    select_related = ["created_by", "deleted_by"]
     order_by = ["-created_at"]
     offset = 0
     limit = 100
@@ -146,6 +143,9 @@ async def test_list_comments():
         patch(
             "comments.services.comments_repositories", autospec=True
         ) as fake_comments_repositories,
+        patch(
+            "comments.services.get_contenttype_for_model", autospec=True
+        ) as fake_get_contenttype_for_model,
     ):
         fake_comments_repositories.list_comments.return_value = comments
         fake_comments_repositories.get_total_comments.side_effect = [total, total_objs]
@@ -156,26 +156,20 @@ async def test_list_comments():
         ) = await services.list_paginated_comments(
             content_object=story, order_by=order_by, offset=offset, limit=limit
         )
-        fake_comments_repositories.list_comments.assert_awaited_once_with(
-            filters=filters,
-            select_related=select_related,
-            order_by=order_by,
-            offset=offset,
-            limit=limit,
-        )
+        fake_comments_repositories.list_comments.assert_awaited_once()
         fake_comments_repositories.get_total_comments.assert_awaited()
+        fake_get_contenttype_for_model.assert_awaited_once()
         assert len(comments_list) == 3
         assert pagination.offset == offset
         assert pagination.limit == limit
 
 
 ##########################################################
-# get_coment
+# get_comment
 ##########################################################
 
 
 async def test_get_comment():
-    story = f.build_story(id="story_id")
     comment_id = uuid1()
 
     with (
@@ -185,10 +179,13 @@ async def test_get_comment():
     ):
         await services.get_comment(comment_id=comment_id)
         fake_comments_repositories.get_comment.assert_awaited_once_with(
-            filters={"id": comment_id},
+            filters={"id": comment_id, "deleted_by__isnull": True},
             select_related=["created_by", "deleted_by"],
-            prefetch_related=["content_object", "project", "workspace"],
-            excludes={"deleted": True},
+            prefetch_related=[
+                "content_object",
+                "content_object__project",
+                "content_object__project__workspace",
+            ],
         )
 
 

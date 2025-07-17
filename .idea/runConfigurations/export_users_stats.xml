@@ -23,7 +23,7 @@
     </PathMappingSettings>
     <option name="launchJavascriptDebuger" value="false" />
     <option name="host" value="" />
-    <option name="additionalOptions" value="../exports/test.csv" />
+    <option name="additionalOptions" value="exports/test.csv" />
     <option name="browserUrl" value="" />
     <option name="runTestServer" value="false" />
     <option name="runNoReload" value="false" />

@@ -345,6 +345,8 @@ public/
 file_emails/
 exports/
 
+tenzu-back-portal/
+
 /src/mjml/node_modules/*
 
 # test reports

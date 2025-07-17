@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -15,6 +15,8 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from importlib import import_module
+
 from django.conf import settings
 from ninja import NinjaAPI, Router, Swagger
 
@@ -109,3 +111,8 @@ api.add_router("", tags=["auth"], router=github_integration_router)
 api.add_router("", tags=["auth"], router=gitlab_integration_router)
 api.add_router("", tags=["auth"], router=google_integration_router)
 api.add_router("", tags=["system"], router=health_router)
+
+for extra_dep in settings.EXTRA_DEPS:
+    if extra_dep.api is not None:
+        extra_api = import_module(extra_dep.api)
+        api.add_router("", tags=getattr(extra_api, "tags", []), router=extra_api.router)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,7 +20,9 @@
 import logging.config
 from datetime import timedelta
 from functools import lru_cache
+from importlib import import_module
 from pathlib import Path
+from typing import Any
 
 from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, field_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -48,6 +50,15 @@ class DbSettings(BaseModel):
     PORT: int = 5432
 
 
+class ExtraDep(BaseModel):
+    app: str | None = None
+    middleware: tuple[str, int] | tuple[None, None] = (None, None)
+    auth: str | None = None
+    api: str | None = None
+    settings: dict[str, Any] = Field(default_factory=dict)
+    settings_module: tuple[str, str] | tuple[None, None] = (None, None)
+
+
 class Settings(BaseSettings):
     # Commons
     # SECURITY WARNING: keep the secret key used in production secret!
@@ -66,6 +77,8 @@ class Settings(BaseSettings):
     EXTRA_CORS: list[AnyHttpUrl] = Field(default_factory=list)
 
     API_VERSION: str = "v1"
+
+    EXTRA_DEPS: list[ExtraDep] = Field(default_factory=list)
 
     # Database
     DB: DbSettings = DbSettings()
@@ -161,12 +174,19 @@ class Settings(BaseSettings):
         env_prefix="TENZU_",
         env_nested_delimiter="__",
         case_sensitive=True,
+        extra="allow",
     )
 
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    for extra_dep in settings.EXTRA_DEPS:
+        module_name, module_path = extra_dep.settings_module
+        if module_name is not None:
+            extra_settings = import_module(module_path)
+            setattr(settings, module_name, extra_settings.settings)
+    return settings
 
 
 logging.config.dictConfig(LOGGING_CONFIG)

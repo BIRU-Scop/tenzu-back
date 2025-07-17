@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,18 +18,26 @@
 
 import csv
 import hashlib
+import io
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import TextIO
 
+from django.conf import DEFAULT_STORAGE_ALIAS, settings
+from django.core.files.storage import FileSystemStorage, default_storage
 from django.core.management.base import BaseCommand
 from django.db.models import Q, QuerySet
+from storages.backends.s3 import S3Storage
 
 from users.models import User
 
 
 def add_salt(email: str):
     return f"tenzu:{email}"
+
+
+storage_options = settings.STORAGES[DEFAULT_STORAGE_ALIAS].get("OPTIONS", {})
 
 
 class Command(BaseCommand):
@@ -66,21 +74,32 @@ class Command(BaseCommand):
         file_path: Path = options["file_path"]
         qs = self.exclude_demo_test_data(User.objects.all().order_by("date_joined"))
 
+        # force overrite of old file no matter the storage class
+        if isinstance(default_storage, S3Storage):
+            storage_options["file_overwrite"] = True
+        elif isinstance(default_storage, FileSystemStorage):
+            storage_options["allow_overwrite"] = True
+        else:
+            ValueError(f"Storage class not handled: {default_storage.__class__}")
+        storage = default_storage.__class__(**storage_options)
+
         fieldnames = [
             "email_hash",
             "date_joined",
         ]
-        is_existing_file = file_path.exists()
-
-        with file_path.open("a+", newline="") as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-            if is_existing_file:
+        with io.StringIO(newline="") as file_buffer:
+            writer = csv.DictWriter(file_buffer, fieldnames=fieldnames)
+            try:
+                with storage.open(file_path, "r") as csv_file:
+                    shutil.copyfileobj(csv_file, file_buffer)
+            except FileNotFoundError:
+                writer.writeheader()
+            else:
                 if (
-                    start_date := self.get_last_user_exported_date(csv_file)
+                    start_date := self.get_last_user_exported_date(file_buffer)
                 ) is not None:
                     qs = qs.filter(date_joined__gt=start_date)
-            else:
-                writer.writeheader()
+
             for user in qs.iterator():
                 writer.writerow(
                     {
@@ -90,3 +109,5 @@ class Command(BaseCommand):
                         "date_joined": user.date_joined.isoformat(),
                     }
                 )
+            file_buffer.seek(0)
+            storage.save(file_path, file_buffer)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -56,7 +56,7 @@ def _do_wbr_split(text: str, size: int = 70) -> Markup:
 
 def _format_datetime(
     value: str | datetime,
-    format: Literal["full", "long", "mediim", "short"] | str = "long",
+    format: Literal["full", "long", "medium", "short"] | str = "long",
 ) -> str:
     """
     This filter is used to formatting datetime objects or string with a date in iso format.
