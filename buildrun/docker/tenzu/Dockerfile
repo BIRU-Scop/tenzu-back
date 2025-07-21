@@ -13,6 +13,9 @@ ARG EXTRA_PACKAGES=""
 ####
 
 FROM base-image AS production-image
+
+ARG EXTRA_PACKAGES=""
+
 # creates a system user (-r), with no password, no home directory set, and no shell
 RUN groupadd -r default-group && useradd -r -s /bin/false -g default-group default-user
 
@@ -22,11 +25,11 @@ COPY --chown=default-user:default-group ./buildrun/docker/tenzu/requirements/pro
 # prepare permission for future mounts
 RUN mkdir -p /public/media /public/static && chown -R default-user:default-group /public
 
-RUN  apt-get update && apt-get install -y --no-install-recommends gettext build-essential libpq-dev git && \
-     uv pip sync --system /tenzu/prod.txt && rm /tenzu/prod.txt && \
-     (if [ -n "${EXTRA_PACKAGES}" ] ; then pip install ${EXTRA_PACKAGES}; fi) && \
-     apt-get purge -y --auto-remove build-essential git && \
-     apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
+RUN apt-get update && apt-get install -y --no-install-recommends gettext build-essential libpq-dev git && \
+    uv pip sync --system /tenzu/prod.txt && rm /tenzu/prod.txt && \
+    (if [ -n "${EXTRA_PACKAGES}" ] ; then pip install ${EXTRA_PACKAGES}; fi) && \
+    apt-get purge -y --auto-remove build-essential git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 USER default-user
 WORKDIR /tenzu
 
