@@ -25,7 +25,7 @@ COPY --chown=default-user:default-group ./buildrun/docker/tenzu/requirements/pro
 # prepare permission for future mounts
 RUN mkdir -p /public/media /public/static && chown -R default-user:default-group /public
 
-RUN apt-get update && apt-get install -y --no-install-recommends gettext build-essential libpq-dev git && \
+RUN apt-get update && apt-get install -y --no-install-recommends gettext htop build-essential libpq-dev git && \
     uv pip sync --system /tenzu/prod.txt && rm /tenzu/prod.txt && \
     (if [ -n "${EXTRA_PACKAGES}" ] ; then pip install ${EXTRA_PACKAGES}; fi) && \
     apt-get purge -y --auto-remove build-essential git && \
@@ -45,7 +45,7 @@ FROM base-image AS dev-image
 # replace with --mount=type=bind in RUN once supported by our CI build
 COPY ./buildrun/docker/tenzu/requirements/devel.txt /tenzu/devel.txt
 # Install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gettext build-essential libpq-dev && \
+RUN apt-get update && apt-get install -y --no-install-recommends gettext htop build-essential libpq-dev && \
     uv pip sync --system /tenzu/devel.txt && rm /tenzu/devel.txt && \
     (if [ -n "${EXTRA_PACKAGES}" ] ; then pip install ${EXTRA_PACKAGES}; fi) && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
