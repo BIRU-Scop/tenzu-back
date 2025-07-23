@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.30](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.29...v0.0.1-staging.30) (2025-07-23)
+
 ## [0.0.1-staging.29](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.28...v0.0.1-staging.29) (2025-07-21)
 
 ## [0.0.1-staging.28](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.27...v0.0.1-staging.28) (2025-07-21)
