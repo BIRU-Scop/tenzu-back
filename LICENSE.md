@@ -7,7 +7,6 @@ Distributed under the following terms:
 1. Source code is licensed under the AGPLv3 License.
 2. No rights or licence are hereby granted to use any trademarks of BIRU 
    Scop ARL, even for assets included in this repository (Tenzu logo) see [TRADEMARK.md](TRADEMARK.md).
-3. Some code files are licenced under the MIT licence, it has been explicitly mentioned on the affected files.
 
 ---
 
