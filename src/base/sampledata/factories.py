@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,6 +24,7 @@ from typing import Final
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from django.db.models import Model
 from faker import Faker
 from ninja import UploadedFile
@@ -33,6 +34,7 @@ from comments.models import Comment
 from commons.colors import NUM_COLORS
 from commons.ordering import DEFAULT_ORDER_OFFSET
 from memberships.choices import InvitationStatus
+from ninja_jwt.utils import aware_utcnow
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import repositories as pj_memberships_repositories
@@ -71,12 +73,15 @@ async def create_user(
     email: str | None = None,
     color: int | None = None,
 ) -> User:
+    acceptance_date = aware_utcnow() if settings.REQUIRED_TERMS else None
     user = User(
         username=username,
         full_name=full_name or fake.name(),
         email=email or f"{username}@tenzu.demo",
         color=color or fake.random_int(min=1, max=NUM_COLORS),
         is_active=True,
+        accepted_terms_of_service=acceptance_date,
+        accepted_privacy_policy=acceptance_date,
     )
     user.set_password("123123")
     await user.asave()

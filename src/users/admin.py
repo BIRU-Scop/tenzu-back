@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -80,7 +80,18 @@ class AuthDataInline(admin.TabularInline):
 class UserAdmin(DjangoUserAdmin):
     fieldsets = (
         (None, {"fields": ("id", "username", "password")}),
-        ("Personal info", {"fields": ("email", "full_name", "accepted_terms", "lang")}),
+        (
+            "Personal info",
+            {
+                "fields": (
+                    "email",
+                    "full_name",
+                    "accepted_terms_of_service",
+                    "accepted_privacy_policy",
+                    "lang",
+                )
+            },
+        ),
         ("Permissions", {"fields": ("is_active", "is_superuser")}),
         (
             "Important dates",

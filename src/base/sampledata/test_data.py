@@ -20,6 +20,7 @@
 import random
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from faker import Faker
 
@@ -145,6 +146,7 @@ async def _create_user(index: int, save: bool = True) -> User:
     email = f"{username}@tenzu.demo"
     full_name = fake.name()
     color = fake.random_int(min=1, max=NUM_COLORS)
+    acceptance_date = aware_utcnow() if settings.REQUIRED_TERMS else None
     user = User(
         username=username,
         email=email,
@@ -153,6 +155,8 @@ async def _create_user(index: int, save: bool = True) -> User:
         is_active=True,
         date_verification=aware_utcnow(),
         password=PASSWORD,
+        accepted_terms_of_service=acceptance_date,
+        accepted_privacy_policy=acceptance_date,
     )
     if save:
         await sync_to_async(user.save)()

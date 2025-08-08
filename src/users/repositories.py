@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,11 +16,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from datetime import datetime
 from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from django.contrib.auth.models import update_last_login as django_update_last_login
 from django.contrib.postgres.lookups import Unaccent
 from django.contrib.postgres.search import (
@@ -76,13 +77,21 @@ UserOrderBy = list[
 
 
 async def create_user(
-    email: str, full_name: str, color: int, lang: str, password: str | None
+    email: str,
+    full_name: str,
+    color: int,
+    lang: str,
+    password: str | None,
+    acceptance_date: datetime | None,
 ) -> User:
+    if acceptance_date is None and settings.REQUIRED_TERMS:
+        raise ValueError("User is required to accept legal terms")
     user = User(
         email=email,
         full_name=full_name,
         is_active=False,
-        accepted_terms=True,
+        accepted_terms_of_service=acceptance_date,
+        accepted_privacy_policy=acceptance_date,
         lang=lang,
         color=color,
     )

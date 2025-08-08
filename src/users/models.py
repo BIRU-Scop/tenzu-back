@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -88,8 +88,11 @@ class User(BaseModel, AbstractBaseUser):
     full_name = models.CharField(
         max_length=256, null=False, blank=True, default="", verbose_name="full name"
     )
-    accepted_terms = models.BooleanField(
-        null=False, blank=False, default=True, verbose_name="accepted terms"
+    accepted_terms_of_service = models.DateTimeField(
+        null=True, blank=False, verbose_name="acceptance date terms of service"
+    )
+    accepted_privacy_policy = models.DateTimeField(
+        null=True, blank=False, verbose_name="acceptance date privacy policy"
     )
     lang = models.CharField(
         max_length=20,
