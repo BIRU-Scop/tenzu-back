@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -35,7 +35,8 @@ FullName = Annotated[str, StringConstraints(max_length=50)]
 class CreateUserValidator(PasswordMixin, BaseModel):
     email: EmailStr
     full_name: FullName  # type: ignore
-    accept_terms: StrictBool
+    accept_terms_of_service: StrictBool
+    accept_privacy_policy: StrictBool
     color: Annotated[int, Field(gt=0, le=NUM_COLORS)] | None = None  # type: ignore
     lang: LanguageCode | None = None
     project_invitation_token: str | None = None
@@ -59,11 +60,11 @@ class CreateUserValidator(PasswordMixin, BaseModel):
             raise ValueError("Email domain not allowed")
         return v
 
-    @field_validator("accept_terms")
+    @field_validator("accept_terms_of_service", "accept_privacy_policy")
     @classmethod
     def check_accept_terms(cls, v: bool) -> bool:
-        if v is False:
-            raise ValueError("User has to accept terms of service")
+        if v is False and settings.REQUIRED_TERMS:
+            raise ValueError("User has to accept legal terms")
         return v
 
 

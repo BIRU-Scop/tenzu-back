@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -82,6 +82,7 @@ async def test_create_user_ok_accept_invitation(
         patch(
             "users.services._generate_verify_user_token", return_value="verify_token"
         ) as fake_user_token,
+        patch("users.services.aware_utcnow", autospec=True) as fake_aware_utcnow,
     ):
         fake_users_repo.get_user.side_effect = User.DoesNotExist
         fake_users_repo.create_user.return_value = user
@@ -96,10 +97,16 @@ async def test_create_user_ok_accept_invitation(
             accept_workspace_invitation=accept_workspace_invitation,
             workspace_invitation_token=workspace_invitation_token,
             lang=lang,
+            accepted_terms=True,
         )
 
         fake_users_repo.create_user.assert_awaited_once_with(
-            email=email, full_name=full_name, color=color, password=password, lang=lang
+            email=email,
+            full_name=full_name,
+            color=color,
+            password=password,
+            lang=lang,
+            acceptance_date=fake_aware_utcnow.return_value,
         )
         assert len(tqmanager.pending_jobs) == 1
         job = tqmanager.pending_jobs[0]
@@ -145,6 +152,7 @@ async def test_create_user_default_instance_lang(tqmanager):
         patch(
             "users.services._generate_verify_user_token", return_value="verify_token"
         ) as fake_user_token,
+        patch("users.services.aware_utcnow", autospec=True) as fake_aware_utcnow,
     ):
         fake_users_repo.get_user.side_effect = User.DoesNotExist
         fake_users_repo.create_user.return_value = user
@@ -157,6 +165,7 @@ async def test_create_user_default_instance_lang(tqmanager):
             project_invitation_token=project_invitation_token,
             lang=lang,
             color=color,
+            accepted_terms=True,
         )
 
         fake_users_repo.create_user.assert_awaited_once_with(
@@ -165,6 +174,7 @@ async def test_create_user_default_instance_lang(tqmanager):
             color=color,
             password=password,
             lang=default_instance_lang,
+            acceptance_date=fake_aware_utcnow.return_value,
         )
         assert len(tqmanager.pending_jobs) == 1
         job = tqmanager.pending_jobs[0]
@@ -208,7 +218,10 @@ async def test_create_user_unverified(tqmanager):
         fake_users_repo.get_user.return_value = user
         fake_users_repo.update_user.return_value = user
         await services.create_user(
-            email=email, full_name="New Full Name", password="NewCorrectP4ssword&"
+            email=email,
+            full_name="New Full Name",
+            password="NewCorrectP4ssword&",
+            accepted_terms=True,
         )
 
         fake_users_repo.update_user.assert_awaited_once()
@@ -233,6 +246,24 @@ async def test_create_user_email_exists():
             email="dup.email@email.com",
             full_name="Full Name",
             password="CorrectP4ssword&",
+            accepted_terms=True,
+        )
+
+
+async def test_create_user_not_accepted_terms():
+    with (
+        patch(
+            "users.services.users_repositories.get_user",
+            autospec=True,
+            side_effect=User.DoesNotExist,
+        ),
+        pytest.raises(ValueError),
+    ):
+        await services.create_user(
+            email="dup.email@email.com",
+            full_name="Full Name",
+            password="CorrectP4ssword&",
+            accepted_terms=False,
         )
 
 

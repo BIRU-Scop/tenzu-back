@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -51,7 +51,8 @@ async def test_create_user_ok_with_token_project(client):
         "fullName": "Ada Lovelace",
         "color": 8,
         "password": "correctP4ssword%",
-        "acceptTerms": True,
+        "acceptTermsOfService": True,
+        "acceptPrivacyPolicy": True,
         "projectInvitationToken": "eyJ0eXAiOToken",
         "accept_project_invitation": False,
         "lang": "es-ES",
@@ -67,7 +68,8 @@ async def test_create_user_ok_with_token_workspace(client):
         "fullName": "Ada Lovelace",
         "color": 8,
         "password": "correctP4ssword%",
-        "acceptTerms": True,
+        "acceptTermsOfService": True,
+        "acceptPrivacyPolicy": True,
         "workspaceInvitationToken": "eyJ0eXAiOToken",
         "accept_workspace_invitation": False,
         "lang": "es-ES",
@@ -77,13 +79,31 @@ async def test_create_user_ok_with_token_workspace(client):
     assert response.status_code == 200, response.data
 
 
+async def test_create_user_not_accepted_terms(client):
+    data = {
+        "email": "test.create@email.com",
+        "fullName": "Ada Lovelace",
+        "color": 8,
+        "password": "correctP4ssword%",
+        "acceptTermsOfService": False,
+        "acceptPrivacyPolicy": True,
+        "workspaceInvitationToken": "eyJ0eXAiOToken",
+        "accept_workspace_invitation": False,
+        "lang": "es-ES",
+    }
+
+    response = await client.post("/users", json=data)
+    assert response.status_code == 422, response.data
+
+
 async def test_create_user_email_already_exists(client):
     user = await f.create_user()
     data = {
         "email": user.email,
         "fullName": "Ada Lovelace",
         "password": "correctP4ssword%",
-        "acceptTerms": True,
+        "acceptTermsOfService": True,
+        "acceptPrivacyPolicy": True,
     }
     response = await client.post("/users", json=data)
     assert response.status_code == 400, response.data
