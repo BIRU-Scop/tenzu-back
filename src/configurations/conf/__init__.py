@@ -135,6 +135,8 @@ class Settings(BaseSettings):
     # Templates
     SUPPORT_EMAIL: EmailStr = Field(default="support@example.com")
 
+    REQUIRED_TERMS: bool = False
+
     # Sub settings modules
     EMAIL: EmailSettings = EmailSettings()
     EVENTS: EventsSettings = EventsSettings()

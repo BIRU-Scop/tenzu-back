@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from django.test import override_settings
 from pydantic import ValidationError
 
 from tests.utils.utils import check_validation_errors
@@ -41,7 +42,8 @@ def test_validate_create_user_ok_all_fields():
         email=email,
         full_name=full_name,
         password=password,
-        accept_terms=terms,
+        accept_terms_of_service=terms,
+        accept_privacy_policy=terms,
         project_invitation_token=project_inv_token,
         accept_project_invitation=accept_project_invitation,
         lang=lang,
@@ -50,7 +52,8 @@ def test_validate_create_user_ok_all_fields():
     assert validator.email == email
     assert validator.full_name == full_name
     assert validator.password == password
-    assert validator.accept_terms == terms
+    assert validator.accept_terms_of_service == terms
+    assert validator.accept_privacy_policy == terms
     assert validator.project_invitation_token == project_inv_token
     assert validator.accept_project_invitation == accept_project_invitation
     assert validator.lang == lang
@@ -60,7 +63,13 @@ def test_validate_create_user_wrong_not_all_required_fields():
     with pytest.raises(ValidationError) as validation_errors:
         CreateUserValidator()
 
-    expected_error_fields = ["email", "password", "fullName", "acceptTerms"]
+    expected_error_fields = [
+        "email",
+        "password",
+        "fullName",
+        "acceptTermsOfService",
+        "acceptPrivacyPolicy",
+    ]
     expected_error_messages = ["Field required"]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
@@ -75,13 +84,33 @@ def test_validate_create_user_not_accepted_terms():
 
     with pytest.raises(ValidationError) as validation_errors:
         CreateUserValidator(
-            email=email, full_name=full_name, password=password, accept_terms=terms
+            email=email,
+            full_name=full_name,
+            password=password,
+            accept_terms_of_service=terms,
+            accept_privacy_policy=terms,
         )
 
-    expected_error_fields = ["acceptTerms"]
-    expected_error_messages = ["User has to accept terms of service"]
+    expected_error_fields = ["acceptTermsOfService", "acceptPrivacyPolicy"]
+    expected_error_messages = ["User has to accept legal terms"]
     check_validation_errors(
         validation_errors, expected_error_fields, expected_error_messages
+    )
+
+
+@override_settings(REQUIRED_TERMS=False)
+def test_validate_create_user_not_required_terms():
+    email = "user@email.com"
+    full_name = "User fullname"
+    password = "Dragon123"
+    terms = False
+
+    CreateUserValidator(
+        email=email,
+        full_name=full_name,
+        password=password,
+        accept_terms_of_service=terms,
+        accept_privacy_policy=terms,
     )
 
 
@@ -110,7 +139,11 @@ def test_validate_create_user_invalid_email(email, error):
 
     with pytest.raises(ValidationError) as validation_errors:
         CreateUserValidator(
-            email=email, full_name=full_name, password=password, accept_terms=terms
+            email=email,
+            full_name=full_name,
+            password=password,
+            accept_terms_of_service=terms,
+            accept_privacy_policy=terms,
         )
 
     expected_error_fields = ["email"]
@@ -138,7 +171,11 @@ def test_validate_create_user_invalid_password(password, error):
 
     with pytest.raises(ValidationError) as validation_errors:
         CreateUserValidator(
-            email=email, full_name=full_name, password=password, accept_terms=terms
+            email=email,
+            full_name=full_name,
+            password=password,
+            accept_terms_of_service=terms,
+            accept_privacy_policy=terms,
         )
 
     check_validation_errors(validation_errors, ["password"], [error])
@@ -164,7 +201,8 @@ def test_validate_create_user_invalid_color(color, error):
             full_name=full_name,
             color=color,
             password=password,
-            accept_terms=terms,
+            accept_terms_of_service=terms,
+            accept_privacy_policy=terms,
         )
 
     check_validation_errors(validation_errors, ["color"], [error])

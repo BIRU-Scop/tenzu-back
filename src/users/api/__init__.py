@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -75,6 +75,7 @@ async def create_user(request, form: CreateUserValidator) -> User:
         accept_project_invitation=form.accept_project_invitation,
         workspace_invitation_token=form.workspace_invitation_token,
         accept_workspace_invitation=form.accept_workspace_invitation,
+        accepted_terms=form.accept_terms_of_service and form.accept_privacy_policy,
     )
 
 

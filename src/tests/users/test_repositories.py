@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,8 +21,10 @@
 import pytest
 from asgiref.sync import sync_to_async
 from django.db import IntegrityError
+from django.test import override_settings
 
 from memberships.choices import InvitationStatus
+from ninja_jwt.utils import aware_utcnow
 from projects.projects.models import ProjectTemplate
 from tests.utils import factories as f
 from users import repositories as users_repositories
@@ -43,8 +45,14 @@ async def test_create_user_success():
     color = 8
     password = "password"
     lang = "es-ES"
+    acceptance_date = aware_utcnow()
     user = await users_repositories.create_user(
-        email=email, full_name=full_name, color=color, password=password, lang=lang
+        email=email,
+        full_name=full_name,
+        color=color,
+        password=password,
+        lang=lang,
+        acceptance_date=acceptance_date,
     )
     await user.arefresh_from_db()
     assert user.email == email.lower()
@@ -53,15 +61,40 @@ async def test_create_user_success():
     assert user.lang == lang
 
 
+async def test_create_user_not_accepted_terms():
+    email = "EMAIL@email.com"
+    full_name = "Full Name"
+    password = "password"
+    lang = "es-ES"
+    color = 1
+    acceptance_date = None
+
+    with pytest.raises(ValueError):
+        await users_repositories.create_user(
+            email=email.upper(),
+            full_name=full_name,
+            password=password,
+            lang=lang,
+            color=color,
+            acceptance_date=acceptance_date,
+        )
+
+
 async def test_create_user_error_email_or_username_case_insensitive():
     email = "EMAIL@email.com"
     full_name = "Full Name"
     password = "password"
     lang = "es-ES"
     color = 1
+    acceptance_date = aware_utcnow()
 
     await users_repositories.create_user(
-        email=email, full_name=full_name, password=password, lang=lang, color=color
+        email=email,
+        full_name=full_name,
+        password=password,
+        lang=lang,
+        color=color,
+        acceptance_date=acceptance_date,
     )
 
     with pytest.raises(IntegrityError):
@@ -71,18 +104,26 @@ async def test_create_user_error_email_or_username_case_insensitive():
             password=password,
             lang=lang,
             color=color,
+            acceptance_date=acceptance_date,
         )
 
 
+@override_settings(REQUIRED_TERMS=False)
 async def test_create_user_no_password_from_social():
     email = "EMAIL@email.com"
     full_name = "Full Name"
     password = None
     lang = "es-ES"
     color = 1
+    acceptance_date = None
 
     res = await users_repositories.create_user(
-        email=email, full_name=full_name, password=password, lang=lang, color=color
+        email=email,
+        full_name=full_name,
+        password=password,
+        lang=lang,
+        color=color,
+        acceptance_date=acceptance_date,
     )
 
     assert res.password == ""

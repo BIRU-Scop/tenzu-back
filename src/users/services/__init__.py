@@ -27,7 +27,6 @@ from commons.colors import generate_random_color
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from emails.emails import Emails
 from emails.tasks import send_email
-from memberships.choices import InvitationStatus
 from memberships.services import exceptions as invitations_ex
 from memberships.services.exceptions import MembershipIsTheOnlyOwnerError
 from ninja_jwt.exceptions import TokenError
@@ -73,6 +72,7 @@ async def create_user(
     accept_project_invitation: bool = True,
     workspace_invitation_token: str | None = None,
     accept_workspace_invitation: bool = True,
+    accepted_terms: bool = False,
 ) -> User:
     lang = lang if lang else settings.LANGUAGE_CODE
     try:
@@ -83,8 +83,14 @@ async def create_user(
         # new user
         if not color:
             color = generate_random_color()
+        acceptance_date = aware_utcnow() if accepted_terms else None
         user = await users_repositories.create_user(
-            email=email, full_name=full_name, color=color, password=password, lang=lang
+            email=email,
+            full_name=full_name,
+            color=color,
+            password=password,
+            lang=lang,
+            acceptance_date=acceptance_date,
         )
     else:
         if user.is_active:

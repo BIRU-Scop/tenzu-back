@@ -20,6 +20,7 @@
 from django.conf import settings
 
 from auth import services as auth_services
+from commons.colors import generate_random_color
 from emails.emails import Emails
 from emails.tasks import send_email
 from ninja_jwt.schema import TokenObtainPairOutputSchema
@@ -52,9 +53,15 @@ async def social_login(
 
         if not user:
             # create a new user with social login data and verify it
+            color = generate_random_color()
             user = await users_repositories.create_user(
-                email=email, full_name=full_name, password=None, lang=lang
-            )
+                color=color,
+                email=email,
+                full_name=full_name,
+                password=None,
+                lang=lang,
+                acceptance_date=None,
+            )  # TODO handle acceptance for social account
             await users_services.verify_user(user)
         elif not user.is_active:
             # update existing (but not verified) user with social login data and verify it
