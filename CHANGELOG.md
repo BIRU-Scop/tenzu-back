@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.32](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.31...v0.0.1-staging.32) (2025-08-22)
+
+
+### Features
+
+* split tos and privacy policy acceptance, use a datetime for acceptance and make it optional depending on configuration ([17dba69](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/17dba691dd64c1ad05f60a18161c33df7d6f6a79))
+
 ## [0.0.1-staging.31](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.30...v0.0.1-staging.31) (2025-07-23)
 
 ## [0.0.1-staging.30](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.29...v0.0.1-staging.30) (2025-07-23)
