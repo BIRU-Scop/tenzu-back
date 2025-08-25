@@ -1,6 +1,6 @@
-# English translations for PROJECT.
-# Copyright (C) 2022 ORGANIZATION
-# This file is distributed under the same license as the PROJECT project.
+# English translations for Tenzu.
+# Copyright (C) 2022 BIRU
+# This file is distributed under the same license as the Tenzu project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
 #
 msgid ""
@@ -123,7 +123,7 @@ msgstr "Button not working? Copy and paste this URL into your web browser:"
 #: tenzu/emails/templates/social_login_warning.html.jinja:489
 #: tenzu/emails/templates/social_login_warning.txt.jinja:21
 msgid "emails.commons.team"
-msgstr "Biru"
+msgstr "The Tenzu team"
 
 #: tenzu/emails/templates/reset_password.html.jinja:585
 #: tenzu/emails/templates/reset_password.txt.jinja:17
