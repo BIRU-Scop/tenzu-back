@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.33](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.32...v0.0.1-staging.33) (2025-08-25)
+
+
+### Features
+
+* add french language support ([891b1ce](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/891b1ce003ad176a13d28f7ce7eaba1b42f09adb))
+
 ## [0.0.1-staging.32](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.31...v0.0.1-staging.32) (2025-08-22)
 
 
