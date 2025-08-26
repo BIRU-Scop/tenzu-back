@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,6 +20,7 @@ from uuid import UUID
 
 from ninja import Path, Router
 
+from base.serializers import BaseDataModel
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -105,7 +106,7 @@ async def create_workspace_invitations(
     url_name="workspace.invitations.list",
     summary="List workspace invitations",
     response={
-        200: list[WorkspaceInvitationSerializer],
+        200: BaseDataModel[list[WorkspaceInvitationSerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -139,7 +140,7 @@ async def list_workspace_invitations(
     url_name="workspace.invitations.get",
     summary="Get public workspace invitation information by token",
     response={
-        200: PublicWorkspacePendingInvitationSerializer,
+        200: BaseDataModel[PublicWorkspacePendingInvitationSerializer],
         400: ERROR_RESPONSE_400,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -175,7 +176,7 @@ async def get_public_pending_workspace_invitation(
     url_name="workspace.invitations.resend",
     summary="Resend workspace invitation",
     response={
-        200: WorkspaceInvitationSerializer,
+        200: BaseDataModel[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -210,7 +211,7 @@ async def resend_workspace_invitation(
     url_name="workspace.invitations.revoke",
     summary="Revoke workspace invitation",
     response={
-        200: WorkspaceInvitationSerializer,
+        200: BaseDataModel[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -247,7 +248,7 @@ async def revoke_workspace_invitation(
     url_name="workspace.invitations.accept",
     summary="Accept workspace invitation by token",
     response={
-        200: WorkspaceInvitationSerializer,
+        200: BaseDataModel[WorkspaceInvitationSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -281,7 +282,7 @@ async def accept_workspace_invitation_by_token(
     url_name="workspace.my.invitations.accept",
     summary="Accept a workspace invitation for authenticated users",
     response={
-        200: WorkspaceInvitationSerializer,
+        200: BaseDataModel[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -317,7 +318,7 @@ async def accept_workspace_invitation_by_workspace(
     url_name="workspace.invitations.deny",
     summary="Deny workspace invitation for authenticated user",
     response={
-        200: WorkspaceInvitationSerializer,
+        200: BaseDataModel[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -352,7 +353,7 @@ async def deny_workspace_invitation_by_workspace(
     url_name="workspace.invitations.update",
     summary="Update workspace invitation",
     response={
-        200: WorkspaceInvitationSerializer,
+        200: BaseDataModel[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
