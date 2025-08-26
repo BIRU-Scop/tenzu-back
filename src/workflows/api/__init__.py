@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -346,7 +346,7 @@ async def create_workflow_status(
     url_name="project.workflowstatus.reorder",
     summary="Reorder workflow statuses",
     response={
-        200: ReorderWorkflowStatusesSerializer,
+        200: None,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -357,7 +357,7 @@ async def reorder_workflow_statuses(
     request,
     workflow_id: Path[B64UUID],
     form: ReorderWorkflowStatusesValidator,
-) -> ReorderWorkflowStatusesSerializer:
+) -> None:
     """
     Reorder one or more workflow statuses; it may change workflow and order
     """

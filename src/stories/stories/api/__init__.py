@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -219,7 +219,7 @@ async def update_story(
     url_name="project.stories.reorder",
     summary="Reorder stories",
     response={
-        200: ReorderStoriesSerializer,
+        200: None,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -230,7 +230,7 @@ async def reorder_stories(
     request,
     workflow_id: Path[B64UUID],
     form: ReorderStoriesValidator,
-) -> ReorderStoriesSerializer:
+) -> None:
     """
     Reorder one or more stories; it may change priority and/or status
     """

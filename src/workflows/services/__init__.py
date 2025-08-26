@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -377,7 +377,7 @@ async def reorder_workflow_statuses(
     status_ids: list[UUID],
     reorder: dict[str, Any] | None,
     source_workflow: Workflow | None = None,
-) -> ReorderWorkflowStatusesSerializer:
+) -> None:
     """
     Reorder the statuses from a workflow to another (can be the same), before or after an existing status
     (anchor) when a reorder criteria is provided, or preserving its original order when not provided.
@@ -488,8 +488,6 @@ async def reorder_workflow_statuses(
     await transaction_on_commit_async(
         workflows_events.emit_event_when_workflow_statuses_are_reordered
     )(project=target_workflow.project, reorder=reorder_status_serializer)
-
-    return reorder_status_serializer
 
 
 ##########################################################
