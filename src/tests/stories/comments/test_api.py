@@ -43,7 +43,7 @@ async def test_create_story_comment_ok(client, project_template):
     response = await client.post(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments", json=data
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     user = await f.create_user()
     general_member_role = await f.create_project_role(
@@ -59,7 +59,7 @@ async def test_create_story_comment_ok(client, project_template):
     response = await client.post(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments", json=data
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_create_story_comment_forbidden_anonymous(client, project_template):
@@ -164,8 +164,9 @@ async def test_list_story_comments_ok(client, project_template):
     response = await client.get(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments"
     )
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 1
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 1
 
     user = await f.create_user()
     general_member_role = await f.create_project_role(
@@ -181,8 +182,9 @@ async def test_list_story_comments_ok(client, project_template):
     response = await client.get(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments"
     )
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 1
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 1
 
 
 async def test_list_story_comments_forbidden_anonymous(client, project_template):
@@ -246,8 +248,9 @@ async def test_list_story_comments_success_with_custom_pagination(
     response = await client.get(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments?{query_params}"
     )
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 1
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 1
     assert response.headers["Pagination-Offset"] == "0"
     assert response.headers["Pagination-Limit"] == "1"
 
@@ -270,8 +273,9 @@ async def test_list_story_comments_success_with_deleted_comments(
     response = await client.get(
         f"/projects/{story.project.b64id}/stories/{story.ref}/comments"
     )
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 2
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 2
     assert response.headers["Tenzu-Total-Comments"] == "1"
 
 
@@ -337,7 +341,7 @@ async def test_update_story_comment_ok_self(client):
         f"/stories/comments/{comment.b64id}",
         json=data,
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_update_story_comment_ok_moderator(client, project_template):
@@ -362,7 +366,7 @@ async def test_update_story_comment_ok_moderator(client, project_template):
         f"/stories/comments/{comment.b64id}",
         json=data,
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_update_story_comment_error_forbidden_anonymous(client, project_template):
@@ -517,8 +521,9 @@ async def test_delete_story_comment_ok_self(client):
 
     client.login(user)
     response = await client.delete(f"/stories/comments/{comment.b64id}")
-    assert response.status_code == 200, response.data
-    assert response.json()["text"] == ""
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["text"] == ""
 
 
 async def test_delete_story_comment_ok_moderator(client, project_template):
@@ -538,8 +543,9 @@ async def test_delete_story_comment_ok_moderator(client, project_template):
 
     client.login(user)
     response = await client.delete(f"/stories/comments/{comment.b64id}")
-    assert response.status_code == 200, response.data
-    assert response.json()["text"] == ""
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["text"] == ""
 
 
 async def test_delete_story_comment_error_forbidden_anonymous(client, project_template):

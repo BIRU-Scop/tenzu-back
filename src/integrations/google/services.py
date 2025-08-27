@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -57,7 +57,7 @@ async def get_access_to_google(code: str, redirect_uri: str) -> str | None:
             auth=(settings.GOOGLE_CLIENT_ID, settings.GOOGLE_CLIENT_SECRET),  # type: ignore
         )
 
-    data = response.json()
+    data = response.data
     if response.status_code != 200 or "error" in data:
         return None
 

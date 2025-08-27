@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -69,7 +69,7 @@ async def test_create_story_assignment_ok(client, project_template):
     response = await client.post(
         f"/projects/{project.b64id}/stories/{story.ref}/assignments", json=data
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 ##########################################################

@@ -59,7 +59,7 @@ async def test_create_user_ok_with_token_project(client):
     }
 
     response = await client.post("/users", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_create_user_ok_with_token_workspace(client):
@@ -76,7 +76,7 @@ async def test_create_user_ok_with_token_workspace(client):
     }
 
     response = await client.post("/users", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_create_user_not_accepted_terms(client):
@@ -122,7 +122,7 @@ async def test_verify_user_ok(client):
 
     response = await client.post("/users/verify", json=data)
     assert response.status_code == 200, response.data
-    assert response.json()["projectInvitation"] is None
+    assert response.data["projectInvitation"] is None
 
 
 @pytest.mark.django_db(transaction=True, serialized_rollback=True)
@@ -145,7 +145,7 @@ async def test_verify_user_ok_accepting_pj_invitation(client, project_template):
 
     response = await client.post("/users/verify", json=data)
     assert response.status_code == 200, response.data
-    assert response.json()["projectInvitation"] is not None
+    assert response.data["projectInvitation"] is not None
 
 
 @pytest.mark.django_db(transaction=True)
@@ -167,7 +167,7 @@ async def test_verify_user_ok_accepting_ws_invitation(client):
 
     response = await client.post("/users/verify", json=data)
     assert response.status_code == 200, response.data
-    assert response.json()["workspaceInvitation"] is not None
+    assert response.data["workspaceInvitation"] is not None
 
 
 async def test_verify_user_ok_with_invalid_pj_invitation(client):
@@ -178,7 +178,7 @@ async def test_verify_user_ok_with_invalid_pj_invitation(client):
 
     response = await client.post("/users/verify", json=data)
     assert response.status_code == 200, response.data
-    assert response.json()["projectInvitation"] is None
+    assert response.data["projectInvitation"] is None
 
 
 async def test_verify_user_ok_with_invalid_ws_invitation(client):
@@ -191,7 +191,7 @@ async def test_verify_user_ok_with_invalid_ws_invitation(client):
 
     response = await client.post("/users/verify", json=data)
     assert response.status_code == 200, response.data
-    assert response.json()["workspaceInvitation"] is None
+    assert response.data["workspaceInvitation"] is None
 
 
 async def test_verify_user_error_invalid_token(client):
@@ -243,7 +243,8 @@ async def test_get_current_user_success(client):
     response = await client.get("/users/me")
 
     assert response.status_code == 200
-    assert "email" in response.json().keys()
+    res = response.data["data"]
+    assert "email" in res.keys()
 
 
 ##########################################################
@@ -271,7 +272,7 @@ async def test_update_current_user_success(client):
     client.login(user)
     response = await client.put("/users/me", json=data)
 
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 #####################################################################
@@ -478,7 +479,7 @@ async def test_get_current_user_delete_info_success(client, project_template):
     client.login(user)
     response = await client.get("/users/me/delete-info")
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert len(res) == 4
     assert res.keys() == {
         "onlyOwnerCollectiveWorkspaces",
@@ -528,7 +529,7 @@ async def test_request_reset_password_ok_with_invalid_email(client):
 
     response = await client.post("/users/reset-password", json=data)
     assert response.status_code == 422, response.data
-    assert response.json()["detail"][0]["type"] == "value_error"
+    assert response.data["detail"][0]["type"] == "value_error"
 
 
 async def test_request_reset_password_error_with_no_email(client):
@@ -536,7 +537,7 @@ async def test_request_reset_password_error_with_no_email(client):
 
     response = await client.post("/users/reset-password", json=data)
     assert response.status_code == 422, response.data
-    assert response.json()["detail"][0]["type"] == "missing"
+    assert response.data["detail"][0]["type"] == "missing"
 
 
 ##########################################################
@@ -550,7 +551,7 @@ async def test_verify_reset_password_token(client):
 
     response = await client.get(f"/users/reset-password/{token}/verify")
     assert response.status_code == 200, response.data
-    assert response.json() is True
+    assert response.data is True
 
 
 async def test_verify_reset_password_error_inactive_user(client):
@@ -603,8 +604,8 @@ async def test_reset_password_ok(client):
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
     assert response.status_code == 200, response.data
-    assert "access" in response.json()
-    assert "refresh" in response.json()
+    assert "access" in response.data
+    assert "refresh" in response.data
 
 
 async def test_reset_password_error_with_no_password(client):
@@ -614,7 +615,7 @@ async def test_reset_password_error_with_no_password(client):
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
     assert response.status_code == 422, response.data
-    assert response.json()["detail"][0]["type"] == "missing"
+    assert response.data["detail"][0]["type"] == "missing"
 
 
 async def test_reset_password_error_with_invalid_password(client):
@@ -624,7 +625,7 @@ async def test_reset_password_error_with_invalid_password(client):
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
     assert response.status_code == 422, response.data
-    assert response.json()["detail"][0]["type"] == "string_too_short"
+    assert response.data["detail"][0]["type"] == "string_too_short"
 
 
 async def test_reset_password_error_inactive_user(client):

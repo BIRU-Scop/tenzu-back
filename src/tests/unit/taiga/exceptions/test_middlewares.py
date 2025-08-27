@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -54,7 +54,7 @@ client = TestClient(app)
 def test_there_is_no_error():
     response = client.get("/success")
     assert response.status_code == 200, response.text
-    assert response.json() == {}
+    assert response.data == {}
 
 
 def test_500_errors_has_cors_headers_with_origin_in_request(caplog):
@@ -65,7 +65,7 @@ def test_500_errors_has_cors_headers_with_origin_in_request(caplog):
     assert "access-control-allow-origin" in response.headers
     assert "access-control-allow-credentials" in response.headers
 
-    error = response.json()["error"]
+    error = response.data["error"]
     assert "code" in error
     assert "detail" in error and isinstance(error["detail"], str)
     assert "msg" in error
@@ -79,7 +79,7 @@ def test_500_errors_has_not_cors_headers_without_origin_in_request(caplog):
     assert "access-control-allow-origin" not in response.headers
     assert "access-control-allow-credentials" not in response.headers
 
-    error = response.json()["error"]
+    error = response.data["error"]
     assert "code" in error
     assert "detail" in error and isinstance(error["detail"], str)
     assert "msg" in error

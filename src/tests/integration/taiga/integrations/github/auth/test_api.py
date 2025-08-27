@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -69,7 +69,7 @@ async def test_github_login(client, httpx_mock):
     response = client.post("/auth/github", json=data)
 
     assert response.status_code == 200, response.text
-    assert response.json().keys() == {"access", "refresh"}
+    assert response.data.keys() == {"access", "refresh"}
 
 
 async def test_github_login_not_configured(client, httpx_mock):

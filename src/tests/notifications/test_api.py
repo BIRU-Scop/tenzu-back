@@ -38,8 +38,9 @@ async def test_list_notifications_200_ok(client):
 
     client.login(user)
     response = await client.get("/notifications")
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 3
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 3
 
 
 async def test_list_notifications_200_ok_filter_only_read(client):
@@ -50,8 +51,9 @@ async def test_list_notifications_200_ok_filter_only_read(client):
 
     client.login(user)
     response = await client.get("/notifications?read=true")
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 1
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 1
 
 
 async def test_list_notifications_200_ok_filter_only_unread(client):
@@ -62,8 +64,9 @@ async def test_list_notifications_200_ok_filter_only_unread(client):
 
     client.login(user)
     response = await client.get("/notifications?read=false")
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 2
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 2
 
 
 async def test_list_notifications_401_forbidden_error_anonymous(client):
@@ -85,7 +88,7 @@ async def test_count_notifications_200_ok(client):
     client.login(user)
     response = await client.get("/notifications/count")
     assert response.status_code == 200, response.data
-    res = response.json()
+    res = response.data
     assert res["read"] == 1
     assert res["unread"] == 2
     assert res["total"] == 3
@@ -108,8 +111,9 @@ async def test_mark_all_notifications_as_read_200_ok(client):
 
     client.login(user)
     response = await client.post("/notifications/read")
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 2
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 2
 
 
 async def test_mark_all_notifications_as_read_401_anonymous(client):
@@ -128,8 +132,9 @@ async def test_mark_notification_as_read_200_ok(client):
 
     client.login(user)
     response = await client.post(f"/notifications/{notification.b64id}/read")
-    assert response.status_code == 200, response.data
-    assert response.json()["readAt"] is not None, response.json()
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["readAt"] is not None
 
 
 async def test_mark_notification_as_read_404_not_found(client):

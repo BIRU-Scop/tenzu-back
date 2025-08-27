@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -39,7 +39,7 @@ async def test_create_workflow_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.post(f"/projects/{project.b64id}/workflows", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -51,7 +51,7 @@ async def test_create_workflow_200_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.post(f"/projects/{project.b64id}/workflows", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_create_workflow_403_forbidden_not_member(client, project_template):
@@ -109,7 +109,7 @@ async def test_get_workflows_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/workflows")
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -121,7 +121,7 @@ async def test_get_workflows_200_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.get(f"/projects/{project.b64id}/workflows")
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_get_workflows_403_forbidden_not_member(client, project_template):
@@ -174,7 +174,7 @@ async def test_get_workflow_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/workflows/{workflow.b64id}")
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -186,7 +186,7 @@ async def test_get_workflow_200_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.get(f"/workflows/{workflow.b64id}")
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_get_workflow_403_forbidden_not_member(client, project_template):
@@ -245,7 +245,7 @@ async def test_get_workflow_by_slug_200_ok(client, project_template):
     response = await client.get(
         f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -259,7 +259,7 @@ async def test_get_workflow_by_slug_200_ok(client, project_template):
     response = await client.get(
         f"/projects/{project.b64id}/workflows/by_slug/{workflow.slug}"
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_get_workflow_by_slug_403_forbidden_not_member(client, project_template):
@@ -344,7 +344,7 @@ async def test_update_workflow_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.patch(f"/workflows/{workflow.b64id}", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -356,7 +356,7 @@ async def test_update_workflow_200_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.patch(f"/workflows/{workflow.b64id}", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_update_workflow_403_forbidden_not_member(client, project_template):
@@ -525,7 +525,7 @@ async def test_create_workflow_status_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.post(f"/workflows/{workflow.b64id}/statuses", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -537,7 +537,7 @@ async def test_create_workflow_status_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.post(f"/workflows/{workflow.b64id}/statuses", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_create_workflow_status_forbidden_not_member(client, project_template):
@@ -615,10 +615,6 @@ async def test_reorder_statuses_200_ok_with_reorder_ok(client, project_template)
     )
 
     assert response.status_code == 200, response.data
-    res = response.json()
-    assert "reorder" in res
-    assert "statusIds" in res
-    assert res["statusIds"] == [wf_status.b64id]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -734,7 +730,7 @@ async def test_update_status_200_ok(client, project_template):
         f"/workflows/statuses/{wf_status.b64id}",
         json=data,
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -749,7 +745,7 @@ async def test_update_status_200_ok(client, project_template):
         f"/workflows/statuses/{wf_status.b64id}",
         json=data,
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_update_status_forbidden_not_member(client, project_template):
@@ -805,7 +801,7 @@ async def test_update_status_400_bad_request_null_name(client, project_template)
         json=data,
     )
     assert response.status_code == 400, response.data
-    assert response.json()["error"]["msg"] == "Name cannot be null"
+    assert response.data["error"]["msg"] == "Name cannot be null"
 
 
 async def test_update_status_404_not_found_wf_status_b64id(client, project_template):

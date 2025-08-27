@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -29,5 +29,6 @@ pytestmark = pytest.mark.django_db
 
 async def test_get_system_languages(client):
     response = await client.get("/system/languages")
-    assert response.status_code == 200, response.data
-    assert len(response.json()) >= 1
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) >= 1
