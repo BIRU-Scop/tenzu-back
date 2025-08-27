@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,6 +21,7 @@ from uuid import UUID
 
 from ninja import Path, Router
 
+from base.serializers import BaseDataModel
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -109,7 +110,7 @@ async def create_project_invitations(
     url_name="project.invitations.list",
     summary="List project invitations",
     response={
-        200: list[ProjectInvitationSerializer],
+        200: BaseDataModel[list[ProjectInvitationSerializer]],
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
@@ -141,7 +142,7 @@ async def list_project_invitations(
     url_name="project.invitations.get",
     summary="Get public project invitation information by token",
     response={
-        200: PublicProjectPendingInvitationSerializer,
+        200: BaseDataModel[PublicProjectPendingInvitationSerializer],
         400: ERROR_RESPONSE_400,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -178,7 +179,7 @@ async def get_public_pending_project_invitation(
     url_name="project.invitations.resend",
     summary="Resend project invitation",
     response={
-        200: ProjectInvitationSerializer,
+        200: BaseDataModel[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -216,7 +217,7 @@ async def resend_project_invitation(
     url_name="project.invitations.revoke",
     summary="Revoke project invitation",
     response={
-        200: ProjectInvitationSerializer,
+        200: BaseDataModel[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -253,7 +254,7 @@ async def revoke_project_invitation(
     url_name="project.invitations.accept",
     summary="Accept project invitation by token",
     response={
-        200: ProjectInvitationSerializer,
+        200: BaseDataModel[ProjectInvitationSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -284,7 +285,7 @@ async def accept_project_invitation_by_token(request, token: str) -> ProjectInvi
     url_name="project.my.invitations.accept",
     summary="Accept a project invitation for authenticated users",
     response={
-        200: ProjectInvitationSerializer,
+        200: BaseDataModel[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -320,7 +321,7 @@ async def accept_project_invitation_by_project(
     url_name="project.invitations.deny",
     summary="Deny project invitation for authenticated user",
     response={
-        200: ProjectInvitationSerializer,
+        200: BaseDataModel[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -355,7 +356,7 @@ async def deny_project_invitation_by_project(
     url_name="project.invitations.update",
     summary="Update project invitation",
     response={
-        200: ProjectInvitationSerializer,
+        200: BaseDataModel[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

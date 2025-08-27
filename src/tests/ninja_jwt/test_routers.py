@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -70,9 +70,9 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 200
 
-        assert "access" in response.json()
-        assert "refresh" in response.json()
-        assert User.USERNAME_FIELD in response.json()
+        assert "access" in response.data
+        assert "refresh" in response.data
+        assert User.USERNAME_FIELD in response.data
 
     def test_obtain_token_pair_fail(self, client):
         response = client.post(
@@ -85,8 +85,8 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 401
 
-        assert "detail" in response.json()
-        assert "code" in response.json()
+        assert "detail" in response.data
+        assert "code" in response.data
 
     def test_obtain_token_pair_fail_user_not_active(self, client):
         self.user.is_active = False
@@ -102,8 +102,8 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 401
 
-        assert "detail" in response.json()
-        assert "code" in response.json()
+        assert "detail" in response.data
+        assert "code" in response.data
 
     def test_refresh_token_success(self, client):
         token = RefreshToken.for_user(self.user)
@@ -117,8 +117,8 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 200
 
-        assert "access" in response.json()
-        assert "refresh" in response.json()
+        assert "access" in response.data
+        assert "refresh" in response.data
 
     def test_refresh_token_fail(self, client):
         response = client.post(
@@ -130,8 +130,8 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 401
 
-        assert "detail" in response.json()
-        assert "code" in response.json()
+        assert "detail" in response.data
+        assert "code" in response.data
 
     def test_obtain_token_sliding_success(self, client):
         response = client.post(
@@ -144,8 +144,8 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 200
 
-        assert "token" in response.json()
-        assert User.USERNAME_FIELD in response.json()
+        assert "token" in response.data
+        assert User.USERNAME_FIELD in response.data
 
     def test_obtain_token_sliding_fail(self, client):
         response = client.post(
@@ -158,8 +158,8 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 401
 
-        assert "detail" in response.json()
-        assert "code" in response.json()
+        assert "detail" in response.data
+        assert "code" in response.data
 
     def test_obtain_token_sliding_fail_user_not_active(self, client):
         self.user.is_active = False
@@ -175,8 +175,8 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 401
 
-        assert "detail" in response.json()
-        assert "code" in response.json()
+        assert "detail" in response.data
+        assert "code" in response.data
 
     def test_refresh_sliding_token_success(self, client):
         token = SlidingToken.for_user(self.user)
@@ -188,7 +188,7 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 200
 
-        assert "token" in response.json()
+        assert "token" in response.data
 
     def test_refresh_sliding_token_token_fail(self, client):
         token = SlidingToken.for_user(self.user)
@@ -199,8 +199,8 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 401
 
-        assert "detail" in response.json()
-        assert "code" in response.json()
+        assert "detail" in response.data
+        assert "code" in response.data
 
     def test_verify_token_success(self, client):
         token = RefreshToken.for_user(self.user)
@@ -223,8 +223,8 @@ class TestObtainTokenRouter:
         )
         assert response.status_code == 401
 
-        assert "detail" in response.json()
-        assert "code" in response.json()
+        assert "detail" in response.data
+        assert "code" in response.data
 
     def test_blacklist_token_success(self, client):
         token = RefreshToken.for_user(self.user)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,6 +24,7 @@ from ninja import Path, Query, Router
 
 from base.api import pagination as api_pagination
 from base.api.pagination import PaginationQuery
+from base.serializers import BaseDataModel
 from comments import services as comments_services
 from comments.models import Comment
 from comments.serializers import CommentSerializer
@@ -60,7 +61,7 @@ comments_router = Router()
     url_name="project.story.comments.create",
     summary="Create story comment",
     response={
-        200: CommentSerializer,
+        200: BaseDataModel[CommentSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -97,7 +98,7 @@ async def create_story_comments(
     url_name="project.story.comments.list",
     summary="List story comments",
     response={
-        200: list[CommentSerializer],
+        200: BaseDataModel[list[CommentSerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -147,7 +148,7 @@ async def list_story_comments(
     url_name="story.comments.update",
     summary="Update story comment",
     response={
-        200: CommentSerializer,
+        200: BaseDataModel[CommentSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -183,7 +184,7 @@ async def update_story_comments(
     url_name="story.comments.delete",
     summary="Delete story comment",
     response={
-        200: CommentSerializer,
+        200: BaseDataModel[CommentSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

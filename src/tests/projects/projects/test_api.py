@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -42,8 +42,8 @@ async def test_create_project_200_ok_being_workspace_member(client):
     response = await client.post(
         f"/workspaces/{workspace.b64id}/projects", data=data, files=files
     )
-    assert response.status_code == 200, response.data
-    res = response.json()
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert res["userRole"]["isOwner"] is True
     assert res["userIsInvited"] is False
     assert len(res["workflows"]) > 0
@@ -111,9 +111,8 @@ async def test_list_workspace_projects_200_ok_owner_no_project(client):
     workspace = await f.create_workspace()
     client.login(workspace.created_by)
     response = await client.get(f"/workspaces/{workspace.b64id}/projects")
-    assert response.status_code == 200, response.text
-    res = response.json()
-    assert res == []
+    assert response.status_code == 200, response.data["data"]
+    assert response.data == {"data": []}
 
 
 async def test_list_workspace_projects_200_ok_owner_one_project(
@@ -124,8 +123,8 @@ async def test_list_workspace_projects_200_ok_owner_one_project(
 
     client.login(workspace.created_by)
     response = await client.get(f"/workspaces/{workspace.b64id}/projects")
-    assert response.status_code == 200, response.text
-    res = response.json()
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert len(res) == 1
     assert res[0]["name"] == project.name
     assert not res[0]["userIsInvited"]
@@ -138,8 +137,8 @@ async def test_list_workspace_projects_200_ok_invitee(client, project_template):
     response = await client.get(
         f"/workspaces/{pj_invitation.project.workspace.b64id}/projects"
     )
-    assert response.status_code == 200, response.data
-    res = response.json()
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert len(res) == 1
     assert res[0]["name"] == pj_invitation.project.name
     assert res[0]["userIsInvited"]
@@ -169,8 +168,8 @@ async def test_get_project_200_ok_being_project_owner(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.data
-    res = response.json()
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert res["userRole"]["isOwner"] is True
     assert res["userIsInvited"] is False
     assert len(res["workflows"]) > 0
@@ -193,8 +192,8 @@ async def test_get_project_200_ok_being_project_member_without_view_workflows(
 
     client.login(user)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.data
-    res = response.json()
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert res["userRole"]["isOwner"] is False
     assert res["userIsInvited"] is False
     assert res["workflows"] == []
@@ -215,8 +214,8 @@ async def test_get_project_200_ok_being_project_member(client, project_template)
 
     client.login(pj_member)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.data
-    res = response.json()
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert res["userRole"]["isOwner"] is False
     assert res["userIsInvited"] is False
     assert len(res["workflows"]) > 0
@@ -236,8 +235,8 @@ async def test_get_project_200_ok_being_invited_user(client, project_template):
 
     client.login(user)
     response = await client.get(f"/projects/{project.b64id}")
-    assert response.status_code == 200, response.data
-    res = response.json()
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert res["userRole"] is None
     assert res["userIsInvited"] is True
     assert res["workflows"] == []
@@ -297,8 +296,8 @@ async def test_update_project_files_200_ok(client, project_template):
         data=data,
         FILES={"logo": logo},
     )
-    assert response.status_code == 200, response.data
-    updated_project = response.json()
+    assert response.status_code == 200, response.data["data"]
+    updated_project = response.data["data"]
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
     assert "new-logo.png" in updated_project["logo"]
@@ -319,8 +318,8 @@ async def test_update_project_files_200_ok_no_logo_change(client, project_templa
         data=data,
         FILES={},
     )
-    assert response.status_code == 200, response.data
-    updated_project = response.json()
+    assert response.status_code == 200, response.data["data"]
+    updated_project = response.data["data"]
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
     assert "new-logo.png" in updated_project["logo"]
@@ -338,8 +337,8 @@ async def test_update_project_files_200_ok_delete_logo(client, project_template)
         data=data,
         FILES={"logo": None},
     )
-    assert response.status_code == 200, response.data
-    updated_project = response.json()
+    assert response.status_code == 200, response.data["data"]
+    updated_project = response.data["data"]
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
     assert not updated_project["logo"]
@@ -352,8 +351,8 @@ async def test_update_project_200_ok_delete_description(client, project_template
 
     client.login(project.created_by)
     response = await client.patch(f"/projects/{project.b64id}", data=data)
-    assert response.status_code == 200, response.data
-    updated_project = response.json()
+    assert response.status_code == 200, response.data["data"]
+    updated_project = response.data["data"]
     assert updated_project["name"] == project.name
     assert updated_project["description"] == ""
 
@@ -371,8 +370,9 @@ async def test_update_project_422_empty_name(client, project_template):
 
     client.login(project.created_by)
     response = await client.patch(f"/projects/{project.b64id}", data=data)
-    assert response.status_code == 200, response.data
-    assert response.json()["name"] == project.name
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["name"] == project.name
 
 
 async def test_update_project_200_ok_member(client, project_template):
@@ -392,11 +392,11 @@ async def test_update_project_200_ok_member(client, project_template):
 
     client.login(user)
     response = await client.patch(f"/projects/{project.b64id}", data=data)
-    assert response.status_code == 200, response.data
-    updated_project = response.json()
-    assert updated_project["userRole"]["isOwner"] is False
-    assert updated_project["userIsInvited"] is False
-    assert updated_project["workflows"] == []
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["userRole"]["isOwner"] is False
+    assert res["userIsInvited"] is False
+    assert res["workflows"] == []
 
 
 async def test_update_project_403_forbidden_member_without_permissions(

@@ -353,7 +353,7 @@ async def reorder_stories(
     target_status_id: UUID,
     stories_refs: list[int],
     reorder: dict[str, Any] | None = None,
-) -> ReorderStoriesSerializer:
+) -> None:
     # check target_status exists
     try:
         target_status = await workflows_repositories.get_workflow_status(
@@ -464,8 +464,6 @@ async def reorder_stories(
             status=story.status.name,
             emitted_by=reordered_by,
         )
-
-    return reorder_story_serializer
 
 
 async def _calculate_next_order(status_id: UUID) -> int:

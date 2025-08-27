@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,6 +23,7 @@ from django.http import HttpResponse
 from ninja import Path, Query, Router
 
 from base.api import Pagination, PaginationQuery, set_pagination
+from base.serializers import BaseDataModel
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
@@ -60,7 +61,7 @@ stories_router = Router()
     url_name="project.stories.create",
     summary="Create a story",
     response={
-        200: StoryDetailSerializer,
+        200: BaseDataModel[StoryDetailSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -102,7 +103,7 @@ async def create_story(
     url_name="project.workflow.stories.list",
     summary="List stories by workflow",
     response={
-        200: list[StorySummarySerializer],
+        200: BaseDataModel[list[StorySummarySerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -145,7 +146,7 @@ async def list_stories_for_workflow(
     url_name="project.stories.get",
     summary="Get story",
     response={
-        200: StoryDetailSerializer,
+        200: BaseDataModel[StoryDetailSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -178,7 +179,7 @@ async def get_story(
     url_name="project.stories.update",
     summary="Update story",
     response={
-        200: StoryDetailSerializer,
+        200: BaseDataModel[StoryDetailSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -219,7 +220,7 @@ async def update_story(
     url_name="project.stories.reorder",
     summary="Reorder stories",
     response={
-        200: ReorderStoriesSerializer,
+        200: None,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -230,7 +231,7 @@ async def reorder_stories(
     request,
     workflow_id: Path[B64UUID],
     form: ReorderStoriesValidator,
-) -> ReorderStoriesSerializer:
+) -> None:
     """
     Reorder one or more stories; it may change priority and/or status
     """

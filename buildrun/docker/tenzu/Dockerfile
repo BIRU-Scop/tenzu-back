@@ -45,7 +45,7 @@ FROM base-image AS dev-image
 # replace with --mount=type=bind in RUN once supported by our CI build
 COPY ./buildrun/docker/tenzu/requirements/devel.txt /tenzu/devel.txt
 # Install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gettext iputils-ping htop build-essential libpq-dev && \
+RUN apt-get update && apt-get install -y --no-install-recommends gettext iputils-ping htop build-essential libpq-dev git && \
     uv pip sync --system /tenzu/devel.txt && rm /tenzu/devel.txt && \
     (if [ -n "${EXTRA_PACKAGES}" ] ; then pip install ${EXTRA_PACKAGES}; fi) && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
