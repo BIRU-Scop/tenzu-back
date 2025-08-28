@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -61,8 +61,8 @@ async def test_list_workspace_memberships(
     client.login(pj_member)
 
     response = await client.get(f"/workspaces/{workspace.b64id}/memberships")
-    assert response.status_code == 200, response.data
-    res = response.json()
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert len(res) == 3  # 2 explicitly created + owner membership
     assert res[0]["totalProjectsIsMember"] == 2
     assert res[1]["totalProjectsIsMember"] == 0
@@ -189,15 +189,17 @@ async def test_update_workspace_membership_role_ok(
     response = await client.patch(
         f"workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == 200, response.data
-    assert response.json()["totalProjectsIsMember"] == 1
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["totalProjectsIsMember"] == 1
 
     client.login(user1)
     response = await client.patch(
         f"workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == 200, response.data
-    assert response.json()["totalProjectsIsMember"] == 1
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["totalProjectsIsMember"] == 1
 
 
 async def test_update_workspace_membership_role_owner_and_not_owner(
@@ -260,13 +262,13 @@ async def test_update_workspace_membership_role_owner_and_owner(
     response = await client.patch(
         f"/workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
     # change role of owner
     data = {"role_id": member_role.b64id}
     response = await client.patch(
         f"/workspaces/memberships/{membership.b64id}", json=data
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 ##########################################################
@@ -650,8 +652,9 @@ async def test_list_workspace_roles(
     client.login(pj_member)
 
     response = await client.get(f"/workspaces/{workspace.b64id}/roles")
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 5  # 4 factory default + newly created
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 5  # 4 factory default + newly created
 
 
 async def test_list_workspace_roles_wrong_id(

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -53,7 +53,7 @@ async def get_access_to_gitlab(code: str, redirect_uri: str) -> str | None:
             ACCESS_TOKEN_URL, params=params, headers=headers
         )
 
-    data = response.json()
+    data = response.data
     if response.status_code != 200 or "error" in data:
         return None
 

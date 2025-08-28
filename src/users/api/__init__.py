@@ -20,6 +20,7 @@
 from asgiref.sync import sync_to_async
 from ninja import Router
 
+from base.serializers import BaseDataModel
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -59,7 +60,11 @@ users_router = Router()
     summary="Sign up user",
     by_alias=True,
     auth=None,
-    response={200: UserSerializer, 400: ERROR_RESPONSE_400, 422: ERROR_RESPONSE_422},
+    response={
+        200: BaseDataModel[UserSerializer],
+        400: ERROR_RESPONSE_400,
+        422: ERROR_RESPONSE_422,
+    },
 )
 async def create_user(request, form: CreateUserValidator) -> User:
     """
@@ -114,7 +119,7 @@ async def verify_user(
     "/users/me",
     url_name="user.get.me",
     summary="Get authenticated user",
-    response=UserSerializer,
+    response=BaseDataModel[UserSerializer],
     by_alias=True,
 )
 async def get_current_user(request) -> User:
@@ -138,7 +143,7 @@ async def get_current_user(request) -> User:
     url_name="user.update.me",
     summary="Update authenticated user",
     response={
-        200: UserSerializer,
+        200: BaseDataModel[UserSerializer],
         400: ERROR_RESPONSE_400,
         401: ERROR_RESPONSE_401,
         422: ERROR_RESPONSE_422,

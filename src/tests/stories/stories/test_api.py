@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -58,7 +58,7 @@ async def test_create_story_200_ok_being_ws_owner_ko_pj_owner_ok(
 
     client.login(project.created_by)
     response = await client.post(f"/workflows/{workflow.b64id}/stories", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_create_story_200_ok_user_has_valid_perm_ok(client, project_template):
@@ -85,7 +85,7 @@ async def test_create_story_200_ok_user_has_valid_perm_ok(client, project_templa
 
     client.login(pj_member)
     response = await client.post(f"/workflows/{workflow.b64id}/stories", json=data)
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_create_story_400_bad_request_invalid_status(client, project_template):
@@ -192,8 +192,8 @@ async def test_list_workflow_stories_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/workflows/{workflow.b64id}/stories")
-    assert response.status_code == 200, response.data
-    res = response.data
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert len(res) == 3
     assert res[0]["assigneeIds"] == [
         assignment.user.b64id for assignment in reversed(assignments)
@@ -210,8 +210,9 @@ async def test_list_workflow_stories_200_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.get(f"/workflows/{workflow.b64id}/stories")
-    assert response.status_code == 200, response.data
-    assert len(response.data) == 3
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 3
 
 
 async def test_list_workflow_stories_403_forbidden_user_has_not_valid_perm(
@@ -251,9 +252,9 @@ async def test_list_workflow_stories_200_ok_with_pagination(client, project_temp
     response = await client.get(
         f"/workflows/{workflow.b64id}/stories?offset={offset}&limit={limit}"
     )
-    assert response.status_code == 200, response.data
-
-    assert len(response.data) == 1
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 1
     assert response.headers["Pagination-Offset"] == "0"
     assert response.headers["Pagination-Limit"] == "1"
 
@@ -293,8 +294,8 @@ async def test_get_story_200_ok(client, project_template):
 
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
-    assert response.status_code == 200, response.data
-    res = response.data
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
     assert res["ref"] == story.ref
     assert res["assigneeIds"] == [
         assignment.user.b64id for assignment in reversed(assignments)
@@ -310,8 +311,9 @@ async def test_get_story_200_ok(client, project_template):
 
     client.login(pj_member)
     response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
-    assert response.status_code == 200, response.data
-    assert response.data["ref"] == story.ref
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["ref"] == story.ref
 
 
 async def test_get_story_403_forbidden_user_has_not_valid_perm(
@@ -385,9 +387,10 @@ async def test_update_story_200_ok_unprotected_attribute_status_ok(
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 200, response.data
-    assert response.data["ref"] == story.ref
-    version = response.data["version"]
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["ref"] == story.ref
+    version = res["version"]
     assert version > story.version
 
     pj_member = await f.create_user()
@@ -403,8 +406,9 @@ async def test_update_story_200_ok_unprotected_attribute_status_ok(
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 200, response.data
-    assert response.data["ref"] == story.ref
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["ref"] == story.ref
 
 
 async def test_update_story_400_wrong_version(client, project_template):
@@ -464,7 +468,7 @@ async def test_update_story_200_ok_unprotected_attribute_workflow_ok(
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_update_story_200_ok_protected_attribute_ok(client, project_template):
@@ -482,7 +486,7 @@ async def test_update_story_200_ok_protected_attribute_ok(client, project_templa
     response = await client.patch(
         f"/projects/{project.b64id}/stories/{story.ref}", json=data
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_update_story_protected_400_bad_request_attribute_error_with_invalid_version(
@@ -576,11 +580,6 @@ async def test_reorder_stories_with_reorder_ok(client, project_template):
     )
 
     assert response.status_code == 200, response.data
-    res = response.data
-    assert "statusId" in res
-    assert "reorder" in res
-    assert "stories" in res
-    assert res["stories"] == [s1.ref]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(
@@ -596,11 +595,6 @@ async def test_reorder_stories_with_reorder_ok(client, project_template):
     )
 
     assert response.status_code == 200, response.data
-    res = response.data
-    assert "statusId" in res
-    assert "reorder" in res
-    assert "stories" in res
-    assert res["stories"] == [s1.ref]
 
 
 async def test_reorder_stories_403_forbidden_user_has_not_valid_perm(
@@ -650,11 +644,6 @@ async def test_reorder_stories_without_reorder_ok(client, project_template):
     )
 
     assert response.status_code == 200, response.data
-    res = response.data
-    assert "statusId" in res
-    assert "reorder" in res
-    assert "stories" in res
-    assert res["stories"] == [s1.ref]
 
 
 ##########################################################

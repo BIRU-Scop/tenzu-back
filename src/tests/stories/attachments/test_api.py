@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -46,7 +46,7 @@ async def test_create_story_attachment_200_ok(client, project_template):
         f"/projects/{project.b64id}/stories/{story.ref}/attachments",
         FILES=files,
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     user = await f.create_user()
     general_member_role = await f.create_project_role(
@@ -63,7 +63,7 @@ async def test_create_story_attachment_200_ok(client, project_template):
         f"/projects/{project.b64id}/stories/{story.ref}/attachments",
         FILES=files,
     )
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_create_story_attachment_401_forbidden_anonymous(
@@ -197,8 +197,9 @@ async def test_list_story_attachments_200_ok(client, project_template):
     response = await client.get(
         f"/projects/{project.b64id}/stories/{story.ref}/attachments"
     )
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 2
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 2
 
     user = await f.create_user()
     general_member_role = await f.create_project_role(
@@ -213,8 +214,9 @@ async def test_list_story_attachments_200_ok(client, project_template):
     response = await client.get(
         f"/projects/{project.b64id}/stories/{story.ref}/attachments"
     )
-    assert response.status_code == 200, response.data
-    assert len(response.json()) == 2
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 2
 
 
 async def test_list_story_attachments_401_forbidden_anonymous(client, project_template):
@@ -394,7 +396,7 @@ async def test_get_story_attachment_file_200_ok(client, project_template):
 
     client.login(user)
     response = await client.get(f"/stories/attachments/{attachment.b64id}")
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
     user = await f.create_user()
     general_member_role = await f.create_project_role(
@@ -407,7 +409,7 @@ async def test_get_story_attachment_file_200_ok(client, project_template):
     )
     client.login(user)
     response = await client.get(f"/stories/attachments/{attachment.b64id}")
-    assert response.status_code == 200, response.data
+    assert response.status_code == 200, response.data["data"]
 
 
 async def test_get_story_attachment_file_401_forbidden_anonymous(

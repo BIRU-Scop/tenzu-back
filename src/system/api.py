@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,6 +19,7 @@
 
 from ninja import Router
 
+from base.serializers import BaseDataModel
 from system import services as system_services
 from system.serializers import LanguageSerializer
 
@@ -33,7 +34,7 @@ system_router = Router()
     "/system/languages",
     url_name="system.languages.list",
     summary="List system available languages",
-    response=list[LanguageSerializer],
+    response=BaseDataModel[list[LanguageSerializer]],
     auth=None,
     by_alias=True,
 )

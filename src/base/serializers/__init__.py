@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Generic, TypeVar
 
 from ninja import Schema
 from pydantic.alias_generators import to_camel
@@ -27,3 +28,18 @@ class BaseModel(Schema):
     class Config(Schema.Config):
         alias_generator = to_camel
         populate_by_name = True
+
+
+RootModel = TypeVar("RootModel")
+
+
+class BaseDataModel(BaseModel, Generic[RootModel]):
+    """
+    Utility class to nest given object into a {data: } structure
+    """
+
+    data: RootModel
+
+    @staticmethod
+    def resolve_data(obj, context):
+        return obj
