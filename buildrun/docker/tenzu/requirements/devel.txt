@@ -68,6 +68,7 @@ charset-normalizer==3.4.2
     # via requests
 click==8.2.1
     # via
+    #   granian
     #   pip-tools
     #   typer
     #   uvicorn
@@ -141,6 +142,8 @@ faker==37.3.0
     #   factory-boy
 freezegun==1.5.2
     # via -r requirements/devel.in
+granian==2.5.1
+    # via -r requirements/commons.in
 gunicorn==23.0.0
     # via
     #   -r requirements/commons.in
