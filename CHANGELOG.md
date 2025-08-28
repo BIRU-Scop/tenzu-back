@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.1-staging.34](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.33...v0.0.1-staging.34) (2025-08-28)
+
+
+### Features
+
+* nest data returned from REST endpoints into a standardised dict ([81a2fd1](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/81a2fd16a46bc3e6db64b43012ec2d9fb223039d))
+* remove unused returned response on reorder ([efead60](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/efead60d011e8253b62cb3f7a814b2aa9d7c0509))
+
 ## [0.0.1-staging.33](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.32...v0.0.1-staging.33) (2025-08-25)
 
 
