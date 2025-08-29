@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from permissions.choices import ProjectPermissions
@@ -177,6 +178,23 @@ async def test_create_story_attachment_422_unprocessable_entity_bad_request(
     client.login(user)
     response = await client.post(
         f"/projects/{project.b64id}/stories/{story.ref}/attachments",
+    )
+    assert response.status_code == 422, response.data
+
+
+async def test_create_story_attachment_422_too_big(client, project_template):
+    project = await f.create_project(project_template)
+    story = await f.create_story(project=project)
+    files = {
+        "file": SimpleUploadedFile(
+            "test.txt", b"a" * (settings.MAX_UPLOAD_FILE_SIZE + 1)
+        )
+    }
+
+    client.login(project.created_by)
+    response = await client.post(
+        f"/projects/{project.b64id}/stories/{story.ref}/attachments",
+        FILES=files,
     )
     assert response.status_code == 422, response.data
 
