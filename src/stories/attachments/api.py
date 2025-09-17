@@ -19,6 +19,7 @@
 
 from uuid import UUID
 
+from django.conf import settings
 from django.http import FileResponse, HttpRequest
 from ninja import File, Path, Router, UploadedFile
 
@@ -64,7 +65,7 @@ async def create_story_attachments(
     request,
     project_id: Path[B64UUID],
     ref: Path[int],
-    file: UploadedFile = File(...),
+    file: File[(UploadedFile, {"max_length": settings.MAX_UPLOAD_FILE_SIZE})],
 ) -> Attachment:
     """
     Create an attachment associated to a story
