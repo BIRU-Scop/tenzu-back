@@ -26,6 +26,7 @@ from jinja2 import Environment
 from markupsafe import Markup
 
 from base.i18n.formatings import datetime as fmt_datetime
+from commons.utils import get_absolute_url
 
 
 def _do_wbr_split(text: str, size: int = 70) -> Markup:
@@ -89,7 +90,7 @@ def _static_url(file_path: str) -> str:
     .. sourcecode:: html
         <img src="http://localhost:8000/static/emails/logo.png" alt="" />
     """
-    return urljoin(settings.STATIC_URL, file_path)
+    return urljoin(get_absolute_url(settings.STATIC_URL), file_path)
 
 
 def load_filters(env: Environment) -> None:
