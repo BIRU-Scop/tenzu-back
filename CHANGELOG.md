@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.2](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1...v0.0.2) (2025-09-23)
+
+
+### Features
+
+* add ability to remove file size check ([ff96d58](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/ff96d583a809ceefd00cb5685e264ecbc055d3ff))
+* add settings to limit the size of uploaded attachments ([bb8e24d](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/bb8e24d6d7775fcababf7f142fe33a18be879b4f))
+
+
+### Bug Fixes
+
+* prevent relative url in mail static files ([424089f](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/commit/424089f3c777e89f89261dc410578ea0b1142494))
+
 ## [0.0.1](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.35...v0.0.1) (2025-08-29)
 
 ## [0.0.1-staging.35](https://gitlab.biru.sh/biru/dev/tenzu/tenzu-back/compare/v0.0.1-staging.34...v0.0.1-staging.35) (2025-08-28)
