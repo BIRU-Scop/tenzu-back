@@ -1,23 +1,25 @@
 include:
-  - component: $CI_SERVER_FQDN/biru/project-components/merge-branches@0.0.19
+  - component: $CI_SERVER_FQDN/biru/project-components/merge-branches@0.0.25
     inputs:
       dev-branch: main
       token: $DEV_TOKEN
-  - component: $CI_SERVER_FQDN/biru/project-components/build-deploy@0.0.19
+  - component: $CI_SERVER_FQDN/biru/project-components/release@0.0.25
+    inputs:
+      token: $DEV_TOKEN
+  - component: $CI_SERVER_FQDN/biru/project-components/build-deploy@0.0.25
     inputs:
       project-name: tenzu
       application-name: api
       dockerfile: buildrun/docker/tenzu/Dockerfile
       target: production-image
       build-arg: 'EXTRA_PACKAGES=${EXTRA_PACKAGES}'
-  - component: $CI_SERVER_FQDN/biru/project-components/release@0.0.19
-    inputs:
-      token: $DEV_TOKEN
-  - component: $CI_SERVER_FQDN/biru/component/push@v1.10.0
+
+  # mirror
+  - component: $CI_SERVER_FQDN/biru/component/push@v1.15.0
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
       fetch-args: "origin --no-tags"
-  - component: $CI_SERVER_FQDN/biru/component/push@v1.10.0
+  - component: $CI_SERVER_FQDN/biru/component/push@v1.15.0
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
       job-name: mirror-demo-tags
@@ -26,7 +28,7 @@ include:
       rules:
         - if: $CI_COMMIT_TAG =~ /^.*-demo.*/
   # add test build image
-  - component: $CI_SERVER_FQDN/biru/component/build-and-push@v1.10.0
+  - component: $CI_SERVER_FQDN/biru/component/build-and-push@v1.15.0
     inputs:
       stage: build
       context: ${CI_PROJECT_DIR}
@@ -57,7 +59,7 @@ launch-demo-deploy:
     GIT_STRATEGY: none
     GIT_DISCOVERY_ACROSS_FILESYSTEM: 1
   needs:
-    - job: get-released-tag
+    - job: tag-and-changelog
     - job: build-image-and-push
   before_script:
     - git clone https://oauth2:$DEPLOY_TOKEN@${CI_SERVER_HOST}/biru/sre/argocd -b main
@@ -78,7 +80,9 @@ launch-demo-deploy:
     - git commit -m "deploy($PROJECT_NAME/$APP_NAME) $NEXT_VERSION on $ENV_NAME"
     - git push origin HEAD:main
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging" && $CI_COMMIT_MESSAGE =~ /^chore\(release\).*-.*/ '
+    - if: '$CI_COMMIT_MESSAGE =~ /^chore\(release\).*/ '
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "staging"'
       when: manual
   environment:
     name: demo
@@ -86,11 +90,13 @@ launch-demo-deploy:
 publish-demo-tag:
   stage: merge
   needs:
-    - job: get-released-tag
+    - job: tag-and-changelog
     - job: build-image-and-push
     - job: launch-demo-deploy
   rules:
-    - if: '$CI_COMMIT_BRANCH == "staging" && $CI_COMMIT_MESSAGE =~ /^chore\(release\).*-.*/ '
+    - if: '$CI_COMMIT_MESSAGE =~ /^chore\(release\).*/ '
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "staging"'
   before_script:
     - git config --global user.email "bot@biru.sh"
     - git config --global user.name "${CI_PROJECT_TITLE}-bot"
