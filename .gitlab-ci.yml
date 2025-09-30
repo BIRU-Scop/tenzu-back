@@ -1,12 +1,12 @@
 include:
-  - component: $CI_SERVER_FQDN/biru/project-components/merge-branches@0.0.25
+  - component: $CI_SERVER_FQDN/biru/project-components/merge-branches@1.0.0
     inputs:
       dev-branch: main
       token: $DEV_TOKEN
-  - component: $CI_SERVER_FQDN/biru/project-components/release@0.0.25
+  - component: $CI_SERVER_FQDN/biru/project-components/release@1.0.0
     inputs:
       token: $DEV_TOKEN
-  - component: $CI_SERVER_FQDN/biru/project-components/build-deploy@0.0.25
+  - component: $CI_SERVER_FQDN/biru/project-components/build-deploy@1.0.0
     inputs:
       project-name: tenzu
       application-name: api
@@ -15,11 +15,11 @@ include:
       build-arg: 'EXTRA_PACKAGES=${EXTRA_PACKAGES}'
 
   # mirror
-  - component: $CI_SERVER_FQDN/biru/component/push@v1.15.0
+  - component: $CI_SERVER_FQDN/biru/component/push@v1.16.0
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
       fetch-args: "origin --no-tags"
-  - component: $CI_SERVER_FQDN/biru/component/push@v1.15.0
+  - component: $CI_SERVER_FQDN/biru/component/push@v1.16.0
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
       job-name: mirror-demo-tags
@@ -28,7 +28,7 @@ include:
       rules:
         - if: $CI_COMMIT_TAG =~ /^.*-demo.*/
   # add test build image
-  - component: $CI_SERVER_FQDN/biru/component/build-and-push@v1.15.0
+  - component: $CI_SERVER_FQDN/biru/component/build-and-push@v1.16.0
     inputs:
       stage: build
       context: ${CI_PROJECT_DIR}
