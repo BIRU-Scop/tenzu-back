@@ -99,7 +99,7 @@ services:
     networks:
       - tenzu
   tenzu-minio:
-    image: bitnami/minio:latest
+    image: bitnamilegacy/minio:latest
     environment:
       MINIO_ROOT_USER: "tenzu"
       MINIO_ROOT_PASSWORD: "tenzu123123"
