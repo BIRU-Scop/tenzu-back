@@ -28,7 +28,7 @@ share knowledge and learnings to make informed decisions.
 
 ### Roadmap
 
-We keep the [roadmap section on our website](https://tenzu.net/#roadmap) up-to-date with our goals & ongoing work.
+We keep the [roadmap section on our website](https://tenzu.net/roadmap) up-to-date with our goals & ongoing work.
 
 For more details on the process we follow and current news, follow [our blog](https://tenzu.net/blog)
 
