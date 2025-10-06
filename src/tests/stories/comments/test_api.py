@@ -276,7 +276,6 @@ async def test_list_story_comments_success_with_deleted_comments(
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
     assert len(res) == 2
-    assert response.headers["Tenzu-Total-Comments"] == "1"
 
 
 async def test_list_story_comments_error_nonexistent_project(client):

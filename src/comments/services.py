@@ -32,7 +32,7 @@ from comments.events import (
 )
 from comments.models import Comment
 from comments.notifications import NotificationOnCreateCallable
-from comments.repositories import CommentFilters, CommentOrderBy
+from comments.repositories import CommentOrderBy
 from ninja_jwt.utils import aware_utcnow
 from users.models import User
 
@@ -72,25 +72,35 @@ async def list_paginated_comments(
     offset: int,
     limit: int,
     order_by: CommentOrderBy = ["-created_at"],
-) -> tuple[Pagination, int, list[Comment]]:
-    filters: CommentFilters = {
-        "object_content_type": await get_contenttype_for_model(content_object),
-        "object_id": content_object.id,
-    }
+) -> tuple[Pagination, list[Comment]]:
     comments = await comments_repositories.list_comments(
-        filters=filters,
+        filters={
+            "object_content_type": await get_contenttype_for_model(content_object),
+            "object_id": content_object.id,
+        },
         select_related=["created_by", "deleted_by"],
         order_by=order_by,
         offset=offset,
         limit=limit,
     )
 
-    total_not_deleted_comments = await comments_repositories.get_total_comments(
-        filters={**filters, "deleted_by__isnull": True},
-    )
     pagination = Pagination(offset=offset, limit=limit)
 
-    return pagination, total_not_deleted_comments, comments
+    return pagination, comments
+
+
+async def get_comments_count(
+    content_object: Model,
+) -> int:
+    total_not_deleted_comments = await comments_repositories.get_total_comments(
+        filters={
+            "object_content_type": await get_contenttype_for_model(content_object),
+            "object_id": content_object.id,
+            "deleted_by__isnull": True,
+        },
+    )
+
+    return total_not_deleted_comments
 
 
 ##########################################################
