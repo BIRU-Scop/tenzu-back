@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -43,6 +43,7 @@ import pytest
 from asgiref.sync import sync_to_async
 from django.urls import reverse
 
+from ninja_jwt.ninja_extra.lazy import LazyStrImport
 from ninja_jwt.settings import api_settings
 from ninja_jwt.tokens import AccessToken
 from users.models import User
@@ -114,7 +115,9 @@ class TestTestView(APIViewTestCase):
 
         with monkeypatch.context() as m:
             m.setattr(
-                api_settings, "AUTH_TOKEN_CLASSES", ("ninja_jwt.tokens.AccessToken",)
+                api_settings,
+                "AUTH_TOKEN_CLASSES",
+                (LazyStrImport("ninja_jwt.tokens.AccessToken"),),
             )
             res = self.view_get()
 
@@ -136,7 +139,9 @@ class TestTestView(APIViewTestCase):
 
         with monkeypatch.context() as m:
             m.setattr(
-                api_settings, "AUTH_TOKEN_CLASSES", ("ninja_jwt.tokens.SlidingToken",)
+                api_settings,
+                "AUTH_TOKEN_CLASSES",
+                (LazyStrImport("ninja_jwt.tokens.SlidingToken"),),
             )
             res = self.view_get()
 
@@ -160,7 +165,9 @@ class TestTestView(APIViewTestCase):
 
         with monkeypatch.context() as m:
             m.setattr(
-                api_settings, "AUTH_TOKEN_CLASSES", ("ninja_jwt.tokens.AccessToken",)
+                api_settings,
+                "AUTH_TOKEN_CLASSES",
+                (LazyStrImport("ninja_jwt.tokens.AccessToken"),),
             )
             res = self.view_get()
 
@@ -179,7 +186,9 @@ class TestTestView(APIViewTestCase):
 
         with monkeypatch.context() as m:
             m.setattr(
-                api_settings, "AUTH_TOKEN_CLASSES", ("ninja_jwt.tokens.AccessToken",)
+                api_settings,
+                "AUTH_TOKEN_CLASSES",
+                (LazyStrImport("ninja_jwt.tokens.AccessToken"),),
             )
             res = self.view_get()
 

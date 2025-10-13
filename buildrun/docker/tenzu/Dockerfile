@@ -1,5 +1,5 @@
 # Use the official Python image from the Docker Hub
-FROM python:3.12-slim-bookworm AS base-image
+FROM python:3.14-slim-bookworm AS base-image
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
