@@ -27,9 +27,6 @@ from base.utils.strings import to_kebab
 from commons.exceptions.api import codes
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
-from integrations.github.auth.api import github_integration_router
-from integrations.gitlab.auth.api import gitlab_integration_router
-from integrations.google.auth.api import google_integration_router
 from ninja_jwt.api import auth_router
 from ninja_jwt.authentication import AsyncJWTAuth
 from ninja_jwt.ninja_extra.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
@@ -107,9 +104,9 @@ api.add_router(
 )
 api.add_router("", tags=["workflows"], router=workflows_router)
 api.add_router("", tags=["auth"], router=auth_router)
-api.add_router("", tags=["auth"], router=github_integration_router)
-api.add_router("", tags=["auth"], router=gitlab_integration_router)
-api.add_router("", tags=["auth"], router=google_integration_router)
+# api.add_router("", tags=["auth"], router=github_integration_router)
+# api.add_router("", tags=["auth"], router=gitlab_integration_router)
+# api.add_router("", tags=["auth"], router=google_integration_router)
 api.add_router("", tags=["system"], router=health_router)
 
 for extra_dep in settings.EXTRA_DEPS:
