@@ -157,6 +157,7 @@ async def delete_comment(
             "deleted_by": deleted_by,
             "deleted_at": aware_utcnow(),
         },
+        update_modified_at=False,
     )
 
     if event_on_delete:

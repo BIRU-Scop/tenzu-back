@@ -294,6 +294,7 @@ async def test_delete_comment():
                 "deleted_by": updated_comment.deleted_by,
                 "deleted_at": updated_comment.deleted_at,
             },
+            update_modified_at=False,
         )
 
 
@@ -330,5 +331,6 @@ async def test_delete_comment_and_emit_event_on_delete():
                 "deleted_by": updated_comment.deleted_by,
                 "deleted_at": updated_comment.deleted_at,
             },
+            update_modified_at=False,
         )
         fake_event_on_delete.assert_awaited_once_with(comment=updated_comment)

@@ -324,6 +324,7 @@ async def test_update_story_comment_ok_self(client):
     user = await f.create_user()
     story = await f.create_story()
     comment = await f.create_comment(content_object=story, created_by=user)
+    assert comment.modified_at is None
     general_member_role = await f.create_project_role(
         permissions=[ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT.value],
         is_owner=False,
@@ -341,6 +342,8 @@ async def test_update_story_comment_ok_self(client):
         json=data,
     )
     assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert res["modifiedAt"] is not None
 
 
 async def test_update_story_comment_ok_moderator(client, project_template):
@@ -509,6 +512,7 @@ async def test_delete_story_comment_ok_self(client):
     user = await f.create_user()
     story = await f.create_story()
     comment = await f.create_comment(content_object=story, created_by=user)
+    assert comment.deleted_at is None
     general_member_role = await f.create_project_role(
         permissions=[ProjectPermissions.CREATE_MODIFY_DELETE_COMMENT.value],
         is_owner=False,
@@ -523,12 +527,15 @@ async def test_delete_story_comment_ok_self(client):
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
     assert res["text"] == ""
+    assert res["modifiedAt"] is None
+    assert res["deletedAt"] is not None
 
 
 async def test_delete_story_comment_ok_moderator(client, project_template):
     project = await f.create_project(project_template)
     story = await f.create_story(project=project, created_by=project.created_by)
     comment = await f.create_comment(content_object=story)
+    assert comment.deleted_at is None
 
     user = await f.create_user()
     general_member_role = await f.create_project_role(
@@ -545,6 +552,8 @@ async def test_delete_story_comment_ok_moderator(client, project_template):
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
     assert res["text"] == ""
+    assert res["modifiedAt"] is None
+    assert res["deletedAt"] is not None
 
 
 async def test_delete_story_comment_error_forbidden_anonymous(client, project_template):

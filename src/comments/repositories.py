@@ -132,11 +132,14 @@ async def get_comment(
 
 
 @sync_to_async
-def update_comment(comment: Comment, values: dict[str, Any] = {}) -> Comment:
+def update_comment(
+    comment: Comment, values: dict[str, Any] = {}, update_modified_at=True
+) -> Comment:
     for attr, value in values.items():
         setattr(comment, attr, value)
 
-    comment.modified_at = aware_utcnow()
+    if update_modified_at:
+        comment.modified_at = aware_utcnow()
     comment.save()
     return comment
 
