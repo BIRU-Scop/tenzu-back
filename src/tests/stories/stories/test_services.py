@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -185,11 +185,17 @@ async def test_get_story_detail_ok():
     )
     neighbors = Neighbor(prev=story1, next=story3)
 
-    with patch(
-        "stories.stories.services.stories_repositories", autospec=True
-    ) as fake_stories_repo:
+    with (
+        patch(
+            "stories.stories.services.stories_repositories", autospec=True
+        ) as fake_stories_repo,
+        patch(
+            "stories.stories.services.comments_services", autospec=True
+        ) as fake_comments_services,
+    ):
         fake_stories_repo.get_story.return_value = story2
         fake_stories_repo.list_story_neighbors.return_value = neighbors
+        fake_comments_services.get_comments_count.return_value = 3
 
         story = await services.get_story_detail(
             project_id=story2.project_id, ref=story2.ref
@@ -217,6 +223,7 @@ async def test_get_story_detail_ok():
         assert story.ref == story2.ref
         assert story.prev.ref == story1.ref
         assert story.next.ref == story3.ref
+        assert story.total_comments == 3
 
 
 async def test_get_story_detail_no_neighbors():
@@ -230,7 +237,7 @@ async def test_get_story_detail_no_neighbors():
         fake_stories_repo.list_story_neighbors.return_value = neighbors
 
         story = await services.get_story_detail(
-            project_id=story1.project_id, ref=story1.ref
+            project_id=story1.project_id, ref=story1.ref, new_story=True
         )
 
         fake_stories_repo.get_story.assert_awaited_once_with(

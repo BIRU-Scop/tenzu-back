@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -37,19 +37,19 @@
 # SOFTWARE.
 
 from datetime import timedelta
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Self, Union
 
 from django.conf import settings
 from django.test.signals import setting_changed
-from pydantic.v1 import AnyUrl, BaseModel, Field, root_validator
+from pydantic import (
+    AnyUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    model_validator,
+)
 
 from ninja_jwt.ninja_extra.lazy import LazyStrImport
-
-
-class NinjaJWTUserDefinedSettingsMapper:
-    def __init__(self, data: dict) -> None:
-        self.__dict__ = data
-
 
 NinjaJWT_SETTINGS_DEFAULTS = {
     "USER_AUTHENTICATION_RULE": "ninja_jwt.authentication.default_user_authentication_rule",
@@ -57,20 +57,14 @@ NinjaJWT_SETTINGS_DEFAULTS = {
     "TOKEN_USER_CLASS": "ninja_jwt.models.TokenUser",
 }
 
-USER_SETTINGS = NinjaJWTUserDefinedSettingsMapper(
-    getattr(
-        settings,
-        "SIMPLE_JWT",
-        getattr(settings, "NINJA_JWT", NinjaJWT_SETTINGS_DEFAULTS),
-    )
+USER_SETTINGS = getattr(
+    settings,
+    "SIMPLE_JWT",
+    getattr(settings, "NINJA_JWT", NinjaJWT_SETTINGS_DEFAULTS),
 )
 
 
 class NinjaJWTSettings(BaseModel):
-    class Config:
-        orm_mode = True
-        validate_assignment = True
-
     ACCESS_TOKEN_LIFETIME: timedelta = Field(timedelta(minutes=5))
     REFRESH_TOKEN_LIFETIME: timedelta = Field(timedelta(days=1))
     ROTATE_REFRESH_TOKENS: bool = Field(False)
@@ -121,20 +115,21 @@ class NinjaJWTSettings(BaseModel):
     )
     TOKEN_VERIFY_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenVerifyInputSchema")
 
-    @root_validator
-    def validate_ninja_jwt_settings(cls, values):
-        for item in NinjaJWT_SETTINGS_DEFAULTS.keys():
-            if isinstance(values[item], (tuple, list)) and isinstance(
-                values[item][0], str
-            ):
-                values[item] = [LazyStrImport(str(klass)) for klass in values[item]]
-            if isinstance(values[item], str):
-                values[item] = LazyStrImport(values[item])
-        return values
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def validate_ninja_jwt_settings(self) -> Self:
+        for item_key in NinjaJWT_SETTINGS_DEFAULTS.keys():
+            item = getattr(self, item_key)
+            if isinstance(item, (tuple, list)) and isinstance(item[0], str):
+                setattr(self, item_key, [LazyStrImport(str(klass)) for klass in item])
+            if isinstance(item, str):
+                setattr(self, item_key, LazyStrImport(item))
+        return self
 
 
 # convert to lazy object
-api_settings = NinjaJWTSettings.from_orm(USER_SETTINGS)
+api_settings = NinjaJWTSettings(**USER_SETTINGS)
 
 
 def reload_api_settings(*args: Any, **kwargs: Any) -> None:
@@ -143,9 +138,7 @@ def reload_api_settings(*args: Any, **kwargs: Any) -> None:
     setting, value = kwargs["setting"], kwargs["value"]
 
     if setting in ["SIMPLE_JWT", "NINJA_JWT"]:
-        api_settings = NinjaJWTSettings.from_orm(
-            NinjaJWTUserDefinedSettingsMapper(value)
-        )
+        api_settings = NinjaJWTSettings(**value)
 
 
 setting_changed.connect(reload_api_settings)

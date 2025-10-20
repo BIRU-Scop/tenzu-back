@@ -164,7 +164,7 @@ async def delete_story_attachment(
     url_name="story.attachments.file",
     summary="Download the story attachment file",
     response={
-        # FileResponse is not support by django ninja swagger generation
+        # FileResponse is not supported by django ninja swagger generation
         # As presented in the documentation, type the result as str
         # https://django-ninja.dev/guides/response/#filefield-and-imagefield
         200: str,

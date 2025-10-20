@@ -14,7 +14,7 @@ argon2-cffi==25.1.0
     # via django
 argon2-cffi-bindings==25.1.0
     # via argon2-cffi
-asgiref==3.9.2
+asgiref==3.10.0
     # via
     #   channels
     #   channels-redis
@@ -22,7 +22,7 @@ asgiref==3.9.2
     #   django
     #   django-cors-headers
     #   procrastinate
-attrs==25.3.0
+attrs==25.4.0
     # via
     #   procrastinate
     #   service-identity
@@ -33,15 +33,15 @@ automat==25.4.16
     # via twisted
 babel==2.17.0
     # via -r requirements/commons.in
-boto3==1.40.43
+boto3==1.40.49
     # via django-storages
-botocore==1.40.43
+botocore==1.40.49
     # via
     #   boto3
     #   s3transfer
 brotli==1.1.0
     # via whitenoise
-certifi==2025.8.3
+certifi==2025.10.5
     # via
     #   httpcore
     #   httpx
@@ -103,9 +103,9 @@ django-nonrelated-inlines==0.2
     # via -r requirements/commons.in
 django-storages==1.14.6
     # via -r requirements/commons.in
-django-stubs==5.2.5
+django-stubs==5.2.7
     # via -r requirements/commons.in
-django-stubs-ext==5.2.5
+django-stubs-ext==5.2.7
     # via django-stubs
 dnspython==2.8.0
     # via email-validator
@@ -115,11 +115,11 @@ email-validator==2.3.0
     # via
     #   -r requirements/commons.in
     #   pydantic
-faker==37.8.0
+faker==37.11.0
     # via -r requirements/commons.in
 freetype-py==2.5.1
     # via rlpycairo
-granian==2.5.4
+granian==2.5.5
     # via -r requirements/commons.in
 gunicorn==23.0.0
     # via
@@ -133,7 +133,7 @@ hiredis==3.2.1
     # via redis
 httpcore==1.0.9
     # via httpx
-httptools==0.6.4
+httptools==0.7.1
     # via uvicorn
 httpx==0.28.1
     # via -r requirements/commons.in
@@ -165,7 +165,7 @@ markupsafe==3.0.3
     # via jinja2
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.1.1
+msgpack==1.1.2
     # via channels-redis
 orjson==3.11.3
     # via -r requirements/commons.in
@@ -195,12 +195,12 @@ pycairo==1.28.0
     # via rlpycairo
 pycparser==2.23
     # via cffi
-pydantic==2.11.9
+pydantic==2.12.0
     # via
     #   -r requirements/commons.in
     #   django-ninja
     #   pydantic-settings
-pydantic-core==2.33.2
+pydantic-core==2.41.1
     # via pydantic
 pydantic-settings==2.11.0
     # via -r requirements/commons.in
@@ -219,7 +219,7 @@ python-dotenv==1.1.1
     # via
     #   pydantic-settings
     #   uvicorn
-python-json-logger==3.3.0
+python-json-logger==4.0.0
     # via -r requirements/commons.in
 python-multipart==0.0.20
     # via -r requirements/commons.in
@@ -239,13 +239,13 @@ reportlab==4.4.4
     #   svglib
 requests==2.32.5
     # via -r requirements/commons.in
-rich==14.1.0
+rich==14.2.0
     # via typer
 rlpycairo==0.4.0
     # via svglib
 s3transfer==0.14.0
     # via boto3
-sentry-sdk==2.39.0
+sentry-sdk==2.41.0
     # via -r requirements/commons.in
 service-identity==24.2.0
     # via twisted
@@ -279,15 +279,12 @@ types-pyyaml==6.0.12.20250915
     # via django-stubs
 typing-extensions==4.15.0
     # via
-    #   anyio
     #   django-stubs
     #   django-stubs-ext
     #   procrastinate
-    #   psycopg
     #   psycopg-pool
     #   pydantic
     #   pydantic-core
-    #   pyopenssl
     #   twisted
     #   typer
     #   typing-inspection

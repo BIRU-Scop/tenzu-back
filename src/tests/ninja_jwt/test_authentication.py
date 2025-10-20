@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -45,6 +45,7 @@ from asgiref.sync import sync_to_async
 from ninja_jwt import authentication
 from ninja_jwt.exceptions import AuthenticationFailed, InvalidToken
 from ninja_jwt.models import TokenUser
+from ninja_jwt.ninja_extra.lazy import LazyStrImport
 from ninja_jwt.settings import api_settings
 from ninja_jwt.tokens import AccessToken, SlidingToken
 from tests.utils.factories import sync_create_user as create_user
@@ -76,7 +77,9 @@ class TestJWTAuth:
         sliding_token = SlidingToken()
         with monkeypatch.context() as m:
             m.setattr(
-                api_settings, "AUTH_TOKEN_CLASSES", ("ninja_jwt.tokens.AccessToken",)
+                api_settings,
+                "AUTH_TOKEN_CLASSES",
+                (LazyStrImport("ninja_jwt.tokens.AccessToken"),),
             )
             with pytest.raises(InvalidToken) as e:
                 self.backend.get_validated_token(str(sliding_token))
@@ -97,8 +100,8 @@ class TestJWTAuth:
                 api_settings,
                 "AUTH_TOKEN_CLASSES",
                 (
-                    "ninja_jwt.tokens.AccessToken",
-                    "ninja_jwt.tokens.SlidingToken",
+                    LazyStrImport("ninja_jwt.tokens.AccessToken"),
+                    LazyStrImport("ninja_jwt.tokens.SlidingToken"),
                 ),
             )
             self.backend.get_validated_token(str(access_token))
