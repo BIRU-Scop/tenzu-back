@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,6 +23,7 @@ from typing import Any
 from aiosmtplib import SMTPConnectError
 from django.conf import settings
 from jinja2 import TemplateNotFound
+from procrastinate import RetryStrategy
 from procrastinate.contrib.django import app
 
 from base.i18n import i18n
@@ -34,7 +35,13 @@ from emails.sender import send_email_message
 logger = logging.getLogger(__name__)
 
 
-@app.task
+@app.task(
+    retry=RetryStrategy(
+        max_attempts=settings.EMAIL_RETRY_ATTEMPTS,
+        exponential_wait=settings.EMAIL_RETRY_EXPONENTIAL_WAIT,
+        retry_exceptions={ex.EmailSMTPError, ex.EmailDeliveryError},
+    )
+)
 async def send_email(
     email_name: str,
     to: str | list[str],
