@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -27,6 +27,10 @@ class EmailSMTPError(Exception):
 
 
 class EmailAttachmentError(Exception):
+    pass
+
+
+class EmailDomainRefusedError(Exception):
     pass
 
 
