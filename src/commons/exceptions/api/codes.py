@@ -52,6 +52,10 @@ EX_UNKNOWN: Final = Error(code="unknown", msg="Unknown error")
 EX_NOT_FOUND: Final = Error(
     code="not-found", msg="The requested resource could not be found"
 )
+EX_PRECONDITION_FAILED: Final = Error(
+    code="precondition-failed",
+    msg="A necessary precondition was not met",
+)
 EX_FAILED_DEPENDENCY: Final = Error(
     code="failed-dependency", msg="A required external dependency has failed"
 )

@@ -20,7 +20,7 @@
 import logging
 from typing import Any
 
-from aiosmtplib import SMTPConnectError
+from aiosmtplib import SMTPException, SMTPRecipientsRefused
 from django.conf import settings
 from jinja2 import TemplateNotFound
 from procrastinate import RetryStrategy
@@ -39,7 +39,9 @@ logger = logging.getLogger(__name__)
     retry=RetryStrategy(
         max_attempts=settings.EMAIL_RETRY_ATTEMPTS,
         exponential_wait=settings.EMAIL_RETRY_EXPONENTIAL_WAIT,
-        retry_exceptions={ex.EmailSMTPError, ex.EmailDeliveryError},
+        retry_exceptions={
+            ex.EmailSMTPError,
+        },
     )
 )
 async def send_email(
@@ -52,10 +54,10 @@ async def send_email(
     # validate the email template
     try:
         Emails(email_name)
-    except ValueError:
+    except ValueError as e:
         raise ex.EmailTemplateError(
             f"The email `{email_name}` it's not an allowed `Emails` instance"
-        )
+        ) from e
 
     # prepare the email recipients
     to_emails = to
@@ -74,7 +76,7 @@ async def send_email(
         except TemplateNotFound as template_exception:
             raise ex.EmailTemplateError(
                 f"Missing or invalid email template. {template_exception}"
-            )
+            ) from template_exception
 
     # send the email message using the configured backend
     try:
@@ -85,15 +87,28 @@ async def send_email(
             body_html=body_html,
             attachment_paths=attachment_paths,
         )
-    except SMTPConnectError as smtp_exception:
-        raise ex.EmailSMTPError(
-            f"SMTP connection could not be established. {smtp_exception}"
-        )
     except FileNotFoundError as file_attachments_exception:
         raise ex.EmailAttachmentError(
             f"Email attachment error. {file_attachments_exception}"
-        )
+        ) from file_attachments_exception
+    except SMTPRecipientsRefused as refusal_exception:
+        if all(
+            # 556 -> Domain does not accept mail (like example.com)
+            # 450 4.1.2 -> invalid domain name (most likely a user's typo)
+            code == 556 or (code == 450 and details.startswith(b"4.1.2"))
+            for code, details in refusal_exception.recipients.values()
+        ):
+            raise ex.EmailDomainRefusedError(
+                f"Email domain refused error. {refusal_exception}"
+            ) from refusal_exception
+        raise ex.EmailSMTPError(
+            f"SMTP error while delivering an email. {refusal_exception}"
+        ) from refusal_exception
+    except SMTPException as smtp_exception:
+        raise ex.EmailSMTPError(
+            f"SMTP error while delivering an email. {smtp_exception}"
+        ) from smtp_exception
     except Exception as delivery_exception:
         raise ex.EmailDeliveryError(
             f"Unknown error while delivering an email. {delivery_exception}"
-        )
+        ) from delivery_exception
