@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -37,8 +37,7 @@
 # SOFTWARE.
 
 import typing
-import warnings
-from typing import Any, Dict, Optional, Type, cast
+from typing import Type, cast
 
 from django.conf import settings
 from django.contrib.auth import authenticate
@@ -47,7 +46,7 @@ from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from ninja import ModelSchema, Schema
 from ninja.schema import DjangoGetter
-from pydantic import model_validator
+from pydantic import ValidationInfo, model_validator
 
 import ninja_jwt.exceptions as exceptions
 from ninja_jwt.utils import token_error
@@ -79,7 +78,7 @@ class InputSchemaMixin:
 
 
 class TokenInputSchemaMixin(InputSchemaMixin):
-    _user: Optional[User] = None
+    _user: User | None = None
 
     _default_error_messages = {
         "no_active_account": _("No active account found with the given credentials")
@@ -92,7 +91,7 @@ class TokenInputSchemaMixin(InputSchemaMixin):
             )
 
     @classmethod
-    def validate_values(cls, request: HttpRequest, values: Dict) -> Dict:
+    def validate_values(cls, values: dict) -> dict:
         if user_name_field not in values and "password" not in values:
             raise exceptions.ValidationError(
                 {
@@ -108,72 +107,63 @@ class TokenInputSchemaMixin(InputSchemaMixin):
 
         if not values.get("password"):
             raise exceptions.ValidationError({"password": "password is required"})
+        return values
 
+    def validate_user_from_credentials(
+        self, request: HttpRequest, values: dict
+    ) -> None:
         _user = authenticate(request, **values)
-        cls._user = _user
+        self._user = _user
 
         if not (_user is not None and _user.is_active):
             raise exceptions.AuthenticationFailed(
-                cls._default_error_messages["no_active_account"]
+                self._default_error_messages["no_active_account"]
             )
 
-        return values
-
     @classmethod
-    def get_token(cls, user: User) -> Dict:
+    def get_token(cls, user: User) -> dict:
         raise NotImplementedError(
-            "Must implement `get_token` method for `TokenObtainSerializer` subclasses"
+            "Must implement `get_token` method for `TokenObtainInputSchemaBase` subclasses"
         )
 
 
 class TokenObtainInputSchemaBase(ModelSchema, TokenInputSchemaMixin):
+    _token_data: dict | None = None
+
     class Config:
-        # extra = "allow"
         model = User
         model_fields = ["password", user_name_field]
 
     @model_validator(mode="before")
-    def validate_inputs(cls, values: DjangoGetter) -> DjangoGetter:
-        input_values = values._obj
-        request = values._context.get("request")
-        if isinstance(input_values, dict):
-            values._obj.update(
-                cls.validate_values(request=request, values=input_values)
-            )
-            return values
-        return values
+    @classmethod
+    def validate_inputs(cls, data: DjangoGetter) -> DjangoGetter:
+        cls.validate_values(data._obj)
+        return data
 
     @model_validator(mode="after")
-    def post_validate(cls, values: Dict) -> dict:
-        return cls.post_validate_schema(values)
-
-    @classmethod
-    def post_validate_schema(cls, values: Dict) -> dict:
+    def post_validate(self, info: ValidationInfo) -> typing.Self:
         """
         This is a post validate process which is common for any token generating schema.
-        :param values:
-        :return:
         """
-        # get_token can return values that wants to apply to `OutputSchema`
+        self.validate_user_from_credentials(
+            request=info.context.get("request"), values=self.dict()
+        )
 
-        data = cls.get_token(cls._user)
+        # get_token can return values that wants to apply to `OutputSchema`
+        data = self.get_token(self._user)
 
         if not isinstance(data, dict):
-            raise Exception("`get_token` must return a `typing.Dict` type.")
+            raise Exception("`get_token` must return a `dict` type.")
 
-        # a workaround for extra attributes since adding extra=allow in modelconfig adds `addition_props`
-        # field to the schema
-        values.__dict__.update(token_data=data)
+        self._token_data = data
 
         if api_settings.UPDATE_LAST_LOGIN:
-            update_last_login(None, cls._user)
+            update_last_login(None, self._user)
 
-        return values
+        return self
 
     def get_response_schema_init_kwargs(self) -> dict:
-        return dict(
-            self.dict(exclude={"password"}), **self.__dict__.get("token_data", {})
-        )
+        return dict(self.dict(exclude={"password"}), **self._token_data)
 
     def to_response_schema(self):
         _schema_type = self.get_response_schema()
@@ -191,7 +181,7 @@ class TokenObtainPairInputSchema(TokenObtainInputSchemaBase):
         return TokenObtainPairOutputSchema
 
     @classmethod
-    def get_token(cls, user: User) -> Dict:
+    def get_token(cls, user: User) -> dict:
         values = {}
         refresh = RefreshToken.for_user(user)
         refresh = cast(RefreshToken, refresh)
@@ -210,7 +200,7 @@ class TokenObtainSlidingInputSchema(TokenObtainInputSchemaBase):
         return TokenObtainSlidingOutputSchema
 
     @classmethod
-    def get_token(cls, user: User) -> Dict:
+    def get_token(cls, user: User) -> dict:
         values = {}
         slide_token = SlidingToken.for_user(user)
         values["token"] = str(slide_token)
@@ -221,13 +211,14 @@ class TokenRefreshInputSchema(Schema, InputSchemaMixin):
     refresh: str
 
     @model_validator(mode="before")
-    def validate_schema(cls, values: DjangoGetter) -> dict:
-        values = values._obj
+    @classmethod
+    def validate_schema(cls, data: DjangoGetter) -> dict:
+        data = data._obj
 
-        if isinstance(values, dict):
-            if not values.get("refresh"):
+        if isinstance(data, dict):
+            if not data.get("refresh"):
                 raise exceptions.ValidationError({"refresh": "token is required"})
-        return values
+        return data
 
     @classmethod
     def get_response_schema(cls) -> Type[Schema]:
@@ -236,22 +227,23 @@ class TokenRefreshInputSchema(Schema, InputSchemaMixin):
 
 class TokenRefreshOutputSchema(Schema):
     refresh: str
-    access: Optional[str]
+    access: str
 
     @model_validator(mode="before")
+    @classmethod
     @token_error
-    def validate_schema(cls, values: DjangoGetter) -> typing.Any:
-        values = values._obj
+    def validate_schema(cls, data: DjangoGetter) -> typing.Any:
+        data = data._obj
 
-        if isinstance(values, dict):
-            if not values.get("refresh"):
+        if isinstance(data, dict):
+            if not data.get("refresh"):
                 raise exceptions.ValidationError(
                     {"refresh": "refresh token is required"}
                 )
 
-            refresh = RefreshToken(values["refresh"])
+            refresh = RefreshToken(data["refresh"])
 
-            data = {"access": str(refresh.access_token)}
+            new_data = {"access": str(refresh.access_token)}
 
             if api_settings.ROTATE_REFRESH_TOKENS:
                 if api_settings.BLACKLIST_AFTER_ROTATION:
@@ -267,22 +259,22 @@ class TokenRefreshOutputSchema(Schema):
                 refresh.set_exp()
                 refresh.set_iat()
 
-                data["refresh"] = str(refresh)
-            values.update(data)
-        return values
+                new_data["refresh"] = str(refresh)
+            data.update(new_data)
+        return data
 
 
 class TokenRefreshSlidingInputSchema(Schema, InputSchemaMixin):
     token: str
 
     @model_validator(mode="before")
-    def validate_schema(cls, values: DjangoGetter) -> dict:
-        values = values._obj
-
-        if isinstance(values, dict):
-            if not values.get("token"):
+    @classmethod
+    def validate_schema(cls, data: DjangoGetter) -> dict:
+        data = data._obj
+        if isinstance(data, dict):
+            if not data.get("token"):
                 raise exceptions.ValidationError({"token": "token is required"})
-        return values
+        return data
 
     @classmethod
     def get_response_schema(cls) -> Type[Schema]:
@@ -293,15 +285,16 @@ class TokenRefreshSlidingOutputSchema(Schema):
     token: str
 
     @model_validator(mode="before")
+    @classmethod
     @token_error
-    def validate_schema(cls, values: DjangoGetter) -> dict:
-        values = values._obj
+    def validate_schema(cls, data: DjangoGetter) -> dict:
+        data = data._obj
 
-        if isinstance(values, dict):
-            if not values.get("token"):
+        if isinstance(data, dict):
+            if not data.get("token"):
                 raise exceptions.ValidationError({"token": "token is required"})
 
-            token = SlidingToken(values["token"])
+            token = SlidingToken(data["token"])
 
             # Check that the timestamp in the "refresh_exp" claim has not
             # passed
@@ -310,22 +303,23 @@ class TokenRefreshSlidingOutputSchema(Schema):
             # Update the "exp" and "iat" claims
             token.set_exp()
             token.set_iat()
-            values.update({"token": str(token)})
-        return values
+            data.update({"token": str(token)})
+        return data
 
 
 class TokenVerifyInputSchema(Schema, InputSchemaMixin):
     token: str
 
     @model_validator(mode="before")
+    @classmethod
     @token_error
-    def validate_schema(cls, values: DjangoGetter) -> Dict:
-        values = values._obj
+    def validate_schema(cls, data: DjangoGetter) -> dict:
+        data = data._obj
 
-        if isinstance(values, dict):
-            if not values.get("token"):
+        if isinstance(data, dict):
+            if not data.get("token"):
                 raise exceptions.ValidationError({"token": "token is required"})
-            token = UntypedToken(values["token"])
+            token = UntypedToken(data["token"])
 
             if (
                 api_settings.BLACKLIST_AFTER_ROTATION
@@ -335,7 +329,7 @@ class TokenVerifyInputSchema(Schema, InputSchemaMixin):
                 if BlacklistedToken.objects.filter(token__jti=jti).exists():
                     raise exceptions.ValidationError("Token is blacklisted")
 
-        return values
+        return data
 
     @classmethod
     def get_response_schema(cls) -> Type[Schema]:
@@ -349,21 +343,22 @@ class TokenBlacklistInputSchema(Schema, InputSchemaMixin):
     refresh: str
 
     @model_validator(mode="before")
+    @classmethod
     @token_error
-    def validate_schema(cls, values: DjangoGetter) -> dict:
-        values = values._obj
+    def validate_schema(cls, data: DjangoGetter) -> dict:
+        data = data._obj
 
-        if isinstance(values, dict):
-            if not values.get("refresh"):
+        if isinstance(data, dict):
+            if not (refresh_data := data.get("refresh")):
                 raise exceptions.ValidationError(
                     {"refresh": "refresh token is required"}
                 )
-            refresh = RefreshToken(values["refresh"])
+            refresh = RefreshToken(refresh_data)
             try:
                 refresh.blacklist()
             except AttributeError:
                 pass
-        return values
+        return data
 
     @classmethod
     def get_response_schema(cls) -> Type[Schema]:
@@ -371,30 +366,3 @@ class TokenBlacklistInputSchema(Schema, InputSchemaMixin):
 
     def to_response_schema(self):
         return {}
-
-
-__deprecated__ = {
-    "TokenBlacklistSerializer": TokenBlacklistInputSchema,
-    "TokenVerifySerializer": TokenVerifyInputSchema,
-    "TokenRefreshSlidingSerializer": TokenRefreshSlidingOutputSchema,
-    "TokenRefreshSlidingSchema": TokenRefreshSlidingInputSchema,
-    "TokenRefreshSerializer": TokenRefreshOutputSchema,
-    "TokenRefreshSchema": TokenRefreshInputSchema,
-    "TokenObtainSlidingOutput": TokenObtainSlidingOutputSchema,
-    "TokenObtainSerializer": TokenObtainInputSchemaBase,
-    "TokenObtainPairOutput": TokenObtainPairOutputSchema,
-    "TokenObtainPairSerializer": TokenObtainPairInputSchema,
-    "TokenObtainSlidingSerializer": TokenObtainSlidingInputSchema,
-}
-
-
-def __getattr__(name: str) -> Any:  # pragma: no cover
-    if name in __deprecated__:
-        value = __deprecated__[name]
-        warnings.warn(
-            f"'{name}' is deprecated. Use '{value.__name__}' instead.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        return value
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

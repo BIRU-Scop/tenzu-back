@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -239,7 +239,7 @@ class TestTokenBlacklistFlushExpiredTokens:
 
 
 @pytest.mark.django_db
-class TestTokenVerifySerializerShouldHonourBlacklist(MigrationTestCase):
+class TestTokenVerifyInputSchemaShouldHonourBlacklist(MigrationTestCase):
     migrate_from = ("token_blacklist", "0002_outstandingtoken_jti_hex")
     migrate_to = ("token_blacklist", "0003_auto_20171017_2007")
 

@@ -23,7 +23,7 @@ httpx
 # ORM + Django
 Django[argon2]
 psycopg[c]
-easy-thumbnails # Images and thumbnails
+easy-thumbnails[svg] # Images and thumbnails
 django-nonrelated-inlines # admin
 
 # Mailing module
@@ -51,7 +51,6 @@ faker # For sampledata
 python-json-logger # JSON logger
 python-slugify # To generate slugs
 requests # As http client
-svglib # Needed by easy-thumbnails
 typer # For manage CLI
 
 

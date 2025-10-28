@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,7 +20,6 @@
 from typing import cast
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
 from django.conf import settings
 
 from auth import services as auth_services
@@ -340,7 +339,7 @@ async def send_project_invitation_email(
         "receiver_name": receiver.full_name if receiver else None,
     }
 
-    await sync_to_async(send_email.defer)(
+    await send_email.defer_async(
         email_name=Emails.PROJECT_INVITATION.value,
         to=email,
         context=context,

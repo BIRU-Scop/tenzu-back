@@ -52,8 +52,6 @@ locals().update(
     }
 )
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 ALLOWED_HOSTS = [settings.BACKEND_URL.host, settings.FRONTEND_URL.host]
 POD_IP = settings.POD_IP

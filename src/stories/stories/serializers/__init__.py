@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -55,6 +55,7 @@ class StoryDetailSerializer(StorySummarySerializer):
     title_updated_at: datetime | None = None
     description_updated_by: UserNestedSerializer | None = None
     description_updated_at: datetime | None = None
+    total_comments: int
 
 
 class ReorderSerializer(BaseModel):

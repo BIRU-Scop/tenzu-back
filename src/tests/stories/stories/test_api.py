@@ -314,6 +314,7 @@ async def test_get_story_200_ok(client, project_template):
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
     assert res["ref"] == story.ref
+    assert res["totalComments"] == 0
 
 
 async def test_get_story_403_forbidden_user_has_not_valid_perm(

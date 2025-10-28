@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -15,8 +15,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -50,7 +48,7 @@ class IsMember(PermissionComponent):
         self.role: Role | None = None
         super().__init__(*components)
 
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
         from memberships import repositories as memberships_repositories
 
         if not obj:
@@ -97,7 +95,7 @@ class HasPermission(IsMember):
         self.required_permission = permission
         super().__init__(model_name, access_fields, *components)
 
-    async def is_authorized(self, user: "AnyUser", obj: Any = None) -> bool:
+    async def is_authorized(self, user: AnyUser, obj: Any = None) -> bool:
         if not await super().is_authorized(user, obj):
             return False
         return self.required_permission in self.role.permissions

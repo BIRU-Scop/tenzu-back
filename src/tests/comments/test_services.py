@@ -136,8 +136,6 @@ async def test_list_comments():
     order_by = ["-created_at"]
     offset = 0
     limit = 100
-    total = 3
-    total_objs = 2
 
     with (
         patch(
@@ -148,20 +146,36 @@ async def test_list_comments():
         ) as fake_get_contenttype_for_model,
     ):
         fake_comments_repositories.list_comments.return_value = comments
-        fake_comments_repositories.get_total_comments.side_effect = [total, total_objs]
         (
             pagination,
-            total_comments,
             comments_list,
         ) = await services.list_paginated_comments(
             content_object=story, order_by=order_by, offset=offset, limit=limit
         )
         fake_comments_repositories.list_comments.assert_awaited_once()
-        fake_comments_repositories.get_total_comments.assert_awaited()
         fake_get_contenttype_for_model.assert_awaited_once()
         assert len(comments_list) == 3
         assert pagination.offset == offset
         assert pagination.limit == limit
+
+
+async def test_get_comments_count():
+    story = f.build_story(id="")
+    total = 3
+
+    with (
+        patch(
+            "comments.services.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
+        patch(
+            "comments.services.get_contenttype_for_model", autospec=True
+        ) as fake_get_contenttype_for_model,
+    ):
+        fake_comments_repositories.get_total_comments.return_value = total
+        total_comments = await services.get_comments_count(content_object=story)
+        fake_comments_repositories.get_total_comments.assert_awaited()
+        fake_get_contenttype_for_model.assert_awaited_once()
+        assert total_comments == 3
 
 
 ##########################################################
@@ -280,6 +294,7 @@ async def test_delete_comment():
                 "deleted_by": updated_comment.deleted_by,
                 "deleted_at": updated_comment.deleted_at,
             },
+            update_modified_at=False,
         )
 
 
@@ -316,5 +331,6 @@ async def test_delete_comment_and_emit_event_on_delete():
                 "deleted_by": updated_comment.deleted_by,
                 "deleted_at": updated_comment.deleted_at,
             },
+            update_modified_at=False,
         )
         fake_event_on_delete.assert_awaited_once_with(comment=updated_comment)

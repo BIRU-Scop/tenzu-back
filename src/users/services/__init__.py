@@ -452,7 +452,7 @@ async def _generate_reset_password_token(user: User) -> str:
 
 async def _send_reset_password_email(user: User) -> None:
     context = {"reset_password_token": await _generate_reset_password_token(user)}
-    await sync_to_async(send_email.defer)(
+    await send_email.defer_async(
         email_name=Emails.RESET_PASSWORD.value,
         to=user.email,
         context=context,

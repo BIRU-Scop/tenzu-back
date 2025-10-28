@@ -491,7 +491,9 @@ async def create_story_comments(
         for _ in range(fake.random_int(min=1, max=max_comments)):
             story_comments.append(
                 await _create_comment_object(
-                    text=text if text else f"<p>{fake.paragraph(nb_sentences=2)}</p>",
+                    text=text
+                    if text
+                    else f'[{{"id":"ecef7c0e-8c64-4657-bd5f-642c2b386404","type":"paragraph","props":{{"textColor":"default","backgroundColor":"default","textAlignment":"left"}},"content":[{{"type":"text","text":"{fake.paragraph(nb_sentences=2)}","styles":{{}},"children":[]}}]}}]',
                     created_by=fake.random_element(elements=pj_members),
                     object=story,
                 )

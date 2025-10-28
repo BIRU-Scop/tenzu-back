@@ -32,6 +32,16 @@ from users.api.validators.mixins import PasswordMixin
 FullName = Annotated[str, StringConstraints(max_length=50)]
 
 
+def check_email_in_domain(v: str) -> str:
+    if not settings.USER_EMAIL_ALLOWED_DOMAINS:
+        return v
+
+    domain = v.split("@")[1]
+    if domain not in settings.USER_EMAIL_ALLOWED_DOMAINS:
+        raise ValueError("Email domain not allowed")
+    return v
+
+
 class CreateUserValidator(PasswordMixin, BaseModel):
     email: EmailStr
     full_name: FullName  # type: ignore
@@ -52,13 +62,7 @@ class CreateUserValidator(PasswordMixin, BaseModel):
     @field_validator("email")
     @classmethod
     def check_email_in_domain(cls, v: str) -> str:
-        if not settings.USER_EMAIL_ALLOWED_DOMAINS:
-            return v
-
-        domain = v.split("@")[1]
-        if domain not in settings.USER_EMAIL_ALLOWED_DOMAINS:
-            raise ValueError("Email domain not allowed")
-        return v
+        return check_email_in_domain(v)
 
     @field_validator("accept_terms_of_service", "accept_privacy_policy")
     @classmethod

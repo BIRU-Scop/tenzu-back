@@ -605,7 +605,7 @@ async def test_get_project_role_not_a_member(client, project_template):
 async def test_update_project_role_anonymous_user(client):
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
 
-    response = await client.put(f"/projects/roles/{NOT_EXISTING_B64ID}", json=data)
+    response = await client.patch(f"/projects/roles/{NOT_EXISTING_B64ID}", json=data)
 
     assert response.status_code == 401, response.data
 
@@ -614,7 +614,7 @@ async def test_update_project_role_role_not_found(client, project_template):
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
 
     client.login(await f.create_user())
-    response = await client.put(f"/projects/roles/{NOT_EXISTING_B64ID}", json=data)
+    response = await client.patch(f"/projects/roles/{NOT_EXISTING_B64ID}", json=data)
 
     assert response.status_code == 404, response.data
 
@@ -626,7 +626,7 @@ async def test_update_project_role_user_forbidden_not_member(client, project_tem
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
 
     client.login(user)
-    response = await client.put(f"/projects/roles/{role.b64id}", json=data)
+    response = await client.patch(f"/projects/roles/{role.b64id}", json=data)
 
     assert response.status_code == 403, response.data
 
@@ -646,7 +646,7 @@ async def test_update_project_role_user_forbidden_no_permission(
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
 
     client.login(user)
-    response = await client.put(f"/projects/roles/{role.b64id}", json=data)
+    response = await client.patch(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 403, response.data
 
 
@@ -656,7 +656,7 @@ async def test_update_project_role_role_non_editable(client, project_template):
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
 
     client.login(project.created_by)
-    response = await client.put(f"/projects/roles/{role.b64id}", json=data)
+    response = await client.patch(f"/projects/roles/{role.b64id}", json=data)
 
     assert response.status_code == 403, response.data
 
@@ -667,7 +667,7 @@ async def test_update_project_role_incompatible_permissions(client, project_temp
     data = {"permissions": [choices.ProjectPermissions.MODIFY_STORY.value]}
 
     client.login(project.created_by)
-    response = await client.put(f"/projects/roles/{role.b64id}", json=data)
+    response = await client.patch(f"/projects/roles/{role.b64id}", json=data)
 
     assert response.status_code == 422, response.data
 
@@ -678,7 +678,7 @@ async def test_update_project_role_not_valid_permissions(client, project_templat
     data = {"permissions": ["not_valid", "foo"]}
 
     client.login(project.created_by)
-    response = await client.put(f"/projects/roles/{role.b64id}", json=data)
+    response = await client.patch(f"/projects/roles/{role.b64id}", json=data)
 
     assert response.status_code == 422, response.data
 
@@ -699,7 +699,7 @@ async def test_update_project_role_ok(client, project_template):
     data = {"permissions": [choices.ProjectPermissions.VIEW_STORY.value]}
 
     client.login(pj_member)
-    response = await client.put(f"/projects/roles/{role.b64id}", json=data)
+    response = await client.patch(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
     assert data["permissions"] == res["permissions"]
@@ -714,7 +714,7 @@ async def test_update_project_role_ok(client, project_template):
         ],
         "name": "New member",
     }
-    response = await client.put(f"/projects/roles/{role.b64id}", json=data)
+    response = await client.patch(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
     assert data["permissions"] == res["permissions"]
@@ -724,7 +724,7 @@ async def test_update_project_role_ok(client, project_template):
 
     role = await project.roles.aget(slug=res["slug"])
     data = {"name": "New member 2"}
-    response = await client.put(f"/projects/roles/{role.b64id}", json=data)
+    response = await client.patch(f"/projects/roles/{role.b64id}", json=data)
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
     assert len(res["permissions"]) == 2
