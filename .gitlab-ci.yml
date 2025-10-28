@@ -27,7 +27,7 @@ include:
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
       job-name: mirror-tags
-      push-args: "origin HEAD:refs/tags/$CI_COMMIT_REF_SLUG"
+      push-args: "origin HEAD:refs/tags/$CI_COMMIT_REF_NAME"
       fetch-args: "origin --no-tags"
       rules:
         - if: $CI_COMMIT_TAG
