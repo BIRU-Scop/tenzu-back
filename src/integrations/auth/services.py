@@ -97,7 +97,7 @@ async def send_social_login_warning_email(
         "login_method": login_method,
         "login_time": aware_utcnow(),
     }
-    await send_email.defer(
+    await send_email.defer_async(
         email_name=Emails.SOCIAL_LOGIN_WARNING.value,
         to=email,
         context=context,

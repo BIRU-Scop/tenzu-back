@@ -19,14 +19,18 @@ include:
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
       fetch-args: "origin --no-tags"
+      rules:
+        - if: '$CI_COMMIT_MESSAGE =~ /^chore\(release\).*/'
+          when: never
+        - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
   - component: $CI_SERVER_FQDN/biru/component/push@v1.16.0
     inputs:
       repo: github.com/BIRU-Scop/tenzu-back.git
-      job-name: mirror-demo-tags
-      push-args: "origin HEAD:refs/tags/$CI_COMMIT_REF_SLUG"
+      job-name: mirror-tags
+      push-args: "origin HEAD:refs/tags/$CI_COMMIT_REF_NAME"
       fetch-args: "origin --no-tags"
       rules:
-        - if: $CI_COMMIT_TAG =~ /^.*-demo.*/
+        - if: $CI_COMMIT_TAG
   # add test build image
   - component: $CI_SERVER_FQDN/biru/component/build-and-push@v1.16.0
     inputs:
@@ -38,7 +42,7 @@ include:
       build-arg: 'EXTRA_PACKAGES=${EXTRA_PACKAGES}'
       destination: ${CI_REGISTRY_IMAGE}/test:${CI_COMMIT_REF_SLUG}
       rules:
-        - if: '($CI_COMMIT_REF_PROTECTED == "false" && $CI_PIPELINE_SOURCE == "merge_request_event") || $CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH'
+        - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH && ($CI_COMMIT_REF_PROTECTED == "false" || $CI_COMMIT_REF_SLUG == $CI_DEFAULT_BRANCH)'
           changes:
             - "buildrun/docker/tenzu/Dockerfile"
             - "buildrun/docker/tenzu/requirements/devel.txt"

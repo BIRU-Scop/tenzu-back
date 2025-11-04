@@ -125,7 +125,6 @@ async def list_story_comments(
     )
     (
         pagination,
-        total_comments,
         comments,
     ) = await comments_services.list_paginated_comments(
         content_object=story,
@@ -134,7 +133,6 @@ async def list_story_comments(
         order_by=order.model_dump(),
     )
     api_pagination.set_pagination(response=response, pagination=pagination)
-    response.headers["Tenzu-Total-Comments"] = total_comments
     return comments
 
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,17 +20,16 @@
 
 from typing import List, Self
 
-from django.conf import settings
 from pydantic import (
     EmailStr,
     Field,
     field_validator,
     model_validator,
 )
-from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated
 
 from commons.validators import B64UUID, BaseModel
+from users.api.validators import check_email_in_domain
 
 
 class MembershipValidator(BaseModel):
@@ -59,14 +58,8 @@ class _InvitationValidator(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def check_email_in_domain(cls, v: str | None, info: ValidationInfo) -> str | None:
-        if v is None or not settings.USER_EMAIL_ALLOWED_DOMAINS:
-            return v
-
-        domain = v.split("@")[1]
-        if domain not in settings.USER_EMAIL_ALLOWED_DOMAINS:
-            raise ValueError("Email domain not allowed")
-        return v
+    def check_email_in_domain(cls, v: str | None) -> str | None:
+        return check_email_in_domain(v)
 
 
 class InvitationsValidator(BaseModel):

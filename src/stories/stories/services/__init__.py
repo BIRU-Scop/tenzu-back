@@ -17,13 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from decimal import Decimal
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 from django.db.models import QuerySet
 
 from base.repositories.neighbors import Neighbor
+from comments import services as comments_services
 from commons.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
 from ninja_jwt.utils import aware_utcnow
 from projects.projects.models import Project
@@ -78,7 +78,9 @@ async def create_story(
     )
 
     # Get detailed story
-    detailed_story = await get_story_detail(project_id=project.id, ref=story.ref)
+    detailed_story = await get_story_detail(
+        project_id=project.id, ref=story.ref, new_story=True
+    )
 
     # Emit event
     await stories_events.emit_event_when_story_is_created(
@@ -133,7 +135,10 @@ async def get_story(project_id: UUID, ref: int, get_assignees=False) -> Story:
 
 
 async def get_story_detail(
-    project_id: UUID, ref: int, neighbors: Neighbor[Story] | None = None
+    project_id: UUID,
+    ref: int,
+    neighbors: Neighbor[Story] | None = None,
+    new_story=False,
 ) -> StoryDetailSerializer:
     story = await stories_repositories.get_story(
         ref=ref,
@@ -155,6 +160,9 @@ async def get_story_detail(
             story=story, filters={"workflow_id": story.workflow_id}
         )
 
+    total_not_deleted_comments = (
+        0 if new_story else await comments_services.get_comments_count(story)
+    )
     return StoryDetailSerializer(
         ref=story.ref,
         title=story.title,
@@ -174,6 +182,7 @@ async def get_story_detail(
         title_updated_at=story.title_updated_at,
         description_updated_by=story.description_updated_by,
         description_updated_at=story.description_updated_at,
+        total_comments=total_not_deleted_comments,
     )
 
 

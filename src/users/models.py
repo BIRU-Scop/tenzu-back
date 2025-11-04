@@ -16,8 +16,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from __future__ import annotations
-
 import re
 from typing import TYPE_CHECKING, Any, Iterable
 
@@ -35,7 +33,7 @@ if TYPE_CHECKING:
     from projects.memberships.models import ProjectRole
     from workspaces.memberships.models import WorkspaceRole
 
-type AnyUser = AnonymousUser | "User" | AbstractBaseUser
+type AnyUser = AnonymousUser | User | AbstractBaseUser
 
 
 def default_language() -> str:

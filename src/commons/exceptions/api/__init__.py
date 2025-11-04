@@ -120,6 +120,23 @@ class NotFoundError(HTTPException):
         super().__init__(status_code=404, code=codes.EX_NOT_FOUND.code, msg=msg)
 
 
+##########################
+# HTTP 412: PRECONDITION FAILED
+##########################
+
+
+class PreconditionFailed(HTTPException):
+    def __init__(
+        self, msg: str = codes.EX_PRECONDITION_FAILED.msg, detail: Any = None
+    ) -> None:
+        super().__init__(
+            status_code=412,
+            code=codes.EX_PRECONDITION_FAILED.code,
+            msg=msg,
+            detail=detail,
+        )
+
+
 ##############################
 # HTTP 422: VALIDATION ERROR
 ##############################

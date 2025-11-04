@@ -287,9 +287,9 @@ async def get_project_role(
 ##########################################################
 
 
-@project_membership_router.put(
+@project_membership_router.patch(
     "/projects/roles/{role_id}",
-    url_name="project.roles.put",
+    url_name="project.roles.patch",
     summary="Update project roles",
     response={
         200: BaseDataModel[ProjectRoleSerializer],

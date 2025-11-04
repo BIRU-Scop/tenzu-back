@@ -15,19 +15,18 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from collections import defaultdict
 from importlib import import_module
 
 from django.conf import settings
 from ninja import NinjaAPI, Router, Swagger
+from ninja.params import models as params_models
 
 from base.services.exceptions import TenzuServiceException
 from base.utils.strings import to_kebab
 from commons.exceptions.api import codes
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
-from integrations.github.auth.api import github_integration_router
-from integrations.gitlab.auth.api import gitlab_integration_router
-from integrations.google.auth.api import google_integration_router
 from ninja_jwt.api import auth_router
 from ninja_jwt.authentication import AsyncJWTAuth
 from ninja_jwt.ninja_extra.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
@@ -105,12 +104,42 @@ api.add_router(
 )
 api.add_router("", tags=["workflows"], router=workflows_router)
 api.add_router("", tags=["auth"], router=auth_router)
-api.add_router("", tags=["auth"], router=github_integration_router)
-api.add_router("", tags=["auth"], router=gitlab_integration_router)
-api.add_router("", tags=["auth"], router=google_integration_router)
+# api.add_router("", tags=["auth"], router=github_integration_router)
+# api.add_router("", tags=["auth"], router=gitlab_integration_router)
+# api.add_router("", tags=["auth"], router=google_integration_router)
 api.add_router("", tags=["system"], router=health_router)
 
 for extra_dep in settings.EXTRA_DEPS:
     if extra_dep.api is not None:
         extra_api = import_module(extra_dep.api)
         api.add_router("", tags=getattr(extra_api, "tags", []), router=extra_api.router)
+
+
+def patch_resolve():
+    """
+    temporary hack while waiting for resolution of issue with ninja + pydantic 2.12 compatibility,
+    see https://github.com/vitalik/django-ninja/issues/1557#issuecomment-3393588046
+    """
+    _orig_resolve = params_models.ParamModel.resolve
+
+    def _deep_unwrap_defaultdict(value):
+        if isinstance(value, defaultdict) or isinstance(value, dict):
+            return {k: _deep_unwrap_defaultdict(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [_deep_unwrap_defaultdict(v) for v in value]
+        return value
+
+    @classmethod
+    def _patched_resolve(cls, request, api, path_params):
+        data = cls.get_request_data(request, api, path_params)
+        if data is None:
+            return cls()
+
+        data = cls._map_data_paths(data)
+        data = _deep_unwrap_defaultdict(data)  # <-- this is the hack
+        return cls.model_validate(data, context={"request": request})
+
+    params_models.ParamModel.resolve = _patched_resolve
+
+
+patch_resolve()

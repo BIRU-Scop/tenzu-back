@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,7 +20,7 @@
 from enum import StrEnum
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, conint
 
 from configurations.utils import BASE_DIR
 
@@ -55,6 +55,8 @@ class EmailSettings(BaseModel):
     EMAIL_SSL_KEYFILE: str | None = None
     # send the SMTP Date header of email messages in the local time zone or in UTC
     EMAIL_USE_LOCALTIME: bool = False
+    EMAIL_RETRY_ATTEMPTS: conint(gt=0) = 4
+    EMAIL_RETRY_EXPONENTIAL_WAIT: conint(gt=0) = 2
 
     # file backend settings
     EMAIL_FILE_PATH: Path = BASE_DIR / "file_emails"

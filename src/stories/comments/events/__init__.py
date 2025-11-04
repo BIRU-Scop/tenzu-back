@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -29,9 +29,9 @@ from stories.comments.events.content import (
 )
 from stories.stories.models import Story
 
-CREATE_STORY_COMMENT = "stories.comments.create"
-UPDATE_STORY_COMMENT = "stories.comments.update"
-DELETE_STORY_COMMENT = "stories.comments.delete"
+CREATE_STORY_COMMENT = "storiescomments.create"
+UPDATE_STORY_COMMENT = "storiescomments.update"
+DELETE_STORY_COMMENT = "storiescomments.delete"
 
 
 async def emit_event_when_story_comment_is_created(
