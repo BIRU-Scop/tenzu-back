@@ -2,7 +2,7 @@
 #    uv pip compile --output-file requirements/prod.txt requirements/prod.in
 a2wsgi==1.10.10
     # via -r requirements/commons.in
-aiosmtplib==4.0.2
+aiosmtplib==5.0.0
     # via -r requirements/commons.in
 annotated-types==0.7.0
     # via pydantic
@@ -27,19 +27,19 @@ attrs==25.4.0
     #   procrastinate
     #   service-identity
     #   twisted
-autobahn==24.4.2
+autobahn==25.10.2
     # via daphne
 automat==25.4.16
     # via twisted
 babel==2.17.0
     # via -r requirements/commons.in
-boto3==1.40.49
+boto3==1.40.67
     # via django-storages
-botocore==1.40.49
+botocore==1.40.67
     # via
     #   boto3
     #   s3transfer
-brotli==1.1.0
+brotli==1.2.0
     # via whitenoise
 certifi==2025.10.5
     # via
@@ -57,7 +57,7 @@ channels==4.3.1
     #   channels-redis
 channels-redis==4.3.0
     # via -r requirements/commons.in
-charset-normalizer==3.4.3
+charset-normalizer==3.4.4
     # via
     #   reportlab
     #   requests
@@ -70,7 +70,7 @@ constantly==23.10.4
     # via twisted
 croniter==6.0.0
     # via procrastinate
-cryptography==46.0.2
+cryptography==46.0.3
     # via
     #   -r requirements/commons.in
     #   autobahn
@@ -80,7 +80,7 @@ cssselect2==0.8.0
     # via svglib
 daphne==4.2.1
     # via channels
-django==5.2.7
+django==5.2.8
     # via
     #   -r requirements/commons.in
     #   channels
@@ -97,7 +97,7 @@ django-cors-headers==4.9.0
     # via -r requirements/commons.in
 django-extensions==4.1
     # via -r requirements/commons.in
-django-ninja==1.4.3
+django-ninja==1.4.5
     # via -r requirements/commons.in
 django-nonrelated-inlines==0.2
     # via -r requirements/commons.in
@@ -115,11 +115,11 @@ email-validator==2.3.0
     # via
     #   -r requirements/commons.in
     #   pydantic
-faker==37.11.0
+faker==37.12.0
     # via -r requirements/commons.in
 freetype-py==2.5.1
     # via rlpycairo
-granian==2.5.5
+granian==2.5.7
     # via -r requirements/commons.in
 gunicorn==23.0.0
     # via
@@ -129,7 +129,7 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-hiredis==3.2.1
+hiredis==3.3.0
     # via redis
 httpcore==1.0.9
     # via httpx
@@ -141,7 +141,7 @@ hyperlink==21.0.0
     # via
     #   autobahn
     #   twisted
-idna==3.10
+idna==3.11
     # via
     #   anyio
     #   email-validator
@@ -167,23 +167,23 @@ mdurl==0.1.2
     # via markdown-it-py
 msgpack==1.1.2
     # via channels-redis
-orjson==3.11.3
+orjson==3.11.4
     # via -r requirements/commons.in
 packaging==25.0
     # via gunicorn
-pillow==11.3.0
+pillow==12.0.0
     # via
     #   easy-thumbnails
     #   reportlab
 procrastinate==3.5.3
     # via -r requirements/commons.in
-psycopg==3.2.10
+psycopg==3.2.12
     # via
     #   -r requirements/commons.in
     #   procrastinate
-psycopg-c==3.2.10
+psycopg-c==3.2.12
     # via psycopg
-psycopg-pool==3.2.6
+psycopg-pool==3.2.7
     # via psycopg
 pyasn1==0.6.1
     # via
@@ -195,12 +195,12 @@ pycairo==1.28.0
     # via rlpycairo
 pycparser==2.23
     # via cffi
-pydantic==2.12.0
+pydantic==2.12.4
     # via
     #   -r requirements/commons.in
     #   django-ninja
     #   pydantic-settings
-pydantic-core==2.41.1
+pydantic-core==2.41.5
     # via pydantic
 pydantic-settings==2.11.0
     # via -r requirements/commons.in
@@ -215,7 +215,7 @@ python-dateutil==2.9.0.post0
     #   botocore
     #   croniter
     #   procrastinate
-python-dotenv==1.1.1
+python-dotenv==1.2.1
     # via
     #   pydantic-settings
     #   uvicorn
@@ -229,7 +229,7 @@ pytz==2025.2
     # via croniter
 pyyaml==6.0.3
     # via uvicorn
-redis==6.4.0
+redis==7.0.1
     # via
     #   -r requirements/commons.in
     #   channels-redis
@@ -245,14 +245,12 @@ rlpycairo==0.4.0
     # via svglib
 s3transfer==0.14.0
     # via boto3
-sentry-sdk==2.41.0
+sentry-sdk==2.43.0
     # via -r requirements/commons.in
 service-identity==24.2.0
     # via twisted
 setuptools==80.9.0
-    # via
-    #   autobahn
-    #   incremental
+    # via incremental
 shellingham==1.5.4
     # via typer
 six==1.17.0
@@ -273,7 +271,7 @@ twisted==25.5.0
     # via daphne
 txaio==25.9.2
     # via autobahn
-typer==0.19.2
+typer==0.20.0
     # via -r requirements/commons.in
 types-pyyaml==6.0.12.20250915
     # via django-stubs
@@ -299,17 +297,17 @@ urllib3==2.5.0
     #   botocore
     #   requests
     #   sentry-sdk
-uvicorn==0.37.0
+uvicorn==0.38.0
     # via
     #   -r requirements/commons.in
     #   uvicorn-worker
 uvicorn-worker==0.4.0
     # via -r requirements/commons.in
-uvloop==0.21.0
+uvloop==0.22.1
     # via
     #   -r requirements/commons.in
     #   uvicorn
-watchfiles==1.1.0
+watchfiles==1.1.1
     # via uvicorn
 webencodings==0.5.1
     # via
