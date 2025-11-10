@@ -2,8 +2,6 @@
 #    uv pip compile --output-file requirements/devel.txt requirements/devel.in
 a2wsgi==1.10.10
     # via -r requirements/commons.in
-aiosmtplib==5.0.0
-    # via -r requirements/commons.in
 annotated-types==0.7.0
     # via pydantic
 anyio==4.11.0
@@ -128,9 +126,7 @@ dnspython==2.8.0
 easy-thumbnails==2.10.1
     # via -r requirements/commons.in
 email-validator==2.3.0
-    # via
-    #   -r requirements/commons.in
-    #   pydantic
+    # via pydantic
 execnet==2.1.1
     # via pytest-xdist
 factory-boy==3.3.3

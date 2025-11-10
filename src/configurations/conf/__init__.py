@@ -24,7 +24,14 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any
 
-from pydantic import AnyHttpUrl, BaseModel, EmailStr, Field, conint, field_validator
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    EmailStr,
+    Field,
+    PositiveInt,
+    field_validator,
+)
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -92,7 +99,7 @@ class Settings(BaseSettings):
     # https://docs.djangoproject.com/en/4.0/topics/files/#file-storage
     MEDIA_URL: str = "/media/"
     MEDIA_ROOT: Path = Path("/public/media")
-    MAX_UPLOAD_FILE_SIZE: conint(gt=0) | None = 100 * 1024 * 1024  # 100 MB
+    MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 100 * 1024 * 1024  # 100 MB
 
     # I18N
     LANGUAGE_CODE: str = "en-US"

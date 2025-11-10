@@ -2,8 +2,6 @@
 #    uv pip compile --output-file requirements/prod.txt requirements/prod.in
 a2wsgi==1.10.10
     # via -r requirements/commons.in
-aiosmtplib==5.0.0
-    # via -r requirements/commons.in
 annotated-types==0.7.0
     # via pydantic
 anyio==4.11.0
@@ -112,9 +110,7 @@ dnspython==2.8.0
 easy-thumbnails==2.10.1
     # via -r requirements/commons.in
 email-validator==2.3.0
-    # via
-    #   -r requirements/commons.in
-    #   pydantic
+    # via pydantic
 faker==37.12.0
     # via -r requirements/commons.in
 freetype-py==2.5.1
