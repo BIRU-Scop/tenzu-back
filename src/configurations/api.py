@@ -104,9 +104,6 @@ api.add_router(
 )
 api.add_router("", tags=["workflows"], router=workflows_router)
 api.add_router("", tags=["auth"], router=auth_router)
-# api.add_router("", tags=["auth"], router=github_integration_router)
-# api.add_router("", tags=["auth"], router=gitlab_integration_router)
-# api.add_router("", tags=["auth"], router=google_integration_router)
 api.add_router("", tags=["system"], router=health_router)
 
 for extra_dep in settings.EXTRA_DEPS:

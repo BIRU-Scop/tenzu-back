@@ -46,7 +46,7 @@ from memberships.choices import InvitationStatus
 from ninja_jwt.token_blacklist.models import OutstandingToken
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
-from users.models import AuthData, User
+from users.models import User
 from workspaces.invitations.models import WorkspaceInvitation
 from workspaces.memberships.models import WorkspaceMembership
 
@@ -470,99 +470,3 @@ async def get_total_workspace_users_by_text(
         exclude_inactive=exclude_inactive,
     )
     return await qs.acount()
-
-
-##########################################################
-# AUTH DATA - filters and querysets
-##########################################################
-
-
-DEFAULT_AUTH_DATA_QUERYSET = AuthData.objects.all()
-
-
-class AuthDataFilters(TypedDict, total=False):
-    key: str
-    value: str
-
-
-def _apply_filters_to_auth_data_queryset(
-    qs: QuerySet[AuthData],
-    filters: AuthDataFilters = {},
-) -> QuerySet[AuthData]:
-    return qs.filter(**filters)
-
-
-class AuthDataListFilters(TypedDict, total=False):
-    user_id: UUID
-
-
-def _apply_filters_to_auth_data_queryset_list(
-    qs: QuerySet[AuthData],
-    filters: AuthDataListFilters = {},
-) -> QuerySet[AuthData]:
-    return qs.filter(**filters)
-
-
-AuthDataSelectRelated = list[Literal["user"]]
-
-
-def _apply_select_related_to_auth_data_queryset(
-    qs: QuerySet[AuthData],
-    select_related: AuthDataSelectRelated,
-) -> QuerySet[AuthData]:
-    return qs.select_related(*select_related)
-
-
-##########################################################
-# create auth data
-##########################################################
-
-
-@sync_to_async
-def create_auth_data(
-    user: User, key: str, value: str, extra: dict[str, str] = {}
-) -> AuthData:
-    return AuthData.objects.create(user=user, key=key, value=value, extra=extra)
-
-
-##########################################################
-# list auths data
-##########################################################
-
-
-@sync_to_async
-def list_auths_data(
-    filters: AuthDataListFilters = {},
-    select_related: AuthDataSelectRelated = ["user"],
-) -> list[AuthData]:
-    qs = _apply_filters_to_auth_data_queryset_list(
-        qs=DEFAULT_AUTH_DATA_QUERYSET, filters=filters
-    )
-    qs = _apply_select_related_to_auth_data_queryset(
-        qs=qs, select_related=select_related
-    )
-
-    return list(qs)
-
-
-##########################################################
-# get auth data
-##########################################################
-
-
-@sync_to_async
-def get_auth_data(
-    filters: AuthDataFilters = {},
-    select_related: AuthDataSelectRelated = ["user"],
-) -> AuthData | None:
-    qs = _apply_filters_to_auth_data_queryset(
-        qs=DEFAULT_AUTH_DATA_QUERYSET, filters=filters
-    )
-    qs = _apply_select_related_to_auth_data_queryset(
-        qs=qs, select_related=select_related
-    )
-
-    try:
-        return qs.get()
-    except AuthData.DoesNotExist:
-        return None

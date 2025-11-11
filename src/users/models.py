@@ -25,7 +25,7 @@ from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 from django_stubs_ext.db.models.manager import ManyRelatedManager
 
-from base.db.models import BaseModel, LowerCharField, LowerEmailField, LowerSlugField
+from base.db.models import BaseModel, LowerCharField, LowerEmailField
 from base.utils.slug import generate_int_suffix, slugify_uniquely
 from commons.colors import NUM_COLORS, generate_random_color
 
@@ -163,37 +163,3 @@ class User(BaseModel, AbstractBaseUser):
 
     def has_module_perms(self, app_label: str) -> bool:
         return self.is_active and self.is_superuser
-
-
-class AuthData(BaseModel):
-    user = models.ForeignKey(
-        "users.User",
-        null=False,
-        blank=False,
-        related_name="auth_data",
-        on_delete=models.CASCADE,
-    )
-    key = LowerSlugField(max_length=50, null=False, blank=False, verbose_name="key")
-    value = models.CharField(
-        max_length=300, null=False, blank=False, verbose_name="value"
-    )
-    extra = models.JSONField(null=True, blank=True, verbose_name="extra")
-
-    class Meta:
-        verbose_name = "user's auth data"
-        verbose_name_plural = "user's auth data"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user", "key"], name="%(app_label)s_%(class)s_unique_user_key"
-            ),
-        ]
-        indexes = [
-            models.Index(fields=["user", "key"]),
-        ]
-        ordering = ["user", "key"]
-
-    def __str__(self) -> str:
-        return f"{self.key}: {self.value}"
-
-    def __repr__(self) -> str:
-        return f"<AuthData {self.user} {self.key}>"

@@ -108,15 +108,6 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = 10
     MAX_PAGE_SIZE: int = 100
 
-    # Auth
-    GITHUB_CLIENT_ID: str | None = None
-    GITHUB_CLIENT_SECRET: str | None = None
-    GITLAB_URL: str | None = None
-    GITLAB_CLIENT_ID: str | None = None
-    GITLAB_CLIENT_SECRET: str | None = None
-    GOOGLE_CLIENT_ID: str | None = None
-    GOOGLE_CLIENT_SECRET: str | None = None
-
     # Users
     USER_EMAIL_ALLOWED_DOMAINS: list[str] = Field(default_factory=list)
     VERIFY_USER_TOKEN_LIFETIME: timedelta = timedelta(days=4)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -45,15 +45,3 @@ async def create_auth_credentials(user: User) -> TokenObtainPairOutputSchema:
         refresh=str(refresh),
         **{username_field: getattr(user, username_field)},
     )
-
-
-async def get_available_user_logins(user: User) -> list[str]:
-    available_social_user_logins = await users_repositories.list_auths_data(
-        filters={"user_id": user.id}
-    )
-    available_user_logins = [x.key for x in available_social_user_logins]
-
-    if user.password:
-        available_user_logins.append("password")
-
-    return available_user_logins

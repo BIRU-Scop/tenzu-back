@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,7 +24,6 @@ class Emails(Enum):
     PROJECT_INVITATION = "project_invitation"
     RESET_PASSWORD = "reset_password"
     SIGN_UP = "sign_up"
-    SOCIAL_LOGIN_WARNING = "social_login_warning"
     WORKSPACE_INVITATION = "workspace_invitation"
 
 

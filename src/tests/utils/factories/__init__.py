@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -61,11 +61,8 @@ from .stories import (  # noqa
     create_story_assignment,
 )
 from .users import (  # noqa
-    AuthDataFactory,
     UserFactory,
-    build_auth_data,
     build_user,
-    create_auth_data,
     create_user,
     sync_create_user,
 )
