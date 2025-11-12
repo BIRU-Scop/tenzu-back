@@ -9,6 +9,7 @@ pydantic-settings
 orjson
 django-ninja
 uvloop>=0.18.0
+django-allauth[socialaccount,openid,saml,headless,headless-spec]
 ##
 python-multipart
 a2wsgi # WSGI to ASGI adapter

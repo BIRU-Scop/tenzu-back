@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 from datetime import timedelta
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ninja_jwt.backends import AllowedAlgorithmsType
 
@@ -36,3 +36,14 @@ class TokensSettings(BaseModel):
     JTI_CLAIM: str = "jti"
     USER_ID_FIELD: str = "id"
     USER_ID_CLAIM: str = "user_id"
+
+
+class AccountSettings(BaseModel):
+    SOCIALACCOUNT_REQUESTS_TIMEOUT: int = 5
+    SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT: bool = True
+    SOCIALACCOUNT_PROVIDERS: dict[str, dict] = Field(
+        default_factory=dict
+    )  # you can also use the admin app to dynamically add SocialApp instead, see https://docs.allauth.org/en/latest/socialaccount/provider_configuration.html
+    SOCIALAPPS_PROVIDERS: list[str] = Field(default_factory=list)
+    HEADLESS_SERVE_SPECIFICATION: bool = True
+    HEADLESS_SPECIFICATION_TEMPLATE_NAME: str = "headless/spec/swagger_cdn.html"

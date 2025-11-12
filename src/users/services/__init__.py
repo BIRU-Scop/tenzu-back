@@ -65,7 +65,7 @@ from workspaces.workspaces.models import Workspace
 async def create_user(
     email: str,
     full_name: str,
-    password: str,
+    password: str | None,
     lang: str | None = None,
     color: int | None = None,
     project_invitation_token: str | None = None,
@@ -73,6 +73,7 @@ async def create_user(
     workspace_invitation_token: str | None = None,
     accept_workspace_invitation: bool = True,
     accepted_terms: bool = False,
+    skip_verification_mail: bool = False,
 ) -> User:
     lang = lang if lang else settings.LANGUAGE_CODE
     try:
@@ -98,16 +99,18 @@ async def create_user(
         # the user (is_active=False) tries to sign-up again before verifying the previous attempt
         user.full_name = full_name
         user.lang = lang
-        user.set_password(password)
+        if password is not None:
+            user.set_password(password)
         await users_repositories.update_user(user=user)
 
-    await _send_verify_user_email(
-        user=user,
-        project_invitation_token=project_invitation_token,
-        accept_project_invitation=accept_project_invitation,
-        workspace_invitation_token=workspace_invitation_token,
-        accept_workspace_invitation=accept_workspace_invitation,
-    )
+    if not skip_verification_mail:
+        await _send_verify_user_email(
+            user=user,
+            project_invitation_token=project_invitation_token,
+            accept_project_invitation=accept_project_invitation,
+            workspace_invitation_token=workspace_invitation_token,
+            accept_workspace_invitation=accept_workspace_invitation,
+        )
 
     return user
 
@@ -165,10 +168,30 @@ async def _generate_verify_user_token(
     return str(verify_user_token)
 
 
+async def verify_user(
+    user: User,
+    project_invitation_token: str | None = None,
+    accept_project_invitation: bool = True,
+    workspace_invitation_token: str | None = None,
+    accept_workspace_invitation: bool = True,
+) -> VerificationInfoSerializer:
+    verification_token = await _generate_verify_user_token(
+        user=user,
+        project_invitation_token=project_invitation_token,
+        accept_project_invitation=accept_project_invitation,
+        workspace_invitation_token=workspace_invitation_token,
+        accept_workspace_invitation=accept_workspace_invitation,
+    )
+    return await verify_user_from_token(verification_token)
+
+
 @transaction_atomic_async
-async def verify_user(user: User) -> None:
+async def _verify_user(user: User) -> None:
     await users_repositories.update_user(
         user=user, values={"is_active": True, "date_verification": aware_utcnow()}
+    )
+    await user.emailaddress_set.aupdate_or_create(
+        email=user.email, defaults={"verified": True, "primary": True}
     )
     await workspace_invitations_services.update_user_workspaces_invitations(user=user)
     await project_invitations_services.update_user_projects_invitations(user=user)
@@ -196,7 +219,7 @@ async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
     except User.DoesNotExist as e:
         raise ex.BadVerifyUserTokenError("The user doesn't exist.") from e
 
-    await verify_user(user=user)
+    await _verify_user(user=user)
 
     # The user may have a pending invitation to join a project or a workspace
     project_invitation, workspace_invitation = await _accept_invitations_from_token(

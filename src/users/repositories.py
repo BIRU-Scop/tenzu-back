@@ -95,8 +95,7 @@ async def create_user(
         lang=lang,
         color=color,
     )
-    if password:
-        user.set_password(password)
+    user.set_password(password)
 
     await user.asave()
     return user

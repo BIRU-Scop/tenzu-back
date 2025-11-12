@@ -27,9 +27,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+from urllib.parse import urljoin
+
 import sentry_sdk
 from corsheaders.defaults import default_headers
 from django.core.serializers.json import DjangoJSONEncoder
+
+from base.front import Urls
 
 from .conf import settings
 from .conf.events import PubSubBackendChoices
@@ -65,6 +69,8 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS = [
     *settings.EXTRA_CORS,
 ]
 CORS_ALLOW_HEADERS = (*default_headers, "correlation-id")
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -96,13 +102,19 @@ INSTALLED_APPS = [
     "workspaces.invitations",
     "workspaces.memberships",
     "workspaces.workspaces",
-    # 3-party
+    # 3rd-party
     "easy_thumbnails",
     "ninja_jwt",
     "ninja_jwt.token_blacklist",
     "procrastinate.contrib.django",
     "corsheaders",
     "django_extensions",
+    # auth
+    "allauth",
+    "allauth.account",
+    "allauth.headless",
+    "allauth.socialaccount",
+    *settings.ACCOUNT.SOCIALAPPS_PROVIDERS,
 ]
 
 MIDDLEWARE = [
@@ -116,6 +128,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "ninja.compatibility.files.fix_request_files_middleware",
 ]
 for extra_dep in settings.EXTRA_DEPS:
@@ -222,6 +235,34 @@ AUTHENTICATION_BACKENDS = [
         if extra_dep.auth is not None
     ),
 ]
+# allauth
+ACCOUNT_LOGIN_METHODS = {"email", "username"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_PRESERVE_USERNAME_CASING = False
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
+SOCIALACCOUNT_ONLY = True
+HEADLESS_ONLY = True
+HEADLESS_CLIENTS = ("browser",)
+HEADLESS_FRONTEND_URLS = {
+    "socialaccount_login_error": urljoin(
+        str(settings.FRONTEND_URL), str(Urls.SOCIALAUTH_CALLBACK.value)
+    )
+}
+ACCOUNT_ADAPTER = "auth.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "auth.adapters.SocialAccountAdapter"
+HEADLESS_ADAPTER = "auth.adapters.HeadlessAdapter"
+locals().update(
+    settings.ACCOUNT.model_dump(
+        exclude={
+            "SOCIALAPPS_PROVIDERS",
+            "USER_EMAIL_ALLOWED_DOMAINS",
+            "VERIFY_USER_TOKEN_LIFETIME",
+            "RESET_PASSWORD_TOKEN_LIFETIME",
+        }
+    )
+)
+
 
 # EMAIL
 

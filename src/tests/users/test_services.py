@@ -288,7 +288,7 @@ async def test_verify_user():
         patch_db_transaction(),
     ):
         fake_aware_utcnow.return_value = now
-        await services.verify_user(user=user)
+        await services._verify_user(user=user)
         fake_users_repo.update_user.assert_awaited_with(
             user=user,
             values={"is_active": True, "date_verification": now},

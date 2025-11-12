@@ -18,6 +18,7 @@ asgiref==3.10.0
     #   channels-redis
     #   daphne
     #   django
+    #   django-allauth
     #   django-cors-headers
     #   procrastinate
 attrs==25.4.0
@@ -79,6 +80,7 @@ cryptography==46.0.3
     # via
     #   -r requirements/commons.in
     #   autobahn
+    #   pyjwt
     #   pyopenssl
     #   service-identity
     #   types-pyopenssl
@@ -89,10 +91,13 @@ daphne==4.2.1
     # via
     #   -r requirements/devel.in
     #   channels
+defusedxml==0.7.1
+    # via python3-openid
 django==5.2.8
     # via
     #   -r requirements/commons.in
     #   channels
+    #   django-allauth
     #   django-cors-headers
     #   django-extensions
     #   django-ninja
@@ -103,6 +108,8 @@ django==5.2.8
     #   django-watchfiles
     #   easy-thumbnails
     #   procrastinate
+django-allauth==65.13.0
+    # via -r requirements/commons.in
 django-cors-headers==4.9.0
     # via -r requirements/commons.in
 django-extensions==4.1
@@ -175,6 +182,8 @@ incremental==24.7.2
     # via twisted
 iniconfig==2.3.0
     # via pytest
+isodate==0.7.2
+    # via python3-saml
 jinja2==3.1.6
     # via -r requirements/commons.in
 jmespath==1.0.1
@@ -184,7 +193,10 @@ jmespath==1.0.1
 libcst==1.8.6
     # via bump-pydantic
 lxml==6.0.2
-    # via svglib
+    # via
+    #   python3-saml
+    #   svglib
+    #   xmlsec
 markdown-it-py==4.0.0
     # via rich
 markupsafe==3.0.3
@@ -197,6 +209,8 @@ mypy==1.18.2
     # via -r requirements/devel.in
 mypy-extensions==1.1.0
     # via mypy
+oauthlib==3.3.1
+    # via django-allauth
 orjson==3.11.4
     # via -r requirements/commons.in
 packaging==25.0
@@ -254,7 +268,9 @@ pygments==2.19.2
     #   pytest
     #   rich
 pyjwt==2.10.1
-    # via -r requirements/commons.in
+    # via
+    #   -r requirements/commons.in
+    #   django-allauth
 pyopenssl==25.3.0
     # via twisted
 pyproject-hooks==1.2.0
@@ -295,10 +311,15 @@ python-multipart==0.0.20
     # via -r requirements/commons.in
 python-slugify==8.0.4
     # via -r requirements/commons.in
+python3-openid==3.2.0
+    # via django-allauth
+python3-saml==1.16.0
+    # via django-allauth
 pytz==2025.2
     # via croniter
 pyyaml==6.0.3
     # via
+    #   django-allauth
     #   libcst
     #   uvicorn
 redis==7.0.1
@@ -310,7 +331,9 @@ reportlab==4.4.4
     #   easy-thumbnails
     #   svglib
 requests==2.32.5
-    # via -r requirements/commons.in
+    # via
+    #   -r requirements/commons.in
+    #   django-allauth
 rich==14.2.0
     # via
     #   bump-pydantic
@@ -424,5 +447,7 @@ wheel==0.45.1
     # via pip-tools
 whitenoise==6.11.0
     # via -r requirements/commons.in
+xmlsec==1.3.17
+    # via python3-saml
 zope-interface==8.0.1
     # via twisted

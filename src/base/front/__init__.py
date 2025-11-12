@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -33,6 +33,7 @@ class Urls(StrEnum):
     RESET_PASSWORD = "/reset-password/{reset_password_token}"
     VERIFY_SIGNUP = "/signup/verify/{verification_token}"
     WORKSPACE_INVITATION = "/accept-workspace-invitation/{invitation_token}"
+    SOCIALAUTH_CALLBACK = "/socialauth_callback"
 
 
 def resolve_front_url(
