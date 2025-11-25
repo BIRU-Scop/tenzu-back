@@ -23,6 +23,7 @@ from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.providers.base import AuthError, AuthProcess
 from asgiref.sync import async_to_sync
+from django.conf import settings
 from django.http import HttpResponseRedirect
 
 from auth.services import create_auth_credentials
@@ -58,17 +59,23 @@ class AccountAdapter(DefaultAccountAdapter):
         sociallogin = signal_kwargs["sociallogin"]
         if not api_settings.USER_AUTHENTICATION_RULE(user):
             social_adapter = SocialAccountAdapter(request)
+            data = sociallogin.state.get("data", {})
             if not signup:
                 social_adapter.create_or_update_user(sociallogin, user)
             if social_adapter.is_verified(sociallogin):
-                # TODO find a way to pass invitation_tokens,
-                #  most probably by using sociallogin.state
-                auth_schema = async_to_sync(users_services.verify_user)(user).auth
+                auth_schema = async_to_sync(users_services.verify_user)(
+                    user, **data
+                ).auth
             else:
                 # TODO handle unverified users
+                # TODO handle invitation token
                 redirect_url = httpkit.add_query_params(
                     redirect_url,
-                    {"error": AuthError.DENIED, "error_process": AuthProcess.LOGIN},
+                    {
+                        "error": AuthError.DENIED,
+                        "error_process": AuthProcess.LOGIN,
+                        **data,
+                    },
                 )
                 raise ImmediateHttpResponse(HttpResponseRedirect(redirect_url))
         else:
@@ -80,6 +87,13 @@ class AccountAdapter(DefaultAccountAdapter):
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
+    def is_auto_signup_allowed(self, request, sociallogin):
+        if settings.REQUIRED_TERMS and not sociallogin.state.get("data", {}).get(
+            "accepted_terms"
+        ):
+            return False
+        return super().is_auto_signup_allowed(request, sociallogin)
+
     def is_verified(self, sociallogin) -> bool:
         return sociallogin.email_addresses and sociallogin.email_addresses[0].verified
 
@@ -89,6 +103,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             full_name=user.full_name,
             password=None,
             skip_verification_mail=self.is_verified(sociallogin),
+            **sociallogin.state.get("data", {}),
         )
 
     def save_user(self, request, sociallogin, form=None):

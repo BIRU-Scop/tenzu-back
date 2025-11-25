@@ -74,6 +74,7 @@ async def create_user(
     accept_workspace_invitation: bool = True,
     accepted_terms: bool = False,
     skip_verification_mail: bool = False,
+    **kwargs,
 ) -> User:
     lang = lang if lang else settings.LANGUAGE_CODE
     try:
@@ -174,6 +175,7 @@ async def verify_user(
     accept_project_invitation: bool = True,
     workspace_invitation_token: str | None = None,
     accept_workspace_invitation: bool = True,
+    **kwargs,
 ) -> VerificationInfoSerializer:
     verification_token = await _generate_verify_user_token(
         user=user,

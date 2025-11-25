@@ -20,6 +20,7 @@ from importlib import import_module
 from django.conf import settings
 from ninja import NinjaAPI, Router, Swagger
 
+from auth.api import auth_router as social_auth_router
 from base.services.exceptions import TenzuServiceException
 from base.utils.strings import to_kebab
 from commons.exceptions.api import codes
@@ -102,6 +103,7 @@ api.add_router(
 )
 api.add_router("", tags=["workflows"], router=workflows_router)
 api.add_router("", tags=["auth"], router=auth_router)
+api.add_router("", tags=["auth"], router=social_auth_router)
 api.add_router("", tags=["system"], router=health_router)
 
 for extra_dep in settings.EXTRA_DEPS:

@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 from asgiref.sync import sync_to_async
 
+from auth.serializers import AuthConfigSerializer
 from ninja_jwt import exceptions
 from ninja_jwt.schema import TokenObtainPairInputSchema, TokenObtainPairOutputSchema
 from ninja_jwt.settings import api_settings
@@ -45,3 +46,11 @@ async def create_auth_credentials(user: User) -> TokenObtainPairOutputSchema:
         refresh=str(refresh),
         **{username_field: getattr(user, username_field)},
     )
+
+
+def get_auth_config(request) -> AuthConfigSerializer:
+    from allauth.headless.socialaccount.response import (
+        get_config_data as get_socialaccount_config_data,
+    )
+
+    return AuthConfigSerializer.model_validate(get_socialaccount_config_data(request))
