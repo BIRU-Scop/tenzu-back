@@ -16,17 +16,28 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from urllib.parse import parse_qs, urlparse
 
+from allauth.core.exceptions import ImmediateHttpResponse
+from allauth.headless.internal.sessionkit import session_store
 from allauth.socialaccount.adapter import get_adapter as get_socialaccount_adapter
+from allauth.socialaccount.internal import flows
+from allauth.socialaccount.internal.flows.signup import (
+    clear_pending_signup,
+    process_signup,
+)
 from allauth.socialaccount.models import SocialApp
 from allauth.socialaccount.providers.base import AuthProcess, Provider
 from django.core.exceptions import ImproperlyConfigured
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from ninja import Form, Path, Router
 
-from auth.api.validators import ProviderRedirectValidator
+from auth.api.validators import (
+    ProviderContinueSignupValidator,
+    ProviderRedirectValidator,
+)
 from auth.decorators import add_allauth_properties
-from auth.serializers import AuthConfigSerializer
+from auth.serializers import AuthConfigSerializer, AuthSocialSignupError
 from auth.services import get_auth_config
 from base.serializers import BaseDataModel
 from commons.exceptions import api as ex
@@ -35,6 +46,7 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from ninja_jwt.schema import TokenObtainPairOutputSchema
 
 auth_router = Router()
 
@@ -105,6 +117,54 @@ def redirect_to_provider(
             ),
         },
     )
+
+
+@auth_router.post(
+    "/auth/provider/continue_signup",
+    url_name="auth.provider.continue_signup",
+    summary="Continue pending signup with an external provider auth flow",
+    response={
+        200: TokenObtainPairOutputSchema | AuthSocialSignupError,
+        400: ERROR_RESPONSE_400,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+    auth=None,
+)
+@add_allauth_properties
+def continue_signup_to_provider(
+    request,
+    form: ProviderContinueSignupValidator,
+) -> AuthSocialSignupError | TokenObtainPairOutputSchema:
+    """
+    Continue an incomplete signup flow,
+    Return either the new user auth tokens or the newest error state
+    """
+    request.session = session_store(form.social_session_key)
+    sociallogin = flows.signup.get_pending_signup(request)
+    if not sociallogin:
+        raise ex.NotFoundError("No pending social login found")
+    clear_pending_signup(request)
+    data = sociallogin.state.get("data", {})
+    sociallogin.state["data"] = {
+        **data,
+        "accepted_terms": data.get("accepted_terms", False)
+        or (form.accept_terms_of_service and form.accept_privacy_policy),
+    }
+    response: HttpResponseRedirect
+    try:
+        response = process_signup(request, sociallogin)
+    except ImmediateHttpResponse as e:
+        response = e.response
+    if not isinstance(response, HttpResponseRedirect):
+        raise ValueError(response)
+    result = {
+        key: value[0] for key, value in parse_qs(urlparse(response.url).query).items()
+    }
+    if "access" in result:
+        return TokenObtainPairOutputSchema.model_validate(result)
+    return AuthSocialSignupError.model_validate(result)
 
 
 def get_provider_or_404(request, provider_id: str) -> Provider:

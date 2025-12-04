@@ -43,3 +43,9 @@ class ProviderRedirectValidator(BaseModel):
         if not value.startswith("/"):
             raise ValueError("value must be a path starting with '/")
         return urljoin(str(settings.FRONTEND_URL), value)
+
+
+class ProviderContinueSignupValidator(BaseModel):
+    social_session_key: str
+    accept_terms_of_service: bool = False
+    accept_privacy_policy: bool = False

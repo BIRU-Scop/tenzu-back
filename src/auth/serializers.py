@@ -34,3 +34,9 @@ class SocialAccountNestedSerializer(BaseModel):
 class AuthConfigSerializer(BaseModel):
     socialaccount: SocialAccountNestedSerializer
     model_config = ConfigDict(from_attributes=True)
+
+
+class AuthSocialSignupError(BaseModel):
+    error: str
+    error_process: str
+    social_session_key: str
