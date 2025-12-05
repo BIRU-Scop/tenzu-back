@@ -43,7 +43,6 @@ urlpatterns: list[URLPattern | URLResolver] = []
 urlpatterns += [
     path(f"api/{settings.API_VERSION}/", api.urls),
     path("_allauth/accounts/", include("allauth.urls")),
-    path(f"api/{settings.API_VERSION}/_allauth/", include("allauth.headless.urls")),
 ]
 
 

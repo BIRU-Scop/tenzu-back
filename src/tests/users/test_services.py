@@ -238,16 +238,18 @@ async def test_create_user_unverified(tqmanager):
 
 async def test_create_user_email_exists():
     with (
-        pytest.raises(ex.EmailAlreadyExistsError),
         patch("users.services.users_repositories", autospec=True) as fake_users_repo,
     ):
-        fake_users_repo.get_user.return_value = MagicMock(is_active=True)
-        await services.create_user(
+        fake_users_repo.get_user.return_value = MagicMock(
+            is_active=True, full_name="Original Name"
+        )
+        user = await services.create_user(
             email="dup.email@email.com",
-            full_name="Full Name",
+            full_name="New Name",
             password="CorrectP4ssword&",
             accepted_terms=True,
         )
+        assert user.full_name == "New Name"
 
 
 async def test_create_user_not_accepted_terms():

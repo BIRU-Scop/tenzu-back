@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import logging
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
@@ -57,6 +58,8 @@ from workspaces.workspaces import events as workspaces_events
 from workspaces.workspaces import repositories as workspaces_repositories
 from workspaces.workspaces.models import Workspace
 
+logger = logging.getLogger(__name__)
+
 #####################################################################
 # create user
 #####################################################################
@@ -95,11 +98,20 @@ async def create_user(
             acceptance_date=acceptance_date,
         )
     else:
-        if user.is_active:
-            raise ex.EmailAlreadyExistsError("Email already exists")
         # the user (is_active=False) tries to sign-up again before verifying the previous attempt
         user.full_name = full_name
         user.lang = lang
+        if user.is_active:
+            # User is trying to create an account for an already existing user
+            # We overwrite the user with the data we received in order not to leak the actual user info
+            # but we don't save the changes
+            # that way, we don't give any hints via this endpoint whether the user actually exists or not
+            # TODO send a dedicated email to the account to warn them of the attempt
+            #  and propose to ignore if it wasn't them or reset password if it was
+            logger.warning(
+                f"Trying to create new account for existing activated user {email}"
+            )
+            return user
         if password is not None:
             user.set_password(password)
         await users_repositories.update_user(user=user)
@@ -121,6 +133,30 @@ async def create_user(
 #####################################################################
 
 
+async def resend_verification(
+    email: str,
+    project_invitation_token: str | None = None,
+    accept_project_invitation: bool = True,
+    workspace_invitation_token: str | None = None,
+    accept_workspace_invitation: bool = True,
+):
+    try:
+        user = await users_repositories.get_user(
+            q_filter=users_repositories.username_or_email_query(email)
+        )
+    except User.DoesNotExist:
+        return
+    if user.is_active:
+        return
+    await _send_verify_user_email(
+        user=user,
+        project_invitation_token=project_invitation_token,
+        accept_project_invitation=accept_project_invitation,
+        workspace_invitation_token=workspace_invitation_token,
+        accept_workspace_invitation=accept_workspace_invitation,
+    )
+
+
 async def _send_verify_user_email(
     user: User,
     project_invitation_token: str | None = None,
@@ -128,6 +164,7 @@ async def _send_verify_user_email(
     workspace_invitation_token: str | None = None,
     accept_workspace_invitation: bool = True,
 ) -> None:
+    # TODO add max attempt amount and cooldown for that email like the is_spam of invitations
     context = {
         "verification_token": await _generate_verify_user_token(
             user=user,

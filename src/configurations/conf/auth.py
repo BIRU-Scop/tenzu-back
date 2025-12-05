@@ -45,5 +45,3 @@ class AccountSettings(BaseModel):
         default_factory=dict
     )  # you can also use the admin app to dynamically add SocialApp instead, see https://docs.allauth.org/en/latest/socialaccount/provider_configuration.html
     SOCIALAPPS_PROVIDERS: list[str] = Field(default_factory=list)
-    HEADLESS_SERVE_SPECIFICATION: bool = True
-    HEADLESS_SPECIFICATION_TEMPLATE_NAME: str = "headless/spec/swagger_cdn.html"

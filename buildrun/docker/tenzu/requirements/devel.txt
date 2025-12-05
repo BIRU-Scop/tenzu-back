@@ -319,7 +319,6 @@ pytz==2025.2
     # via croniter
 pyyaml==6.0.3
     # via
-    #   django-allauth
     #   libcst
     #   uvicorn
 redis==7.0.1

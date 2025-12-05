@@ -244,9 +244,7 @@ python3-saml==1.16.0
 pytz==2025.2
     # via croniter
 pyyaml==6.0.3
-    # via
-    #   django-allauth
-    #   uvicorn
+    # via uvicorn
 redis==7.0.1
     # via
     #   -r requirements/commons.in

@@ -35,6 +35,7 @@ from users.api.validators import (
     CreateUserValidator,
     RequestResetPasswordValidator,
     ResetPasswordValidator,
+    SendVerifyUserValidator,
     UpdateUserValidator,
     VerifyTokenValidator,
 )
@@ -81,6 +82,33 @@ async def create_user(request, form: CreateUserValidator) -> User:
         workspace_invitation_token=form.workspace_invitation_token,
         accept_workspace_invitation=form.accept_workspace_invitation,
         accepted_terms=form.accept_terms_of_service and form.accept_privacy_policy,
+    )
+
+
+@users_router.post(
+    "/users/resend-verification",
+    url_name="users.resend_verification",
+    summary="Resend verification email to unverified user",
+    response={
+        200: None,
+        400: ERROR_RESPONSE_400,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+    auth=None,
+)
+async def resend_verification(
+    request, form: SendVerifyUserValidator
+) -> VerificationInfoSerializer:
+    """
+    Resend verification email if the user exists and is not yet verified
+    """
+    return await users_services.resend_verification(
+        email=form.email,
+        project_invitation_token=form.project_invitation_token,
+        accept_project_invitation=form.accept_project_invitation,
+        workspace_invitation_token=form.workspace_invitation_token,
+        accept_workspace_invitation=form.accept_workspace_invitation,
     )
 
 

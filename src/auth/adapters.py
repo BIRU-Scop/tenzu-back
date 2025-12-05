@@ -22,37 +22,14 @@ from allauth.core.internal import httpkit
 from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.internal.flows.signup import redirect_to_signup
-from allauth.socialaccount.models import SocialLogin
 from asgiref.sync import async_to_sync
 from django.conf import settings
-from django.http import HttpRequest, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 
 from auth.services import create_auth_credentials
 from ninja_jwt.settings import api_settings
 from users import services as users_services
 from users.models import User
-
-
-def redirect_to_callback(
-    request: HttpRequest,
-    sociallogin: SocialLogin,
-    error_code: str,
-    redirect_url: str = None,
-):
-    if redirect_url is None:
-        redirect_url = sociallogin.state["next"]
-    if not request.session.session_key:
-        request.session.create()
-    redirect_to_signup(request, sociallogin)  # fill session data
-    redirect_url = httpkit.add_query_params(
-        redirect_url,
-        {
-            "error": error_code,
-            "error_process": sociallogin.state["process"],
-            "socialSessionKey": request.session.session_key,
-        },
-    )
-    raise ImmediateHttpResponse(HttpResponseRedirect(redirect_url))
 
 
 class AccountAdapter(DefaultAccountAdapter):
@@ -90,10 +67,15 @@ class AccountAdapter(DefaultAccountAdapter):
                     user, **data
                 ).auth
             else:
-                redirect_to_callback(
-                    request, sociallogin, "unverified", redirect_url
-                )  # always raises
-                return None
+                redirect_url = httpkit.add_query_params(
+                    redirect_url,
+                    {
+                        "error": "unverified",
+                        "error_process": sociallogin.state["process"],
+                        "email": user.email,
+                    },
+                )
+                raise ImmediateHttpResponse(HttpResponseRedirect(redirect_url))
         else:
             auth_schema = async_to_sync(create_auth_credentials)(user)
         sociallogin.state["next"] = httpkit.add_query_params(
@@ -108,10 +90,18 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         if settings.REQUIRED_TERMS and not sociallogin.state.get("data", {}).get(
             "accepted_terms"
         ):
-            redirect_to_callback(
-                request, sociallogin, "missing_terms_acceptance"
-            )  # always raises
-            return False
+            if not request.session.session_key:
+                request.session.create()
+            redirect_to_signup(request, sociallogin)  # fill session data
+            redirect_url = httpkit.add_query_params(
+                sociallogin.state["next"],
+                {
+                    "error": "missing_terms_acceptance",
+                    "error_process": sociallogin.state["process"],
+                    "socialSessionKey": request.session.session_key,
+                },
+            )
+            raise ImmediateHttpResponse(HttpResponseRedirect(redirect_url))
         return super().is_auto_signup_allowed(request, sociallogin)
 
     def is_verified(self, sociallogin) -> bool:
