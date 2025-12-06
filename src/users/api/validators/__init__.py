@@ -81,11 +81,11 @@ class CreateUserValidator(PasswordMixin, SendVerifyUserValidator):
 
 
 class UpdateUserValidator(BaseModel):
-    full_name: Optional[FullName] = None
-    lang: Optional[LanguageCode] = None
-    password: Optional[str] = None
+    full_name: FullName | None = None
+    lang: LanguageCode | None = None
+    password: str | None = None
 
-    @field_validator("full_name", "lang", mode="before")
+    @field_validator("full_name", "lang", "password", mode="before")
     @classmethod
     def check_not_empty(cls, v: str) -> str:
         return check_not_empty(v)

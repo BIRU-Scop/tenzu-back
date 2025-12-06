@@ -24,11 +24,13 @@ from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.internal.flows.signup import redirect_to_signup
 from asgiref.sync import async_to_sync
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 
 from auth.services import create_auth_credentials
 from ninja_jwt.settings import api_settings
 from users import services as users_services
+from users.api.validators import check_email_in_domain
 from users.models import User
 
 
@@ -62,10 +64,11 @@ class AccountAdapter(DefaultAccountAdapter):
             data = sociallogin.state.get("data", {})
             if not signup:
                 social_adapter.create_or_update_user(sociallogin, user)
-            if social_adapter.is_verified(sociallogin):
+            if social_adapter.is_verified(sociallogin, user.email):
                 auth_schema = async_to_sync(users_services.verify_user)(
                     user, **data
                 ).auth
+                request.user = user
             else:
                 redirect_url = httpkit.add_query_params(
                     redirect_url,
@@ -78,6 +81,7 @@ class AccountAdapter(DefaultAccountAdapter):
                 raise ImmediateHttpResponse(HttpResponseRedirect(redirect_url))
         else:
             auth_schema = async_to_sync(create_auth_credentials)(user)
+            request.user = user
         sociallogin.state["next"] = httpkit.add_query_params(
             redirect_url,
             auth_schema.dict(),
@@ -104,15 +108,23 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             raise ImmediateHttpResponse(HttpResponseRedirect(redirect_url))
         return super().is_auto_signup_allowed(request, sociallogin)
 
-    def is_verified(self, sociallogin) -> bool:
-        return sociallogin.email_addresses and sociallogin.email_addresses[0].verified
+    def is_verified(self, sociallogin, email: str) -> bool:
+        # given email should always be the first one in sociallogin.email_addresses,
+        # still we iterate for robustness' sake
+        email_address = next(
+            (x for x in sociallogin.email_addresses if x.email == email)
+            if sociallogin.email_addresses
+            else None,
+            None,
+        )
+        return email_address is not None and email_address.verified
 
     def create_or_update_user(self, sociallogin, user) -> User:
         return async_to_sync(users_services.create_user)(
             email=user.email,
             full_name=user.full_name,
             password=None,
-            skip_verification_mail=self.is_verified(sociallogin),
+            skip_verification_mail=self.is_verified(sociallogin, user.email),
             **sociallogin.state.get("data", {}),
         )
 
@@ -128,6 +140,11 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         name = data.get("name")
         user = super().populate_user(request, sociallogin, data)
         user_field(user, "full_name", name or f"{first_name} {last_name}")
+        if user.email:
+            try:
+                check_email_in_domain(user.email)
+            except ValueError as e:
+                raise PermissionDenied(*e.args)
         return user
 
 

@@ -39,4 +39,5 @@ class AuthConfigSerializer(BaseModel):
 class AuthSocialSignupError(BaseModel):
     error: str
     error_process: str
-    social_session_key: str
+    social_session_key: str | None = None
+    email: str | None = None
