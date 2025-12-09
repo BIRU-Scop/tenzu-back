@@ -26,9 +26,9 @@ DEBUG = True
 MEDIA_ROOT = "/tmp/tenzu/media"
 STATIC_ROOT = "/tmp/tenzu/static"
 
-INSTALLED_APPS += [
-    "tests.utils.samples.occ",
-]
+INSTALLED_APPS = [*INSTALLED_APPS, "tests.utils.samples.occ"]
+if "allauth.socialaccount.providers.dummy" not in INSTALLED_APPS:
+    INSTALLED_APPS = [*INSTALLED_APPS, "allauth.socialaccount.providers.dummy"]
 
 DEBUG_PROPAGATE_EXCEPTIONS = (True,)
 SITE_ID = 1
