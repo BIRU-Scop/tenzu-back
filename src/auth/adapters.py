@@ -91,8 +91,15 @@ class AccountAdapter(DefaultAccountAdapter):
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def is_auto_signup_allowed(self, request, sociallogin):
-        if settings.REQUIRED_TERMS and not sociallogin.state.get("data", {}).get(
-            "accepted_terms"
+        """
+        Enable signup in case of activated required terms, only
+        - if user has sent their acceptance in the form or,
+        - if user already exists (and so, has already accepted terms when they signed up)
+        """
+        if (
+            settings.REQUIRED_TERMS
+            and not sociallogin.state.get("data", {}).get("accepted_terms")
+            and not sociallogin.is_existing  # does an "exists" DB query
         ):
             if not request.session.session_key:
                 request.session.create()
@@ -134,17 +141,21 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         sociallogin.save(request)
         return user
 
+    def pre_social_login(self, request, sociallogin):
+        # check email here instead of in populate_user
+        # because email may have been changed in case of provider that handle multiple emails
+        if sociallogin.user.email:
+            try:
+                check_email_in_domain(sociallogin.user.email)
+            except ValueError as e:
+                raise PermissionDenied(*e.args)
+
     def populate_user(self, request, sociallogin, data):
         first_name = data.get("first_name")
         last_name = data.get("last_name")
         name = data.get("name")
         user = super().populate_user(request, sociallogin, data)
         user_field(user, "full_name", name or f"{first_name} {last_name}")
-        if user.email:
-            try:
-                check_email_in_domain(user.email)
-            except ValueError as e:
-                raise PermissionDenied(*e.args)
         return user
 
 

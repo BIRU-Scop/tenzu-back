@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import logging
 from urllib.parse import parse_qs, urlparse
 
 from allauth.core.exceptions import ImmediateHttpResponse
@@ -29,7 +30,7 @@ from allauth.socialaccount.internal.flows.signup import (
 from allauth.socialaccount.models import SocialApp
 from allauth.socialaccount.providers.base import AuthProcess, Provider
 from django.core.exceptions import ImproperlyConfigured
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseServerError
 from ninja import Form, Path, Router
 
 from auth.api.validators import (
@@ -45,8 +46,11 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
+    ERROR_RESPONSE_424,
 )
 from ninja_jwt.schema import TokenObtainPairOutputSchema
+
+logger = logging.getLogger(__name__)
 
 auth_router = Router()
 
@@ -128,6 +132,7 @@ def redirect_to_provider(
         400: ERROR_RESPONSE_400,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
+        424: ERROR_RESPONSE_424,
     },
     by_alias=True,
     auth=None,
@@ -158,6 +163,11 @@ def continue_signup_to_provider(
     except ImmediateHttpResponse as e:
         response = e.response
     if not isinstance(response, HttpResponseRedirect):
+        logger.error("Met unexpected social auth state, response %s", response)
+        if isinstance(response, HttpResponseServerError):
+            raise ex.FailedDependency(
+                "Unexpected user state, probably an attempt to login to an existing user account using an untrusted email from provider"
+            )
         raise ValueError(response)
     result = {
         key: value[0] for key, value in parse_qs(urlparse(response.url).query).items()
