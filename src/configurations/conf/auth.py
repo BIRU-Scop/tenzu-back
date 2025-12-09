@@ -17,6 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 from datetime import timedelta
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -45,3 +46,4 @@ class AccountSettings(BaseModel):
         default_factory=dict
     )  # you can also use the admin app to dynamically add SocialApp instead, see https://docs.allauth.org/en/latest/socialaccount/provider_configuration.html
     SOCIALAPPS_PROVIDERS: list[str] = Field(default_factory=list)
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL: Literal["http", "https"] = "https"

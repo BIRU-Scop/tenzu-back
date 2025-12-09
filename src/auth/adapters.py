@@ -16,7 +16,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 from allauth.account.adapter import DefaultAccountAdapter
-from allauth.account.utils import user_field
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.core.internal import httpkit
 from allauth.headless.adapter import DefaultHeadlessAdapter
@@ -28,6 +27,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 
 from auth.services import create_auth_credentials
+from base.i18n import i18n
 from ninja_jwt.settings import api_settings
 from users import services as users_services
 from users.api.validators import check_email_in_domain
@@ -130,6 +130,7 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
         return async_to_sync(users_services.create_user)(
             email=user.email,
             full_name=user.full_name,
+            lang=user.lang,
             password=None,
             skip_verification_mail=self.is_verified(sociallogin, user.email),
             **sociallogin.state.get("data", {}),
@@ -150,12 +151,42 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
             except ValueError as e:
                 raise PermissionDenied(*e.args)
 
+    @staticmethod
+    def get_language(sociallogin):
+        """
+        Get closest available language as per the provided 3rd party's user language preference
+        """
+        # If you know of more providers that fetch user language preference, add them here
+        user_lang = sociallogin.account.extra_data.get(
+            # "preferred_language" is filled by gitlab
+            "preferred_language"
+            # "locale" might be filled by google (although we have never received it when we tried it)
+        ) or sociallogin.account.extra_data.get("locale")
+        lang = None
+        if user_lang:
+            try:
+                user_lang = user_lang.lower()
+                user_root_lang = user_lang.split("-")[0]
+            except AttributeError:
+                return None
+            for locale in i18n.locales:
+                locale_code = i18n.get_locale_code(locale)
+                if user_lang == locale_code.lower():
+                    # return immediately if there is a full match
+                    return locale_code
+                if user_root_lang == locale.language and lang is None:
+                    # set lang to the first language with identical root language,
+                    # continue iteration as we might have a better match later on
+                    lang = locale_code
+        return lang
+
     def populate_user(self, request, sociallogin, data):
-        first_name = data.get("first_name")
-        last_name = data.get("last_name")
-        name = data.get("name")
+        first_name = data.get("first_name", "")
+        last_name = data.get("last_name", "")
+        name = data.get("name") or sociallogin.account.extra_data.get("name")
         user = super().populate_user(request, sociallogin, data)
-        user_field(user, "full_name", name or f"{first_name} {last_name}")
+        user.full_name = name or f"{first_name} {last_name}"
+        user.lang = self.get_language(sociallogin)
         return user
 
 
