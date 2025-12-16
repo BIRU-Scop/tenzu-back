@@ -100,9 +100,6 @@ async def test_get_public_project_invitation_ok():
         patch(
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
-        patch(
-            "projects.invitations.services.auth_services", autospec=True
-        ) as fake_auth_services,
     ):
         fake_invitations_repo.get_invitation.return_value = invitation
         pub_invitation = await services.get_public_pending_project_invitation(
@@ -127,9 +124,6 @@ async def test_get_public_project_invitation_ok_without_user():
         patch(
             "projects.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
-        patch(
-            "projects.invitations.services.auth_services", autospec=True
-        ) as fake_auth_services,
     ):
         fake_invitations_repo.get_invitation.return_value = invitation
         pub_invitation = await services.get_public_pending_project_invitation(token)

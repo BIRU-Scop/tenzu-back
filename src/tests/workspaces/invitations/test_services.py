@@ -482,9 +482,6 @@ async def test_get_public_workspace_invitation_ok():
         patch(
             "workspaces.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
-        patch(
-            "workspaces.invitations.services.auth_services", autospec=True
-        ) as fake_auth_services,
     ):
         fake_invitations_repo.get_invitation.return_value = invitation
         pub_invitation = await services.get_public_pending_workspace_invitation(
@@ -509,9 +506,6 @@ async def test_get_public_workspace_invitation_ok_without_user():
         patch(
             "workspaces.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
-        patch(
-            "workspaces.invitations.services.auth_services", autospec=True
-        ) as fake_auth_services,
     ):
         fake_invitations_repo.get_invitation.return_value = invitation
         pub_invitation = await services.get_public_pending_workspace_invitation(token)

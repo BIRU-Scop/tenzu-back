@@ -29,7 +29,7 @@ from users.models import User
 
 async def create_auth_credentials(user: User) -> TokenObtainPairOutputSchema:
     """
-    This function create new auth credentiasl (an access token and a refresh token) for one user.
+    This function create new auth credentials (an access token and a refresh token) for one user.
     It will also update the date of the user's last login.
     """
     if not api_settings.USER_AUTHENTICATION_RULE(user):

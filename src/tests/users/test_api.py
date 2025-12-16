@@ -54,7 +54,7 @@ async def test_create_user_ok_with_token_project(client):
         "acceptTermsOfService": True,
         "acceptPrivacyPolicy": True,
         "projectInvitationToken": "eyJ0eXAiOToken",
-        "accept_project_invitation": False,
+        "acceptProjectInvitation": False,
         "lang": "es-ES",
     }
 
@@ -71,7 +71,7 @@ async def test_create_user_ok_with_token_workspace(client):
         "acceptTermsOfService": True,
         "acceptPrivacyPolicy": True,
         "workspaceInvitationToken": "eyJ0eXAiOToken",
-        "accept_workspace_invitation": False,
+        "acceptWorkspaceInvitation": False,
         "lang": "es-ES",
     }
 
@@ -88,7 +88,7 @@ async def test_create_user_not_accepted_terms(client):
         "acceptTermsOfService": False,
         "acceptPrivacyPolicy": True,
         "workspaceInvitationToken": "eyJ0eXAiOToken",
-        "accept_workspace_invitation": False,
+        "acceptWorkspaceInvitation": False,
         "lang": "es-ES",
     }
 
@@ -106,7 +106,54 @@ async def test_create_user_email_already_exists(client):
         "acceptPrivacyPolicy": True,
     }
     response = await client.post("/users", json=data)
-    assert response.status_code == 400, response.data
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    # the received data doesn't make it possible to distinguish whether the user was really created
+    assert res["fullName"] == data["fullName"]
+    await user.arefresh_from_db()
+    # but in reality the original user was not modified
+    assert user.full_name != data["fullName"]
+
+
+##########################################################
+# POST /users/resend-verification
+##########################################################
+
+
+async def test_resend_verification_not_exists(client, tqmanager):
+    data = {
+        "email": "test.create@email.com",
+        "projectInvitationToken": "eyJ0eXAiOToken",
+        "acceptProjectInvitation": False,
+    }
+
+    response = await client.post("/users/resend-verification", json=data)
+    assert response.status_code == 200, response.data["data"] is None
+    assert not len(tqmanager.jobs)
+
+
+async def test_resend_verification_active(client, tqmanager):
+    user = await f.create_user(is_active=True)
+    data = {
+        "email": user.email,
+    }
+
+    response = await client.post("/users/resend-verification", json=data)
+    assert response.status_code == 200, response.data["data"] is None
+    assert not len(tqmanager.jobs)
+
+
+async def test_resend_verification_not_active(client, tqmanager):
+    user = await f.create_user(is_active=False)
+    data = {
+        "email": user.email,
+        "projectInvitationToken": "eyJ0eXAiOToken",
+        "acceptProjectInvitation": False,
+    }
+
+    response = await client.post("/users/resend-verification", json=data)
+    assert response.status_code == 200, response.data["data"] is None
+    assert len(tqmanager.jobs) == 1
 
 
 ##########################################################
