@@ -1,29 +1,31 @@
 # channel
 channels[daphne]
 channels_redis
-django-extensions
-# Common API packages
+redis[hiredis]
+
+# API
 pydantic[email]>2
-# add
+django-ninja
+
+# Quality of life
+django-extensions
 pydantic-settings
 orjson
-django-ninja
 uvloop>=0.18.0
-django-allauth[socialaccount,openid,saml,headless]
-##
-python-multipart
+
+# Deployment
 a2wsgi # WSGI to ASGI adapter
 uvicorn[standard]
 uvicorn-worker
 gunicorn
 granian
-httpx
 
 # ORM + Django
 Django[argon2]
 psycopg[c]
 easy-thumbnails[svg] # Images and thumbnails
 django-nonrelated-inlines # admin
+django-cors-headers
 
 # Mailing module
 jinja2 # Templates system
@@ -31,15 +33,14 @@ jinja2 # Templates system
 # Task Queue Module
 procrastinate[django]
 
-# Events Module
-redis[hiredis]
-
 # I18n & l10n
 babel
 
 # Auth
 PyJWT # For auth
 cryptography # For auth
+django-allauth[socialaccount,openid,saml,headless]
+django-auth-ldap
 
 # storage
 django-storages[s3]
@@ -49,10 +50,5 @@ whitenoise[brotli]
 faker # For sampledata
 python-json-logger # JSON logger
 python-slugify # To generate slugs
-requests # As http client
-typer # For manage CLI
-
-
-django-stubs
-django-cors-headers
-sentry-sdk
+typer # To manage CLI
+sentry-sdk  # error event handler

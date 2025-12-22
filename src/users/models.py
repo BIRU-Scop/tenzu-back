@@ -23,13 +23,14 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser, UserManager
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
-from django_stubs_ext.db.models.manager import ManyRelatedManager
 
 from base.db.models import BaseModel, LowerCharField, LowerEmailField
 from base.utils.slug import generate_int_suffix, slugify_uniquely
 from commons.colors import NUM_COLORS, generate_random_color
 
 if TYPE_CHECKING:
+    from django_stubs_ext.db.models.manager import ManyRelatedManager
+
     from projects.memberships.models import ProjectRole
     from workspaces.memberships.models import WorkspaceRole
 
