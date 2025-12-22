@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from ninja import Router
 
 from base.serializers import BaseDataModel
@@ -25,8 +26,10 @@ from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_401,
+    ERROR_RESPONSE_403,
     ERROR_RESPONSE_422,
 )
+from configurations.conf.auth import LDAPActivation
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from ninja_jwt.tokens import RefreshToken
 from permissions import check_permissions
@@ -64,6 +67,7 @@ users_router = Router()
     response={
         200: BaseDataModel[UserSerializer],
         400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
     },
 )
@@ -71,6 +75,10 @@ async def create_user(request, form: CreateUserValidator) -> User:
     """
     Create new user, which is not yet verified.
     """
+    if settings.AUTH_LDAP_ACTIVATION == LDAPActivation.ONLY_USE:
+        raise ex.ForbiddenError(
+            "Can only use LDAP to authenticate, cannot create new users"
+        )
     return await users_services.create_user(
         email=form.email,
         full_name=form.full_name,
@@ -92,6 +100,7 @@ async def create_user(request, form: CreateUserValidator) -> User:
     response={
         200: None,
         400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
@@ -103,6 +112,10 @@ async def resend_verification(
     """
     Resend verification email if the user exists and is not yet verified
     """
+    if settings.AUTH_LDAP_ACTIVATION == LDAPActivation.ONLY_USE:
+        raise ex.ForbiddenError(
+            "Can only use LDAP to authenticate, cannot send verification to new users"
+        )
     return await users_services.resend_verification(
         email=form.email,
         project_invitation_token=form.project_invitation_token,
@@ -174,6 +187,7 @@ async def get_current_user(request) -> User:
         200: BaseDataModel[UserSerializer],
         400: ERROR_RESPONSE_400,
         401: ERROR_RESPONSE_401,
+        403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
     },
     by_alias=True,
@@ -185,6 +199,11 @@ async def update_current_user(request, form: UpdateUserValidator) -> User:
     await check_permissions(
         permissions=UserPermissionsCheck.ACCESS_SELF.value, user=request.user
     )
+    if settings.AUTH_LDAP_ACTIVATION == LDAPActivation.ONLY_USE:
+        if form.password is not None:
+            raise ex.ForbiddenError(
+                "Can only use LDAP to authenticate, cannot change password"
+            )
 
     return await users_services.update_user(
         user=request.user,

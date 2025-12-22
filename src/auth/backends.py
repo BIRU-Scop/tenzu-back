@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,6 +18,7 @@
 
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
+from django_auth_ldap.backend import LDAPBackend as DjangoAuthLDAPBackend
 
 from users.models import User
 
@@ -39,3 +40,7 @@ class EmailOrUsernameModelBackend(ModelBackend):
         else:
             if user.check_password(password) and self.user_can_authenticate(user):
                 return user
+
+
+class LDAPBackend(DjangoAuthLDAPBackend):
+    pass

@@ -36,6 +36,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from base.front import Urls
 
 from .conf import settings
+from .conf.auth import LDAPActivation
 from .conf.events import PubSubBackendChoices
 from .utils import remove_ending_slash
 
@@ -44,7 +45,7 @@ locals().update(
     {
         field_name: field_value
         for field_name, field_value in settings
-        if field_name not in {"DB", "EXTRA_CORS", "TOKENS", "EMAIL", "EVENTS"}
+        if field_name not in {"DB", "EXTRA_CORS", "TOKENS", "LDAP", "EMAIL", "EVENTS"}
     }
 )
 
@@ -210,6 +211,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ASGI_APPLICATION = "configurations.asgi.application"
 
+# AUTH
+
 AUTH_USER_MODEL = "users.User"
 
 NINJA_JWT = {
@@ -227,15 +230,29 @@ NINJA_JWT = {
     "JSON_ENCODER": DjangoJSONEncoder,
 }
 
+AUTHENTICATION_BACKENDS = (
+    [
+        "auth.backends.EmailOrUsernameModelBackend",
+    ]
+    if settings.LDAP.ACTIVATION == LDAPActivation.DONT_USE
+    else [
+        "auth.backends.LDAPBackend",
+    ]
+    if settings.LDAP.ACTIVATION == LDAPActivation.ONLY_USE
+    else [
+        "auth.backends.LDAPBackend",
+        "auth.backends.EmailOrUsernameModelBackend",
+    ]
+)  # CAN_USE
 AUTHENTICATION_BACKENDS = [
-    "auth.backends.EmailOrUsernameModelBackend",
+    *AUTHENTICATION_BACKENDS,
     *(
         extra_dep.auth
         for extra_dep in settings.EXTRA_DEPS
         if extra_dep.auth is not None
     ),
 ]
-# allauth
+## allauth
 ACCOUNT_LOGIN_METHODS = {"email", "username"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
@@ -262,7 +279,8 @@ locals().update(
         }
     )
 )
-
+## django-auth-ldap
+locals().update({f"AUTH_LDAP_{key}": value for key, value in settings.LDAP})
 
 # EMAIL
 
@@ -342,6 +360,11 @@ LOGGING = {
             "propagate": False,
         },
         "django.db.backends": {
+            "level": SQL_LOGLEVEL,
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        "django_auth_ldap": {
             "level": SQL_LOGLEVEL,
             "handlers": ["console"],
             "propagate": False,

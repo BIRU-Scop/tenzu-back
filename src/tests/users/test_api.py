@@ -21,8 +21,10 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 
 from comments.models import Comment
+from configurations.conf.auth import LDAPActivation
 from projects.invitations.models import ProjectInvitation
 from projects.invitations.services import _generate_project_invitation_token
 from projects.memberships.models import ProjectMembership
@@ -115,6 +117,20 @@ async def test_create_user_email_already_exists(client):
     assert user.full_name != data["fullName"]
 
 
+@override_settings(AUTH_LDAP_ACTIVATION=LDAPActivation.ONLY_USE)
+async def test_create_user_forbidden_ldap_only(client):
+    data = {
+        "email": "test.create@email.com",
+        "fullName": "Ada Lovelace",
+        "password": "correctP4ssword%",
+        "acceptTermsOfService": True,
+        "acceptPrivacyPolicy": True,
+    }
+
+    response = await client.post("/users", json=data)
+    assert response.status_code == 403, response.data["data"]
+
+
 ##########################################################
 # POST /users/resend-verification
 ##########################################################
@@ -154,6 +170,19 @@ async def test_resend_verification_not_active(client, tqmanager):
     response = await client.post("/users/resend-verification", json=data)
     assert response.status_code == 200, response.data["data"] is None
     assert len(tqmanager.jobs) == 1
+
+
+@override_settings(AUTH_LDAP_ACTIVATION=LDAPActivation.ONLY_USE)
+async def test_resend_verification_forbidden_ldap_only(client):
+    user = await f.create_user(is_active=False)
+    data = {
+        "email": user.email,
+        "projectInvitationToken": "eyJ0eXAiOToken",
+        "acceptProjectInvitation": False,
+    }
+
+    response = await client.post("/users/resend-verification", json=data)
+    assert response.status_code == 403, response.data["data"]
 
 
 ##########################################################
@@ -320,6 +349,33 @@ async def test_update_current_user_success(client):
     response = await client.put("/users/me", json=data)
 
     assert response.status_code == 200, response.data["data"]
+
+
+@override_settings(AUTH_LDAP_ACTIVATION=LDAPActivation.ONLY_USE)
+async def test_update_current_user_success_ldap_only(client):
+    user = await f.create_user()
+    data = {
+        "fullName": "Ada Lovelace",
+        "lang": "es-ES",
+    }
+
+    client.login(user)
+    response = await client.put("/users/me", json=data)
+
+    assert response.status_code == 200, response.data["data"]
+
+
+@override_settings(AUTH_LDAP_ACTIVATION=LDAPActivation.ONLY_USE)
+async def test_update_current_user_forbiddden_ldap_only(client):
+    user = await f.create_user()
+    data = {
+        "password": "new_pass",
+    }
+
+    client.login(user)
+    response = await client.put("/users/me", json=data)
+
+    assert response.status_code == 403, response.data
 
 
 #####################################################################
