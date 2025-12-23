@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -350,11 +350,11 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
             project=project, values=values
         )
         fake_updated_project = fake_pj_repo.update_project.return_value
-        # assert len(tqmanager.pending_jobs) == 1
-        # job = tqmanager.pending_jobs[0]
-        # assert "delete_old_logo" in job["task_name"]
-        # assert "path" in job["args"]
-        # assert job["args"]["path"].endswith(logo.name)
+        assert len(tqmanager.pending_jobs) == 1
+        job = tqmanager.pending_jobs[0]
+        assert "delete_old_logo" in job["task_name"]
+        assert "file_name" in job["args"]
+        assert job["args"]["file_name"] == logo.name
         fake_get_project_detail.assert_awaited_once_with(
             project=fake_updated_project, user=user
         )
@@ -531,8 +531,8 @@ async def test_delete_project_ok(tqmanager):
         fake_projects_repo.delete_projects.assert_awaited_once_with(
             project_id=project.id,
         )
-        # assert len(tqmanager.pending_jobs) == 1
-        # job = tqmanager.pending_jobs[0]
-        # assert "delete_old_logo" in job["task_name"]
-        # assert "path" in job["args"]
-        # assert job["args"]["path"].endswith(logo.name)
+        assert len(tqmanager.pending_jobs) == 1
+        job = tqmanager.pending_jobs[0]
+        assert "delete_old_logo" in job["task_name"]
+        assert "file_name" in job["args"]
+        assert job["args"]["file_name"] == logo.name

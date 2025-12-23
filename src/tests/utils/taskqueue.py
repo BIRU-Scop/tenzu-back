@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -28,6 +28,12 @@ class TestTasksQueueManager:
     def __init__(self, app: App) -> None:
         self._app = app
         self.reset()
+
+    def run(self) -> None:
+        return self._app.run_worker(wait=False)
+
+    async def run_async(self) -> None:
+        return await self._app.run_worker_async(wait=False)
 
     @property
     def jobs(self) -> dict[int, JobRow]:
@@ -68,6 +74,3 @@ def in_memory_app():
 @pytest.fixture
 def tqmanager(in_memory_app) -> TestTasksQueueManager:
     return TestTasksQueueManager(in_memory_app)
-
-
-# TODO update tests using tqmanager to actually check for jobs count once we have upgraded our task manager

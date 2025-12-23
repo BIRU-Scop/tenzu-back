@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,6 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 
 from tests.utils.logging import correlation_id  # noqa
-from tests.utils.testclient import client  # noqa
+from tests.utils.testclient import client, sync_client, ssr_client  # noqa
 from tests.utils.taskqueue import in_memory_app, tqmanager  # noqa
 from tests.projects.projects.fixtures import project_template  # noqa

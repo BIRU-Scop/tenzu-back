@@ -5,9 +5,7 @@ a2wsgi==1.10.10
 annotated-types==0.7.0
     # via pydantic
 anyio==4.11.0
-    # via
-    #   httpx
-    #   watchfiles
+    # via watchfiles
 argon2-cffi==25.1.0
     # via django
 argon2-cffi-bindings==25.1.0
@@ -18,6 +16,7 @@ asgiref==3.10.0
     #   channels-redis
     #   daphne
     #   django
+    #   django-allauth
     #   django-cors-headers
     #   procrastinate
 attrs==25.4.0
@@ -41,8 +40,6 @@ brotli==1.2.0
     # via whitenoise
 certifi==2025.10.5
     # via
-    #   httpcore
-    #   httpx
     #   requests
     #   sentry-sdk
 cffi==2.0.0
@@ -72,25 +69,32 @@ cryptography==46.0.3
     # via
     #   -r requirements/commons.in
     #   autobahn
+    #   pyjwt
     #   pyopenssl
     #   service-identity
 cssselect2==0.8.0
     # via svglib
 daphne==4.2.1
     # via channels
+defusedxml==0.7.1
+    # via python3-openid
 django==5.2.8
     # via
     #   -r requirements/commons.in
     #   channels
+    #   django-allauth
+    #   django-auth-ldap
     #   django-cors-headers
     #   django-extensions
     #   django-ninja
     #   django-nonrelated-inlines
     #   django-storages
-    #   django-stubs
-    #   django-stubs-ext
     #   easy-thumbnails
     #   procrastinate
+django-allauth==65.13.0
+    # via -r requirements/commons.in
+django-auth-ldap==5.2.0
+    # via -r requirements/commons.in
 django-cors-headers==4.9.0
     # via -r requirements/commons.in
 django-extensions==4.1
@@ -101,10 +105,6 @@ django-nonrelated-inlines==0.2
     # via -r requirements/commons.in
 django-storages==1.14.6
     # via -r requirements/commons.in
-django-stubs==5.2.7
-    # via -r requirements/commons.in
-django-stubs-ext==5.2.7
-    # via django-stubs
 dnspython==2.8.0
     # via email-validator
 easy-thumbnails==2.10.1
@@ -122,17 +122,11 @@ gunicorn==23.0.0
     #   -r requirements/commons.in
     #   uvicorn-worker
 h11==0.16.0
-    # via
-    #   httpcore
-    #   uvicorn
+    # via uvicorn
 hiredis==3.3.0
     # via redis
-httpcore==1.0.9
-    # via httpx
 httptools==0.7.1
     # via uvicorn
-httpx==0.28.1
-    # via -r requirements/commons.in
 hyperlink==21.0.0
     # via
     #   autobahn
@@ -141,12 +135,13 @@ idna==3.11
     # via
     #   anyio
     #   email-validator
-    #   httpx
     #   hyperlink
     #   requests
     #   twisted
 incremental==24.7.2
     # via twisted
+isodate==0.7.2
+    # via python3-saml
 jinja2==3.1.6
     # via -r requirements/commons.in
 jmespath==1.0.1
@@ -154,7 +149,10 @@ jmespath==1.0.1
     #   boto3
     #   botocore
 lxml==6.0.2
-    # via svglib
+    # via
+    #   python3-saml
+    #   svglib
+    #   xmlsec
 markdown-it-py==4.0.0
     # via rich
 markupsafe==3.0.3
@@ -163,6 +161,8 @@ mdurl==0.1.2
     # via markdown-it-py
 msgpack==1.1.2
     # via channels-redis
+oauthlib==3.3.1
+    # via django-allauth
 orjson==3.11.4
     # via -r requirements/commons.in
 packaging==25.0
@@ -184,9 +184,12 @@ psycopg-pool==3.2.7
 pyasn1==0.6.1
     # via
     #   pyasn1-modules
+    #   python-ldap
     #   service-identity
 pyasn1-modules==0.4.2
-    # via service-identity
+    # via
+    #   python-ldap
+    #   service-identity
 pycairo==1.28.0
     # via rlpycairo
 pycparser==2.23
@@ -203,7 +206,9 @@ pydantic-settings==2.11.0
 pygments==2.19.2
     # via rich
 pyjwt==2.10.1
-    # via -r requirements/commons.in
+    # via
+    #   -r requirements/commons.in
+    #   django-allauth
 pyopenssl==25.3.0
     # via twisted
 python-dateutil==2.9.0.post0
@@ -217,10 +222,14 @@ python-dotenv==1.2.1
     #   uvicorn
 python-json-logger==4.0.0
     # via -r requirements/commons.in
-python-multipart==0.0.20
-    # via -r requirements/commons.in
+python-ldap==3.4.5
+    # via django-auth-ldap
 python-slugify==8.0.4
     # via -r requirements/commons.in
+python3-openid==3.2.0
+    # via django-allauth
+python3-saml==1.16.0
+    # via django-allauth
 pytz==2025.2
     # via croniter
 pyyaml==6.0.3
@@ -234,7 +243,7 @@ reportlab==4.4.4
     #   easy-thumbnails
     #   svglib
 requests==2.32.5
-    # via -r requirements/commons.in
+    # via django-allauth
 rich==14.2.0
     # via typer
 rlpycairo==0.4.0
@@ -269,12 +278,8 @@ txaio==25.9.2
     # via autobahn
 typer==0.20.0
     # via -r requirements/commons.in
-types-pyyaml==6.0.12.20250915
-    # via django-stubs
 typing-extensions==4.15.0
     # via
-    #   django-stubs
-    #   django-stubs-ext
     #   procrastinate
     #   psycopg-pool
     #   pydantic
@@ -313,5 +318,7 @@ websockets==15.0.1
     # via uvicorn
 whitenoise==6.11.0
     # via -r requirements/commons.in
+xmlsec==1.3.17
+    # via python3-saml
 zope-interface==8.0.1
     # via twisted
