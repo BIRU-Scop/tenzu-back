@@ -198,6 +198,7 @@ packaging==25.0
     # via
     #   gunicorn
     #   pytest
+    #   pytest-rerunfailures
 pathspec==0.12.1
     # via mypy
 pillow==12.0.0
@@ -258,12 +259,15 @@ pytest==8.4.2
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-django
+    #   pytest-rerunfailures
     #   pytest-xdist
 pytest-asyncio==1.2.0
     # via -r requirements/devel.in
 pytest-cov==7.0.0
     # via -r requirements/devel.in
 pytest-django==4.11.1
+    # via -r requirements/devel.in
+pytest-rerunfailures==16.1
     # via -r requirements/devel.in
 pytest-xdist==3.8.0
     # via -r requirements/devel.in
