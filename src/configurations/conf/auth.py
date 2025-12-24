@@ -67,7 +67,6 @@ class AccountSettings(BaseModel):
         default_factory=dict
     )  # you can also use the admin app to dynamically add SocialApp instead, see https://docs.allauth.org/en/latest/socialaccount/provider_configuration.html
     SOCIALAPPS_PROVIDERS: list[str] = Field(default_factory=list)
-    ACCOUNT_DEFAULT_HTTP_PROTOCOL: Literal["http", "https"] = "https"
 
 
 class LDAPActivation(StrEnum):
@@ -185,7 +184,7 @@ class LDAPSettings(BaseModel):
     DENY_GROUP: str | None = DjangoAuthLDAPSettings.defaults["DENY_GROUP"]
 
     USER_ATTR_MAP: dict[str, str] = DjangoAuthLDAPSettings.defaults["USER_ATTR_MAP"]
-    USER_QUERY_FIELD: str = DjangoAuthLDAPSettings.defaults["USER_QUERY_FIELD"]
+    USER_QUERY_FIELD: str | None = DjangoAuthLDAPSettings.defaults["USER_QUERY_FIELD"]
     USER_FLAGS_BY_GROUP: dict[str, str | list[str]] = DjangoAuthLDAPSettings.defaults[
         "USER_FLAGS_BY_GROUP"
     ]
