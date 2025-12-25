@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,11 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 import functools
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.core.validators import MaxValueValidator
 from django.db import models
-from django_stubs_ext.db.models.manager import ManyRelatedManager
 from slugify import slugify
 
 from base.db.models import BaseModel, LowerSlugField
@@ -31,6 +30,9 @@ from base.utils.files import get_obfuscated_file_path
 from base.utils.slug import slugify_uniquely
 from commons.colors import NUM_COLORS
 from projects import references
+
+if TYPE_CHECKING:
+    from django_stubs_ext.db.models.manager import ManyRelatedManager
 
 get_project_logo_file_path = functools.partial(
     get_obfuscated_file_path, base_path="project"

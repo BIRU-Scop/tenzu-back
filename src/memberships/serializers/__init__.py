@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -61,4 +61,3 @@ class CreateInvitationsSerializer(BaseModel):
 class PublicPendingInvitationBaseSerializer(BaseModel):
     email: EmailStr
     existing_user: bool
-    available_logins: list[str]

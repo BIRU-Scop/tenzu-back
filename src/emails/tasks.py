@@ -18,9 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 
 import logging
+from smtplib import SMTPException, SMTPRecipientsRefused
 from typing import Any
 
-from aiosmtplib import SMTPException, SMTPRecipientsRefused
 from django.conf import settings
 from jinja2 import TemplateNotFound
 from procrastinate import RetryStrategy

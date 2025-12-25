@@ -1,0 +1,97 @@
+# LDIF Export for dc=tenzu,dc=dev
+# Server: ldap-server (ldap-server)
+# Search Scope: sub
+# Search Filter: (objectClass=*)
+# Total Entries: 11
+#
+
+version: 1
+
+# Entry 1: dc=tenzu,dc=dev
+
+# Entry 2: cn=admin,dc=tenzu,dc=dev
+
+# Entry 3: cn=group_all,dc=tenzu,dc=dev
+dn: cn=group_all,dc=tenzu,dc=dev
+cn: group_all
+gidnumber: 502
+objectclass: posixGroup
+objectclass: top
+
+# Entry 4: cn=readonly,dc=tenzu,dc=dev
+
+# Entry 5: ou=groups,dc=tenzu,dc=dev
+dn: ou=groups,dc=tenzu,dc=dev
+objectclass: organizationalUnit
+objectclass: top
+ou: groups
+
+# Entry 6: cn=admins,ou=groups,dc=tenzu,dc=dev
+dn: cn=admins,ou=groups,dc=tenzu,dc=dev
+cn: admins
+objectclass: groupOfUniqueNames
+objectclass: top
+uniquemember: cn=Julie Rymer,ou=users,dc=tenzu,dc=dev
+uniquemember: cn=Paul Guichon,ou=users,dc=tenzu,dc=dev
+
+# Entry 7: cn=users,ou=groups,dc=tenzu,dc=dev
+dn: cn=users,ou=groups,dc=tenzu,dc=dev
+cn: users
+objectclass: groupOfUniqueNames
+objectclass: top
+uniquemember: cn=foo bar,ou=users,dc=tenzu,dc=dev
+uniquemember: cn=Julie Rymer,ou=users,dc=tenzu,dc=dev
+uniquemember: cn=Paul Guichon,ou=users,dc=tenzu,dc=dev
+
+# Entry 8: ou=users,dc=tenzu,dc=dev
+dn: ou=users,dc=tenzu,dc=dev
+objectclass: organizationalUnit
+objectclass: top
+ou: users
+
+# Entry 9: cn=foo bar,ou=users,dc=tenzu,dc=dev
+dn: cn=foo bar,ou=users,dc=tenzu,dc=dev
+cn: foo bar
+gidnumber: 502
+givenname: foo
+homedirectory: /home/users/fbar
+mail: fbar@tenzu.dev
+objectclass: inetOrgPerson
+objectclass: posixAccount
+objectclass: top
+sn: bar
+uid: fbar
+uidnumber: 1003
+userpassword: {SSHA}NbP4jGuztLMCCFFnVzRF8DBt4j9JO86W
+
+# Entry 10: cn=Julie Rymer,ou=users,dc=tenzu,dc=dev
+dn: cn=Julie Rymer,ou=users,dc=tenzu,dc=dev
+cn: Julie Rymer
+gidnumber: 502
+givenname: Julie
+homedirectory: /home/users/jrymer
+mail: jrymer@tenzu.dev
+objectclass: inetOrgPerson
+objectclass: posixAccount
+objectclass: top
+sn: Rymer
+uid: jrymer
+uidnumber: 1000
+userpassword: {SSHA}NbP4jGuztLMCCFFnVzRF8DBt4j9JO86W
+# = azertyuiop
+
+# Entry 11: cn=Paul Guichon,ou=users,dc=tenzu,dc=dev
+dn: cn=Paul Guichon,ou=users,dc=tenzu,dc=dev
+cn: Paul Guichon
+gidnumber: 502
+givenname: Paul
+homedirectory: /home/users/pguichon
+mail: pguichon@tenzu.dev
+objectclass: inetOrgPerson
+objectclass: posixAccount
+objectclass: top
+sn: Guichon
+uid: pguichon
+uidnumber: 1001
+userpassword: {SSHA}NbP4jGuztLMCCFFnVzRF8DBt4j9JO86W
+# = azertyuiop

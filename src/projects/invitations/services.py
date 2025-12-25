@@ -22,7 +22,6 @@ from uuid import UUID
 
 from django.conf import settings
 
-from auth import services as auth_services
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from emails.emails import Emails
 from emails.tasks import send_email
@@ -117,15 +116,9 @@ async def get_public_pending_project_invitation(
     invitation = await get_project_invitation_by_token(
         token=token, filters={"status": InvitationStatus.PENDING}
     )
-    available_logins = (
-        await auth_services.get_available_user_logins(user=invitation.user)
-        if invitation.user
-        else []
-    )
     return PublicProjectPendingInvitationSerializer(
         email=invitation.email,
         existing_user=invitation.user is not None,
-        available_logins=available_logins,
         project=invitation.project,
     )
 

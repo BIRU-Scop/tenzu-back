@@ -238,16 +238,18 @@ async def test_create_user_unverified(tqmanager):
 
 async def test_create_user_email_exists():
     with (
-        pytest.raises(ex.EmailAlreadyExistsError),
         patch("users.services.users_repositories", autospec=True) as fake_users_repo,
     ):
-        fake_users_repo.get_user.return_value = MagicMock(is_active=True)
-        await services.create_user(
+        fake_users_repo.get_user.return_value = MagicMock(
+            is_active=True, full_name="Original Name"
+        )
+        user = await services.create_user(
             email="dup.email@email.com",
-            full_name="Full Name",
+            full_name="New Name",
             password="CorrectP4ssword&",
             accepted_terms=True,
         )
+        assert user.full_name == "New Name"
 
 
 async def test_create_user_not_accepted_terms():
@@ -272,6 +274,29 @@ async def test_create_user_not_accepted_terms():
 ##########################################################
 
 
+async def test_resend_verification():
+    active_user = f.build_user(is_active=True)
+    inactive_user = f.build_user(is_active=False)
+
+    with (
+        patch("users.services.VerifyUserToken", autospec=True),
+        patch("users.services.users_repositories", autospec=True) as fake_users_repo,
+        patch("users.services.send_email", autospec=True) as fake_send_email,
+        patch_db_transaction(),
+    ):
+        fake_users_repo.get_user.side_effect = [
+            User.DoesNotExist,
+            active_user,
+            inactive_user,
+        ]
+        await services.resend_verification(email="not-exists")
+        fake_send_email.defer_async.assert_not_awaited()
+        await services.resend_verification(email=active_user.email)
+        fake_send_email.defer_async.assert_not_awaited()
+        await services.resend_verification(email=inactive_user.email)
+        fake_send_email.defer_async.assert_awaited_once()
+
+
 async def test_verify_user():
     user = f.build_user(is_active=False)
     now = datetime.now(timezone.utc)
@@ -285,10 +310,14 @@ async def test_verify_user():
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_workspace_invitations_services,
         patch("users.services.aware_utcnow") as fake_aware_utcnow,
+        patch(
+            "users.models.User.emailaddress_set",
+            new_callable=AsyncMock,
+        ),
         patch_db_transaction(),
     ):
         fake_aware_utcnow.return_value = now
-        await services.verify_user(user=user)
+        await services._verify_user(user=user)
         fake_users_repo.update_user.assert_awaited_with(
             user=user,
             values={"is_active": True, "date_verification": now},
@@ -323,6 +352,10 @@ async def test_verify_user_ok_no_invitation_tokens_to_accept():
         patch(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
+        patch(
+            "users.models.User.emailaddress_set",
+            new_callable=AsyncMock,
+        ),
         patch_db_transaction(),
     ):
         FakeVerifyUserToken.return_value.payload = token_data
@@ -386,6 +419,10 @@ async def test_verify_user_ok_accepting_or_not_a_project_invitation_token(
         patch(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
+        patch(
+            "users.models.User.emailaddress_set",
+            new_callable=AsyncMock,
+        ),
         patch_db_transaction(),
     ):
         FakeVerifyUserToken.return_value.get.side_effect = [
@@ -465,6 +502,10 @@ async def test_verify_user_ok_accepting_or_not_a_workspace_invitation_token(
         patch(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
+        patch(
+            "users.models.User.emailaddress_set",
+            new_callable=AsyncMock,
+        ),
         patch_db_transaction(),
     ):
         # Second call will be `verify_token.get("project_invitation_token", None)` and should return None
@@ -561,6 +602,10 @@ async def test_verify_user_error_project_invitation_token(exception):
         ) as fake_invitations_services,
         patch("users.services.workspace_invitations_services", autospec=True),
         patch("users.services.auth_services", autospec=True) as fake_auth_services,
+        patch(
+            "users.models.User.emailaddress_set",
+            new_callable=AsyncMock,
+        ),
         patch_db_transaction(),
     ):
         FakeVerifyUserToken.return_value.get.side_effect = [
@@ -616,6 +661,10 @@ async def test_verify_user_error_workspace_invitation_token(exception):
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_invitations_services,
         patch("users.services.auth_services", autospec=True) as fake_auth_services,
+        patch(
+            "users.models.User.emailaddress_set",
+            new_callable=AsyncMock,
+        ),
         patch_db_transaction(),
     ):
         FakeVerifyUserToken.return_value.get.side_effect = [
@@ -1199,15 +1248,15 @@ async def test_reset_password_send_reset_password_email_ok(tqmanager):
     ):
         await services._send_reset_password_email(user=user)
 
-        # assert len(tqmanager.pending_jobs) == 1
-        # job = tqmanager.pending_jobs[0]
-        # assert "send_email" in job["task_name"]
-        # assert job["args"] == {
-        #     "email_name": "reset_password",
-        #     "to": user.email,
-        #     "lang": "en-US",
-        #     "context": {"reset_password_token": "reset_token"},
-        # }
+        assert len(tqmanager.pending_jobs) == 1
+        job = tqmanager.pending_jobs[0]
+        assert "send_email" in job["task_name"]
+        assert job["args"] == {
+            "email_name": "reset_password",
+            "to": user.email,
+            "lang": "en-US",
+            "context": {"reset_password_token": "reset_token"},
+        }
 
         fake_generate_reset_password_token.assert_awaited_once_with(user)
 

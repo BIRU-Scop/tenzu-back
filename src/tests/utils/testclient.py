@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,12 +16,19 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-
-from typing import TYPE_CHECKING
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any
+from unittest.mock import Mock
 
 import pytest
-from ninja.testing import TestAsyncClient as TestAsyncClientBase
+from django.test import Client
+from ninja.testing import (
+    TestAsyncClient as TestAsyncClientBase,
+)
+from ninja.testing import (
+    TestClient as TestClientBase,
+)
+from ninja.testing.client import NinjaClientBase
 
 from configurations.api import api
 
@@ -29,7 +36,7 @@ if TYPE_CHECKING:
     from users.models import User
 
 
-class TestAsyncClient(TestAsyncClientBase):
+class TextClientAuthMixin(NinjaClientBase):
     def login(self, user: "User") -> None:
         from ninja_jwt.tokens import AccessToken
 
@@ -38,6 +45,23 @@ class TestAsyncClient(TestAsyncClientBase):
 
     def logout(self) -> None:
         self.headers.pop("Authorization", None)
+
+    def _build_request(
+        self, method: str, path: str, data: dict, request_params: Any
+    ) -> Mock:
+        request = super()._build_request(
+            method=method, path=path, data=data, request_params=request_params
+        )
+        request.allauth = SimpleNamespace()
+        return request
+
+
+class TestAsyncClient(TextClientAuthMixin, TestAsyncClientBase):
+    pass
+
+
+class TestSyncClient(TextClientAuthMixin, TestClientBase):
+    pass
 
 
 # TODO have a client for websocket urls
@@ -49,3 +73,15 @@ class TestAsyncClient(TestAsyncClientBase):
 def client(monkeypatch):
     monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
     return TestAsyncClient(api)
+
+
+@pytest.fixture(scope="function")
+def sync_client(monkeypatch):
+    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
+    return TestSyncClient(api)
+
+
+@pytest.fixture(scope="function")
+def ssr_client(monkeypatch):
+    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
+    return Client()

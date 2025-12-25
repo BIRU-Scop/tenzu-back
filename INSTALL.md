@@ -93,9 +93,23 @@ task shell
 
 # launch tests
 task test
+
+# launch ldap server if you want to test ldap auth
+task ldap
 ```
 
 ## Dependencies management
 
-TODO: add explanation about pip-tools and commands to handle dependencies
+Add your dependencies to the corresponding requirement file:
+- [commons.in](buildrun/docker/tenzu/requirements/commons.in) for generic dependencies
+- [devel.in](buildrun/docker/tenzu/requirements/devel.in) for dev or test only dependencies
+- [prod.in](buildrun/docker/tenzu/requirements/prod.in) for production only dependencies
 
+The following commands are available:
+```shell
+# upgrade all dependencies in compiled requirement *.txt files while following any version constraint specified in their *.in equivalent
+task compile-dep-upgrade
+
+# compile requirement *.txt files and rebuild the image after having changed the requirements
+task update-dep
+```

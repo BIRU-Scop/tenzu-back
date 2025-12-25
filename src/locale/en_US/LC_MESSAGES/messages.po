@@ -74,7 +74,6 @@ msgstr "Button not working? Copy and paste this URL into your web browser:"
 #: tenzu/emails/templates/project_invitation.html.jinja:613
 #: tenzu/emails/templates/reset_password.html.jinja:617
 #: tenzu/emails/templates/sign_up.html.jinja:558
-#: tenzu/emails/templates/social_login_warning.html.jinja:518
 #: tenzu/emails/templates/workspace_invitation.html.jinja:615
 msgid "emails.footer.help_support"
 msgstr ""
@@ -88,7 +87,6 @@ msgstr "[Tenzu] Invitation to join to the project '%(name)s'"
 #: tenzu/emails/templates/project_invitation.txt.jinja:30
 #: tenzu/emails/templates/reset_password.txt.jinja:21
 #: tenzu/emails/templates/sign_up.txt.jinja:26
-#: tenzu/emails/templates/social_login_warning.txt.jinja:23
 #: tenzu/emails/templates/workspace_invitation.txt.jinja:27
 msgid "emails.commons.support_txt"
 msgstr "Need help? Contact us at %(support_email)s"
@@ -120,8 +118,6 @@ msgstr "Button not working? Copy and paste this URL into your web browser:"
 #: tenzu/emails/templates/reset_password.txt.jinja:19
 #: tenzu/emails/templates/sign_up.html.jinja:493
 #: tenzu/emails/templates/sign_up.txt.jinja:20
-#: tenzu/emails/templates/social_login_warning.html.jinja:489
-#: tenzu/emails/templates/social_login_warning.txt.jinja:21
 msgid "emails.commons.team"
 msgstr "The Tenzu team"
 
@@ -181,44 +177,6 @@ msgstr "Verify your email to start using Tenzu"
 #: tenzu/emails/templates/sign_up.txt.jinja:15
 msgid "emails.sign_up.copy_link"
 msgstr "Copy and paste this URL into your web browser:"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:13
-msgid "emails.social_login_warning.title"
-msgstr "New log in to your Tenzu account"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:455
-#: tenzu/emails/templates/social_login_warning.txt.jinja:9
-msgid "emails.social_warning_login.hi"
-msgstr "Hi %(name)s,"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:460
-#: tenzu/emails/templates/social_login_warning.txt.jinja:11
-msgid "emails.social_login_warning.method"
-msgstr "We noticed a log in to your Tenzu account in a different way (%(method)s):"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:467
-#: tenzu/emails/templates/social_login_warning.txt.jinja:13
-msgid "emails.social_login_warning.time"
-msgstr "Time:"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:474
-#: tenzu/emails/templates/social_login_warning.txt.jinja:15
-msgid "emails.social_login_warning.not_you"
-msgstr "If it wasn't you, please let us know here: %(support_email)s"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:479
-#: tenzu/emails/templates/social_login_warning.txt.jinja:17
-msgid "emails.social_login_warning.ignore"
-msgstr "If this was you, you can safely ignore this email."
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:484
-#: tenzu/emails/templates/social_login_warning.txt.jinja:19
-msgid "emails.social_login_warning.cheers"
-msgstr "Cheers!"
-
-#: tenzu/emails/templates/social_login_warning.subject.jinja:9
-msgid "emails.social_login_warning.subject"
-msgstr "New log in to your Tenzu account"
 
 #: tenzu/emails/templates/workspace_invitation.html.jinja:13
 #: tenzu/emails/templates/workspace_invitation.txt.jinja:10

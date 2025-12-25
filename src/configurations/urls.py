@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -33,7 +33,7 @@ Including another URLconf
 """
 
 from django.conf import settings
-from django.urls import path
+from django.urls import include, path
 from django.urls.resolvers import URLPattern, URLResolver
 
 from .api import api
@@ -42,6 +42,7 @@ urlpatterns: list[URLPattern | URLResolver] = []
 
 urlpatterns += [
     path(f"api/{settings.API_VERSION}/", api.urls),
+    path("_allauth/accounts/", include("allauth.urls")),
 ]
 
 

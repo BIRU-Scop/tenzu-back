@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -45,21 +45,3 @@ def sync_create_user(**kwargs):
 
 def build_user(**kwargs):
     return UserFactory.build(**kwargs)
-
-
-class AuthDataFactory(Factory):
-    user = factory.SubFactory("tests.utils.factories.UserFactory")
-    key = "google"
-    value = "103576024907356273435"
-
-    class Meta:
-        model = "users.AuthData"
-
-
-def build_auth_data(**kwargs):
-    return AuthDataFactory.build(**kwargs)
-
-
-@sync_to_async
-def create_auth_data(**kwargs):
-    return AuthDataFactory.create(**kwargs)

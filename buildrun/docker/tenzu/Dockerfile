@@ -25,9 +25,18 @@ COPY --chown=default-user:default-group ./buildrun/docker/tenzu/requirements/pro
 # prepare permission for future mounts
 RUN mkdir -p /public/media /public/static && chown -R default-user:default-group /public
 
-RUN apt-get update && apt-get install -y --no-install-recommends gettext iputils-ping htop build-essential libpq-dev git \
-    #pycairo deps (required by easy-thumbnails->svglib) \
-    libcairo2-dev pkg-config python3-dev && \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # utils \
+    iputils-ping htop git \
+    # common deps \
+    build-essential python3-dev \
+    # psycopg & django translation deps \
+    libpq-dev gettext \
+    # pycairo deps (required by easy-thumbnails->svglib) \
+    libcairo2-dev pkg-config \
+    # python-ldap deps (required by django-auth-ldap) \
+    libldap2-dev libsasl2-dev \
+    && \
     uv pip sync --system /tenzu/prod.txt && rm /tenzu/prod.txt && \
     (if [ -n "${EXTRA_PACKAGES}" ] ; then pip install ${EXTRA_PACKAGES}; fi) && \
     apt-get purge -y --auto-remove build-essential git && \
@@ -47,9 +56,18 @@ FROM base-image AS dev-image
 # replace with --mount=type=bind in RUN once supported by our CI build
 COPY ./buildrun/docker/tenzu/requirements/devel.txt /tenzu/devel.txt
 # Install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gettext iputils-ping htop build-essential libpq-dev git \
-    #pycairo deps (required by easy-thumbnails->svglib) \
-    libcairo2-dev pkg-config python3-dev && \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # utils \
+    iputils-ping htop git \
+    # common deps \
+    build-essential python3-dev \
+    # psycopg & django translation deps \
+    libpq-dev gettext \
+    # pycairo deps (required by easy-thumbnails->svglib) \
+    libcairo2-dev pkg-config \
+    # python-ldap deps (required by django-auth-ldap) \
+    libldap2-dev libsasl2-dev \
+    && \
     uv pip sync --system /tenzu/devel.txt && rm /tenzu/devel.txt && \
     (if [ -n "${EXTRA_PACKAGES}" ] ; then pip install ${EXTRA_PACKAGES}; fi) && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man

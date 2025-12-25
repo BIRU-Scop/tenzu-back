@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,14 +16,18 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import TYPE_CHECKING
+
 from django.core.validators import MaxValueValidator
 from django.db import models
-from django_stubs_ext.db.models.manager import ManyRelatedManager
 from slugify import slugify
 
 from base.db.models import BaseModel
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from commons.colors import NUM_COLORS
+
+if TYPE_CHECKING:
+    from django_stubs_ext.db.models.manager import ManyRelatedManager
 
 
 class Workspace(BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,13 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models.base import ModelBase
-from django_stubs_ext.db.models.manager import ManyRelatedManager
 
 from base.db.models import BaseModel, LowerEmailField, LowerSlugField
 from base.db.models.mixins import CreatedAtMetaInfoMixin
@@ -34,6 +33,9 @@ from base.utils.slug import (
 from memberships.choices import InvitationStatus
 from permissions.choices import PermissionsBase
 from users.models import User
+
+if TYPE_CHECKING:
+    from django_stubs_ext.db.models.manager import ManyRelatedManager
 
 
 def _get_reference_model_filter(reference_model: type[BaseModel]):

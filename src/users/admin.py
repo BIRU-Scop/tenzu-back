@@ -28,7 +28,7 @@ from base.db.admin import forms
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
 from system.services import get_available_languages_info
-from users.models import AuthData, User
+from users.models import User
 from workspaces.memberships.models import WorkspaceMembership
 
 admin.site.unregister(Group)
@@ -71,11 +71,6 @@ class WorkspaceMembershipsInline(admin.TabularInline):
         return False
 
 
-class AuthDataInline(admin.TabularInline):
-    model = AuthData
-    extra = 0
-
-
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
     fieldsets = (
@@ -116,7 +111,6 @@ class UserAdmin(DjangoUserAdmin):
     ordering = ("username",)
     filter_horizontal = ()
     inlines = [
-        AuthDataInline,
         WorkspaceMembershipsInline,
         ProjectMembershipsInline,
         ProjectInvitationInline,

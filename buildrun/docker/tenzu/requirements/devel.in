@@ -6,18 +6,13 @@ pytest-cov
 pytest-django
 pytest-asyncio
 pytest-xdist[psutil]
+pytest-rerunfailures
 factory-boy
 freezegun
-validators
-pytest_httpx
 daphne
-bump-pydantic
 django-watchfiles
 # for dev part
 mypy
-
-# requirements tooling
-pip-tools
 
 # Typing stubs
 django-stubs  # django
@@ -25,5 +20,4 @@ types-babel  # babel
 types-python-slugify  # python-slugify
 types-redis  # redis
 types-redis  # redis
-types-requests # requests
 types-Pillow # Pillow/PIL

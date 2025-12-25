@@ -126,7 +126,7 @@ async def test_create_user_no_password_from_social():
         acceptance_date=acceptance_date,
     )
 
-    assert res.password == ""
+    assert not res.has_usable_password()
 
 
 ##########################################################
@@ -510,79 +510,3 @@ async def test_clean_expired_users():
     assert await User.objects.acount() == total_users + 2
     await users_repositories.clean_expired_users()
     assert await User.objects.acount() == total_users + 1
-
-
-##########################################################
-# create_auth_data
-##########################################################
-
-
-async def test_create_auth_data():
-    user = await f.create_user()
-    key = "google"
-    value = "1234"
-
-    await users_repositories.create_auth_data(user=user, key=key, value=value)
-
-    auth_data = await users_repositories.get_auth_data(
-        filters={"key": key, "value": value}
-    )
-    assert auth_data.user == user
-    assert auth_data.key == key
-
-
-##########################################################
-# list_auths_data
-##########################################################
-
-
-async def test_list_auths_data():
-    user = await f.create_user()
-    auth_data1 = await f.create_auth_data(user=user, key="google")
-    auth_data2 = await f.create_auth_data(user=user, key="gitlab")
-
-    auth_datas = await users_repositories.list_auths_data(filters={"user_id": user.id})
-    assert auth_data1 in auth_datas
-    assert auth_data2 in auth_datas
-
-    auth_datas = await users_repositories.list_auths_data(
-        filters={"user_id": user.id, "key": auth_data1.key}
-    )
-    assert auth_data1 in auth_datas
-    assert auth_data2 not in auth_datas
-
-
-async def test_list_auths_data_filtered():
-    user = await f.create_user()
-    auth_data1 = await f.create_auth_data(user=user, key="google")
-    auth_data2 = await f.create_auth_data(user=user, key="gitlab")
-
-    auth_datas = await users_repositories.list_auths_data(filters={"user_id": user.id})
-    assert auth_data1 in auth_datas
-    assert auth_data2 in auth_datas
-
-    auth_datas = await users_repositories.list_auths_data(
-        filters={"user_id": user.id, "key": auth_data1.key}
-    )
-    assert auth_data1 in auth_datas
-    assert auth_data2 not in auth_datas
-
-
-async def test_list_auths_data_default_related():
-    user = await f.create_user()
-    await f.create_auth_data(user=user)
-
-    auth_datas = await users_repositories.list_auths_data(filters={"user_id": user.id})
-    assert auth_datas[0].user.email == user.email
-
-
-##########################################################
-# get_auth_data
-##########################################################
-
-
-async def test_get_auth_data():
-    auth_data = await f.create_auth_data()
-    assert auth_data == await users_repositories.get_auth_data(
-        filters={"key": auth_data.key, "value": auth_data.value}
-    )

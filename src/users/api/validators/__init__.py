@@ -42,19 +42,14 @@ def check_email_in_domain(v: str) -> str:
     return v
 
 
-class CreateUserValidator(PasswordMixin, BaseModel):
+class SendVerifyUserValidator(BaseModel):
     email: EmailStr
-    full_name: FullName  # type: ignore
-    accept_terms_of_service: StrictBool
-    accept_privacy_policy: StrictBool
-    color: Annotated[int, Field(gt=0, le=NUM_COLORS)] | None = None  # type: ignore
-    lang: LanguageCode | None = None
     project_invitation_token: str | None = None
     workspace_invitation_token: str | None = None
     accept_project_invitation: StrictBool = True
     accept_workspace_invitation: StrictBool = True
 
-    @field_validator("email", "full_name")
+    @field_validator("email")
     @classmethod
     def check_not_empty(cls, v: str) -> str:
         return check_not_empty(v)
@@ -63,6 +58,19 @@ class CreateUserValidator(PasswordMixin, BaseModel):
     @classmethod
     def check_email_in_domain(cls, v: str) -> str:
         return check_email_in_domain(v)
+
+
+class CreateUserValidator(PasswordMixin, SendVerifyUserValidator):
+    full_name: FullName  # type: ignore
+    accept_terms_of_service: StrictBool
+    accept_privacy_policy: StrictBool
+    color: Annotated[int, Field(gt=0, le=NUM_COLORS)] | None = None  # type: ignore
+    lang: LanguageCode | None = None
+
+    @field_validator("email", "full_name")
+    @classmethod
+    def check_not_empty(cls, v: str) -> str:
+        return check_not_empty(v)
 
     @field_validator("accept_terms_of_service", "accept_privacy_policy")
     @classmethod
@@ -73,11 +81,11 @@ class CreateUserValidator(PasswordMixin, BaseModel):
 
 
 class UpdateUserValidator(BaseModel):
-    full_name: Optional[FullName] = None
-    lang: Optional[LanguageCode] = None
-    password: Optional[str] = None
+    full_name: FullName | None = None
+    lang: LanguageCode | None = None
+    password: str | None = None
 
-    @field_validator("full_name", "lang", mode="before")
+    @field_validator("full_name", "lang", "password", mode="before")
     @classmethod
     def check_not_empty(cls, v: str) -> str:
         return check_not_empty(v)
