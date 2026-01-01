@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -220,44 +220,3 @@ async def test_deny_refresh_token_error_unauthorized_user():
             await auth_serv.deny_refresh_token(user=user2, token=str(refresh_token))
 
         fake_tokens_services.deny_token.assert_not_awaited()
-
-
-##########################################################
-# get_available_user_logins
-##########################################################
-
-
-async def test_get_available_user_logins_registered():
-    user = f.build_user(is_active=True)
-    available_user_logins = [
-        f.build_auth_data(user=user, key="google"),
-        f.build_auth_data(user=user, key="gitlab"),
-    ]
-
-    with patch(
-        "auth.services.users_repositories", autospec=True
-    ) as fake_users_repositories:
-        fake_users_repositories.list_auths_data.return_value = available_user_logins
-
-        ret = await auth_serv.get_available_user_logins(user)
-        assert available_user_logins[0].key in ret
-        assert available_user_logins[1].key in ret
-        assert "password" in ret
-
-
-async def test_get_available_user_logins_no_registered():
-    user = f.build_user(is_active=False, password="")
-    available_user_logins = [
-        f.build_auth_data(user=user, key="google"),
-        f.build_auth_data(user=user, key="gitlab"),
-    ]
-
-    with patch(
-        "auth.services.users_repositories", autospec=True
-    ) as fake_users_repositories:
-        fake_users_repositories.list_auths_data.return_value = available_user_logins
-
-        ret = await auth_serv.get_available_user_logins(user)
-        assert available_user_logins[0].key in ret
-        assert available_user_logins[1].key in ret
-        assert "password" in ret

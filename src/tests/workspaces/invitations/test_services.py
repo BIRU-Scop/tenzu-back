@@ -482,14 +482,8 @@ async def test_get_public_workspace_invitation_ok():
         patch(
             "workspaces.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
-        patch(
-            "workspaces.invitations.services.auth_services", autospec=True
-        ) as fake_auth_services,
     ):
         fake_invitations_repo.get_invitation.return_value = invitation
-        fake_auth_services.get_available_user_logins.return_value = (
-            available_user_logins
-        )
         pub_invitation = await services.get_public_pending_workspace_invitation(
             token=token
         )
@@ -498,14 +492,10 @@ async def test_get_public_workspace_invitation_ok():
             filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
             select_related=["user", "workspace"],
         )
-        fake_auth_services.get_available_user_logins.assert_awaited_once_with(
-            user=invitation.user
-        )
 
         assert pub_invitation.email == invitation.email
         assert pub_invitation.existing_user is True
         assert pub_invitation.workspace.name == invitation.workspace.name
-        assert pub_invitation.available_logins == available_user_logins
 
 
 async def test_get_public_workspace_invitation_ok_without_user():
@@ -516,9 +506,6 @@ async def test_get_public_workspace_invitation_ok_without_user():
         patch(
             "workspaces.invitations.services.invitations_repositories", autospec=True
         ) as fake_invitations_repo,
-        patch(
-            "workspaces.invitations.services.auth_services", autospec=True
-        ) as fake_auth_services,
     ):
         fake_invitations_repo.get_invitation.return_value = invitation
         pub_invitation = await services.get_public_pending_workspace_invitation(token)
@@ -527,12 +514,10 @@ async def test_get_public_workspace_invitation_ok_without_user():
             filters={"id": str(invitation.id), "status": InvitationStatus.PENDING},
             select_related=["user", "workspace"],
         )
-        fake_auth_services.get_available_user_logins.assert_not_awaited()
 
         assert pub_invitation.email == invitation.email
         assert pub_invitation.existing_user is False
         assert pub_invitation.workspace.name == invitation.workspace.name
-        assert pub_invitation.available_logins == []
 
 
 async def test_get_public_workspace_invitation_error_invitation_not_exists():

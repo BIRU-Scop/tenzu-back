@@ -1,5 +1,3 @@
-This program should not be used in production in its current state.
+To reach us for any generic question, you can go to our [community website](https://community.tenzu.net)
 
-It is still a work in progress.
-
-To reach us for any question, you can go to our [community website](https://community.tenzu.net)
+For professional support service, contact us at <ask@tenzu.net>

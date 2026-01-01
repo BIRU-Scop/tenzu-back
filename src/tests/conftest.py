@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,6 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 import contextlib
+import os
 from unittest import mock
 from unittest.mock import patch
 
@@ -112,31 +113,40 @@ def pytest_addoption(parser):
     )
 
 
+def _is_parallel_run():
+    # detect if we are using pytest-xdist parallel mode
+    return os.environ.get("PYTEST_XDIST_WORKER", None) is not None
+
+
 def pytest_collection_modifyitems(config, items):
-    # handle some filtering options
-    if config.getoption("--slow_only"):
-        skip = pytest.mark.skip(reason="only execute slow test")
-        for item in items:
-            # Only those with django_db(transaction=True or serialized_rollback=True)
-            if "django_db" not in item.keywords:
-                item.add_marker(skip)
-            else:
+    def handle_filtering_options():
+        if config.getoption("--slow_only"):
+            skip = pytest.mark.skip(reason="only execute slow test")
+            for item in items:
+                # Only those with django_db(transaction=True or serialized_rollback=True)
+                if "django_db" not in item.keywords:
+                    item.add_marker(skip)
+                else:
+                    for marker in item.iter_markers(name="django_db"):
+                        if not marker.kwargs.get(
+                            "transaction", False
+                        ) and not marker.kwargs.get("serialized_rollback", False):
+                            item.add_marker(skip)
+                            break
+        elif config.getoption("--fast_only"):
+            skip = pytest.mark.skip(reason="exclude slow test")
+            for item in items:
+                # Exclude those with django_db(transaction=True or serialized_rollback=True)
                 for marker in item.iter_markers(name="django_db"):
-                    if not marker.kwargs.get(
-                        "transaction", False
-                    ) and not marker.kwargs.get("serialized_rollback", False):
+                    if marker.kwargs.get("transaction", False) or marker.kwargs.get(
+                        "serialized_rollback", False
+                    ):
                         item.add_marker(skip)
                         break
-    elif config.getoption("--fast_only"):
-        skip = pytest.mark.skip(reason="exclude slow test")
-        for item in items:
-            # Exclude those with django_db(transaction=True or serialized_rollback=True)
-            for marker in item.iter_markers(name="django_db"):
-                if marker.kwargs.get("transaction", False) or marker.kwargs.get(
-                    "serialized_rollback", False
-                ):
-                    item.add_marker(skip)
-                    break
+
+    handle_filtering_options()
+
+    parallel_run = _is_parallel_run()
 
     # make every tests using db with transaction=True but not serialized_rollback=True
     # run at the end, otherwise you'll get flaky tests with IntegrityError: duplicate key because
@@ -145,12 +155,14 @@ def pytest_collection_modifyitems(config, items):
     # see https://code.djangoproject.com/ticket/36429
     def transactional_attr_order(item):
         marker = item.get_closest_marker("django_db")
-        if (
-            marker
-            and marker.kwargs.get("transaction", False)
-            and not marker.kwargs.get("serialized_rollback", False)
-        ):
-            return 1
+        if marker:
+            if parallel_run:
+                # mark all test using the db as flaky, as running them in parallel with pytest-xdist can cause db concurrency issue
+                item.add_marker(pytest.mark.flaky(only_rerun=["AssertionError"]))
+            if marker.kwargs.get("transaction", False) and not marker.kwargs.get(
+                "serialized_rollback", False
+            ):
+                return 1
         return 0
 
     items.sort(key=transactional_attr_order)

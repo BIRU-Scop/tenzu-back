@@ -74,7 +74,6 @@ msgstr "¿No funciona el botón? Copia y pega esta URL en tu navegador:"
 #: tenzu/emails/templates/project_invitation.html.jinja:613
 #: tenzu/emails/templates/reset_password.html.jinja:617
 #: tenzu/emails/templates/sign_up.html.jinja:558
-#: tenzu/emails/templates/social_login_warning.html.jinja:518
 #: tenzu/emails/templates/workspace_invitation.html.jinja:615
 msgid "emails.footer.help_support"
 msgstr ""
@@ -88,7 +87,6 @@ msgstr "[Tenzu] Invitación para unirte al proyecto '%(name)s'"
 #: tenzu/emails/templates/project_invitation.txt.jinja:30
 #: tenzu/emails/templates/reset_password.txt.jinja:21
 #: tenzu/emails/templates/sign_up.txt.jinja:26
-#: tenzu/emails/templates/social_login_warning.txt.jinja:23
 #: tenzu/emails/templates/workspace_invitation.txt.jinja:27
 msgid "emails.commons.support_txt"
 msgstr "¿Necesitas ayuda? Contacta con nosotros en %(support_email)s"
@@ -120,8 +118,6 @@ msgstr "¿No funciona el botón? Copia y pega esta URL en tu navegador:"
 #: tenzu/emails/templates/reset_password.txt.jinja:19
 #: tenzu/emails/templates/sign_up.html.jinja:493
 #: tenzu/emails/templates/sign_up.txt.jinja:20
-#: tenzu/emails/templates/social_login_warning.html.jinja:489
-#: tenzu/emails/templates/social_login_warning.txt.jinja:21
 msgid "emails.commons.team"
 msgstr "El equipo de Tenzu"
 
@@ -181,46 +177,6 @@ msgstr "Verifica tu email para empezar a usar Tenzu"
 #: tenzu/emails/templates/sign_up.txt.jinja:15
 msgid "emails.sign_up.copy_link"
 msgstr "Copia y pega esta URL en tu navegador:"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:13
-msgid "emails.social_login_warning.title"
-msgstr "Nuevo inicio de sesión en tu cuenta de Tenzu"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:455
-#: tenzu/emails/templates/social_login_warning.txt.jinja:9
-msgid "emails.social_warning_login.hi"
-msgstr "Hola %(name)s,"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:460
-#: tenzu/emails/templates/social_login_warning.txt.jinja:11
-msgid "emails.social_login_warning.method"
-msgstr ""
-"Hemos detectado un inicio de sesión en tu cuenta de Tenzu mediante un "
-"método diferente (%(method)s)"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:467
-#: tenzu/emails/templates/social_login_warning.txt.jinja:13
-msgid "emails.social_login_warning.time"
-msgstr "Cuándo:"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:474
-#: tenzu/emails/templates/social_login_warning.txt.jinja:15
-msgid "emails.social_login_warning.not_you"
-msgstr "Si no has sido tú, escríbenos un correo a %(support_email)s"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:479
-#: tenzu/emails/templates/social_login_warning.txt.jinja:17
-msgid "emails.social_login_warning.ignore"
-msgstr "Si has sido tú, puedes ignorar este email"
-
-#: tenzu/emails/templates/social_login_warning.html.jinja:484
-#: tenzu/emails/templates/social_login_warning.txt.jinja:19
-msgid "emails.social_login_warning.cheers"
-msgstr "¡Saludos!"
-
-#: tenzu/emails/templates/social_login_warning.subject.jinja:9
-msgid "emails.social_login_warning.subject"
-msgstr "Nuevo inicio de sesión en tu cuenta de Tenzu"
 
 #: tenzu/emails/templates/workspace_invitation.html.jinja:13
 #: tenzu/emails/templates/workspace_invitation.txt.jinja:10

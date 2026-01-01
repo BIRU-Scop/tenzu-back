@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 from asgiref.sync import sync_to_async
 
+from auth.serializers import AuthConfigSerializer
 from ninja_jwt import exceptions
 from ninja_jwt.schema import TokenObtainPairInputSchema, TokenObtainPairOutputSchema
 from ninja_jwt.settings import api_settings
@@ -28,7 +29,7 @@ from users.models import User
 
 async def create_auth_credentials(user: User) -> TokenObtainPairOutputSchema:
     """
-    This function create new auth credentiasl (an access token and a refresh token) for one user.
+    This function create new auth credentials (an access token and a refresh token) for one user.
     It will also update the date of the user's last login.
     """
     if not api_settings.USER_AUTHENTICATION_RULE(user):
@@ -47,13 +48,9 @@ async def create_auth_credentials(user: User) -> TokenObtainPairOutputSchema:
     )
 
 
-async def get_available_user_logins(user: User) -> list[str]:
-    available_social_user_logins = await users_repositories.list_auths_data(
-        filters={"user_id": user.id}
+def get_auth_config(request) -> AuthConfigSerializer:
+    from allauth.headless.socialaccount.response import (
+        get_config_data as get_socialaccount_config_data,
     )
-    available_user_logins = [x.key for x in available_social_user_logins]
 
-    if user.password:
-        available_user_logins.append("password")
-
-    return available_user_logins
+    return AuthConfigSerializer.model_validate(get_socialaccount_config_data(request))

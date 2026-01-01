@@ -38,10 +38,10 @@ tasks:
   # STOP & RESET
   stop:
     cmds:
-      - docker compose stop
+      - docker compose --profile "*" stop
   reset:
     cmds:
-      - docker compose down -v
+      - docker compose --profile "*" down -v
   reset-db:
     dotenv:
       - "../../tenzu/dev.env"
@@ -113,6 +113,9 @@ tasks:
       - task: up
       - task: migrate
       - task: collectstatic
+  ldap:
+    cmds:
+      - docker compose up tenzu-ldap -d --wait
 
   # OTHERS
   test:

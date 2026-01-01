@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2025 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,10 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 import tempfile
+from smtplib import SMTPConnectError
 from unittest.mock import patch
 
 import pytest
-from aiosmtplib import SMTPConnectError
 from conf.emails import EmailBackends
 from fastapi_mailman import Mail
 from fastapi_mailman.config import ConnectionConfig

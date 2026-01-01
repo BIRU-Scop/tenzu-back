@@ -98,6 +98,7 @@ services:
       - tenzu-media:/public/media
     networks:
       - tenzu
+
   tenzu-minio:
     image: bitnamilegacy/minio:latest
     environment:
@@ -112,6 +113,28 @@ services:
       tenzu:
     volumes:
       - tenzu-minio:/bitnami/minio/data
+
+  tenzu-ldap:
+    image: osixia/openldap:1.5.0
+    profiles:
+      - ldap
+    environment:
+      LDAP_ORGANISATION: tenzu.dev
+      LDAP_DOMAIN: tenzu.dev
+      LDAP_ADMIN_PASSWORD: ldap_admin_pwd
+      LDAP_READONLY_USER: "true"
+      LDAP_READONLY_USER_PASSWORD: ldap_pwd
+    command: --loglevel debug --copy-service
+    volumes:
+      - ../../ldap/custom:/container/service/slapd/assets/config/bootstrap/ldif/custom
+      - tenzu-ldap-db:/var/lib/ldap
+      - tenzu-ldap-config:/etc/ldap/slapd.d
+    networks:
+      - tenzu
+#    ports:
+#      - 389:389
+#      - 636:636
+
   compile-dep:
     <<: *dev-image
     working_dir: /tenzu
@@ -141,5 +164,7 @@ volumes:
   tenzu-media:
   tenzu-static:
   tenzu-minio:
+  tenzu-ldap-db:
+  tenzu-ldap-config:
 networks:
   tenzu:

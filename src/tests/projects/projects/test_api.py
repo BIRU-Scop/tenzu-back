@@ -155,7 +155,7 @@ async def test_list_workspace_projects_422_unprocessable_workspace_b64id(client)
     user = await f.create_user()
     client.login(user)
     response = await client.get(f"/workspaces/{INVALID_B64ID}/projects")
-    assert response.status_code == 422, response.text
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
