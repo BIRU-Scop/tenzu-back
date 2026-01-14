@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -15,29 +15,19 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-# # -*- coding: utf-8 -*-
-# # This Source Code Form is subject to the terms of the Mozilla Public
-# # License, v. 2.0. If a copy of the MPL was not distributed with this
-# # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-# #
-# # Copyright (c) 2023-present Kaleidos INC
-#
+
 import logging
 from datetime import timedelta
 
 from django.conf import settings
 from procrastinate.contrib.django import app
 
-#
 from ninja_jwt.utils import aware_utcnow
 from notifications import services as notifications_services
 
-#
 logger = logging.getLogger(__name__)
 
 
-#
-#
 @app.periodic(cron=settings.NOTIFICATIONS.CLEAN_READ_NOTIFICATIONS_CRON)  # type: ignore
 @app.task
 async def clean_read_notifications(timestamp: int) -> int:
