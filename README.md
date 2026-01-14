@@ -19,12 +19,14 @@
 Our mission is to help all actors in a project team, from Techs through Product and Designers up to Leaders, 
 share knowledge and learnings to make informed decisions.
 
-![tenzu screenshot](https://tenzu.net/media/images/tenzu_demo.original.webp)
+![tenzu screenshot](https://tenzu.net/media/images/tenzu_demo2025.original.webp)
 
 ## Features
-- *Project spaces*: Multiple project space organised by workspaces
-- *KANBAN*: Unlimited kanban board with custom statuses
-- More coming
+- **Project spaces**: Multiple project spaces organised by workspace
+- **KANBAN**: Unlimited kanban boards with custom statuses
+- **Dark theme and Multi-language**: More languages and accessibility features will be added
+- Live collaborative editing of tickets coming soon
+- Scrum and issue tracking coming in 2026
 
 ### Roadmap
 
