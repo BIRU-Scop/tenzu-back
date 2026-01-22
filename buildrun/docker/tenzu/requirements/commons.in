@@ -52,3 +52,6 @@ python-json-logger # JSON logger
 python-slugify # To generate slugs
 typer # To manage CLI
 sentry-sdk  # error event handler
+
+#pycrdt
+pycrdt-websocket

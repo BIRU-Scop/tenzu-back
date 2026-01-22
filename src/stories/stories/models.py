@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -47,6 +47,7 @@ class Story(
         max_length=500, null=False, blank=False, verbose_name="title"
     )
     description = models.TextField(null=True, blank=True, verbose_name="description")
+    description_binary = models.BinaryField(null=True, blank=True)
     project = models.ForeignKey(
         "projects.Project",
         null=False,

@@ -20,5 +20,6 @@ local-tenzu.biru.ovh {
    reverse_proxy /_allauth/* tenzu-back:8000
    reverse_proxy /admin/* tenzu-back:8000
    reverse_proxy /events/ tenzu-back:8000
+   reverse_proxy /collaboration/* tenzu-back:8000
    reverse_proxy host.docker.internal:4200
 }
