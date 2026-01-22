@@ -1,0 +1,19 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@blocknote/code-block": "^0.46.1",
+    "@blocknote/core": "^0.46.1",
+    "jsdom": "^27.4.0",
+    "yjs": "^13.6.29"
+  }
+}

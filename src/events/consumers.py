@@ -242,7 +242,7 @@ class CollaborationConsumer(YjsConsumer):
         """Returns the decoded project UUID from the URL route."""
         return decode_b64str_to_uuid(self.scope["url_route"]["kwargs"]["project_id"])
 
-    @cached_property
+    @property
     def story_ref(self):
         """Returns the story reference from the URL route."""
         return self.scope["url_route"]["kwargs"]["story_ref"]

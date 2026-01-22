@@ -4,7 +4,8 @@ FROM python:3.14-slim-bookworm AS base-image
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
+COPY --from=node:25-bookworm-slim /usr/local/bin/ /usr/local/bin/
+COPY --from=node:25-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 ARG EXTRA_PACKAGES=""
 
 
@@ -28,6 +29,8 @@ RUN mkdir -p /public/media /public/static && chown -R default-user:default-group
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # utils \
     iputils-ping htop git \
+    # node runtime deps \
+    libatomic1 \
     # common deps \
     build-essential python3-dev \
     # psycopg & django translation deps \
@@ -43,6 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 USER default-user
 WORKDIR /tenzu
+RUN cd /tenzu/scripts/ && npm install
 
 # pass required env var so it does not crash validation, they will not be used
 RUN TENZU_SECRET_KEY=secret TENZU_TOKENS__SIGNING_KEY=secret2 python ./__main__.py i18n compile-catalog
