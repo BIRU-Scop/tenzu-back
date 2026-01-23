@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -48,7 +48,7 @@ def get_thumbnail_url(relative_image_path: str, thumbnailer_size: str) -> str | 
     return get_absolute_url(thumbnail.url)
 
 
-def valid_content_type(uploaded_img: UploadedFile) -> bool:
+def valid_image_content_type(uploaded_img: UploadedFile) -> bool:
     return uploaded_img.content_type in settings.IMAGES.VALID_CONTENT_TYPES
 
 

@@ -20,30 +20,21 @@ from typing import Any, Literal
 
 from ninja import UploadedFile
 from pydantic import (
-    AfterValidator,
     BeforeValidator,
     Field,
     PlainValidator,
     StringConstraints,
-    WithJsonSchema,
 )
 from typing_extensions import Annotated
 
-from base.utils.images import valid_content_type, valid_image_content
-from base.utils.uuid import decode_b64str_to_uuid
+from base.utils.images import valid_image_content, valid_image_content_type
 from commons.colors import NUM_COLORS
 from commons.validators import BaseModel
-
-B64UUID = Annotated[
-    str,
-    AfterValidator(decode_b64str_to_uuid),
-    WithJsonSchema({"type": "str", "examples": "6JgsbGyoEe2VExhWgGrI2w"}),
-]
 
 
 def validate_logo(logo: UploadedFile):
     if logo:
-        if not valid_content_type(logo):
+        if not valid_image_content_type(logo):
             raise ValueError("Invalid image content type")
         if not valid_image_content(logo):
             raise ValueError("Invalid image content")

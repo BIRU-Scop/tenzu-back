@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -36,7 +36,6 @@ from projects.projects.models import Project, ProjectTemplate
 from projects.projects.serializers import (
     ProjectDetailSerializer,
 )
-from users import repositories as users_repositories
 from users.models import AnyUser, User
 from workflows import repositories as workflows_repositories
 from workspaces.workspaces.models import Workspace
