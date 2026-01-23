@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -26,6 +26,7 @@ from base.utils.strings import to_kebab
 from commons.exceptions.api import codes
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
+from import_export.api import import_export_router
 from ninja_jwt.api import auth_router
 from ninja_jwt.authentication import AsyncJWTAuth
 from ninja_jwt.ninja_extra.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
@@ -102,6 +103,7 @@ api.add_router(
     "", tags=["workspaces", "memberships"], router=workspace_membership_router
 )
 api.add_router("", tags=["workflows"], router=workflows_router)
+api.add_router("", tags=["import_export"], router=import_export_router)
 api.add_router("", tags=["auth"], router=auth_router)
 api.add_router("", tags=["auth"], router=social_auth_router)
 api.add_router("", tags=["system"], router=health_router)

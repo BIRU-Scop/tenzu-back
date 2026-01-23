@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     "workspaces.invitations",
     "workspaces.memberships",
     "workspaces.workspaces",
+    "import_export",
     # 3rd-party
     "easy_thumbnails",
     "ninja_jwt",
