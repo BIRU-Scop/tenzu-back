@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,7 +20,7 @@
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PositiveInt
 
 
 class PubSubBackendChoices(Enum):
@@ -42,3 +42,4 @@ class EventsSettings(BaseModel):
     REDIS_DATABASE: int = 0
     REDIS_OPTIONS: dict[str, str | int] = Field(default_factory=dict)
     REDIS_CHANNEL_OPTIONS: dict[str, Any] = Field(default_factory=dict)
+    DEBOUNCE_SAVE_DELAY: PositiveInt = 2

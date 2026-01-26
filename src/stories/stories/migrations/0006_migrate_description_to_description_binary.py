@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2026 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -15,14 +15,21 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from django.urls import path, re_path
 
-from . import consumers
+from django.db import migrations
 
-websocket_urlpatterns = [
-    path("events/", consumers.EventConsumer.as_asgi()),
-    path(
-        "collaboration/<str:project_id>/<str:story_ref>",
-        consumers.CollaborationConsumer.as_asgi(),
-    ),
-]
+from stories.stories.migrations._data import migrate_story_in_batches
+
+
+def migrate_in_batches(apps, schema_editor):
+    Story = apps.get_model("stories", "Story")
+    migrate_story_in_batches(Story)
+
+
+class Migration(migrations.Migration):
+    dependencies = [("stories", "0005_story_description_binary")]
+    operations = [
+        migrations.RunPython(
+            migrate_in_batches, reverse_code=migrations.RunPython.noop
+        ),
+    ]

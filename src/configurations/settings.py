@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -38,8 +38,13 @@ from base.front import Urls
 from .conf import settings
 from .conf.auth import LDAPActivation
 from .conf.events import PubSubBackendChoices
-from .utils import remove_ending_slash
+from .utils import BASE_DIR, remove_ending_slash
 
+locals().update(
+    {
+        "BASE_DIR": BASE_DIR,
+    }
+)
 locals().update(
     # don't use model_dumps to prevent conversion to dict of nested models
     {
@@ -318,6 +323,8 @@ CHANNEL_LAYERS = {
         "BACKEND": f"{settings.EVENTS.PUBSUB_BACKEND.value}",
     },
 }
+EVENTS_DEBOUNCE_SAVE_DELAY = settings.EVENTS.DEBOUNCE_SAVE_DELAY
+
 if settings.EVENTS.PUBSUB_BACKEND == PubSubBackendChoices.REDIS:
     CHANNEL_LAYERS["default"]["CONFIG"] = {
         "hosts": [
