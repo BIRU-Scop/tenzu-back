@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -40,7 +40,7 @@ pytestmark = pytest.mark.django_db
 async def test_create_story_attachment_200_ok(client, project_template):
     project = await f.create_project(project_template)
     story = await f.create_story(project=project)
-    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
+    files = {"file": f.build_binary_uploadfile("test.txt", content=b"data345")}
 
     client.login(project.created_by)
     response = await client.post(
@@ -48,6 +48,9 @@ async def test_create_story_attachment_200_ok(client, project_template):
         FILES=files,
     )
     assert response.status_code == 200, response.data["data"]
+    file = response.data["data"]["file"]
+    assert file.startswith(str(settings.BACKEND_URL))
+    assert file.endswith(response.data["data"]["id"])
 
     user = await f.create_user()
     general_member_role = await f.create_project_role(
@@ -65,6 +68,9 @@ async def test_create_story_attachment_200_ok(client, project_template):
         FILES=files,
     )
     assert response.status_code == 200, response.data["data"]
+    file = response.data["data"]["file"]
+    assert file.startswith(str(settings.BACKEND_URL))
+    assert file.endswith(response.data["data"]["id"])
 
 
 async def test_create_story_attachment_401_forbidden_anonymous(
@@ -72,7 +78,7 @@ async def test_create_story_attachment_401_forbidden_anonymous(
 ):
     project = await f.create_project(project_template)
     story = await f.create_story(project=project)
-    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
+    files = {"file": f.build_binary_uploadfile("test.txt", content=b"data345")}
 
     response = await client.post(
         f"/projects/{project.b64id}/stories/{story.ref}/attachments",
@@ -87,7 +93,7 @@ async def test_create_story_attachment_403_forbidden_error_not_member(
     project = await f.create_project(project_template)
     story = await f.create_story(project=project)
     user = await f.create_user()
-    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
+    files = {"file": f.build_binary_uploadfile("test.txt", content=b"data345")}
 
     client.login(user)
     response = await client.post(
@@ -111,7 +117,7 @@ async def test_create_story_attachment_403_forbidden_error_no_permissions(
     await f.create_project_membership(
         user=user, project=project, role=general_member_role
     )
-    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
+    files = {"file": f.build_binary_uploadfile("test.txt", content=b"data345")}
 
     client.login(user)
     response = await client.post(
@@ -127,7 +133,7 @@ async def test_create_story_attachment_404_not_found_project_b64id(
     project = await f.create_project(project_template)
     story = await f.create_story(project=project)
     user = project.created_by
-    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
+    files = {"file": f.build_binary_uploadfile("test.txt", content=b"data345")}
 
     client.login(user)
     response = await client.post(
@@ -142,7 +148,7 @@ async def test_create_story_attachment_404_not_found_story_ref(
 ):
     project = await f.create_project(project_template)
     user = project.created_by
-    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
+    files = {"file": f.build_binary_uploadfile("test.txt", content=b"data345")}
 
     client.login(user)
     response = await client.post(
@@ -158,7 +164,7 @@ async def test_create_story_attachment_422_unprocessable_entity_project_b64id(
     project = await f.create_project(project_template)
     story = await f.create_story(project=project)
     user = project.created_by
-    files = {"file": SimpleUploadedFile("test.txt", b"data345")}
+    files = {"file": f.build_binary_uploadfile("test.txt", content=b"data345")}
 
     client.login(user)
     response = await client.post(
@@ -402,7 +408,7 @@ async def test_delete_story_attachment_404_not_found_nonexistent_attachment(clie
 
 
 ##########################################################
-# GET stories/attachments/<id>/file/<filename>
+# GET stories/attachments/<id>
 ##########################################################
 
 

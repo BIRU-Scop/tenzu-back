@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,8 +21,10 @@
 import pytest
 from pydantic import ValidationError
 
+from base.serializers import BaseModel
 from projects.projects.api.validators import (
     CreateProjectValidator,
+    LogoField,
     UpdateProjectValidator,
 )
 from tests.utils import factories as f
@@ -31,6 +33,10 @@ from tests.utils.utils import check_validation_errors
 ##########################################################
 # ProjectValidator
 ##########################################################
+
+
+class LogoValidator(BaseModel):
+    logo: LogoField | None
 
 
 def test_validate_create_user_wrong_not_all_required_fields():
@@ -106,15 +112,13 @@ def test_validate_logo_content_type():
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        CreateProjectValidator(color=color, logo=logo)
+        LogoValidator(logo=logo)
 
     expected_error_fields = [
         "logo",
-        "name",
     ]
     expected_error_messages = [
         "Value error, Invalid image content type",
-        "Field required",
     ]
     check_validation_errors(
         validations_errors, expected_error_fields, expected_error_messages
@@ -127,28 +131,20 @@ def test_validate_logo_content():
 
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyArgumentList
-        CreateProjectValidator(color=color, logo=logo)
+        LogoValidator(logo=logo)
 
-    expected_error_fields = ["logo", "name"]
-    expected_error_messages = ["Value error, Invalid image content", "Field required"]
+    expected_error_fields = ["logo"]
+    expected_error_messages = ["Value error, Invalid image content"]
     check_validation_errors(
         validations_errors, expected_error_fields, expected_error_messages
     )
 
 
-def test_validate_logo_name_empty():
-    color = 1
+def test_validate_logo_empty():
     logo = ""
 
-    with pytest.raises(ValidationError) as validations_errors:
-        # noinspection PyArgumentList
-        CreateProjectValidator(color=color, logo=logo)
-
-    expected_error_fields = ["name"]
-    expected_error_messages = ["Field required"]
-    check_validation_errors(
-        validations_errors, expected_error_fields, expected_error_messages
-    )
+    # noinspection PyArgumentList
+    LogoValidator(logo=logo)
 
 
 ##########################################################
