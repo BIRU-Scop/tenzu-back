@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,6 +24,7 @@ from ninja import Schema
 
 from attachments.serializers import AttachmentSerializer
 from base.serializers import FileField
+from base.utils.uuid import encode_uuid_to_b64str
 
 
 class StoryAttachmentSerializer(AttachmentSerializer):
@@ -31,13 +32,17 @@ class StoryAttachmentSerializer(AttachmentSerializer):
 
     @staticmethod
     def resolve_file(obj):
+        if isinstance(obj, dict):
+            obj_id = obj.get("id")
+        else:
+            obj_id = obj.id
         return urljoin(
             str(settings.BACKEND_URL),
             str(
                 reverse_lazy(
                     f"api-{settings.API_VERSION}:story.attachments.file",
                     kwargs={
-                        "attachment_id": obj.b64id,
+                        "attachment_id": encode_uuid_to_b64str(obj_id),
                     },
                 )
             ),

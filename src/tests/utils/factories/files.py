@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,10 +22,9 @@ from io import BytesIO
 from tempfile import SpooledTemporaryFile
 from typing import IO, Generator
 
+from django.core.files import File
 from ninja import UploadedFile
 from PIL import Image
-
-from base.utils.files import File
 
 ###########################################################
 # Binary

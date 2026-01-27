@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,8 +23,8 @@ from pydantic import BaseModel, Field
 
 
 class ImageSettings(BaseModel):
-    THUMBNAIL_PROJECT_LOGO_SMALL: str = "32x32_crop"
-    THUMBNAIL_PROJECT_LOGO_LARGE: str = "80x80_crop"
+    THUMBNAIL_FORMAT_SMALL: str = "32x32_crop"
+    THUMBNAIL_FORMAT_LARGE: str = "80x80_crop"
     VALID_CONTENT_TYPES: list[str] = Field(
         default=[
             "image/jpeg",

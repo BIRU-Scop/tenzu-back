@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,10 +21,10 @@ from typing import Any, Literal, TypedDict
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
+from django.core.files import File
 from django.db.models import Exists, OuterRef, Q
 
 from base.db.utils import Q_for_related
-from base.utils.files import File
 from commons.utils import transaction_atomic_async
 from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus

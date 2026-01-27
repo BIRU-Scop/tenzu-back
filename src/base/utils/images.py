@@ -16,36 +16,42 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import logging
+from typing import Literal
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
+from django.db.models.fields.files import FieldFile
 from easy_thumbnails.exceptions import InvalidImageFormatError  # type: ignore
-from easy_thumbnails.files import ThumbnailerFieldFile, get_thumbnailer  # type: ignore
+from easy_thumbnails.files import ThumbnailFile, get_thumbnailer  # type: ignore
 from easy_thumbnails.source_generators import pil_image  # type: ignore
 from ninja import UploadedFile
 
-from commons.utils import get_absolute_url
+logger = logging.getLogger(__name__)
 
 
-def get_thumbnail(
-    relative_image_path: str, thumbnailer_size: str
-) -> ThumbnailerFieldFile:
-    try:
-        thumbnailer = get_thumbnailer(relative_image_path)
-        return thumbnailer[thumbnailer_size]
+ImageSizeFormat = Literal["small", "large", "original"]
 
-    except InvalidImageFormatError:
-        return None
+
+def _patched_thumbnail_open(self, mode=None, *args, **kwargs):
+    return ThumbnailFile.open(self, mode, *args, **kwargs) or self
 
 
 @sync_to_async
-def get_thumbnail_url(relative_image_path: str, thumbnailer_size: str) -> str | None:
-    thumbnail = get_thumbnail(relative_image_path, thumbnailer_size)
-
-    if not thumbnail:
+def get_thumbnail(file: FieldFile, thumbnailer_size: str) -> ThumbnailFile | None:
+    try:
+        thumbnailer = get_thumbnailer(file)
+        file = thumbnailer[thumbnailer_size]
+    except InvalidImageFormatError as e:
+        logger.error(
+            f"Invalid image format for file {file} with format {thumbnailer_size}: '{e}'"
+        )
         return None
-
-    return get_absolute_url(thumbnail.url)
+    else:
+        # TODO monkeypatch needed because of https://github.com/SmileyChris/easy-thumbnails/issues/669
+        #  remove once fixed
+        file.open = _patched_thumbnail_open.__get__(file)
+        return file
 
 
 def valid_image_content_type(uploaded_img: UploadedFile) -> bool:

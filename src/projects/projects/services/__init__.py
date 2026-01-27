@@ -17,16 +17,20 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from functools import partial
 from typing import Any
 from uuid import UUID
 
 from django.conf import settings
+from django.db.models.fields.files import FieldFile
+from easy_thumbnails.files import ThumbnailFile
 from ninja import UploadedFile
 
-from base.utils.files import uploadfile_to_file
-from base.utils.images import get_thumbnail_url
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from base.utils.images import ImageSizeFormat, get_thumbnail
+from commons.utils import (
+    get_absolute_url,
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from permissions.choices import ProjectPermissions
 from projects.memberships import repositories as memberships_repositories
 from projects.projects import events as projects_events
@@ -228,7 +232,7 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
     file_to_delete = None
     if "logo" in values:
         if logo := values.get("logo"):
-            values["logo"] = uploadfile_to_file(file=logo)
+            values["logo"] = logo
         else:
             values["logo"] = None
 
@@ -286,17 +290,25 @@ async def delete_project(project: Project, deleted_by: User) -> bool:
 ##########################################################
 
 
-async def get_logo_thumbnail_url(
-    thumbnailer_size: str, logo_relative_path: str
-) -> str | None:
-    if logo_relative_path:
-        return await get_thumbnail_url(logo_relative_path, thumbnailer_size)
+async def get_logo(
+    project: Project, format: ImageSizeFormat
+) -> FieldFile | ThumbnailFile | None:
+    match format:
+        case "small":
+            return await get_thumbnail(
+                project.logo, settings.IMAGES.THUMBNAIL_FORMAT_SMALL
+            )
+        case "large":
+            return await get_thumbnail(
+                project.logo, settings.IMAGES.THUMBNAIL_FORMAT_LARGE
+            )
+        case "original":
+            return project.logo
+
+
+async def get_logo_url(project: Project, format: ImageSizeFormat) -> str | None:
+    if project.logo:
+        thumbnail = await get_logo(project, format)
+        if thumbnail:
+            return get_absolute_url(thumbnail.url)
     return None
-
-
-get_logo_small_thumbnail_url = partial(
-    get_logo_thumbnail_url, settings.IMAGES.THUMBNAIL_PROJECT_LOGO_SMALL
-)
-get_logo_large_thumbnail_url = partial(
-    get_logo_thumbnail_url, settings.IMAGES.THUMBNAIL_PROJECT_LOGO_LARGE
-)
