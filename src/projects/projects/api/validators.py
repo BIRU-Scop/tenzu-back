@@ -33,7 +33,7 @@ from commons.colors import NUM_COLORS
 from commons.validators import BaseModel
 
 
-def validate_logo(logo: UploadedFile):
+def validate_logo(logo: UploadedFile) -> UploadedFile:
     if logo:
         if not valid_image_content_type(logo):
             raise ValueError("Invalid image content type")
@@ -65,7 +65,6 @@ class CreateProjectValidator(BaseModel):
     ]  # type: ignore
     description: constr(max_length=220) | None = None  # type: ignore
     color: conint(gt=0, le=NUM_COLORS) | None = None  # type: ignore
-    logo: LogoField | None = None
 
 
 class UpdateProjectValidator(BaseModel):

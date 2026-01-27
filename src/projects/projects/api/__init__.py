@@ -20,6 +20,7 @@
 from pathlib import Path as PathlibPath
 from uuid import UUID
 
+from django.conf import settings
 from django.http import FileResponse
 from ninja import File, Form, Path, Router
 
@@ -78,7 +79,8 @@ async def create_project(
     request,
     workspace_id: Path[B64UUID],
     form: Form[CreateProjectValidator],
-    logo: LogoField | None = File(None),
+    logo: File[(LogoField, {"max_length": settings.IMAGES.MAX_UPLOAD_FILE_SIZE})]
+    | None = File(None),
 ) -> ProjectDetailSerializer:
     """
     Create project in a given workspace.
@@ -229,7 +231,8 @@ async def update_project(
     request,
     project_id: Path[B64UUID],
     form: Form[UpdateProjectValidator],
-    logo: LogoField | None = File(None),
+    logo: File[(LogoField, {"max_length": settings.IMAGES.MAX_UPLOAD_FILE_SIZE})]
+    | None = File(None),
 ) -> ProjectDetailSerializer:
     """
     Update project
@@ -241,6 +244,7 @@ async def update_project(
 
     values = form.model_dump(exclude_unset=True)
     # if a file is present, we need to assign it
+    # this is the only way to differentiate whether logo is None because it is unset or because it was removed
     if "logo" in request.POST or request.FILES:
         values["logo"] = logo
     return await projects_services.update_project(

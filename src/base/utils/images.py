@@ -42,9 +42,9 @@ def get_thumbnail(file: FieldFile, thumbnailer_size: str) -> ThumbnailFile | Non
     try:
         thumbnailer = get_thumbnailer(file)
         file = thumbnailer[thumbnailer_size]
-    except InvalidImageFormatError as e:
+    except (InvalidImageFormatError, OSError) as e:
         logger.error(
-            f"Invalid image format for file {file} with format {thumbnailer_size}: '{e}'"
+            f"Image error for file {file} with format {thumbnailer_size}: '{e}'"
         )
         return None
     else:

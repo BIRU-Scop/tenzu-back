@@ -19,7 +19,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PositiveInt
 
 
 class ImageSettings(BaseModel):
@@ -33,6 +33,7 @@ class ImageSettings(BaseModel):
             "image/webp",
         ]
     )
+    MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 500 * 1024  # 500 KB
     # easy_thumbnails
     THUMBNAIL_ALIASES: dict[str, Any] = Field(
         default={
