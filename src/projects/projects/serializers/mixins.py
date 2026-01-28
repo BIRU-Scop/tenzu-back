@@ -32,6 +32,8 @@ class ProjectLogoBaseSerializer(BaseModel):
 
     @staticmethod
     def resolve_logo(obj):
+        if isinstance(obj, BaseModel):
+            return obj.logo
         if isinstance(obj, dict):
             logo = obj.get("logo")
             obj_id = obj.get("id")

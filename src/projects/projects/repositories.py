@@ -155,7 +155,7 @@ async def update_project(project: Project, values: dict[str, Any] = {}) -> Proje
         setattr(project, attr, value)
 
     project.modified_at = aware_utcnow()
-    await project.asave(update_fields=values.keys())
+    await project.asave(update_fields={*values.keys(), "modified_at"})
     return project
 
 
