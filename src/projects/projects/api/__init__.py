@@ -18,11 +18,14 @@
 # You can contact BIRU at ask@biru.sh
 
 from pathlib import Path as PathlibPath
+from typing import Literal
 from uuid import UUID
 
 from django.conf import settings
 from django.http import FileResponse
+from django.views.decorators.cache import cache_control
 from ninja import File, Form, Path, Router
+from ninja.decorators import decorate_view
 
 from base.serializers import BaseDataModel
 from base.utils.files import iterfile
@@ -183,11 +186,16 @@ async def get_project(request, project_id: Path[B64UUID]) -> ProjectDetailSerial
     },
     by_alias=True,
 )
+@decorate_view(cache_control(private=True, max_age=31536000, immutable=True))
 async def get_project_logo(
-    request, project_id: Path[B64UUID], format: ImageSizeFormat = "small"
+    request,
+    project_id: Path[B64UUID],
+    last_mod: float | Literal[""],
+    format: ImageSizeFormat = "small",
 ) -> FileResponse | None:
     """
     Get project logo by project id.
+    last_mod is used for caching purpose
     """
 
     project = await get_project_or_404(project_id)

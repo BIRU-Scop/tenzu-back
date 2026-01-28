@@ -37,11 +37,13 @@ class ProjectLogoBaseSerializer(BaseModel):
         if isinstance(obj, dict):
             logo = obj.get("logo")
             obj_id = obj.get("id")
+            obj_mod = obj.get("modified_at")
         else:
             logo = obj.logo
             obj_id = obj.id
+            obj_mod = obj.modified_at
         if not logo:
-            return None
+            return logo
         return urljoin(
             str(settings.BACKEND_URL),
             str(
@@ -52,6 +54,7 @@ class ProjectLogoBaseSerializer(BaseModel):
                         if isinstance(obj_id, UUID)
                         else obj_id,
                     },
+                    query={"last_mod": obj_mod.timestamp() if obj_mod else ""},
                 )
             ),
         )

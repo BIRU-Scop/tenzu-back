@@ -186,6 +186,7 @@ async def get_project_detail(
         logo=project.logo,
         landing_page=project.landing_page,
         workspace_id=project.workspace_id,
+        modified_at=project.modified_at,
         workflows=workflows,
         user_role=user.project_role,
         user_is_invited=user.is_invited or False,
