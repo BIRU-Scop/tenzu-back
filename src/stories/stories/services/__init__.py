@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -166,7 +166,6 @@ async def get_story_detail(
     return StoryDetailSerializer(
         ref=story.ref,
         title=story.title,
-        description=story.description,
         status_id=story.status_id,
         status=story.status,
         workflow_id=story.workflow_id,
