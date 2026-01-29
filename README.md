@@ -25,7 +25,7 @@ share knowledge and learnings to make informed decisions.
 - **Project spaces**: Multiple project spaces organised by workspace
 - **KANBAN**: Unlimited kanban boards with custom statuses
 - **Dark theme and Multi-language**: More languages and accessibility features will be added
-- Live collaborative editing of tickets coming soon
+- **Live collaborative editing** of tickets: See what others are typing and other changes in real time
 - Scrum and issue tracking coming in 2026
 
 ### Roadmap
