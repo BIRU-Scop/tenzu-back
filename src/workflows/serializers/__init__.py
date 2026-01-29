@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -28,15 +28,6 @@ from workflows.serializers.nested import (
 
 
 class WorkflowSerializer(WorkflowNestedSerializer):
-    order: int
-    statuses: list[WorkflowStatusNestedSerializer]
-    model_config = ConfigDict(from_attributes=True)
-
-
-class DeleteWorkflowSerializer(BaseModel):
-    id: UUIDB64
-    name: str
-    slug: str
     order: int
     statuses: list[WorkflowStatusNestedSerializer]
     model_config = ConfigDict(from_attributes=True)

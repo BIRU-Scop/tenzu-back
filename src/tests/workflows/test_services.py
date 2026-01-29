@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -29,7 +29,6 @@ from tests.utils.utils import patch_db_transaction
 from workflows import repositories, services
 from workflows.models import Workflow, WorkflowStatus
 from workflows.serializers import (
-    DeleteWorkflowSerializer,
     ReorderWorkflowStatusesSerializer,
     WorkflowNestedSerializer,
 )
@@ -512,13 +511,11 @@ async def test_delete_workflow_with_target_workflow_with_anchor_status_ok():
         )
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once_with(
             project=deleted_workflow.project,
-            workflow=DeleteWorkflowSerializer(
+            workflow=WorkflowNestedSerializer(
                 id=deleted_workflow.id,
                 name=deleted_workflow.name,
                 slug=deleted_workflow.slug,
-                order=deleted_workflow.order,
-                statuses=deleted_workflow_statuses,
-                stories=[],
+                project_id=deleted_workflow.project_id,
             ),
             target_workflow=target_workflow,
         )
@@ -588,12 +585,11 @@ async def test_delete_workflow_with_target_workflow_with_no_anchor_status_ok():
         )
         fake_workflows_events.emit_event_when_workflow_is_deleted.assert_awaited_once_with(
             project=deleted_workflow.project,
-            workflow=DeleteWorkflowSerializer(
+            workflow=WorkflowNestedSerializer(
                 id=deleted_workflow.id,
                 name=deleted_workflow.name,
                 slug=deleted_workflow.slug,
-                order=deleted_workflow.order,
-                statuses=deleted_workflow_statuses,
+                project_id=deleted_workflow.project_id,
             ),
             target_workflow=target_workflow,
         )
