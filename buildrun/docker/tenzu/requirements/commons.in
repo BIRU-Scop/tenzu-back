@@ -55,3 +55,6 @@ sentry-sdk  # error event handler
 
 #pycrdt
 pycrdt-websocket
+
+#logging
+rich
