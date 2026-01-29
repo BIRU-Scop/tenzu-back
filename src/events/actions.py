@@ -95,9 +95,10 @@ class SignOutAction(PydanticBaseModel):
             await consumer.broadcast_action_response(
                 channel=channel, action=ActionResponse(action=self)
             )
-
-            await consumer.unsubscribe(channel)
-            event_logger.debug(f"Unsubscribe user channel {channel}")
+            subscribed = list(getattr(consumer, "_subscribed_channels", set()))
+            for subscribed_channel in subscribed:
+                await consumer.unsubscribe(subscribed_channel)
+                event_logger.debug(f"Unsubscribe channel {subscribed_channel}")
             consumer.scope["user"] = AnonymousUser()
             event_logger.debug(f"Sign out successful {user.username}")
 
