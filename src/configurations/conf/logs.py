@@ -19,7 +19,7 @@
 import logging
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field
 
 LogLevel = Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]
 LogHandler = Literal["stream", "rich"]
@@ -48,17 +48,13 @@ _DEFAULT_LOG_LEVELS: dict[LogKey, LogLevel] = {
 }
 
 
-def _merge_log_levels(v: Any) -> dict[LogKey, LogLevel]:
+def _merge_log_levels(v: dict[LogKey, LogLevel]) -> dict[LogKey, LogLevel]:
     defaults: dict[LogKey, LogLevel] = dict(_DEFAULT_LOG_LEVELS)
-    if v is None:
-        return defaults
-    if not isinstance(v, dict):
-        raise TypeError("LOG_LEVELS must be a dict")
     defaults.update(v)
     return defaults
 
 
-LogLevels = Annotated[dict[LogKey, LogLevel], BeforeValidator(_merge_log_levels)]
+LogLevels = Annotated[dict[LogKey, LogLevel], AfterValidator(_merge_log_levels)]
 
 
 class LogsSettings(BaseModel):
@@ -66,7 +62,7 @@ class LogsSettings(BaseModel):
     LOG_LEVELS: LogLevels = Field(default_factory=dict)
     LOG_FORMAT_STREAM: str = "[{levelname}] <{asctime}> {pathname}:{lineno} {message}"
     LOG_FORMAT_RICH: str = "%(name)s: %(message)s"
-    LOG_HANDLER: LogHandler = "rich"
+    LOG_HANDLER: LogHandler = "stream"
 
 
 LOGGER_COLORS = {

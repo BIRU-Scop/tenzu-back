@@ -360,6 +360,27 @@ class CheckWorkspaceEventsSubscriptionAction(PydanticBaseModel):
             )
 
 
+class UnsubscribeFromAllExceptUserChannelAction(PydanticBaseModel):
+    command: Literal["unsubscribe_all_except_user_channel"] = (
+        "unsubscribe_all_except_user_channel"
+    )
+
+    async def run(self, consumer: "EventConsumer") -> None:
+        subscribed = list(getattr(consumer, "_subscribed_channels", set()))
+        if not subscribed:
+            return
+
+        user_channel = None
+        if consumer.scope["user"].is_authenticated:
+            user_channel = channels.user_channel(consumer.scope["user"])
+
+        for channel in subscribed:
+            if user_channel and channel == user_channel:
+                continue
+            await consumer.unsubscribe(channel)
+            event_logger.debug(f"Unsubscribe channel {channel}")
+
+
 ActionList = Union[
     SignInAction,
     SignOutAction,
@@ -370,6 +391,7 @@ ActionList = Union[
     SubscribeToWorkspaceEventsAction,
     UnsubscribeFromWorkspaceEventsAction,
     CheckWorkspaceEventsSubscriptionAction,
+    UnsubscribeFromAllExceptUserChannelAction,
 ]
 
 
