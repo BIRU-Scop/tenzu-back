@@ -33,7 +33,8 @@ from base.utils.uuid import decode_b64str_to_uuid
 from events.actions import Action, ActionResponse, SystemResponse, channel_login
 from stories.stories.models import Story
 
-logger = logging.getLogger("django")
+event_logger = logging.getLogger("events.consumers.event")
+collaboration_logger = logging.getLogger("events.consumers.collaboration")
 
 
 class EventConsumer(AsyncJsonWebsocketConsumer):
@@ -41,11 +42,14 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
         from django.contrib.auth.models import AnonymousUser
 
         self.scope["user"] = AnonymousUser()
+        event_logger.debug("Connected")
         await self.accept()
 
     async def receive_json(self, content, **kwargs):
         try:
             action = Action(action=content)
+
+            event_logger.debug(f"Received action {content['command']}")
             await action.action.run(self)
         except ValidationError as e:
             await self.emit_event(
@@ -58,7 +62,7 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
             )
 
     async def disconnect(self, close_code):
-        pass
+        event_logger.debug(f"Disconnected : code {close_code}")
 
     async def broadcast_action_response(self, channel: str, action: ActionResponse):
         """
@@ -106,8 +110,14 @@ class CollaborationConsumer(YjsConsumer):
             self.scope["user"] = user
             await super().connect()
         except Exception as e:
-            logger.error(f"Connection failed for user: {e}", exc_info=True)
+            collaboration_logger.error(
+                f"Connection failed for user: {e}", exc_info=True
+            )
             await self.close(code=4000)
+        finally:
+            collaboration_logger.debug(
+                f"connected {self.project_uuid}/{self.story_ref}"
+            )
 
     async def disconnect(self, close_code):
         """
@@ -119,8 +129,11 @@ class CollaborationConsumer(YjsConsumer):
                 self._save_task.cancel()
                 await self.force_save()
         except Exception as e:
-            logger.error(f"Failed final save: {e}")
+            collaboration_logger.error(f"Failed final save: {e}")
         finally:
+            collaboration_logger.debug(
+                f"Collaboration disconnected {self.project_uuid}/{self.story_ref}"
+            )
             await super().disconnect(close_code)
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -132,7 +145,7 @@ class CollaborationConsumer(YjsConsumer):
             try:
                 data = json.loads(text_data)
                 if data.get("command") == "save_now":
-                    logger.debug("Manual save requested by client")
+                    collaboration_logger.debug("Manual save requested by client")
                     await self.force_save()
                     await self.send(
                         text_data=json.dumps({"type": "save_status", "status": "saved"})
