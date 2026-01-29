@@ -49,6 +49,10 @@ def channel_login(token: str) -> AbstractUser:
     return user
 
 
+def _is_subscribed(consumer: "EventConsumer", channel: str) -> bool:
+    return channel in getattr(consumer, "_subscribed_channels", set())
+
+
 class SignInAction(PydanticBaseModel):
     command: Literal["signin"] = "signin"
     token: str
@@ -59,7 +63,10 @@ class SignInAction(PydanticBaseModel):
             user: AbstractUser = await database_sync_to_async(channel_login)(self.token)
             consumer.scope["user"] = user
             channel = channels.user_channel(user)
-            await consumer.subscribe(channel)
+            if not _is_subscribed(consumer, channel):
+                await consumer.subscribe(channel)
+            else:
+                event_logger.debug(f"User channel already subscribed: {channel}")
             await consumer.broadcast_action_response(
                 channel=channel,
                 action=ActionResponse(action=self, content={"channel": channel}),
@@ -151,7 +158,10 @@ class SubscribeToProjectEventsAction(PydanticBaseModel):
             channel = channels.project_channel(self.project)
             content = {"channel": channel}
             event_logger.debug(f"Subscribe to project channel {channel}")
-            await consumer.subscribe(channel)
+            if not _is_subscribed(consumer, channel):
+                await consumer.subscribe(channel)
+            else:
+                event_logger.debug(f"Project channel already subscribed: {channel}")
             await consumer.broadcast_action_response(
                 channel=channel, action=ActionResponse(action=self, content=content)
             )
@@ -263,7 +273,10 @@ class SubscribeToWorkspaceEventsAction(PydanticBaseModel):
         ):
             channel = channels.workspace_channel(self.workspace)
             content = {"channel": channel}
-            await consumer.subscribe(channel=channel)
+            if not _is_subscribed(consumer, channel):
+                await consumer.subscribe(channel=channel)
+            else:
+                event_logger.debug(f"Workspace channel already subscribed: {channel}")
             event_logger.debug(f"Subscribe to workspace channel {channel}")
             await consumer.broadcast_action_response(
                 channel=channel, action=ActionResponse(action=self, content=content)

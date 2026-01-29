@@ -38,6 +38,10 @@ collaboration_logger = logging.getLogger("events.consumers.collaboration")
 
 
 class EventConsumer(AsyncJsonWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._subscribed_channels: set[str] = set()
+
     async def connect(self):
         from django.contrib.auth.models import AnonymousUser
 
@@ -62,6 +66,19 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
             )
 
     async def disconnect(self, close_code):
+        if self._subscribed_channels:
+            event_logger.debug(
+                f"Unsubscribing from {len(self._subscribed_channels)} channel(s): "
+                f"{', '.join(sorted(self._subscribed_channels))}"
+            )
+            await asyncio.gather(
+                *[
+                    self.channel_layer.group_discard(channel, self.channel_name)
+                    for channel in self._subscribed_channels
+                ],
+                return_exceptions=True,
+            )
+            self._subscribed_channels.clear()
         event_logger.debug(f"Disconnected : code {close_code}")
 
     async def broadcast_action_response(self, channel: str, action: ActionResponse):
@@ -80,9 +97,11 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
 
     async def subscribe(self, channel: str):
         await self.channel_layer.group_add(channel, self.channel_name)
+        self._subscribed_channels.add(channel)
 
     async def unsubscribe(self, channel: str):
         await self.channel_layer.group_discard(channel, self.channel_name)
+        self._subscribed_channels.discard(channel)
 
     async def emit_event(self, event):
         await self.send_json(event["event"])
