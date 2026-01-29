@@ -19,7 +19,7 @@ You can contact BIRU at ask@biru.sh
 -->
 <mj-column css-class="separator-top separator-bottom" mj-class="full-width padding-section">
   <mj-text css-class="dm-text" mj-class="font-small color-gray90">
-    {% trans expiration=display_lifetime(settings.VERIFY_USER_TOKEN_LIFETIME) %}emails.expiration_date.expiration{% endtrans %}
+    {% trans expiration=display_lifetime(settings.ACCOUNT.VERIFY_USER_TOKEN_LIFETIME) %}emails.expiration_date.expiration{% endtrans %}
   </mj-text>
   <mj-text css-class="dm-text" mj-class="font-small color-gray90">
     {% trans %}emails.expiration_date.ignore{% endtrans %}

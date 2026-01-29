@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -67,6 +67,16 @@ class AccountSettings(BaseModel):
         default_factory=dict
     )  # you can also use the admin app to dynamically add SocialApp instead, see https://docs.allauth.org/en/latest/socialaccount/provider_configuration.html
     SOCIALAPPS_PROVIDERS: list[str] = Field(default_factory=list)
+    # user
+    USER_EMAIL_ALLOWED_DOMAINS: list[str] = Field(
+        default_factory=list,
+    )
+    VERIFY_USER_TOKEN_LIFETIME: timedelta = Field(
+        default=timedelta(days=4),
+    )
+    RESET_PASSWORD_TOKEN_LIFETIME: timedelta = Field(
+        default=timedelta(hours=2),
+    )
 
 
 class LDAPActivation(StrEnum):

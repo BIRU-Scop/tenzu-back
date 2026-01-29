@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -33,11 +33,11 @@ FullName = Annotated[str, StringConstraints(max_length=50)]
 
 
 def check_email_in_domain(v: str) -> str:
-    if not settings.USER_EMAIL_ALLOWED_DOMAINS:
+    if not settings.ACCOUNT.USER_EMAIL_ALLOWED_DOMAINS:
         return v
 
     domain = v.split("@")[1]
-    if domain not in settings.USER_EMAIL_ALLOWED_DOMAINS:
+    if domain not in settings.ACCOUNT.USER_EMAIL_ALLOWED_DOMAINS:
         raise ValueError("Email domain not allowed")
     return v
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -25,10 +25,10 @@ from ninja_jwt.tokens import BlacklistMixin, Token
 
 class VerifyUserToken(BlacklistMixin, Token):
     token_type = "verify-user"
-    lifetime = settings.VERIFY_USER_TOKEN_LIFETIME
+    lifetime = settings.ACCOUNT.VERIFY_USER_TOKEN_LIFETIME
     is_unique = True
 
 
 class ResetPasswordToken(BlacklistMixin, Token):
     token_type = "reset-password"
-    lifetime = settings.RESET_PASSWORD_TOKEN_LIFETIME
+    lifetime = settings.ACCOUNT.RESET_PASSWORD_TOKEN_LIFETIME

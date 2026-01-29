@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -25,7 +25,6 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import (
-    AliasChoices,
     AnyHttpUrl,
     BaseModel,
     EmailStr,
@@ -108,30 +107,6 @@ class Settings(BaseSettings):
     # Pagination
     DEFAULT_PAGE_SIZE: int = 10
     MAX_PAGE_SIZE: int = 100
-
-    # Users
-    # Move to AccountSettings and remove validation_alias in a later version
-    USER_EMAIL_ALLOWED_DOMAINS: list[str] = Field(
-        validation_alias=AliasChoices(
-            "TENZU_ACCOUNT__USER_EMAIL_ALLOWED_DOMAINS",
-            "TENZU_USER_EMAIL_ALLOWED_DOMAINS",
-        ),
-        default_factory=list,
-    )
-    VERIFY_USER_TOKEN_LIFETIME: timedelta = Field(
-        validation_alias=AliasChoices(
-            "TENZU_ACCOUNT__VERIFY_USER_TOKEN_LIFETIME",
-            "TENZU_VERIFY_USER_TOKEN_LIFETIME",
-        ),
-        default=timedelta(days=4),
-    )
-    RESET_PASSWORD_TOKEN_LIFETIME: timedelta = Field(
-        validation_alias=AliasChoices(
-            "TENZU_ACCOUNT__RESET_PASSWORD_TOKEN_LIFETIME",
-            "TENZU_RESET_PASSWORD_TOKEN_LIFETIME",
-        ),
-        default=timedelta(hours=2),
-    )
 
     # Projects
     DEFAULT_PROJECT_TEMPLATE: str = "kanban"

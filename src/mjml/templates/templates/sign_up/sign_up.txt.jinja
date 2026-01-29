@@ -31,7 +31,7 @@ You can contact BIRU at ask@biru.sh
 
 {% trans %}emails.commons.team{% endtrans %}
 
-{% trans expiration=display_lifetime(settings.VERIFY_USER_TOKEN_LIFETIME) %}emails.expiration_date.expiration{% endtrans %}
+{% trans expiration=display_lifetime(settings.ACCOUNT.VERIFY_USER_TOKEN_LIFETIME) %}emails.expiration_date.expiration{% endtrans %}
 
 {% trans %}emails.expiration_date.ignore{% endtrans %}
 
