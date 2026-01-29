@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,8 +19,8 @@
 
 from base.serializers import BaseModel
 from workflows.serializers import (
-    DeleteWorkflowSerializer,
     ReorderWorkflowStatusesSerializer,
+    WorkflowNestedSerializer,
     WorkflowSerializer,
     WorkflowStatusSerializer,
 )
@@ -35,8 +35,8 @@ class UpdateWorkflowContent(BaseModel):
 
 
 class DeleteWorkflowContent(BaseModel):
-    workflow: DeleteWorkflowSerializer
-    target_workflow: WorkflowSerializer | None = None
+    workflow: WorkflowNestedSerializer
+    target_workflow: WorkflowNestedSerializer | None = None
 
 
 class CreateWorkflowStatusContent(BaseModel):
