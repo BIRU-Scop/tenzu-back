@@ -30,22 +30,33 @@ from pycrdt.websocket.django_channels_consumer import YjsConsumer
 from pydantic import ValidationError
 
 from base.utils.uuid import decode_b64str_to_uuid
+from commons.exceptions.api import ForbiddenError
 from events.actions import Action, ActionResponse, SystemResponse, channel_login
+from permissions import check_permissions
 from stories.stories.models import Story
+from stories.stories.permissions import StoryPermissionsCheck
 
-logger = logging.getLogger("django")
+event_logger = logging.getLogger("events.consumers.event")
+collaboration_logger = logging.getLogger("events.consumers.collaboration")
 
 
 class EventConsumer(AsyncJsonWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._subscribed_channels: set[str] = set()
+
     async def connect(self):
         from django.contrib.auth.models import AnonymousUser
 
         self.scope["user"] = AnonymousUser()
+        event_logger.debug("Connected")
         await self.accept()
 
     async def receive_json(self, content, **kwargs):
         try:
             action = Action(action=content)
+
+            event_logger.debug(f"Received action {content['command']}")
             await action.action.run(self)
         except ValidationError as e:
             await self.emit_event(
@@ -58,7 +69,20 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
             )
 
     async def disconnect(self, close_code):
-        pass
+        if self._subscribed_channels:
+            event_logger.debug(
+                f"Unsubscribing from {len(self._subscribed_channels)} channel(s): "
+                f"{', '.join(sorted(self._subscribed_channels))}"
+            )
+            await asyncio.gather(
+                *[
+                    self.channel_layer.group_discard(channel, self.channel_name)
+                    for channel in self._subscribed_channels
+                ],
+                return_exceptions=True,
+            )
+            self._subscribed_channels.clear()
+        event_logger.debug(f"Disconnected : code {close_code}")
 
     async def broadcast_action_response(self, channel: str, action: ActionResponse):
         """
@@ -76,9 +100,11 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
 
     async def subscribe(self, channel: str):
         await self.channel_layer.group_add(channel, self.channel_name)
+        self._subscribed_channels.add(channel)
 
     async def unsubscribe(self, channel: str):
         await self.channel_layer.group_discard(channel, self.channel_name)
+        self._subscribed_channels.discard(channel)
 
     async def emit_event(self, event):
         await self.send_json(event["event"])
@@ -95,6 +121,8 @@ class CollaborationConsumer(YjsConsumer):
         super().__init__()
         self.story = None
         self._save_task = None
+        self._can_read_story = False
+        self._can_write_story = False
 
     async def connect(self):
         """
@@ -105,9 +133,16 @@ class CollaborationConsumer(YjsConsumer):
             user = await self.authenticate_connection()
             self.scope["user"] = user
             await super().connect()
+
         except Exception as e:
-            logger.error(f"Connection failed for user: {e}", exc_info=True)
+            collaboration_logger.error(
+                f"Connection failed for user: {e}", exc_info=True
+            )
             await self.close(code=4000)
+        finally:
+            collaboration_logger.debug(
+                f"connected {self.project_uuid}/{self.story_ref}"
+            )
 
     async def disconnect(self, close_code):
         """
@@ -119,8 +154,11 @@ class CollaborationConsumer(YjsConsumer):
                 self._save_task.cancel()
                 await self.force_save()
         except Exception as e:
-            logger.error(f"Failed final save: {e}")
+            collaboration_logger.error(f"Failed final save: {e}")
         finally:
+            collaboration_logger.debug(
+                f"Collaboration disconnected {self.project_uuid}/{self.story_ref}"
+            )
             await super().disconnect(close_code)
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -132,7 +170,7 @@ class CollaborationConsumer(YjsConsumer):
             try:
                 data = json.loads(text_data)
                 if data.get("command") == "save_now":
-                    logger.debug("Manual save requested by client")
+                    collaboration_logger.debug("Manual save requested by client")
                     await self.force_save()
                     await self.send(
                         text_data=json.dumps({"type": "save_status", "status": "saved"})
@@ -156,10 +194,33 @@ class CollaborationConsumer(YjsConsumer):
         Creates and initializes a Yjs document for collaborative editing.
         Loads existing document state from the database if available.
         """
-        self.story = await Story.objects.only("description_binary").aget(
-            ref=self.story_ref,
-            project_id=self.project_uuid,
+        self.story = (
+            await Story.objects.select_related("project")
+            .only("project", "description_binary")
+            .aget(
+                ref=self.story_ref,
+                project_id=self.project_uuid,
+            )
         )
+        try:
+            await check_permissions(
+                permissions=StoryPermissionsCheck.VIEW.value,
+                user=self.scope["user"],
+                obj=self.story,
+            )
+            self._can_read_story = True
+        except ForbiddenError as e:
+            raise e
+        try:
+            await check_permissions(
+                permissions=StoryPermissionsCheck.MODIFY.value,
+                user=self.scope["user"],
+                obj=self.story,
+            )
+            self._can_write_story = True
+        except ForbiddenError as e:
+            self._can_write_story = False
+
         doc = Doc()
         if self.story.description_binary:
             doc.apply_update(self.story.description_binary)
@@ -222,9 +283,10 @@ class CollaborationConsumer(YjsConsumer):
         Internal method that performs the actual database save operation.
         """
         update = self.ydoc.get_update()
-        await Story.objects.filter(
-            ref=self.story_ref, project_id=self.project_uuid
-        ).aupdate(description_binary=update)
+        if self._can_write_story:
+            await Story.objects.filter(
+                ref=self.story_ref, project_id=self.project_uuid
+            ).aupdate(description_binary=update)
 
     # Helper methods
     async def authenticate_connection(self):

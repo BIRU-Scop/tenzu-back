@@ -351,3 +351,7 @@ tenzu-back-portal/
 
 # test reports
 src/*-report.xml
+
+#AI
+AGENTS.md
+.junie/*
