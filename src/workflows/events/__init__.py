@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -30,8 +30,8 @@ from workflows.events.content import (
 )
 from workflows.models import WorkflowStatus
 from workflows.serializers import (
-    DeleteWorkflowSerializer,
     ReorderWorkflowStatusesSerializer,
+    WorkflowNestedSerializer,
     WorkflowSerializer,
 )
 
@@ -68,8 +68,8 @@ async def emit_event_when_workflow_is_updated(
 
 async def emit_event_when_workflow_is_deleted(
     project: Project,
-    workflow: DeleteWorkflowSerializer,
-    target_workflow: WorkflowSerializer | None,
+    workflow: WorkflowNestedSerializer,
+    target_workflow: WorkflowNestedSerializer | None,
 ) -> None:
     await events_manager.publish_on_project_channel(
         project=project,
