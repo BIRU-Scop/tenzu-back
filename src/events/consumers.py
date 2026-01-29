@@ -30,8 +30,11 @@ from pycrdt.websocket.django_channels_consumer import YjsConsumer
 from pydantic import ValidationError
 
 from base.utils.uuid import decode_b64str_to_uuid
+from commons.exceptions.api import ForbiddenError
 from events.actions import Action, ActionResponse, SystemResponse, channel_login
+from permissions import check_permissions
 from stories.stories.models import Story
+from stories.stories.permissions import StoryPermissionsCheck
 
 event_logger = logging.getLogger("events.consumers.event")
 collaboration_logger = logging.getLogger("events.consumers.collaboration")
@@ -118,6 +121,8 @@ class CollaborationConsumer(YjsConsumer):
         super().__init__()
         self.story = None
         self._save_task = None
+        self._can_read_story = False
+        self._can_write_story = False
 
     async def connect(self):
         """
@@ -128,6 +133,7 @@ class CollaborationConsumer(YjsConsumer):
             user = await self.authenticate_connection()
             self.scope["user"] = user
             await super().connect()
+
         except Exception as e:
             collaboration_logger.error(
                 f"Connection failed for user: {e}", exc_info=True
@@ -188,10 +194,33 @@ class CollaborationConsumer(YjsConsumer):
         Creates and initializes a Yjs document for collaborative editing.
         Loads existing document state from the database if available.
         """
-        self.story = await Story.objects.only("description_binary").aget(
-            ref=self.story_ref,
-            project_id=self.project_uuid,
+        self.story = (
+            await Story.objects.select_related("project")
+            .only("project", "description_binary")
+            .aget(
+                ref=self.story_ref,
+                project_id=self.project_uuid,
+            )
         )
+        try:
+            await check_permissions(
+                permissions=StoryPermissionsCheck.VIEW.value,
+                user=self.scope["user"],
+                obj=self.story,
+            )
+            self._can_read_story = True
+        except ForbiddenError as e:
+            raise e
+        try:
+            await check_permissions(
+                permissions=StoryPermissionsCheck.MODIFY.value,
+                user=self.scope["user"],
+                obj=self.story,
+            )
+            self._can_write_story = True
+        except ForbiddenError as e:
+            self._can_write_story = False
+
         doc = Doc()
         if self.story.description_binary:
             doc.apply_update(self.story.description_binary)
@@ -254,9 +283,10 @@ class CollaborationConsumer(YjsConsumer):
         Internal method that performs the actual database save operation.
         """
         update = self.ydoc.get_update()
-        await Story.objects.filter(
-            ref=self.story_ref, project_id=self.project_uuid
-        ).aupdate(description_binary=update)
+        if self._can_write_story:
+            await Story.objects.filter(
+                ref=self.story_ref, project_id=self.project_uuid
+            ).aupdate(description_binary=update)
 
     # Helper methods
     async def authenticate_connection(self):
