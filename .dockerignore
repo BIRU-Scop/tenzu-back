@@ -9,7 +9,6 @@
 **media
 !/src/base/sampledata/media/
 **pytest.ini
-**scripts
 **static
 !**emails/static
 **tests

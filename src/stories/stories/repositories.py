@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -115,6 +115,7 @@ def list_stories_qs(
         Story.objects.all()
         .filter(**filters)
         .exclude(**excludes)
+        .defer("description_binary", "description")
         .select_related(*select_related)
     )
     if order_by is not None:
@@ -143,6 +144,7 @@ async def get_story(
         Story.objects.all()
         .filter(ref=ref, **filters)
         .select_related(*select_related)
+        .defer("description_binary", "description")
         .annotate(**annotations)
     )
     return await qs.aget()
@@ -199,6 +201,7 @@ async def list_story_neighbors(
         Story.objects.all()
         .filter(**filters)
         .exclude(**excludes)
+        .defer("description_binary", "description")
         .order_by("status", "order")
     )
 
@@ -215,6 +218,7 @@ async def list_stories_to_reorder(
         Story.objects.all()
         .filter(ref__in=ref__in, **filters)
         .select_related("project")
+        .defer("description_binary", "description")
         .annotate(assignee_ids=ASSIGNEE_IDS_ANNOTATION)
     )
 

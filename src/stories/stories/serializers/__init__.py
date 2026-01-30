@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -44,7 +44,6 @@ class StorySummarySerializer(BaseModel):
 
 
 class StoryDetailSerializer(StorySummarySerializer):
-    description: str | None = None
     status: WorkflowStatusNestedSerializer
     workflow: WorkflowNestedSerializer
     created_by: UserNestedSerializer | None = None

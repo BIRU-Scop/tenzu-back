@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -15,10 +15,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from django.urls import re_path
+from django.urls import path, re_path
 
 from . import consumers
 
 websocket_urlpatterns = [
-    re_path(r"events/$", consumers.EventConsumer.as_asgi()),
+    path("events/", consumers.EventConsumer.as_asgi()),
+    path(
+        "collaboration/<str:project_id>/<str:story_ref>",
+        consumers.CollaborationConsumer.as_asgi(),
+    ),
 ]

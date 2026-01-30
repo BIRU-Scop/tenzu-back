@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,6 +19,7 @@
 
 
 from configurations.settings import *  # noqa
+from configurations.settings import ACCOUNT
 from configurations.settings import INSTALLED_APPS
 
 DEBUG = True
@@ -47,7 +48,7 @@ NINJA_JWT = {
     "USER_ID_CLAIM": "user_id",
 }
 
-USER_EMAIL_ALLOWED_DOMAINS = []
+ACCOUNT.USER_EMAIL_ALLOWED_DOMAINS = []
 
 STORAGES = {
     "default": {

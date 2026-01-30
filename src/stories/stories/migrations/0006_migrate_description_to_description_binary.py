@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024-2026 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,18 +16,20 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.db import migrations
 
-from django.conf import settings
-
-from ninja_jwt.tokens import BlacklistMixin, Token
-
-
-class VerifyUserToken(BlacklistMixin, Token):
-    token_type = "verify-user"
-    lifetime = settings.ACCOUNT.VERIFY_USER_TOKEN_LIFETIME
-    is_unique = True
+from stories.stories.migrations._data import migrate_story_in_batches
 
 
-class ResetPasswordToken(BlacklistMixin, Token):
-    token_type = "reset-password"
-    lifetime = settings.ACCOUNT.RESET_PASSWORD_TOKEN_LIFETIME
+def migrate_in_batches(apps, schema_editor):
+    Story = apps.get_model("stories", "Story")
+    migrate_story_in_batches(Story)
+
+
+class Migration(migrations.Migration):
+    dependencies = [("stories", "0005_story_description_binary")]
+    operations = [
+        migrations.RunPython(
+            migrate_in_batches, reverse_code=migrations.RunPython.noop
+        ),
+    ]

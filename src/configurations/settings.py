@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -32,20 +32,27 @@ from urllib.parse import urljoin
 import sentry_sdk
 from corsheaders.defaults import default_headers
 from django.core.serializers.json import DjangoJSONEncoder
+from rich.console import Console
 
 from base.front import Urls
 
 from .conf import settings
 from .conf.auth import LDAPActivation
 from .conf.events import PubSubBackendChoices
-from .utils import remove_ending_slash
+from .utils import BASE_DIR, remove_ending_slash
 
+locals().update(
+    {
+        "BASE_DIR": BASE_DIR,
+    }
+)
 locals().update(
     # don't use model_dumps to prevent conversion to dict of nested models
     {
         field_name: field_value
         for field_name, field_value in settings
-        if field_name not in {"DB", "EXTRA_CORS", "TOKENS", "LDAP", "EMAIL", "EVENTS"}
+        if field_name
+        not in {"DB", "EXTRA_CORS", "TOKENS", "LDAP", "EMAIL", "EVENTS", "LOGS"}
     }
 )
 
@@ -56,7 +63,6 @@ locals().update(
         for field_name, field_value in extra_dep.settings.items()
     }
 )
-
 
 ALLOWED_HOSTS = [settings.BACKEND_URL.host, settings.FRONTEND_URL.host]
 POD_IP = settings.POD_IP
@@ -72,7 +78,6 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_HEADERS = (*default_headers, "correlation-id")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-
 
 # Application definition
 
@@ -203,7 +208,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -318,6 +322,8 @@ CHANNEL_LAYERS = {
         "BACKEND": f"{settings.EVENTS.PUBSUB_BACKEND.value}",
     },
 }
+EVENTS_DEBOUNCE_SAVE_DELAY = settings.EVENTS.DEBOUNCE_SAVE_DELAY
+
 if settings.EVENTS.PUBSUB_BACKEND == PubSubBackendChoices.REDIS:
     CHANNEL_LAYERS["default"]["CONFIG"] = {
         "hosts": [
@@ -329,44 +335,80 @@ if settings.EVENTS.PUBSUB_BACKEND == PubSubBackendChoices.REDIS:
         **settings.EVENTS.REDIS_CHANNEL_OPTIONS,
     }
 
+LOG_LEVELS = settings.LOGS.LOG_LEVELS
+LOG_FORMAT_STREAM = settings.LOGS.LOG_FORMAT_STREAM
+LOG_FORMAT_RICH = settings.LOGS.LOG_FORMAT_RICH
+LOG_HANDLER = settings.LOGS.LOG_HANDLER
 
-LOG_FORMAT = "[{levelname}] <{asctime}> {pathname}:{lineno} {message}"
-LOGLEVEL = "WARNING"
-SQL_LOGLEVEL = "WARNING"
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {
-        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+    "filters": {
+        "rich_colors": {"()": "configurations.conf.logs.RichLoggerColorFilter"},
     },
     "formatters": {
-        "verbose": {
-            "format": LOG_FORMAT,
+        "stream": {
+            "format": LOG_FORMAT_STREAM,
             "style": "{",
+        },
+        "rich": {"format": LOG_FORMAT_RICH},
+    },
+    "handlers": {
+        "stream": {"class": "logging.StreamHandler", "formatter": "stream"},
+        "rich": {
+            "class": "rich.logging.RichHandler",
+            "level": "DEBUG",
+            "formatter": "rich",
+            "filters": ["rich_colors"],
+            "console": Console(color_system="truecolor", width=254),
+            "rich_tracebacks": True,
+            "show_time": True,
+            "show_level": True,
+            "show_path": False,
+            "markup": True,
         },
     },
     "loggers": {
         # root logger, for third party and such
-        "": {
-            "level": LOGLEVEL,
-            "handlers": [
-                "console",
-            ],
-        },
+        "": {"handlers": [LOG_HANDLER], "level": LOG_LEVELS["root"]},
         "django": {
-            "level": LOGLEVEL,
-            "handlers": ["console"],
-            # required to avoid double logging with root logger
+            "handlers": [LOG_HANDLER],
+            "level": LOG_LEVELS["django"],
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": [LOG_HANDLER],
+            "level": LOG_LEVELS["django.server"],
             "propagate": False,
         },
         "django.db.backends": {
-            "level": SQL_LOGLEVEL,
-            "handlers": ["console"],
+            "handlers": [LOG_HANDLER],
+            "level": LOG_LEVELS["django.db.backends"],
+            "propagate": False,
+        },
+        "daphne": {
+            "handlers": [LOG_HANDLER],
+            "level": LOG_LEVELS["daphne"],
             "propagate": False,
         },
         "django_auth_ldap": {
-            "level": SQL_LOGLEVEL,
-            "handlers": ["console"],
+            "level": LOG_LEVELS["django_auth_ldap"],
+            "handlers": [LOG_HANDLER],
+            "propagate": False,
+        },
+        "channels": {
+            "handlers": [LOG_HANDLER],
+            "level": LOG_LEVELS["channels"],
+            "propagate": False,
+        },
+        "events.consumers.event": {
+            "handlers": [LOG_HANDLER],
+            "level": LOG_LEVELS["events.consumers.event"],
+            "propagate": False,
+        },
+        "events.consumers.collaboration": {
+            "handlers": [LOG_HANDLER],
+            "level": LOG_LEVELS["events.consumers.collaboration"],
             "propagate": False,
         },
     },

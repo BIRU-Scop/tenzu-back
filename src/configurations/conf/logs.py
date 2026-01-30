@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,39 +16,71 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import logging
+from typing import Annotated, Any, Literal
 
-LOGGING_CONFIG = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {
-            "format": "%(levelname)s \t %(name)s \t %(asctime)s \t pid:%(process)d \t %(message)s",
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
-        "json": {
-            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "format": """
-                    asctime: %(asctime)s
-                    filename: %(filename)s
-                    funcName: %(funcName)s
-                    levelname: %(levelname)s
-                    lineno: %(lineno)d
-                    message: %(message)s
-                    module: %(module)s
-                    name: %(name)s
-                    process: %(process)d
-                """,
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-        },
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field
+
+LogLevel = Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]
+LogHandler = Literal["stream", "rich"]
+LogKey = Literal[
+    "root",
+    "daphne",
+    "django",
+    "django.server",
+    "django.db.backends",
+    "django_auth_ldap",
+    "channels",
+    "events.consumers.event",
+    "events.consumers.collaboration",
+]
+
+_DEFAULT_LOG_LEVELS: dict[LogKey, LogLevel] = {
+    "root": "WARNING",
+    "daphne": "WARNING",
+    "django": "WARNING",
+    "django.server": "INFO",
+    "django.db.backends": "WARNING",
+    "django_auth_ldap": "WARNING",
+    "channels": "WARNING",
+    "events.consumers.event": "WARNING",
+    "events.consumers.collaboration": "WARNING",
+}
+
+
+def _merge_log_levels(v: dict[LogKey, LogLevel]) -> dict[LogKey, LogLevel]:
+    defaults: dict[LogKey, LogLevel] = dict(_DEFAULT_LOG_LEVELS)
+    defaults.update(v)
+    return defaults
+
+
+LogLevels = Annotated[dict[LogKey, LogLevel], AfterValidator(_merge_log_levels)]
+
+
+class LogsSettings(BaseModel):
+    model_config = ConfigDict(validate_default=True)
+    LOG_LEVELS: LogLevels = Field(default_factory=dict)
+    LOG_FORMAT_STREAM: str = "[{levelname}] <{asctime}> {pathname}:{lineno} {message}"
+    LOG_FORMAT_RICH: str = "%(name)s: %(message)s"
+    LOG_HANDLER: LogHandler = "stream"
+
+
+LOGGER_COLORS = {
+    "events.consumers.event": {
+        "color": "cyan",
+        "prefix": "EventConsumer",
     },
-    "handlers": {
-        "console": {
-            "formatter": "default",
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-        }
-    },
-    "loggers": {
-        "tenzu": {"level": "INFO", "propagate": False, "handlers": ["console"]}
+    "events.consumers.collaboration": {
+        "color": "yellow",
+        "prefix": "CollaborationConsumer",
     },
 }
+
+
+class RichLoggerColorFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        for prefix, color in LOGGER_COLORS.items():
+            if record.name.startswith(prefix):
+                record.msg = f"[{color['color']}][{color['prefix']}] {record.msg}[/{color['color']}]"
+                break
+        return True

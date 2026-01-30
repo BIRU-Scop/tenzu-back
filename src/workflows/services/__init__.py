@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -35,8 +35,8 @@ from workflows import events as workflows_events
 from workflows import repositories as workflows_repositories
 from workflows.models import Workflow, WorkflowStatus
 from workflows.serializers import (
-    DeleteWorkflowSerializer,
     ReorderWorkflowStatusesSerializer,
+    WorkflowNestedSerializer,
     WorkflowSerializer,
 )
 from workflows.services import exceptions as ex
@@ -269,12 +269,11 @@ async def delete_workflow(
             workflows_events.emit_event_when_workflow_is_deleted
         )(
             project=workflow.project,
-            workflow=DeleteWorkflowSerializer(
+            workflow=WorkflowNestedSerializer(
                 id=workflow.id,
                 name=workflow.name,
                 slug=workflow.slug,
-                order=workflow.order,
-                statuses=list(workflow.statuses.all()),
+                project_id=workflow.project_id,
             ),
             target_workflow=target_workflow,
         )

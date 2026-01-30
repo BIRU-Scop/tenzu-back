@@ -1,4 +1,4 @@
-# Copyright (C) 2025 BIRU
+# Copyright (C) 2025-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -184,7 +184,6 @@ def test_redirect_to_provider_untrusted(ssr_client):
         assert "socialSessionKey" not in query
 
 
-@override_settings(USER_EMAIL_ALLOWED_DOMAINS=["allowed.com"])
 def test_redirect_to_provider_check_email_domain(ssr_client):
     post_data = {
         "callbackUrl": "/test",
@@ -201,18 +200,19 @@ def test_redirect_to_provider_check_email_domain(ssr_client):
         "phone": "",
         "phone_verified": False,
     }
-    callback_url, query = provider_auth(ssr_client, post_data, user_data)
-    assert query["error"] == ["permission_denied"]
-    assert "socialSessionKey" not in query
+    with patch.object(settings.ACCOUNT, "USER_EMAIL_ALLOWED_DOMAINS", ["allowed.com"]):
+        callback_url, query = provider_auth(ssr_client, post_data, user_data)
+        assert query["error"] == ["permission_denied"]
+        assert "socialSessionKey" not in query
 
-    user_data["email"] = ""
-    callback_url, query = provider_auth(ssr_client, post_data, user_data)
-    assert not query
+        user_data["email"] = ""
+        callback_url, query = provider_auth(ssr_client, post_data, user_data)
+        assert not query
 
-    user_data["email"] = "test@allowed.com"
-    callback_url, query = provider_auth(ssr_client, post_data, user_data)
-    assert "error" not in query
-    assert "access" in query
+        user_data["email"] = "test@allowed.com"
+        callback_url, query = provider_auth(ssr_client, post_data, user_data)
+        assert "error" not in query
+        assert "access" in query
 
 
 def test_redirect_to_provider_cancelled(ssr_client):

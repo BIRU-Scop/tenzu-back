@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,6 +24,8 @@ from base.sampledata.demo_data import load_demo_data
 from base.sampledata.test_data import load_test_data
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
+from stories.stories.migrations._data import migrate_story_in_batches
+from stories.stories.models import Story
 from workspaces.invitations.models import WorkspaceInvitation
 
 
@@ -70,3 +72,4 @@ class Command(BaseCommand):
             if not options["no_demo"]:
                 async_to_sync(load_demo_data)()
                 sanity_check()
+            migrate_story_in_batches(Story)

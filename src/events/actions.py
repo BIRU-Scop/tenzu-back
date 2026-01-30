@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -15,6 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import logging
 from typing import TYPE_CHECKING, Any, Literal, Union
 
 from channels.db import database_sync_to_async
@@ -35,6 +36,8 @@ from projects.projects.permissions import ProjectPermissionsCheck
 from workspaces.workspaces.models import Workspace
 from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 
+event_logger = logging.getLogger("events.consumers.event")
+
 if TYPE_CHECKING:
     from events.consumers import EventConsumer
 
@@ -46,20 +49,29 @@ def channel_login(token: str) -> AbstractUser:
     return user
 
 
+def _is_subscribed(consumer: "EventConsumer", channel: str) -> bool:
+    return channel in getattr(consumer, "_subscribed_channels", set())
+
+
 class SignInAction(PydanticBaseModel):
     command: Literal["signin"] = "signin"
     token: str
 
     async def run(self, consumer: "EventConsumer") -> None:
         try:
+            event_logger.debug("Start sign in")
             user: AbstractUser = await database_sync_to_async(channel_login)(self.token)
             consumer.scope["user"] = user
             channel = channels.user_channel(user)
-            await consumer.subscribe(channel)
+            if not _is_subscribed(consumer, channel):
+                await consumer.subscribe(channel)
+            else:
+                event_logger.debug(f"User channel already subscribed: {channel}")
             await consumer.broadcast_action_response(
                 channel=channel,
                 action=ActionResponse(action=self, content={"channel": channel}),
             )
+            event_logger.debug(f"Sign in successful for {user.username}")
         except AuthenticationFailed:
             await consumer.send_without_broadcast_action_response(
                 ActionResponse(
@@ -75,16 +87,23 @@ class SignOutAction(PydanticBaseModel):
 
     async def run(self, consumer: "EventConsumer") -> None:
         user = consumer.scope["user"]
+        event_logger.debug(f"Start sign out for {user.username}")
 
         if consumer.scope["user"].is_authenticated:
             channel = channels.user_channel(user)
+            event_logger.debug(f"Broadcast sign out for {user.username}")
             await consumer.broadcast_action_response(
                 channel=channel, action=ActionResponse(action=self)
             )
-            await consumer.unsubscribe(channel)
+            subscribed = list(getattr(consumer, "_subscribed_channels", set()))
+            for subscribed_channel in subscribed:
+                await consumer.unsubscribe(subscribed_channel)
+                event_logger.debug(f"Unsubscribe channel {subscribed_channel}")
             consumer.scope["user"] = AnonymousUser()
+            event_logger.debug(f"Sign out successful {user.username}")
 
         else:
+            event_logger.debug(f"Sign out impossible {user.username} not sign in")
             await consumer.send_without_broadcast_action_response(
                 ActionResponse(
                     action=self, status="error", content={"detail": "not-signed-in"}
@@ -96,8 +115,9 @@ class PingAction(PydanticBaseModel):
     command: Literal["ping"] = "ping"
 
     async def run(self, consumer: "EventConsumer") -> None:
-        await consumer.send_action_response(
-            ActionResponse(action=self, content={"message": "pong"}).model_dump()
+        event_logger.debug(f"Send pong to {consumer.scope['user'].username}")
+        await consumer.send_without_broadcast_action_response(
+            ActionResponse(action=self, content={"data": "pong"}).model_dump()
         )
 
 
@@ -139,11 +159,16 @@ class SubscribeToProjectEventsAction(PydanticBaseModel):
         ):
             channel = channels.project_channel(self.project)
             content = {"channel": channel}
-            await consumer.subscribe(channel)
+            event_logger.debug(f"Subscribe to project channel {channel}")
+            if not _is_subscribed(consumer, channel):
+                await consumer.subscribe(channel)
+            else:
+                event_logger.debug(f"Project channel already subscribed: {channel}")
             await consumer.broadcast_action_response(
                 channel=channel, action=ActionResponse(action=self, content=content)
             )
         else:
+            event_logger.debug(f"Subscribe to project channel not allowed")
             # Not enough permissions
             await consumer.send_without_broadcast_action_response(
                 ActionResponse(
@@ -163,10 +188,12 @@ class UnsubscribeFromProjectEventsAction(PydanticBaseModel):
             channel = channels.project_channel(self.project)
             ok = await consumer.unsubscribe(channel=channel)
             if ok:
+                event_logger.debug(f"Unsubscribe from project channel {channel}")
                 await consumer.send_without_broadcast_action_response(
                     ActionResponse(action=self).model_dump()
                 )
             else:
+                event_logger.debug(f"Unsubscribe from project channel {channel} failed")
                 await consumer.send_without_broadcast_action_response(
                     ActionResponse(
                         action=self, status="error", content={"detail": "not-subscribe"}
@@ -248,11 +275,16 @@ class SubscribeToWorkspaceEventsAction(PydanticBaseModel):
         ):
             channel = channels.workspace_channel(self.workspace)
             content = {"channel": channel}
-            await consumer.subscribe(channel=channel)
+            if not _is_subscribed(consumer, channel):
+                await consumer.subscribe(channel=channel)
+            else:
+                event_logger.debug(f"Workspace channel already subscribed: {channel}")
+            event_logger.debug(f"Subscribe to workspace channel {channel}")
             await consumer.broadcast_action_response(
                 channel=channel, action=ActionResponse(action=self, content=content)
             )
         else:
+            event_logger.debug(f"Subscribe to workspace channel failed")
             # Not enough permissions
             await consumer.send_without_broadcast_action_response(
                 ActionResponse(
@@ -279,10 +311,14 @@ class UnsubscribeFromWorkspaceEventsAction(PydanticBaseModel):
             channel = channels.workspace_channel(self.workspace)
             ok = await consumer.unsubscribe(channel=channel)
             if ok:
+                event_logger.debug(f"Unsubscribe from workspace channel {channel}")
                 await consumer.send_without_broadcast_action_response(
                     ActionResponse(action=self).model_dump()
                 )
             else:
+                event_logger.debug(
+                    f"Unsubscribe from workspace channel {channel} failed"
+                )
                 await consumer.send_without_broadcast_action_response(
                     ActionResponse(
                         action=self, status="error", content={"detail": "not-subscribe"}
@@ -325,6 +361,27 @@ class CheckWorkspaceEventsSubscriptionAction(PydanticBaseModel):
             )
 
 
+class UnsubscribeFromAllExceptUserChannelAction(PydanticBaseModel):
+    command: Literal["unsubscribe_all_except_user_channel"] = (
+        "unsubscribe_all_except_user_channel"
+    )
+
+    async def run(self, consumer: "EventConsumer") -> None:
+        subscribed = list(getattr(consumer, "_subscribed_channels", set()))
+        if not subscribed:
+            return
+
+        user_channel = None
+        if consumer.scope["user"].is_authenticated:
+            user_channel = channels.user_channel(consumer.scope["user"])
+
+        for channel in subscribed:
+            if user_channel and channel == user_channel:
+                continue
+            await consumer.unsubscribe(channel)
+            event_logger.debug(f"Unsubscribe channel {channel}")
+
+
 ActionList = Union[
     SignInAction,
     SignOutAction,
@@ -335,6 +392,7 @@ ActionList = Union[
     SubscribeToWorkspaceEventsAction,
     UnsubscribeFromWorkspaceEventsAction,
     CheckWorkspaceEventsSubscriptionAction,
+    UnsubscribeFromAllExceptUserChannelAction,
 ]
 
 
