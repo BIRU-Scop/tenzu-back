@@ -115,8 +115,9 @@ class PingAction(PydanticBaseModel):
     command: Literal["ping"] = "ping"
 
     async def run(self, consumer: "EventConsumer") -> None:
-        await consumer.send_action_response(
-            ActionResponse(action=self, content={"message": "pong"}).model_dump()
+        event_logger.debug(f"Send pong to {consumer.scope['user'].username}")
+        await consumer.send_without_broadcast_action_response(
+            ActionResponse(action=self, content={"data": "pong"}).model_dump()
         )
 
 
