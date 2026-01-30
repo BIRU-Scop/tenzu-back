@@ -22,6 +22,7 @@ share knowledge and learnings to make informed decisions.
 ![tenzu screenshot](https://tenzu.net/media/images/tenzu_demo2025.original.webp)
 
 ## Features
+
 - **Project spaces**: Multiple project spaces organised by workspace
 - **KANBAN**: Unlimited kanban boards with custom statuses
 - **Dark theme and Multi-language**: More languages and accessibility features will be added
