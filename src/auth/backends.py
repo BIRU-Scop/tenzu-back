@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -39,6 +39,25 @@ class EmailOrUsernameModelBackend(ModelBackend):
             User().set_password(password)
         else:
             if user.check_password(password) and self.user_can_authenticate(user):
+                return user
+
+    async def aauthenticate(self, request, username=None, password=None, **kwargs):
+        if username is None:
+            username = kwargs.get(User.USERNAME_FIELD)
+        if username is None or password is None:
+            return
+        try:
+            user = await User._default_manager.aget(
+                Q(**{User.USERNAME_FIELD: username}) | Q(**{User.EMAIL_FIELD: username})
+            )
+        except User.DoesNotExist:
+            # Run the default password hasher once to reduce the timing
+            # difference between an existing and a nonexistent user (#20760).
+            User().set_password(password)
+        else:
+            if await user.acheck_password(password) and self.user_can_authenticate(
+                user
+            ):
                 return user
 
 
