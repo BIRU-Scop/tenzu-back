@@ -61,6 +61,16 @@ class SignInAction(PydanticBaseModel):
         try:
             event_logger.debug("Start sign in")
             user: AbstractUser = await database_sync_to_async(channel_login)(self.token)
+        except AuthenticationFailed:
+            await consumer.send_without_broadcast_action_response(
+                ActionResponse(
+                    action=self,
+                    status="error",
+                    content={"detail": "invalid-credentials"},
+                ).model_dump()
+            )
+            return
+        else:
             consumer.scope["user"] = user
             channel = channels.user_channel(user)
             if not _is_subscribed(consumer, channel):
@@ -72,14 +82,6 @@ class SignInAction(PydanticBaseModel):
                 action=ActionResponse(action=self, content={"channel": channel}),
             )
             event_logger.debug(f"Sign in successful for {user.username}")
-        except AuthenticationFailed:
-            await consumer.send_without_broadcast_action_response(
-                ActionResponse(
-                    action=self,
-                    status="error",
-                    content={"detail": "invalid-credentials"},
-                ).model_dump()
-            )
 
 
 class SignOutAction(PydanticBaseModel):
