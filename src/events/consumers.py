@@ -25,13 +25,14 @@ from urllib.parse import parse_qs
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.conf import settings
-from pycrdt import Doc, TransactionEvent, create_update_message
+from pycrdt import Doc, TransactionEvent, YMessageType, YSyncMessageType
 from pycrdt.websocket.django_channels_consumer import YjsConsumer
 from pydantic import ValidationError
 
 from base.utils.uuid import decode_b64str_to_uuid
 from commons.exceptions.api import ForbiddenError
 from events.actions import Action, ActionResponse, SystemResponse, channel_login
+from ninja_jwt.exceptions import AuthenticationFailed, InvalidToken
 from permissions import check_permissions
 from stories.stories.models import Story
 from stories.stories.permissions import StoryPermissionsCheck
@@ -113,7 +114,7 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
 class CollaborationConsumer(YjsConsumer):
     """
     WebSocket consumer for collaborative document editing using Yjs CRDT.
-    Handles real-time synchronization and debounced persistence to the database.
+    Handles real-time synchronisation and debounced persistence to the database.
     """
 
     # Lifecycle methods
@@ -121,6 +122,7 @@ class CollaborationConsumer(YjsConsumer):
         super().__init__()
         self.story = None
         self._save_task = None
+        self._can_write_story = False
 
     async def connect(self):
         """
@@ -129,14 +131,15 @@ class CollaborationConsumer(YjsConsumer):
         """
         try:
             user = await self.authenticate_connection()
-            self.scope["user"] = user
-            await super().connect()
-
-        except Exception as e:
+        except (ValueError, InvalidToken, AuthenticationFailed) as e:
             collaboration_logger.error(
                 f"Connection failed for user: {e}", exc_info=True
             )
             await self.close(code=4000)
+        else:
+            self.scope["user"] = user
+            await super().connect()
+
         finally:
             collaboration_logger.debug(
                 f"connected {self.project_uuid}/{self.story_ref}"
@@ -165,6 +168,8 @@ class CollaborationConsumer(YjsConsumer):
         Intercepts manual save commands before delegating to YjsConsumer for binary data.
         """
         if text_data:
+            if not self._can_write_story:
+                return
             try:
                 data = json.loads(text_data)
                 if data.get("command") == "save_now":
@@ -177,7 +182,18 @@ class CollaborationConsumer(YjsConsumer):
             except json.JSONDecodeError:
                 pass
 
-        return await super().receive(text_data, bytes_data)
+        # Don't handle any message that modify the doc if it comes from a user with read-only permission
+        if (
+            not self._can_write_story
+            and bytes_data[0] == YMessageType.SYNC
+            and bytes_data[1]
+            in (
+                YSyncMessageType.SYNC_STEP2,  # blocking this prevent delayed broadcasting of the change (when client reconnect)
+                YSyncMessageType.SYNC_UPDATE,  # blocking this prevent immediate broadcasting of the change
+            )
+        ):
+            return
+        await super().receive(text_data, bytes_data)
 
     # YjsConsumer overrides
     def make_room_name(self) -> str:
@@ -187,29 +203,46 @@ class CollaborationConsumer(YjsConsumer):
         """
         return f"{self.project_uuid}-{self.story_ref}"
 
+    async def check_permissions(self):
+        try:
+            await check_permissions(
+                permissions=StoryPermissionsCheck.VIEW.value,
+                user=self.scope["user"],
+                obj=self.story,
+            )
+        except ForbiddenError as e:
+            raise e
+        try:
+            await check_permissions(
+                permissions=StoryPermissionsCheck.MODIFY.value,
+                user=self.scope["user"],
+                obj=self.story,
+            )
+            self._can_write_story = True
+        except ForbiddenError as e:
+            self._can_write_story = False
+
     async def make_ydoc(self) -> Doc:
         """
-        Creates and initializes a Yjs document for collaborative editing.
+        Creates and initialises a Yjs document for collaborative editing.
         Loads existing document state from the database if available.
         """
-        self.story = await Story.objects.only("description_binary").aget(
-            ref=self.story_ref,
-            project_id=self.project_uuid,
+        self.story = (
+            await Story.objects.select_related("project")
+            .only("project", "description_binary")
+            .aget(
+                ref=self.story_ref,
+                project_id=self.project_uuid,
+            )
         )
+        await self.check_permissions()
+
         doc = Doc()
         if self.story.description_binary:
             doc.apply_update(self.story.description_binary)
-        doc.observe(self.on_update_event)
+        if self._can_write_story:
+            doc.observe(self.on_update_event)
         return doc
-
-    async def doc_update(self, update_wrapper):
-        """
-        Receives document updates from other clients in the same room
-        and broadcasts them to all connected clients.
-        """
-        update = update_wrapper["update"]
-        self.ydoc.apply_update(update)
-        await self.group_send_message(create_update_message(update))
 
     # Document update handlers
     def on_update_event(self, event: TransactionEvent):
@@ -257,10 +290,11 @@ class CollaborationConsumer(YjsConsumer):
         """
         Internal method that performs the actual database save operation.
         """
-        update = self.ydoc.get_update()
-        await Story.objects.filter(
-            ref=self.story_ref, project_id=self.project_uuid
-        ).aupdate(description_binary=update)
+        if self._can_write_story:
+            update = self.ydoc.get_update()
+            await Story.objects.filter(
+                ref=self.story_ref, project_id=self.project_uuid
+            ).aupdate(description_binary=update)
 
     # Helper methods
     async def authenticate_connection(self):
