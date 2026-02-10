@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
@@ -18,36 +16,16 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-# ruff: noqa: E402
-
-import os
-
-import django
-
-os.environ["DJANGO_SETTINGS_MODULE"] = "configurations.settings"
-django.setup()
-
 
 import typer
+from django.core.management.base import BaseCommand
 
-from base.i18n.commands import cli as i18n_cli
-
-cli = typer.Typer(
-    name="Tenzu Manager",
-    help="Manage a Tenzu server.",
-    add_completion=True,
-    pretty_exceptions_enable=False,
-)
+from emails.emails import Emails
 
 
-@cli.callback()
-def main() -> None:
-    pass
+class Command(BaseCommand):
+    help = "Show available emails"
 
-
-# Load module commands
-cli.add_typer(i18n_cli, name="i18n")
-
-
-if __name__ == "__main__":
-    cli()
+    def handle(self, *args, **options):
+        for email in Emails:
+            typer.echo(f"\t{ email.value }")
