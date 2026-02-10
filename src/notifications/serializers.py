@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,8 +19,6 @@
 
 from datetime import datetime
 
-from pydantic import ConfigDict
-
 from base.serializers import UUIDB64, BaseModel
 from base.serializers.fields import CamelizeDict
 from users.serializers.nested import UserNestedSerializer
@@ -33,7 +31,6 @@ class NotificationSerializer(BaseModel):
     created_at: datetime
     read_at: datetime | None = None
     content: CamelizeDict
-    model_config = ConfigDict(from_attributes=True)
 
 
 class NotificationCountersSerializer(BaseModel):

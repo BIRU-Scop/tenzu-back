@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict, EmailStr
-
 from base.serializers import BaseModel
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from projects.invitations.serializers.nested import ProjectInvitationNestedSerializer
@@ -35,25 +33,21 @@ from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 class UserSerializer(UserNestedSerializer):
     lang: str
-    model_config = ConfigDict(from_attributes=True)
 
 
 class UserSearchSerializer(UserNestedSerializer):
     user_is_member: bool | None = None
     user_has_pending_invitation: bool | None = None
-    model_config = ConfigDict(from_attributes=True)
 
 
 class VerificationInfoSerializer(BaseModel):
     auth: TokenObtainPairOutputSchema
     project_invitation: ProjectInvitationNestedSerializer | None = None
     workspace_invitation: WorkspaceInvitationNestedSerializer | None = None
-    model_config = ConfigDict(from_attributes=True)
 
 
 class _WorkspaceForDeleteWithProjectsNestedSerializer(WorkspaceNestedSerializer):
     projects: list[ProjectLinkNestedSerializer]
-    model_config = ConfigDict(from_attributes=True)
 
 
 class UserDeleteInfoSerializer(BaseModel):
@@ -61,4 +55,3 @@ class UserDeleteInfoSerializer(BaseModel):
     only_owner_collective_projects: list[ProjectNestedSerializer]
     only_member_workspaces: list[_WorkspaceForDeleteWithProjectsNestedSerializer]
     only_member_projects: list[ProjectNestedSerializer]
-    model_config = ConfigDict(from_attributes=True)

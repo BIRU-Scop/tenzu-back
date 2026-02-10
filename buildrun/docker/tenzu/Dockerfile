@@ -1,11 +1,11 @@
 # Use the official Python image from the Docker Hub
-FROM python:3.14-slim-bookworm AS base-image
+FROM python:3.14-slim-trixie AS base-image
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-COPY --from=node:25-bookworm-slim /usr/local/bin/ /usr/local/bin/
-COPY --from=node:25-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=node:25-trixie-slim /usr/local/bin/ /usr/local/bin/
+COPY --from=node:25-trixie-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
 ARG EXTRA_PACKAGES=""
 
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
-
 from base.serializers import BaseModel
 from memberships.choices import InvitationStatus
 from projects.projects.serializers.nested import ProjectLinkNestedSerializer
@@ -27,4 +25,3 @@ from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 class ProjectInvitationNestedSerializer(BaseModel):
     status: InvitationStatus
     project: ProjectLinkNestedSerializer
-    model_config = ConfigDict(from_attributes=True)

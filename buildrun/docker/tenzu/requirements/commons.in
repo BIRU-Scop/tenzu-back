@@ -1,5 +1,5 @@
 # channel
-channels[daphne]
+channels[daphne,types]
 channels_redis
 redis[hiredis]
 

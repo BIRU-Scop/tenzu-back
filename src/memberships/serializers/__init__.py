@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,7 +17,7 @@
 # You can contact BIRU at ask@biru.sh
 import datetime
 
-from pydantic import ConfigDict, EmailStr
+from pydantic import EmailStr
 
 from base.serializers import UUIDB64, BaseModel
 from memberships.choices import InvitationStatus
@@ -38,7 +38,6 @@ class RoleSerializer(BaseModel):
     order: int
     editable: bool
     permissions: list[str]
-    model_config = ConfigDict(from_attributes=True)
 
 
 class InvitationBaseSerializer(BaseModel):
@@ -55,7 +54,6 @@ class InvitationBaseSerializer(BaseModel):
 class CreateInvitationsSerializer(BaseModel):
     invitations: list[InvitationBaseSerializer]
     already_members: int
-    model_config = ConfigDict(from_attributes=True)
 
 
 class PublicPendingInvitationBaseSerializer(BaseModel):

@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -55,6 +55,10 @@ from ninja_jwt.utils import aware_utcnow, datetime_to_epoch, make_utc
 from .keys import (
     ES256_PRIVATE_KEY,
     ES256_PUBLIC_KEY,
+    ES384_PRIVATE_KEY,
+    ES384_PUBLIC_KEY,
+    ES512_PRIVATE_KEY,
+    ES512_PUBLIC_KEY,
     PRIVATE_KEY,
     PRIVATE_KEY_2,
     PUBLIC_KEY,
@@ -81,8 +85,8 @@ backends = (
     hmac_token_backend,
     rsa_token_backend,
     TokenBackend("ES256", ES256_PRIVATE_KEY, ES256_PUBLIC_KEY),
-    TokenBackend("ES384", ES256_PRIVATE_KEY, ES256_PUBLIC_KEY),
-    TokenBackend("ES512", ES256_PRIVATE_KEY, ES256_PUBLIC_KEY),
+    TokenBackend("ES384", ES384_PRIVATE_KEY, ES384_PUBLIC_KEY),
+    TokenBackend("ES512", ES512_PRIVATE_KEY, ES512_PUBLIC_KEY),
 )
 
 

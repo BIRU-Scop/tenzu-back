@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
-
 from base.serializers import UUIDB64, BaseModel
 
 
@@ -29,9 +27,8 @@ class _WorkspaceBaseNestedSerializer(BaseModel):
 
 
 class WorkspaceLinkNestedSerializer(_WorkspaceBaseNestedSerializer):
-    model_config = ConfigDict(from_attributes=True)
+    pass
 
 
 class WorkspaceNestedSerializer(_WorkspaceBaseNestedSerializer):
     color: int
-    model_config = ConfigDict(from_attributes=True)

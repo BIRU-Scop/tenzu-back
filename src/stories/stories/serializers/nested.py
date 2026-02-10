@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
-
 from base.serializers import UUIDB64, BaseModel
 
 
@@ -27,10 +25,8 @@ class StoryNestedSerializer(BaseModel):
     title: str
     project_id: UUIDB64
     workflow_id: UUIDB64
-    model_config = ConfigDict(from_attributes=True)
 
 
 class StoryNeighborSerializer(BaseModel):
     ref: int
     title: str
-    model_config = ConfigDict(from_attributes=True)
