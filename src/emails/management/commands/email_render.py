@@ -22,9 +22,10 @@ from typing import Final
 import orjson
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from rich.console import Console
+from rich.syntax import Syntax
 
 from base.i18n import i18n
-from base.utils import pprint
 from emails import render as email_render
 from emails.emails import EmailPart, Emails
 
@@ -64,21 +65,21 @@ class Command(BaseCommand):
             context = {}
 
         # Print email part
-        console = pprint.Console()
+        console = Console()
         with i18n.use(options["lang"]):
             match options["part"]:
                 case EmailPart.SUBJECT:
-                    syntax = pprint.Syntax(
+                    syntax = Syntax(
                         email_render.render_subject(email_name, context), "txt"
                     )
                     console.print(syntax)
                 case EmailPart.TXT:
-                    syntax = pprint.Syntax(
+                    syntax = Syntax(
                         email_render.render_email_txt(email_name, context), "txt"
                     )
                     console.print(syntax)
                 case EmailPart.HTML:
-                    syntax = pprint.Syntax(
+                    syntax = Syntax(
                         email_render.render_email_html(email_name, context), "html"
                     )
                     console.print(syntax)

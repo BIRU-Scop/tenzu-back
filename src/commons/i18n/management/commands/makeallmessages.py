@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,14 +15,16 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from django.core.management import call_command
+from django.core.management.base import BaseCommand
 
-"""
-This module contains elements to improve text formatting in the terminal. It is based on the rich library, see
-https://rich.readthedocs.io/en/latest/ for more info
-"""
+from base.i18n import (
+    i18n,
+)
 
-from rich import print  # noqa
-from rich.console import Console  # noqa
-from rich.pretty import pprint  # noqa
-from rich.syntax import Syntax  # noqa
-from rich.table import Table  # noqa
+
+class Command(BaseCommand):
+    help = "call makemessages for all available languages"
+
+    def handle(self, *args, **options):
+        call_command("makemessages", locale=[str(loc) for loc in i18n.locales])

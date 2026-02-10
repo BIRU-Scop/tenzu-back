@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024-2026 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,37 +15,3 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-# ruff: noqa: E402
-
-import os
-
-import django
-
-os.environ["DJANGO_SETTINGS_MODULE"] = "configurations.settings"
-django.setup()
-
-
-import typer
-
-from base.i18n.commands import cli as i18n_cli
-
-cli = typer.Typer(
-    name="Tenzu Manager",
-    help="Manage a Tenzu server.",
-    add_completion=True,
-    pretty_exceptions_enable=False,
-)
-
-
-@cli.callback()
-def main() -> None:
-    pass
-
-
-# Load module commands
-cli.add_typer(i18n_cli, name="i18n")
-
-
-if __name__ == "__main__":
-    cli()
