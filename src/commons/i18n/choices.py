@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,48 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from babel import UnknownLocaleError
+from typing import Final
 
+LATIN_LANGS: Final[list[str]] = [
+    "ca",
+    "da",
+    "de",
+    "en",
+    "es",
+    "eu",
+    "fi",
+    "gl",
+    "fr",
+    "it",
+    "lv",
+    "nb",
+    "nl",
+    "pl",
+    "pt",
+    "sv",
+    "tr",
+    "vi",
+]
 
-class UnknownLocaleIdentifierError(UnknownLocaleError):
-    pass
+CYRILLIC_LANGS: Final[list[str]] = [
+    "bg",
+    "bs",
+    "uk",
+    "sr",
+    "ru",
+]
+GREEK_LANGS: Final[list[str]] = [
+    "el",
+]
+HEBREW_LANGS: Final[list[str]] = [
+    "he",
+]
+ARABIC_LANGS: Final[list[str]] = [
+    "fa",
+    "ar",
+]
+CHINESE_AND_DEV_LANGS: Final[list[str]] = [
+    "ko",
+    "zh",
+    "ja",
+]

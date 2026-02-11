@@ -34,6 +34,7 @@ from pydantic import (
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from commons.validators import LanguageCode
 from configurations.conf.auth import AccountSettings, LDAPSettings, TokensSettings
 from configurations.conf.emails import EmailSettings
 from configurations.conf.events import EventsSettings
@@ -101,7 +102,7 @@ class Settings(BaseSettings):
     MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 100 * 1024 * 1024  # 100 MB
 
     # I18N
-    LANGUAGE_CODE: str = "en-US"
+    LANGUAGE_CODE: LanguageCode = "en-us"
 
     # Pagination
     DEFAULT_PAGE_SIZE: int = 10
@@ -151,18 +152,6 @@ class Settings(BaseSettings):
     def validate_uuid_node(cls, v: int | None) -> int | None:
         if v is not None and not 0 <= v < 1 << 48:
             raise ValueError("out of range (need a 48-bit value)")
-        return v
-
-    @field_validator("LANGUAGE_CODE")
-    @classmethod
-    def validate_lang(cls, v: str) -> str:
-        from base.i18n import i18n
-
-        if not i18n.is_language_available(v):
-            available_languages_for_display = "\n".join(i18n.available_languages)
-            raise ValueError(
-                f"LANGUAGE_CODE should be one of \n{available_languages_for_display}\n"
-            )
         return v
 
     model_config = SettingsConfigDict(

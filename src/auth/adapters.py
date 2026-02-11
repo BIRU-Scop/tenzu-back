@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -27,7 +27,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 
 from auth.services import create_auth_credentials
-from base.i18n import i18n
+from commons import i18n
 from ninja_jwt.settings import api_settings
 from users import services as users_services
 from users.api.validators import check_email_in_domain
@@ -169,15 +169,14 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                 user_root_lang = user_lang.split("-")[0]
             except AttributeError:
                 return None
-            for locale in i18n.locales:
-                locale_code = i18n.get_locale_code(locale)
-                if user_lang == locale_code.lower():
+            for locale in i18n.get_locales():
+                if user_lang == locale.code:
                     # return immediately if there is a full match
-                    return locale_code
-                if user_root_lang == locale.language and lang is None:
+                    return locale.code
+                if user_root_lang == locale.generic_lang_code and lang is None:
                     # set lang to the first language with identical root language,
                     # continue iteration as we might have a better match later on
-                    lang = locale_code
+                    lang = locale.code
         return lang
 
     def populate_user(self, request, sociallogin, data):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@
 import time
 from datetime import timedelta
 
-from base.i18n import ngettext
+from django.utils.translation import ngettext
 
 
 def timestamp_mics() -> int:

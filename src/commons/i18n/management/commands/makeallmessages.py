@@ -17,14 +17,16 @@
 # You can contact BIRU at ask@biru.sh
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
+from django.utils import translation
 
-from base.i18n import (
-    i18n,
-)
+from commons import i18n
 
 
 class Command(BaseCommand):
     help = "call makemessages for all available languages"
 
     def handle(self, *args, **options):
-        call_command("makemessages", locale=[str(loc) for loc in i18n.locales])
+        call_command(
+            "makemessages",
+            locale=[translation.to_locale(loc.code) for loc in i18n.get_locales()],
+        )

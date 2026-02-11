@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,11 +22,11 @@ from smtplib import SMTPException, SMTPRecipientsRefused
 from typing import Any
 
 from django.conf import settings
+from django.utils import translation
 from jinja2 import TemplateNotFound
 from procrastinate import RetryStrategy
 from procrastinate.contrib.django import app
 
-from base.i18n import i18n
 from emails import exceptions as ex
 from emails.emails import Emails
 from emails.render import render_email_html, render_email_txt, render_subject
@@ -68,7 +68,7 @@ async def send_email(
         return
 
     # render the email contents in the user's language using both the email template and variables dictionary
-    with i18n.use(lang):
+    with translation.override(lang):
         try:
             body_txt = render_email_txt(email_name, context)
             subject = render_subject(email_name, context)

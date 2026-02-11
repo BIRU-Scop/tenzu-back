@@ -22,10 +22,11 @@ from typing import Final
 import orjson
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.utils import translation
 from rich.console import Console
 from rich.syntax import Syntax
 
-from base.i18n import i18n
+from commons import i18n
 from emails import render as email_render
 from emails.emails import EmailPart, Emails
 
@@ -48,7 +49,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--lang",
             "-l",
-            help=f"Language used to render. Availables are: {', '.join(i18n.available_languages)}.",
+            help=f"Language used to render. Availables are: {', '.join(i18n.get_available_languages())}.",
             default=settings.LANGUAGE_CODE,
         )
         parser.add_argument("email", help="Part of the email to render.", type=Emails)
@@ -66,7 +67,7 @@ class Command(BaseCommand):
 
         # Print email part
         console = Console()
-        with i18n.use(options["lang"]):
+        with translation.override(options["lang"]):
             match options["part"]:
                 case EmailPart.SUBJECT:
                     syntax = Syntax(

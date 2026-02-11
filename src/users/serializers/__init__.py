@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from pydantic import constr
 
 from base.serializers import BaseModel
 from ninja_jwt.schema import TokenObtainPairOutputSchema
@@ -32,7 +33,7 @@ from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
 class UserSerializer(UserNestedSerializer):
-    lang: str
+    lang: constr(to_lower=True)
 
 
 class UserSearchSerializer(UserNestedSerializer):

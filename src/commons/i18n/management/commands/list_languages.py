@@ -20,9 +20,7 @@ from django.core.management.base import BaseCommand
 from rich.console import Console
 from rich.table import Table
 
-from base.i18n import (
-    i18n,
-)
+from commons import i18n
 
 
 class Command(BaseCommand):
@@ -32,20 +30,22 @@ class Command(BaseCommand):
         table = Table(title="Available languages")
         table.add_column("Code", style="bold yellow")
         table.add_column("Name (EN)")
-        table.add_column("Language")
-        table.add_column("Territory")
+        table.add_column("Local name")
+        table.add_column("BIDI")
         table.add_column("Extra", style="italic")
 
-        for loc in i18n.locales:
-            code = i18n.get_locale_code(loc)
-            name = loc.english_name
-            language = loc.language_name
-            territory = loc.territory_name
+        for loc in i18n.get_locales():
             extra: list[str] = []
-            if code == settings.LANGUAGE_CODE:
+            if loc.code == settings.LANGUAGE_CODE:
                 extra.append("default")
 
-            table.add_row(code, name, language, territory, ", ".join(extra))
+            table.add_row(
+                loc.code,
+                loc.name,
+                loc.name_local,
+                "√" if loc.bidi else "X",
+                ", ".join(extra),
+            )
 
         console = Console()
         console.print(table)

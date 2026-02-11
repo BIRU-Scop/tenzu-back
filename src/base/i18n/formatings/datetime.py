@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -26,17 +26,14 @@ See the docs at `Babel - Date and Time <https://babel.pocoo.org/en/latest/api/da
 from typing import Any, Callable
 
 from babel import dates
-
-from base.i18n import i18n
+from django.utils import translation
 
 
 def _using_current_lang(func: Callable[..., Any]) -> Callable[..., Any]:
     def _wrapped_func(*args: Any, **kwargs: Any) -> Any:
-        return func(*args, locale=i18n.locale, **kwargs)
+        return func(*args, locale=translation.get_language(), **kwargs)
 
     return _wrapped_func
 
 
 format_datetime = _using_current_lang(dates.format_datetime)
-format_date = _using_current_lang(dates.format_date)
-format_time = _using_current_lang(dates.format_time)

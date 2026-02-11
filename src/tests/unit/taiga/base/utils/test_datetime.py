@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,12 +18,13 @@
 # You can contact BIRU at ask@biru.sh
 from datetime import timedelta
 
-from base.i18n import i18n
+from django.utils import translation
+
 from base.utils.datetime import display_lifetime
 
 
 def test_display_lifetime():
-    with i18n.use("en-US"):
+    with translation.override("en-US"):
         assert display_lifetime(timedelta(days=3)) == "3 days"
 
         assert display_lifetime(timedelta(days=1, hours=12)) == "1 day"

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,9 +21,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from django.test import override_settings
+from django.utils import translation
 from jinja2 import Environment, select_autoescape
 
-from base.i18n import i18n
 from base.templating.filters import load_filters
 
 env = Environment(autoescape=select_autoescape())
@@ -86,7 +86,7 @@ def test_format_datetime_with_default_format(value, result):
     context = {"value": value}
     template = "{{ value | format_datetime }}"
 
-    with i18n.use("en-US"):
+    with translation.override("en-US"):
         assert env.from_string(template).render(**context) == result
 
 
@@ -122,7 +122,7 @@ def test_format_datetime_with_default_format(value, result):
 def test_format_datetime_with_custom_format(value, format, result):
     context = {"value": value, "format": format}
 
-    with i18n.use("en-US"):
+    with translation.override("en-US"):
         template = "{{ value | format_datetime(format) }}"
         assert env.from_string(template).render(**context) == result
 

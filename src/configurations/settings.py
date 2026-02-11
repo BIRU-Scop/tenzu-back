@@ -35,6 +35,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from rich.console import Console
 
 from base.front import Urls
+from commons.i18n import TRANSLATION_DIRECTORY
 
 from .conf import settings
 from .conf.auth import LDAPActivation
@@ -210,7 +211,7 @@ USE_I18N = True
 
 USE_TZ = True
 
-LOCALE_PATHS = [BASE_DIR / "locale", BASE_DIR / "ninja_jwt" / "locale"]
+LOCALE_PATHS = [TRANSLATION_DIRECTORY, BASE_DIR / "ninja_jwt" / "locale"]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
