@@ -27,14 +27,8 @@ easy-thumbnails[svg] # Images and thumbnails
 django-nonrelated-inlines # admin
 django-cors-headers
 
-# Mailing module
-jinja2 # Templates system
-
 # Task Queue Module
 procrastinate[django]
-
-# I18n & l10n
-babel
 
 # Auth
 PyJWT # For auth

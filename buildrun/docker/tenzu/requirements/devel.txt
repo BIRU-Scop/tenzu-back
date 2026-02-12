@@ -34,8 +34,6 @@ autobahn==25.12.2
     # via daphne
 automat==25.4.16
     # via twisted
-babel==2.18.0
-    # via -r requirements/commons.in
 boto3==1.42.45
     # via django-storages
 botocore==1.42.45
@@ -178,8 +176,6 @@ iniconfig==2.3.0
     # via pytest
 isodate==0.7.2
     # via python3-saml
-jinja2==3.1.6
-    # via -r requirements/commons.in
 jmespath==1.1.0
     # via
     #   boto3
@@ -193,8 +189,6 @@ lxml==6.0.2
     #   xmlsec
 markdown-it-py==4.0.0
     # via rich
-markupsafe==3.0.3
-    # via jinja2
 mdurl==0.1.2
     # via markdown-it-py
 msgpack==1.1.2
@@ -366,8 +360,6 @@ txaio==25.12.2
     # via autobahn
 typer==0.21.1
     # via -r requirements/commons.in
-types-babel==2.11.0.15
-    # via -r requirements/devel.in
 types-cffi==1.17.0.20250915
     # via types-pyopenssl
 types-channels==4.3.0.20250822
@@ -378,16 +370,12 @@ types-pyopenssl==24.1.0.20240722
     # via types-redis
 types-python-slugify==8.0.2.20240310
     # via -r requirements/devel.in
-types-pytz==2025.2.0.20251108
-    # via types-babel
 types-pyyaml==6.0.12.20250915
     # via django-stubs
 types-redis==4.6.0.20241004
     # via -r requirements/devel.in
 types-setuptools==82.0.0.20260210
-    # via
-    #   types-babel
-    #   types-cffi
+    # via types-cffi
 typing-extensions==4.15.0
     # via
     #   django-stubs
