@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -57,7 +57,7 @@ async def test_create_user_ok_with_token_project(client):
         "acceptPrivacyPolicy": True,
         "projectInvitationToken": "eyJ0eXAiOToken",
         "acceptProjectInvitation": False,
-        "lang": "es-ES",
+        "lang": "es-es",
     }
 
     response = await client.post("/users", json=data)
@@ -74,7 +74,7 @@ async def test_create_user_ok_with_token_workspace(client):
         "acceptPrivacyPolicy": True,
         "workspaceInvitationToken": "eyJ0eXAiOToken",
         "acceptWorkspaceInvitation": False,
-        "lang": "es-ES",
+        "lang": "es-es",
     }
 
     response = await client.post("/users", json=data)
@@ -91,7 +91,7 @@ async def test_create_user_not_accepted_terms(client):
         "acceptPrivacyPolicy": True,
         "workspaceInvitationToken": "eyJ0eXAiOToken",
         "acceptWorkspaceInvitation": False,
-        "lang": "es-ES",
+        "lang": "es-es",
     }
 
     response = await client.post("/users", json=data)
@@ -331,7 +331,7 @@ async def test_get_current_user_success(client):
 async def test_update_current_user_error_no_authenticated_user(client):
     data = {
         "fullName": "Ada Lovelace",
-        "lang": "es-ES",
+        "lang": "es-es",
     }
     response = await client.put("/users/me", json=data)
 
@@ -342,7 +342,7 @@ async def test_update_current_user_success(client):
     user = await f.create_user()
     data = {
         "fullName": "Ada Lovelace",
-        "lang": "es-ES",
+        "lang": "es-es",
     }
 
     client.login(user)
@@ -356,7 +356,7 @@ async def test_update_current_user_success_ldap_only(client):
     user = await f.create_user()
     data = {
         "fullName": "Ada Lovelace",
-        "lang": "es-ES",
+        "lang": "es-es",
     }
 
     client.login(user)

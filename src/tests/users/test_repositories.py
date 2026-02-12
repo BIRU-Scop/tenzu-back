@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -44,7 +44,7 @@ async def test_create_user_success():
     full_name = "Full Name"
     color = 8
     password = "password"
-    lang = "es-ES"
+    lang = "es-es"
     acceptance_date = aware_utcnow()
     user = await users_repositories.create_user(
         email=email,
@@ -65,7 +65,7 @@ async def test_create_user_not_accepted_terms():
     email = "EMAIL@email.com"
     full_name = "Full Name"
     password = "password"
-    lang = "es-ES"
+    lang = "es-es"
     color = 1
     acceptance_date = None
 
@@ -84,7 +84,7 @@ async def test_create_user_error_email_or_username_case_insensitive():
     email = "EMAIL@email.com"
     full_name = "Full Name"
     password = "password"
-    lang = "es-ES"
+    lang = "es-es"
     color = 1
     acceptance_date = aware_utcnow()
 
@@ -113,7 +113,7 @@ async def test_create_user_no_password_from_social():
     email = "EMAIL@email.com"
     full_name = "Full Name"
     password = None
-    lang = "es-ES"
+    lang = "es-es"
     color = 1
     acceptance_date = None
 

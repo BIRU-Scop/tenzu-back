@@ -18,6 +18,7 @@
 from datetime import timedelta
 
 import pytest
+from django.conf import settings
 from django.utils import translation
 
 from commons.front.exceptions import InvalidFrontUrl
@@ -32,7 +33,7 @@ def test_front_url_success():
 
     assert (
         url
-        == "http://localhost:4200/signup/verify/ayJ0eXAiOiJKV1QaLCJhbGciOiJIUzI1fiJ9"
+        == f"{settings.FRONTEND_URL}signup/verify/ayJ0eXAiOiJKV1QaLCJhbGciOiJIUzI1fiJ9"
     )
 
 
@@ -55,12 +56,12 @@ def test_front_url_with_params():
 
     assert (
         url
-        == "http://localhost:4200/signup/verify/ayJ0eXAiOiJKV1QaLCJhbGciOiJIUzI1fiJ9?param1=A&param2=B"
+        == f"{settings.FRONTEND_URL}signup/verify/ayJ0eXAiOiJKV1QaLCJhbGciOiJIUzI1fiJ9?param1=A&param2=B"
     )
 
 
 def test_display_lifetime():
-    with translation.override("en-US"):
+    with translation.override("en-us"):
         assert display_lifetime(timedelta(days=3)) == "3 days"
 
         assert display_lifetime(timedelta(days=1, hours=12)) == "1 day"
