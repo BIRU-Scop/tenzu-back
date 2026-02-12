@@ -135,6 +135,7 @@ test:
     TENZU_TOKENS__SIGNING_KEY: secret2
   script:
     - cd $CI_PROJECT_DIR/src/
+    - ./manage.py compilemessages
     - pytest . --cov --cov-report=xml:coverage-report.xml  --cov-report=term --no-cov-on-fail --junitxml=pytest-report.xml --cov-config=.coveragerc
   coverage: '/^TOTAL.+?(\d+\%)$/'
   artifacts:
