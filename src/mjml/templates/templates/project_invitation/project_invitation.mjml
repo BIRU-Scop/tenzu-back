@@ -1,3 +1,5 @@
+<mjml>
+  <mj-raw position="file-start">
 <!--
 Copyright (C) 2024-2026 BIRU
 
@@ -17,10 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 -->
-
-<mjml>
-  <mj-raw position="file-start">
-    {% load i18n email_extra static %}
+{% load i18n email_extra static %}
   </mj-raw>
   <mj-head>
       <mj-title>{% trans "emails.project_invitation.title" %}</mj-title>
