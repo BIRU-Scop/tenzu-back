@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,12 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 
 from enum import StrEnum
-from typing import Any
-from urllib.parse import urlencode, urljoin
-
-from django.conf import settings
-
-from base.front.exceptions import InvalidFrontUrl
 
 
 class Urls(StrEnum):
@@ -34,19 +28,3 @@ class Urls(StrEnum):
     VERIFY_SIGNUP = "/signup/verify/{verification_token}"
     WORKSPACE_INVITATION = "/accept-workspace-invitation/{invitation_token}"
     SOCIALAUTH_CALLBACK = "/socialauth_callback"
-
-
-def resolve_front_url(
-    url_key: str, query_params: dict[str, str] | None = None, **kwargs: Any
-) -> str:
-    try:
-        url_pattern = Urls[url_key]
-    except KeyError:
-        raise InvalidFrontUrl(f"Theres no front-end url matching the key `{url_key}`")
-
-    url = urljoin(str(settings.FRONTEND_URL), str(url_pattern.value.format(**kwargs)))
-
-    if query_params:
-        return f"{url}?{urlencode(query_params)}"
-
-    return url

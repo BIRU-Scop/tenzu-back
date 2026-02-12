@@ -18,4 +18,4 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 You can contact BIRU at ask@biru.sh
 #}
 
-Reset your Tenzu password
+{% trans name=workspace_name %}emails.workspace_invitation.subject{% endtrans %}

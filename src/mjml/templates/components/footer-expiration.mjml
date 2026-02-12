@@ -23,7 +23,7 @@ You can contact BIRU at ask@biru.sh
 <mj-section>
   <mj-column width="100%" mj-class="padding-top-24">
     <mj-text css-class="secondary-link dm-text" mj-class="font-body color-gray70">
-      {% trans email=settings.SUPPORT_EMAIL %}emails.footer.help_support{% endtrans %}
+      {% blocktrans with email=settings.SUPPORT_EMAIL %}emails.footer.help_support {{email}}{% endblocktrans %}
     </mj-text>
   </mj-column>
 </mj-section>

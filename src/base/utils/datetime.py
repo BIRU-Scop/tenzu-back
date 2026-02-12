@@ -19,9 +19,6 @@
 
 
 import time
-from datetime import timedelta
-
-from django.utils.translation import ngettext
 
 
 def timestamp_mics() -> int:
@@ -29,31 +26,3 @@ def timestamp_mics() -> int:
     Return timestamp in microseconds.
     """
     return int(time.time() * 1000000)
-
-
-def display_lifetime(lifetime: timedelta) -> str:
-    """
-    This function takes timedelta and return a string to round it to days, hours or minutes.
-    If minutes are less than a day, then it returns hours.
-    If minutes are less than an hour, then it returns the minutes.
-    """
-    if lifetime.days > 0:
-        return (
-            ngettext("datetime.lifetime.day", "datetime.lifetime.days", lifetime.days)
-            % lifetime.days
-        )
-    else:
-        hours, remainder = divmod(lifetime.seconds, 3600)
-        if hours > 0:
-            return (
-                ngettext("datetime.lifetime.hour", "datetime.lifetime.hours", hours)
-                % hours
-            )
-        else:
-            minutes = remainder // 60
-            return (
-                ngettext(
-                    "datetime.lifetime.minute", "datetime.lifetime.minutes", minutes
-                )
-                % minutes
-            )

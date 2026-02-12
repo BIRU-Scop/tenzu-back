@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,6 +16,10 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from django.conf import settings
 
-class InvalidFrontUrl(Exception):
-    pass
+
+def extra_settings_exposed(request):
+    return {
+        "settings": settings,
+    }

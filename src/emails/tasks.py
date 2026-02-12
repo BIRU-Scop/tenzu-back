@@ -22,8 +22,8 @@ from smtplib import SMTPException, SMTPRecipientsRefused
 from typing import Any
 
 from django.conf import settings
+from django.template import TemplateDoesNotExist
 from django.utils import translation
-from jinja2 import TemplateNotFound
 from procrastinate import RetryStrategy
 from procrastinate.contrib.django import app
 
@@ -73,7 +73,7 @@ async def send_email(
             body_txt = render_email_txt(email_name, context)
             subject = render_subject(email_name, context)
             body_html = render_email_html(email_name, context)
-        except TemplateNotFound as template_exception:
+        except TemplateDoesNotExist as template_exception:
             raise ex.EmailTemplateError(
                 f"Missing or invalid email template. {template_exception}"
             ) from template_exception

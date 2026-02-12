@@ -17,5 +17,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 #}
+{% load i18n %}
+{% load email_extra %}
 
-Reset your Tenzu password
+{% front_url "VERIFY_SIGNUP" verification_token=verification_token as verify_url %}
+
+{% trans "emails.sign_up.title" %}
+
+{% trans "emails.sign_up.verify" %}
+
+{% trans "emails.sign_up.copy_link" %}
+{{ verify_url }}
+
+{% trans "emails.sign_up.welcome" %}
+
+{% trans "emails.commons.team" %}
+
+{% blocktrans with expiration=settings.ACCOUNT.VERIFY_USER_TOKEN_LIFETIME|display_lifetime %}emails.expiration_date.expiration {{expiration}}{% endblocktrans %}
+
+{% trans "emails.expiration_date.ignore" %}
+
+{% blocktrans with support_email=settings.SUPPORT_EMAIL %}emails.commons.support_txt {{support_email}}{% endblocktrans %}

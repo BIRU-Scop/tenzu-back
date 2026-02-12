@@ -1,0 +1,40 @@
+{#
+Copyright (C) 2024-2026 BIRU
+
+This file is part of Tenzu.
+
+Tenzu is free software: you can redistribute it and/or modify it
+under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+You can contact BIRU at ask@biru.sh
+#}
+{% load i18n %}
+{% load email_extra %}
+
+{% front_url "WORKSPACE_INVITATION" invitation_token=invitation_token as invitation_url %}
+{% trans "emails.workspace_invitation.title" %}
+
+{% if receiver_name %}
+{% blocktrans with name=receiver_name %}emails.workspace_invitation.hi_name {{name}}{% endblocktrans %}
+{% else %}
+{% trans "emails.workspace_invitation.hi_there" %}
+{% endif %}
+{% blocktrans with name=sender_name %}emails.workspace_invitation.sender {{name}}{% endblocktrans %}
+
+{{ workspace_name }}
+
+{% if not receiver_name %}
+{% trans "emails.workspace_invitation.tenzu_description" %}
+{% endif %}
+{{ invitation_url }}
+
+{% blocktrans with support_email=settings.SUPPORT_EMAIL %}emails.commons.support_txt {{support_email}}{% endblocktrans %}

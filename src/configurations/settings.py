@@ -34,7 +34,7 @@ from corsheaders.defaults import default_headers
 from django.core.serializers.json import DjangoJSONEncoder
 from rich.console import Console
 
-from base.front import Urls
+from commons.front import Urls
 from commons.i18n import TRANSLATION_DIRECTORY
 
 from .conf import settings
@@ -158,6 +158,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "commons.context_processors.extra_settings_exposed",
             ],
         },
     },
@@ -211,7 +212,7 @@ USE_I18N = True
 
 USE_TZ = True
 
-LOCALE_PATHS = [TRANSLATION_DIRECTORY, BASE_DIR / "ninja_jwt" / "locale"]
+LOCALE_PATHS = [TRANSLATION_DIRECTORY]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

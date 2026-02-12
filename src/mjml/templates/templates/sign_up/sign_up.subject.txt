@@ -1,4 +1,4 @@
-<!--
+{#
 Copyright (C) 2024-2026 BIRU
 
 This file is part of Tenzu.
@@ -16,9 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
--->
-<mj-column css-class="separator-top separator-bottom" mj-class="full-width padding-section">
-  <mj-text css-class="dm-text" mj-class="font-small color-gray90">
-    {% trans "emails.ignore_email.ignore" %}
-  </mj-text>
-</mj-column>
+#}
+{% load i18n %}
+
+{% trans "emails.sign_up.subject" %}
