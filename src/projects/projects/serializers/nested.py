@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
-
 from base.serializers import UUIDB64, BaseModel
 from projects.projects.serializers.mixins import ProjectLogoBaseSerializer
 
@@ -34,8 +32,7 @@ class _ProjectBaseNestedSerializer(BaseModel):
 class ProjectNestedSerializer(ProjectLogoBaseSerializer, _ProjectBaseNestedSerializer):
     description: str
     color: int
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectLinkNestedSerializer(_ProjectBaseNestedSerializer):
-    model_config = ConfigDict(from_attributes=True)
+    pass

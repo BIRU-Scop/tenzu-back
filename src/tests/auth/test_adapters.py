@@ -1,4 +1,4 @@
-# Copyright (C) 2025 BIRU
+# Copyright (C) 2025-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,9 +20,10 @@ from unittest.mock import PropertyMock, patch
 
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialAccount, SocialLogin
-from babel import Locale
+from django.utils import translation
 
 from auth.adapters import SocialAccountAdapter
+from commons.i18n import Locale
 
 
 class TestSocialAccountAdapter:
@@ -51,23 +52,27 @@ class TestSocialAccountAdapter:
         sociallogin = SocialLogin(
             account=SocialAccount(extra_data={"preferred_language": "en"})
         )
-        assert adapter.get_language(sociallogin) == "en-US"
+        assert adapter.get_language(sociallogin) == "en-us"
         sociallogin = SocialLogin(account=SocialAccount(extra_data={"locale": "fr"}))
-        assert adapter.get_language(sociallogin) == "fr-FR"
-        sociallogin = SocialLogin(account=SocialAccount(extra_data={"locale": "fr-FR"}))
-        assert adapter.get_language(sociallogin) == "fr-FR"
-        with patch("base.i18n.I18N.locales", new_callable=PropertyMock) as locales_mock:
+        assert adapter.get_language(sociallogin) == "fr-fr"
+        sociallogin = SocialLogin(account=SocialAccount(extra_data={"locale": "fr-fr"}))
+        assert adapter.get_language(sociallogin) == "fr-fr"
+        with patch("commons.i18n.get_locales") as locales_mock:
             locales_mock.return_value = [
-                Locale.parse(cod, sep="-") for cod in ["en-US", "en-GB"]
+                Locale(
+                    **translation.get_language_info(cod)
+                    | {"code": cod, "generic_lang_code": cod.split("-")[0]}
+                )
+                for cod in ["en-us", "en-gb"]
             ]
             sociallogin = SocialLogin(
-                account=SocialAccount(extra_data={"preferred_language": "en-GB"})
+                account=SocialAccount(extra_data={"preferred_language": "en-gb"})
             )
-            assert adapter.get_language(sociallogin) == "en-GB"
+            assert adapter.get_language(sociallogin) == "en-gb"
             sociallogin = SocialLogin(
-                account=SocialAccount(extra_data={"preferred_language": "en-CA"})
+                account=SocialAccount(extra_data={"preferred_language": "en-ca"})
             )
-            assert adapter.get_language(sociallogin) == "en-US"
+            assert adapter.get_language(sociallogin) == "en-us"
 
     def test_populate_user(self):
         adapter = SocialAccountAdapter()

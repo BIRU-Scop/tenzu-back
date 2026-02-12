@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -114,8 +114,6 @@ class NinjaJWTSettings(BaseModel):
         "ninja_jwt.schema.TokenBlacklistInputSchema"
     )
     TOKEN_VERIFY_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenVerifyInputSchema")
-
-    model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode="after")
     def validate_ninja_jwt_settings(self) -> Self:

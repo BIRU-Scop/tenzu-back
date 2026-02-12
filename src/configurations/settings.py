@@ -34,7 +34,8 @@ from corsheaders.defaults import default_headers
 from django.core.serializers.json import DjangoJSONEncoder
 from rich.console import Console
 
-from base.front import Urls
+from commons.front import Urls
+from commons.i18n import TRANSLATION_DIRECTORY
 
 from .conf import settings
 from .conf.auth import LDAPActivation
@@ -91,8 +92,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
     # tenzu
     "base.db",
+    "commons.i18n",
     "commons.storage",
     "emails",
     "notifications",
@@ -207,6 +210,8 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
+
+LOCALE_PATHS = [TRANSLATION_DIRECTORY]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

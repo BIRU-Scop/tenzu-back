@@ -1,4 +1,4 @@
-# Copyright (C) 2025 BIRU
+# Copyright (C) 2025-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,8 +16,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
-
 from base.serializers import BaseModel
 
 
@@ -33,7 +31,6 @@ class SocialAccountNestedSerializer(BaseModel):
 
 class AuthConfigSerializer(BaseModel):
     socialaccount: SocialAccountNestedSerializer
-    model_config = ConfigDict(from_attributes=True)
 
 
 class AuthSocialSignupError(BaseModel):

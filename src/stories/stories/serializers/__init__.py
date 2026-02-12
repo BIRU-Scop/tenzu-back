@@ -19,8 +19,6 @@
 
 from datetime import datetime
 
-from pydantic import ConfigDict
-
 from base.serializers import UUIDB64, BaseModel
 from stories.stories.serializers.nested import StoryNeighborSerializer
 from users.serializers.nested import UserNestedSerializer
@@ -38,9 +36,6 @@ class StorySummarySerializer(BaseModel):
     project_id: UUIDB64
     version: int
     assignee_ids: list[UUIDB64]
-    model_config = ConfigDict(
-        from_attributes=True,
-    )
 
 
 class StoryDetailSerializer(StorySummarySerializer):
@@ -60,7 +55,6 @@ class StoryDetailSerializer(StorySummarySerializer):
 class ReorderSerializer(BaseModel):
     place: str
     ref: int
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ReorderStoriesSerializer(BaseModel):
@@ -68,4 +62,3 @@ class ReorderStoriesSerializer(BaseModel):
     status: WorkflowStatusNestedSerializer
     stories: list[int]
     reorder: ReorderSerializer | None = None
-    model_config = ConfigDict(from_attributes=True)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -38,7 +38,7 @@ SUBJECT = "Email sent from FastPI-Mailman"
 TO_EMAILS = ["username1@domain.name", "username2@domain.name"]
 BODY_TXT = "This is the Text message"
 BODY_HTML = (
-    "<h1>Hello Jinja2</h1><h2>One</h2><ul><li>Foo</li><li>Bar</li><li>Qux</li></ul>"
+    "<h1>Hello User</h1><h2>One</h2><ul><li>Foo</li><li>Bar</li><li>Qux</li></ul>"
 )
 EMAIL_NAME = "sign_up"
 CONTEXT = {

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
-
 from base.serializers import BaseModel
 from memberships.choices import InvitationStatus
 from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializer
@@ -27,4 +25,3 @@ from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializ
 class WorkspaceInvitationNestedSerializer(BaseModel):
     status: InvitationStatus
     workspace: WorkspaceLinkNestedSerializer
-    model_config = ConfigDict(from_attributes=True)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,15 +19,19 @@
 from typing import Generic, TypeVar
 
 from ninja import Schema
+from pydantic import ConfigDict
 from pydantic.alias_generators import to_camel
 
 from base.serializers.fields import UUIDB64, CamelizeDict, FileField  # noqa
 
 
 class BaseModel(Schema):
-    class Config(Schema.Config):
-        alias_generator = to_camel
-        populate_by_name = True
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        validate_by_name=True,
+        validate_by_alias=True,
+        from_attributes=True,
+    )
 
 
 RootModel = TypeVar("RootModel")

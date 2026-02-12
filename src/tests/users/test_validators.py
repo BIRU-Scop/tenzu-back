@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,6 +21,7 @@ import pytest
 from django.test import override_settings
 from pydantic import ValidationError
 
+from commons import i18n
 from tests.utils.utils import check_validation_errors
 from users.api.validators import CreateUserValidator, UpdateUserValidator
 
@@ -36,7 +37,7 @@ def test_validate_create_user_ok_all_fields():
     terms = True
     project_inv_token = "eyJ0zB26LvR9jQw7"
     accept_project_invitation = False
-    lang = "es-ES"
+    lang = "es-es"
 
     validator = CreateUserValidator(
         email=email,
@@ -215,7 +216,7 @@ def test_validate_create_user_invalid_color(color, error):
 
 def test_validate_update_user_ok_all_fields():
     full_name = "User fullname"
-    lang = "es-ES"
+    lang = "es-es"
 
     validator = UpdateUserValidator(
         full_name=full_name,
@@ -242,6 +243,7 @@ def test_validate_update_user_wrong_not_all_required_fields():
     [
         "invalid",
         "es_ES",
+        "es-ES",
     ],
 )
 def test_validate_update_user_invalid_language(lang):
@@ -251,6 +253,11 @@ def test_validate_update_user_invalid_language(lang):
             lang=lang,
         )
 
+    available_languages_for_display = "\n".join(i18n.get_available_languages())
     check_validation_errors(
-        validation_errors, ["lang"], [f"Value error, Language {lang} is not available"]
+        validation_errors,
+        ["lang"],
+        [
+            f"Value error, Language {lang} is not available, should be one of \n{available_languages_for_display}\n"
+        ],
     )

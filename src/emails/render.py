@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,26 +19,23 @@
 
 from typing import Any, Final
 
-from base.templating import env
+from django.template.loader import render_to_string
 
-TXT_BODY_TEMPLATE_SUFFIX: Final[str] = ".txt.jinja"
+TXT_BODY_TEMPLATE_SUFFIX: Final[str] = ".txt"
 HTML_BODY_TEMPLATE_SUFFIX: Final[str] = ".html"
-SUBJECT_TEMPLATE_SUFFIX: Final[str] = ".subject.jinja"
+SUBJECT_TEMPLATE_SUFFIX: Final[str] = ".subject.txt"
 
 
 def render_email_html(email_name: str, context: dict[str, Any]) -> str:
     html = f"{email_name}{HTML_BODY_TEMPLATE_SUFFIX}"
-    template_html = env.get_template(html)
-    return template_html.render(context)
+    return render_to_string(html, context)
 
 
 def render_subject(email_name: str, context: dict[str, Any]) -> str:
     html = f"{email_name}{SUBJECT_TEMPLATE_SUFFIX}"
-    template_html = env.get_template(html)
-    return template_html.render(context).replace("\n", "")
+    return render_to_string(html, context).replace("\n", "")
 
 
 def render_email_txt(email_name: str, context: dict[str, Any]) -> str:
     txt = f"{email_name}{TXT_BODY_TEMPLATE_SUFFIX}"
-    template_txt = env.get_template(txt)
-    return template_txt.render(context)
+    return render_to_string(txt, context)

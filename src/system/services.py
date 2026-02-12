@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,10 +21,9 @@ import operator
 
 from django.conf import settings
 
-from base.i18n import i18n
+from commons import i18n
 from system.serializers import (
     LanguageSerializer,
-    ScriptType,
     TextDirection,
     get_script_type,
 )
@@ -41,33 +40,25 @@ def get_available_languages_info() -> list[LanguageSerializer]:
       Chinese and derivatives, and others.
     - Second alphabetically for its language name.
 
-    :return a list of `LanguageSchema` objects
-    :rtype list[tenzu.base.i18n.schemas.LanguageSchema]
+    :return a list of `LanguageSerializer` objects
+    :rtype list[system.serializers.LanguageSerializer]
     """
 
     langs: list[LanguageSerializer] = []
-    for loc in i18n.locales:
-        code = i18n.get_locale_code(loc)
-        script_type = get_script_type(loc.language)
-        name = (
-            loc.display_name.title()
-            if loc.display_name and script_type is ScriptType.LATIN
-            else loc.display_name or code
-        )
-        english_name = loc.english_name or code
-        text_direction = TextDirection(loc.text_direction)
-        is_default = code == settings.LANGUAGE_CODE
+    for loc in i18n.get_locales():
+        script_type = get_script_type(loc.generic_lang_code)
+        is_default = loc.code == settings.LANGUAGE_CODE
 
         langs.append(
             LanguageSerializer(
-                code=code,
-                name=name,
-                english_name=english_name,
-                text_direction=text_direction,
+                code=loc.code,
+                name=loc.name_local,
+                english_name=loc.name,
+                text_direction=TextDirection.RTL if loc.bidi else TextDirection.LTR,
                 is_default=is_default,
                 script_type=script_type,
             )
         )
 
-    langs.sort(key=operator.attrgetter("script_type", "name"))
+    langs.sort(key=lambda x: (x.script_type, x.name.title()))
     return langs

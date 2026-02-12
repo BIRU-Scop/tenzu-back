@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,6 +19,8 @@
 
 from enum import Enum
 
+from django.conf import settings
+
 
 class Emails(Enum):
     PROJECT_INVITATION = "project_invitation"
@@ -31,3 +33,6 @@ class EmailPart(Enum):
     TXT = "txt"
     HTML = "html"
     SUBJECT = "subject"
+
+
+extra_email_context = {"settings": settings}
