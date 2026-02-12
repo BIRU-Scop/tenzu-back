@@ -112,22 +112,23 @@ def display_lifetime(lifetime: timedelta) -> str:
     If minutes are less than an hour, then it returns the minutes.
     """
     if lifetime.days > 0:
-        return (
-            ngettext("datetime.lifetime.day", "datetime.lifetime.days", lifetime.days)
-            % lifetime.days
-        )
+        return ngettext(
+            "datetime.lifetime.day %(count)d",
+            "datetime.lifetime.days %(count)d",
+            lifetime.days,
+        ) % {"count": lifetime.days}
     else:
         hours, remainder = divmod(lifetime.seconds, 3600)
         if hours > 0:
-            return (
-                ngettext("datetime.lifetime.hour", "datetime.lifetime.hours", hours)
-                % hours
-            )
+            return ngettext(
+                "datetime.lifetime.hour %(count)d",
+                "datetime.lifetime.hours %(count)d",
+                hours,
+            ) % {"count": hours}
         else:
             minutes = remainder // 60
-            return (
-                ngettext(
-                    "datetime.lifetime.minute", "datetime.lifetime.minutes", minutes
-                )
-                % minutes
-            )
+            return ngettext(
+                "datetime.lifetime.minute %(count)d",
+                "datetime.lifetime.minutes %(count)d",
+                minutes,
+            ) % {"count": minutes}

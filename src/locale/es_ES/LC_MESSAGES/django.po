@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 10:47+0000\n"
+"POT-Creation-Date: 2026-02-12 19:24+0000\n"
 "PO-Revision-Date: 2022-08-24 17:12+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: es_ES <LL@li.org>\n"
@@ -18,34 +18,34 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.11.0\n"
 
-#: emails/templates/project_invitation.html:5
-#: emails/templates/project_invitation.html:400
+#: emails/templates/project_invitation.html:24
+#: emails/templates/project_invitation.html:419
 #: emails/templates/project_invitation.txt:26
 #: mjml/templates/templates/project_invitation/project_invitation.txt:26
 msgid "emails.project_invitation.title"
 msgstr "Invitacion de Tenzu"
 
-#: emails/templates/project_invitation.html:446
+#: emails/templates/project_invitation.html:465
 #: emails/templates/project_invitation.txt:29
 #: mjml/templates/templates/project_invitation/project_invitation.txt:29
 #, python-format
 msgid "emails.project_invitation.hi_name %(name)s"
 msgstr "Hola %(name)s,"
 
-#: emails/templates/project_invitation.html:446
+#: emails/templates/project_invitation.html:465
 #: emails/templates/project_invitation.txt:31
 #: mjml/templates/templates/project_invitation/project_invitation.txt:31
 msgid "emails.project_invitation.hi_there"
 msgstr "Hola,"
 
-#: emails/templates/project_invitation.html:451
+#: emails/templates/project_invitation.html:470
 #: emails/templates/project_invitation.txt:33
 #: mjml/templates/templates/project_invitation/project_invitation.txt:33
 #, python-format
 msgid "emails.project_invitation.sender %(name)s"
 msgstr "<strong>%(name)s</strong> te ha enviado una invitación para unirte a:"
 
-#: emails/templates/project_invitation.html:521
+#: emails/templates/project_invitation.html:540
 #: emails/templates/project_invitation.txt:39
 #: mjml/templates/templates/project_invitation/project_invitation.txt:39
 msgid "emails.project_invitation.tenzu_description"
@@ -53,17 +53,17 @@ msgstr ""
 "Tenzu es una herramienta de Gestión Agile de Proyectos de Código Abierto. "
 "Ser usuario de Tenzu no tiene ningún coste asociado para ti."
 
-#: emails/templates/project_invitation.html:530
+#: emails/templates/project_invitation.html:549
 msgid "emails.project_invitation.accept"
 msgstr "Aceptar tu invitación"
 
-#: emails/templates/project_invitation.html:539
+#: emails/templates/project_invitation.html:558
 msgid "emails.project_invitation.button_not_working"
 msgstr "¿No funciona el botón? Copia y pega esta URL en tu navegador:"
 
-#: emails/templates/project_invitation.html:603
-#: emails/templates/reset_password.html:568 emails/templates/sign_up.html:507
-#: emails/templates/workspace_invitation.html:607
+#: emails/templates/project_invitation.html:622
+#: emails/templates/reset_password.html:587 emails/templates/sign_up.html:526
+#: emails/templates/workspace_invitation.html:626
 #, python-format
 msgid "emails.footer.help_support %(email)s"
 msgstr ""
@@ -87,42 +87,42 @@ msgstr "[Tenzu] Invitación para unirte al proyecto '%(name)s'"
 msgid "emails.commons.support_txt %(support_email)s"
 msgstr "¿Necesitas ayuda? Contacta con nosotros en %(support_email)s"
 
-#: emails/templates/reset_password.html:5
-#: emails/templates/reset_password.html:360
+#: emails/templates/reset_password.html:24
+#: emails/templates/reset_password.html:379
 #: emails/templates/reset_password.txt:25
 #: mjml/templates/templates/reset_password/reset_password.txt:25
 msgid "emails.reset_password.title"
 msgstr "Reestablece tu contraseña de Tenzu"
 
-#: emails/templates/reset_password.html:406
+#: emails/templates/reset_password.html:425
 #: emails/templates/reset_password.txt:27
 #: mjml/templates/templates/reset_password/reset_password.txt:27
 msgid "emails.reset_password.reset_your"
 msgstr "Reestablece tu contraseña"
 
-#: emails/templates/reset_password.html:430
+#: emails/templates/reset_password.html:449
 msgid "emails.reset_password.click_button"
 msgstr ""
 "Hemos recibido una petición para reestablecer tu contraseña. Haz click en el "
 "botón de abajo para elegir una nueva:"
 
-#: emails/templates/reset_password.html:439
+#: emails/templates/reset_password.html:458
 msgid "emails.reset_password.reset"
 msgstr "Restablecer contraseña"
 
-#: emails/templates/reset_password.html:448
+#: emails/templates/reset_password.html:467
 msgid "emails.reset_password.button_not_working"
 msgstr "¿No funciona el botón? Copia y pega esta URL en tu navegador:"
 
-#: emails/templates/reset_password.html:508
-#: emails/templates/reset_password.txt:35 emails/templates/sign_up.html:442
+#: emails/templates/reset_password.html:527
+#: emails/templates/reset_password.txt:35 emails/templates/sign_up.html:461
 #: emails/templates/sign_up.txt:34
 #: mjml/templates/templates/reset_password/reset_password.txt:35
 #: mjml/templates/templates/sign_up/sign_up.txt:34
 msgid "emails.commons.team"
 msgstr "El equipo de Tenzu"
 
-#: emails/templates/reset_password.html:536
+#: emails/templates/reset_password.html:555
 #: emails/templates/reset_password.txt:33
 #: mjml/templates/templates/reset_password/reset_password.txt:33
 msgid "emails.ignore_email.ignore"
@@ -142,38 +142,38 @@ msgstr ""
 "Hemos recibido una solicitud para restablecer tu contraseña. Visita esta url "
 "para elegir una nueva:"
 
-#: emails/templates/sign_up.html:5 emails/templates/sign_up.html:358
+#: emails/templates/sign_up.html:24 emails/templates/sign_up.html:377
 #: emails/templates/sign_up.txt:25
 #: mjml/templates/templates/sign_up/sign_up.txt:25
 msgid "emails.sign_up.title"
 msgstr "Nueva cuenta en Tenzu"
 
-#: emails/templates/sign_up.html:404 emails/templates/sign_up.html:418
+#: emails/templates/sign_up.html:423 emails/templates/sign_up.html:437
 #: emails/templates/sign_up.txt:27
 #: mjml/templates/templates/sign_up/sign_up.txt:27
 msgid "emails.sign_up.verify"
 msgstr "Verifica tu email"
 
-#: emails/templates/sign_up.html:409
+#: emails/templates/sign_up.html:428
 msgid "emails.sign_up.click_button"
 msgstr "Haz click en el siguiente botón para empezar a usar Tenzu"
 
-#: emails/templates/sign_up.html:427
+#: emails/templates/sign_up.html:446
 msgid "emails.sign_up.button_not_working"
 msgstr "¿No funciona el botón? Copia y pega esta URL en tu navegador:"
 
-#: emails/templates/sign_up.html:437 emails/templates/sign_up.txt:32
+#: emails/templates/sign_up.html:456 emails/templates/sign_up.txt:32
 #: mjml/templates/templates/sign_up/sign_up.txt:32
 msgid "emails.sign_up.welcome"
 msgstr "Bienvenido,"
 
-#: emails/templates/sign_up.html:470 emails/templates/sign_up.txt:36
+#: emails/templates/sign_up.html:489 emails/templates/sign_up.txt:36
 #: mjml/templates/templates/sign_up/sign_up.txt:36
 #, python-format
 msgid "emails.expiration_date.expiration %(expiration)s"
 msgstr "Este enlace caducará en %(expiration)s."
 
-#: emails/templates/sign_up.html:475 emails/templates/sign_up.txt:38
+#: emails/templates/sign_up.html:494 emails/templates/sign_up.txt:38
 #: mjml/templates/templates/sign_up/sign_up.txt:38
 msgid "emails.expiration_date.ignore"
 msgstr ""
@@ -190,34 +190,34 @@ msgstr "Verifica tu email para empezar a usar Tenzu"
 msgid "emails.sign_up.copy_link"
 msgstr "Copia y pega esta URL en tu navegador:"
 
-#: emails/templates/workspace_invitation.html:5
-#: emails/templates/workspace_invitation.html:400
+#: emails/templates/workspace_invitation.html:24
+#: emails/templates/workspace_invitation.html:419
 #: emails/templates/workspace_invitation.txt:24
 #: mjml/templates/templates/workspace_invitation/workspace_invitation.txt:24
 msgid "emails.workspace_invitation.title"
 msgstr "Invitacion de Tenzu"
 
-#: emails/templates/workspace_invitation.html:446
+#: emails/templates/workspace_invitation.html:465
 #: emails/templates/workspace_invitation.txt:27
 #: mjml/templates/templates/workspace_invitation/workspace_invitation.txt:27
 #, python-format
 msgid "emails.workspace_invitation.hi_name %(name)s"
 msgstr "Hola %(name)s,"
 
-#: emails/templates/workspace_invitation.html:446
+#: emails/templates/workspace_invitation.html:465
 #: emails/templates/workspace_invitation.txt:29
 #: mjml/templates/templates/workspace_invitation/workspace_invitation.txt:29
 msgid "emails.workspace_invitation.hi_there"
 msgstr "Hola,"
 
-#: emails/templates/workspace_invitation.html:451
+#: emails/templates/workspace_invitation.html:470
 #: emails/templates/workspace_invitation.txt:31
 #: mjml/templates/templates/workspace_invitation/workspace_invitation.txt:31
 #, python-format
 msgid "emails.workspace_invitation.sender %(name)s"
 msgstr "<strong>%(name)s</strong> te ha enviado una invitación para unirte a:"
 
-#: emails/templates/workspace_invitation.html:518
+#: emails/templates/workspace_invitation.html:537
 #: emails/templates/workspace_invitation.txt:36
 #: mjml/templates/templates/workspace_invitation/workspace_invitation.txt:36
 msgid "emails.workspace_invitation.tenzu_description"
@@ -225,11 +225,11 @@ msgstr ""
 "Tenzu es una herramienta de Gestión Agile de Proyectos de Código Abierto. "
 "Ser usuario de Tenzu no tiene ningún coste asociado para ti."
 
-#: emails/templates/workspace_invitation.html:527
+#: emails/templates/workspace_invitation.html:546
 msgid "emails.workspace_invitation.accept"
 msgstr "Acepta tu invitación"
 
-#: emails/templates/workspace_invitation.html:536
+#: emails/templates/workspace_invitation.html:555
 msgid "emails.workspace_invitation.button_not_working"
 msgstr "¿No funciona el botón? Copia y pega esta URL en tu navegador:"
 
@@ -239,20 +239,23 @@ msgstr "¿No funciona el botón? Copia y pega esta URL en tu navegador:"
 msgid "emails.workspace_invitation.subject %(name)s"
 msgstr "[Tenzu] Invitación para unirte al workspace '%(name)s'"
 
-#: emails/templatetags/email_extra.py:88
-msgid "datetime.lifetime.day"
-msgid_plural "datetime.lifetime.days"
-msgstr[0] "%s día"
-msgstr[1] "%s días"
+#: emails/templatetags/email_extra.py:116
+#, python-format
+msgid "datetime.lifetime.day %(count)d"
+msgid_plural "datetime.lifetime.days %(count)d"
+msgstr[0] "%(count)d día"
+msgstr[1] "%(count)d días"
 
-#: emails/templatetags/email_extra.py:95
-msgid "datetime.lifetime.hour"
-msgid_plural "datetime.lifetime.hours"
-msgstr[0] "%s hora"
-msgstr[1] "%s horas"
+#: emails/templatetags/email_extra.py:123
+#, python-format
+msgid "datetime.lifetime.hour %(count)d"
+msgid_plural "datetime.lifetime.hours %(count)d"
+msgstr[0] "%(count)d hora"
+msgstr[1] "%(count)d horas"
 
-#: emails/templatetags/email_extra.py:102
-msgid "datetime.lifetime.minute"
-msgid_plural "datetime.lifetime.minutes"
-msgstr[0] "%s minuto"
-msgstr[1] "%s minutos"
+#: emails/templatetags/email_extra.py:130
+#, python-format
+msgid "datetime.lifetime.minute %(count)d"
+msgid_plural "datetime.lifetime.minutes %(count)d"
+msgstr[0] "%(count)d minuto"
+msgstr[1] "%(count)d minutos"
