@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
---> {% load i18n email_extra static %}
+--> {% load i18n email_extra %}
 <!doctype html>
 <html lang="und" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 
@@ -393,9 +393,9 @@ You can contact BIRU at ask@biru.sh
                               <tr>
                                 <td>
                                   <a href="{{ settings.FRONTEND_URL }}">
-                                    <img alt="Tenzu logo" class="light-image" align="left" padding="0" width="100" src="{% static 'emails/tenzu-logo.png' %}" />
+                                    <img alt="Tenzu logo" class="light-image" align="left" padding="0" width="100" src="{% absolute_static 'emails/tenzu-logo.png' %}" />
                                     <!--[if !mso]><! -->
-                                    <div class="dark-image-wrapper" style="mso-hide: all; display: none;"><img alt="Tenzu logo" style="display: none;" class="dark-image" align="left" padding="0" width="100" src="{% static 'emails/tenzu-logo.png' %}" /></div><!--<![endif]-->
+                                    <div class="dark-image-wrapper" style="mso-hide: all; display: none;"><img alt="Tenzu logo" style="display: none;" class="dark-image" align="left" padding="0" width="100" src="{% absolute_static 'emails/tenzu-logo.png' %}" /></div><!--<![endif]-->
                                   </a>
                                 </td>
                               </tr>

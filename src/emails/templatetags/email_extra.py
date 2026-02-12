@@ -22,6 +22,7 @@ from urllib.parse import urljoin
 
 from django import template
 from django.conf import settings
+from django.templatetags.static import StaticNode
 from django.utils.html import conditional_escape
 from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
@@ -29,6 +30,7 @@ from django.utils.translation import ngettext
 
 from commons.front import Urls
 from commons.front.exceptions import InvalidFrontUrl
+from commons.utils import get_absolute_url
 
 register = template.Library()
 
@@ -48,6 +50,30 @@ def front_url(
         return f"{url}?{urlencode(query_params)}"
 
     return url
+
+
+class AbsoluteStaticNode(StaticNode):
+    def render(self, context):
+        url = super().render(context)
+        if self.varname is None:
+            return get_absolute_url(url)
+        context[self.varname] = get_absolute_url(url)
+        return url
+
+
+@register.tag()
+def absolute_static(parser, token):
+    """
+    This tag generate a complete URL -- e.g, http://localhost:8000/static/emails/tenzu.png --
+    based on the static files configuration in the settings module and the relative file path.
+
+    .. sourcecode:: django-template
+        <img src="{% absolute_static 'emails/logo.png' %}" alt="" />
+
+    .. sourcecode:: html
+        <img src="http://localhost:8000/static/emails/logo.png" alt="" />
+    """
+    return AbsoluteStaticNode.handle_token(parser, token)
 
 
 @register.filter(needs_autoescape=True)
