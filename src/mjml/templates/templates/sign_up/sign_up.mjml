@@ -1,3 +1,5 @@
+<mjml>
+  <mj-raw position="file-start">
 <!--
 Copyright (C) 2024-2026 BIRU
 
@@ -17,15 +19,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 -->
-<mjml>
+{% load i18n email_extra %}
+  </mj-raw>
   <mj-head>
-      <mj-title>{% trans %}emails.sign_up.title{% endtrans %}</mj-title>
+      <mj-title>{% trans "emails.sign_up.title" %}</mj-title>
     <mj-include path="../../components/head.mjml" />
   </mj-head>
   <mj-body css-class="body">
     <mj-raw>
-      {% set verify_url = resolve_front_url("VERIFY_SIGNUP",
-      verification_token=verification_token) -%}
+      {% front_url "VERIFY_SIGNUP" verification_token=verification_token as verify_url %}
     </mj-raw>
     <mj-wrapper css-class="body-content">
       <mj-include path="../../components/header-logo.mjml" />
@@ -33,20 +35,20 @@ You can contact BIRU at ask@biru.sh
         <mj-column>
           <mj-text css-class="dm-text"
             mj-class="font-heading1 color-gray100">
-            {% trans %}emails.sign_up.verify{% endtrans %}
+            {% trans "emails.sign_up.verify" %}
           </mj-text>
           <mj-text css-class="dm-text"
             mj-class="font-heading2 color-gray90">
-            {% trans %}emails.sign_up.click_button{% endtrans %}
+            {% trans "emails.sign_up.click_button" %}
           </mj-text>
           <mj-button css-class="btn-primary"
             mj-class="btn-primary"
             href="{{ verify_url }}">
-            {% trans %}emails.sign_up.verify{% endtrans %}
+            {% trans "emails.sign_up.verify" %}
           </mj-button>
           <mj-text css-class="dm-text"
             mj-class="font-body color-gray70">
-            {% trans %}emails.sign_up.button_not_working{% endtrans %}
+            {% trans "emails.sign_up.button_not_working" %}
           </mj-text>
           <mj-text css-class="dm-text-gray primary-link"
             mj-class="font-body padding-bottom-24">
@@ -55,11 +57,11 @@ You can contact BIRU at ask@biru.sh
           </mj-text>
           <mj-text css-class="dm-text"
             mj-class="font-body">
-            {% trans %}emails.sign_up.welcome{% endtrans %}
+            {% trans "emails.sign_up.welcome" %}
           </mj-text>
           <mj-text css-class="dm-text"
             mj-class="font-body padding-bottom-24">
-            {% trans %}emails.commons.team{% endtrans %}
+            {% trans "emails.commons.team" %}
           </mj-text>
         </mj-column>
       </mj-section>

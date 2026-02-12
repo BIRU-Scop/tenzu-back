@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,7 +18,9 @@
 
 from unittest.mock import PropertyMock, patch
 
-from base.i18n import Locale
+from django.utils import translation
+
+from commons.i18n import Locale
 from system import services as system_services
 
 
@@ -27,40 +29,44 @@ def test_get_available_languages_info_return_sorted_list():
         "ar",
         "bg",
         "ca",
-        "en-US",
-        "es-ES",
-        "eu",
+        "en-us",
+        "es-es",
         "fa",
         "he",
         "ja",
         "ko",
         "pt",
-        "pt-BR",
+        "pt-br",
         "ru",
         "uk",
-        "zh-Hans",
-        "zh-Hant",
+        "zh-hans",
+        "zh-hant",
     ]
     sorted_codes = [
         "ca",
-        "en-US",
-        "es-ES",
-        "eu",
+        "en-us",
+        "es-es",
         "pt",
-        "pt-BR",
+        "pt-br",
         "bg",
         "ru",
         "uk",
         "he",
         "ar",
         "fa",
-        "zh-Hans",
-        "zh-Hant",
         "ja",
+        "zh-hans",
+        "zh-hant",
         "ko",
     ]
-    with patch("base.i18n.I18N.locales", new_callable=PropertyMock) as locales_mock:
-        locales_mock.return_value = [Locale.parse(cod, sep="-") for cod in codes]
+    with patch("commons.i18n.get_locales") as locales_mock:
+        locales_mock.return_value = [
+            Locale(
+                **translation.get_language_info(cod)
+                | {"code": cod, "generic_lang_code": cod.split("-")[0]}
+            )
+            for cod in codes
+        ]
         system_services.get_available_languages_info.cache_clear()  # prevent lru_cache from provoking flaky test
         assert sorted_codes == [
             lang.code for lang in system_services.get_available_languages_info()

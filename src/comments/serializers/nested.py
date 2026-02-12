@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,8 +19,6 @@
 
 from datetime import datetime
 
-from pydantic import ConfigDict
-
 from base.serializers import UUIDB64, BaseModel
 from users.serializers.nested import UserNestedSerializer
 
@@ -30,4 +28,3 @@ class CommentNestedSerializer(BaseModel):
     text: str
     created_at: datetime
     created_by: UserNestedSerializer | None = None
-    model_config = ConfigDict(from_attributes=True)

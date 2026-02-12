@@ -94,9 +94,9 @@ tasks:
       - task: up
       - task: reset-db
       - task: init-data
-      - task: execute-service
+      - task: manage
         vars:
-          COMMAND: "python ./__main__.py i18n compile-catalog"
+          CLI_ARGS: "compilemessages"
 
   # DEPENDENCIES
   compile-dep:

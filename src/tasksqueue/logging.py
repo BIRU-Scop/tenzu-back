@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,17 +22,17 @@ import sys
 from copy import copy
 from typing import Any, Callable
 
-import typer
+from rich.style import Style
 
 from base.logging.formatters import ColourizedFormatter
 
 
 class TaskQueueDefaultFormatter(ColourizedFormatter):
     action_colors: dict[str, Callable[[Any], str]] = {
-        "start": lambda action: typer.style(action, fg="bright_yellow"),
-        "success": lambda action: typer.style(action, fg="bright_green"),
-        "defer": lambda action: typer.style(action, fg="bright_magenta"),
-        "default": lambda action: typer.style(action, fg="white"),
+        "start": lambda action: Style(action, color="bright_yellow"),
+        "success": lambda action: Style(action, color="bright_green"),
+        "defer": lambda action: Style(action, color="bright_magenta"),
+        "default": lambda action: Style(action, color="white"),
     }
 
     def should_use_colors(self) -> bool:
@@ -63,7 +63,7 @@ class TaskQueueDefaultFormatter(ColourizedFormatter):
             action = self._color_action(action)
 
         recordcopy.__dict__["action"] = (
-            f"[{typer.style('TQ', bold=True)}: {action}]:{action_seperator}"
+            f"[{Style('TQ', bold=True)}: {action}]:{action_seperator}"
         )
         return super().formatMessage(recordcopy)
 

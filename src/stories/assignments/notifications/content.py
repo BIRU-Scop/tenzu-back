@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
-
 from base.serializers import BaseModel
 from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 from stories.stories.serializers.nested import StoryNestedSerializer
@@ -30,7 +28,6 @@ class StoryAssignNotificationContent(BaseModel):
     story: StoryNestedSerializer
     assigned_by: UserNestedSerializer
     assigned_to: UserNestedSerializer
-    model_config = ConfigDict(from_attributes=True)
 
 
 class StoryUnassignNotificationContent(BaseModel):
@@ -38,4 +35,3 @@ class StoryUnassignNotificationContent(BaseModel):
     story: StoryNestedSerializer
     unassigned_by: UserNestedSerializer
     unassigned_to: UserNestedSerializer
-    model_config = ConfigDict(from_attributes=True)

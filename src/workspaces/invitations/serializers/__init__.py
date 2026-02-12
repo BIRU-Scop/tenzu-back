@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,8 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from pydantic import ConfigDict
-
 from memberships.serializers import (
     CreateInvitationsSerializer,  # noqa
     InvitationBaseSerializer,
@@ -30,9 +28,7 @@ from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializ
 
 class PublicWorkspacePendingInvitationSerializer(PublicPendingInvitationBaseSerializer):
     workspace: WorkspaceLinkNestedSerializer
-    model_config = ConfigDict(from_attributes=True)
 
 
 class WorkspaceInvitationSerializer(InvitationBaseSerializer):
     workspace: WorkspaceLinkNestedSerializer
-    model_config = ConfigDict(from_attributes=True)

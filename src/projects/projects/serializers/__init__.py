@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
-
 from memberships.serializers import RoleSerializer
 from projects.projects.serializers.mixins import ProjectLogoBaseSerializer  # noqa
 from projects.projects.serializers.nested import ProjectNestedSerializer
@@ -27,11 +25,9 @@ from workflows.serializers.nested import WorkflowNestedSerializer
 
 class ProjectSummarySerializer(ProjectNestedSerializer):
     user_is_invited: bool
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectDetailSerializer(ProjectSummarySerializer):
     workflows: list[WorkflowNestedSerializer]
 
     user_role: RoleSerializer | None
-    model_config = ConfigDict(from_attributes=True)

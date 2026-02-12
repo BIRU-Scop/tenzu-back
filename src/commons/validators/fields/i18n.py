@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,25 +19,28 @@
 
 from typing import Annotated
 
-from django.conf import settings
 from pydantic import (
     AfterValidator,
 )
 from pydantic.json_schema import WithJsonSchema
 
-from base.i18n import i18n
+from commons import i18n
+
+_available_languages = list(i18n.get_available_languages())
 
 
 def language_available(v: str) -> str:
-    if not i18n.is_language_available(v):
-        raise ValueError(f"Language {v} is not available")
+    available_languages = i18n.get_available_languages()
+    if v not in available_languages:
+        available_languages_for_display = "\n".join(available_languages)
+        raise ValueError(
+            f"Language {v} is not available, should be one of \n{available_languages_for_display}\n"
+        )
     return v
 
 
 LanguageCode = Annotated[
     str,
     AfterValidator(language_available),
-    WithJsonSchema(
-        {"example": settings.LANGUAGE_CODE, "enum": i18n.available_languages}
-    ),
+    WithJsonSchema({"example": _available_languages[0], "enum": _available_languages}),
 ]

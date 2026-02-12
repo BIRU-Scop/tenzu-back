@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,8 +19,6 @@
 
 from datetime import datetime
 
-from pydantic import ConfigDict
-
 from base.serializers import UUIDB64, BaseModel
 
 
@@ -31,4 +29,3 @@ class AttachmentSerializer(BaseModel):
     size: int
     created_at: datetime
     file: str
-    model_config = ConfigDict(from_attributes=True)

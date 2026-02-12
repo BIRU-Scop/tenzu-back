@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -62,9 +62,9 @@ user_name_field = User.USERNAME_FIELD  # type: ignore
 
 
 class AuthUserSchema(ModelSchema):
-    class Config:
+    class Meta:
         model = User
-        model_fields = [user_name_field]
+        fields = [user_name_field]
 
 
 class InputSchemaMixin:
@@ -130,9 +130,9 @@ class TokenInputSchemaMixin(InputSchemaMixin):
 class TokenObtainInputSchemaBase(ModelSchema, TokenInputSchemaMixin):
     _token_data: dict | None = None
 
-    class Config:
+    class Meta:
         model = User
-        model_fields = ["password", user_name_field]
+        fields = ["password", user_name_field]
 
     @model_validator(mode="before")
     @classmethod
