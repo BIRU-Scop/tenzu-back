@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,20 +22,20 @@ import sys
 from copy import copy
 from typing import Any, Callable
 
-import typer
+from rich.style import Style
 
 from base.logging.formatters import ColourizedFormatter
 
 
 class EventsDefaultFormatter(ColourizedFormatter):
     action_colors: dict[str, Callable[[Any], str]] = {
-        "register": lambda action: typer.style(action, fg="green"),
-        "unregister": lambda action: typer.style(action, fg="magenta"),
-        "subscribe": lambda action: typer.style(action, fg="yellow"),
-        "unsubscribe": lambda action: typer.style(action, fg="blue"),
-        "publish": lambda action: typer.style(action, fg="bright_green"),
-        "emit": lambda action: typer.style(action, fg="bright_blue"),
-        "default": lambda action: typer.style(action, fg="white"),
+        "register": lambda action: Style(action, color="green"),
+        "unregister": lambda action: Style(action, color="magenta"),
+        "subscribe": lambda action: Style(action, color="yellow"),
+        "unsubscribe": lambda action: Style(action, color="blue"),
+        "publish": lambda action: Style(action, color="bright_green"),
+        "emit": lambda action: Style(action, color="bright_blue"),
+        "default": lambda action: Style(action, color="white"),
     }
 
     def should_use_colors(self) -> bool:
@@ -72,7 +72,7 @@ class EventsDefaultFormatter(ColourizedFormatter):
             action = self._color_action(action)
 
         recordcopy.__dict__["action"] = (
-            f"[{typer.style('EV', bold=True, fg='yellow')}: {action}]:{action_seperator}"
+            f"[{Style('EV', bold=True, color='yellow')}: {action}]:{action_seperator}"
         )
         return super().formatMessage(recordcopy)
 

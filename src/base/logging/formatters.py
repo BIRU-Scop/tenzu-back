@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,7 +22,7 @@ import sys
 from copy import copy
 from typing import Callable, Literal
 
-import typer
+from rich.style import Style
 
 
 class ColourizedFormatter(logging.Formatter):
@@ -32,11 +32,11 @@ class ColourizedFormatter(logging.Formatter):
     """
 
     level_name_colors: dict[int, Callable[[str], str]] = {
-        logging.DEBUG: lambda level_name: typer.style(level_name, fg="cyan"),
-        logging.INFO: lambda level_name: typer.style(level_name, fg="green"),
-        logging.WARNING: lambda level_name: typer.style(level_name, fg="yellow"),
-        logging.ERROR: lambda level_name: typer.style(level_name, fg="red"),
-        logging.CRITICAL: lambda level_name: typer.style(level_name, fg="bright_red"),
+        logging.DEBUG: lambda level_name: Style(level_name, color="cyan"),
+        logging.INFO: lambda level_name: Style(level_name, color="green"),
+        logging.WARNING: lambda level_name: Style(level_name, color="yellow"),
+        logging.ERROR: lambda level_name: Style(level_name, color="red"),
+        logging.CRITICAL: lambda level_name: Style(level_name, color="bright_red"),
     }
 
     def __init__(

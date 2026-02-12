@@ -17,8 +17,8 @@
 # You can contact BIRU at ask@biru.sh
 
 
-import typer
 from django.core.management.base import BaseCommand
+from rich.console import Console
 
 from emails.emails import Emails
 
@@ -27,5 +27,6 @@ class Command(BaseCommand):
     help = "Show available emails"
 
     def handle(self, *args, **options):
+        console = Console()
         for email in Emails:
-            typer.echo(f"\t{ email.value }")
+            console.print(f"\t{ email.value }")
