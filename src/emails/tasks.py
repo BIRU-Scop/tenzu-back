@@ -28,7 +28,7 @@ from procrastinate import RetryStrategy
 from procrastinate.contrib.django import app
 
 from emails import exceptions as ex
-from emails.emails import Emails
+from emails.emails import Emails, extra_email_context
 from emails.render import render_email_html, render_email_txt, render_subject
 from emails.sender import send_email_message
 
@@ -67,6 +67,7 @@ async def send_email(
         logger.error("Requested to send an email with no recipients. Aborting.")
         return
 
+    context = extra_email_context | context
     # render the email contents in the user's language using both the email template and variables dictionary
     with translation.override(lang):
         try:

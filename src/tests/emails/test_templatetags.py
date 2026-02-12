@@ -21,8 +21,7 @@ import pytest
 from django.utils import translation
 
 from commons.front.exceptions import InvalidFrontUrl
-from emails.templatetags.email_extra import display_lifetime
-from emails.templatetags.front_url import front_url
+from emails.templatetags.email_extra import display_lifetime, front_url
 
 
 def test_front_url_success():

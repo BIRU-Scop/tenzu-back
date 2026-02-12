@@ -57,8 +57,7 @@ def wbr_split(text: str, size: int = 70, autoescape=True):
     default, according to ``size`` attribute.
 
     .. sourcecode:: django-template
-        {% with long_word = "thisisaverylongword1thisisaverylongword2thisisaverylongword3thisisaverylongword4" %}
-        {{ long_word | wbr_split }}
+        {{ "thisisaverylongword1thisisaverylongword2thisisaverylongword3thisisaverylongword4" | wbr_split }}
 
     .. sourcecode:: html
         thisisaverylongword1thisisaverylongword2thisisaverylongword3thisisaver<wbr>ylongword4

@@ -21,7 +21,7 @@ You can contact BIRU at ask@biru.sh
 {% load email_extra %}
 
 {% front_url "PROJECT_INVITATION" invitation_token=invitation_token as invitation_url %}
-{% front_url "PROJECT_INVITATION_PREVIEW", project_id=project_id, invitation_token=invitation_token as project_url %}
+{% front_url "PROJECT_INVITATION_PREVIEW" project_id=project_id invitation_token=invitation_token as project_url %}
 
 {% trans "emails.project_invitation.title" %}
 

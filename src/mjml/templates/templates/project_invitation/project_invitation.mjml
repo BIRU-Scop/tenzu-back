@@ -17,10 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 -->
-{% load i18n %}
-{% load email_extra %}
 
 <mjml>
+  <mj-raw position="file-start">
+    {% load i18n email_extra static %}
+  </mj-raw>
   <mj-head>
       <mj-title>{% trans "emails.project_invitation.title" %}</mj-title>
     <mj-include path="../../components/head.mjml" />
@@ -29,8 +30,7 @@ You can contact BIRU at ask@biru.sh
   <mj-body css-class="body">
     <mj-raw>
       {% front_url "PROJECT_INVITATION" invitation_token=invitation_token as invitation_url %}
-      {% front_url "PROJECT_INVITATION_PREVIEW", project_id=project_id, invitation_token=invitation_token as project_url %}
-      {% with project_abbreviation=project_name|slice:":2"|upper %}
+      {% front_url "PROJECT_INVITATION_PREVIEW" project_id=project_id invitation_token=invitation_token as project_url %}
     </mj-raw>
     <mj-wrapper css-class="body-content">
       <mj-include path="../../components/header-logo.mjml" />
@@ -74,7 +74,7 @@ You can contact BIRU at ask@biru.sh
                     <tr>
                       <td class="color-{{ project_color }}"
                         style="height: 32px; width: 32px; text-align: center; font-size: 14px; text-transform: uppercase; border-radius: 3px;">
-                        {{ project_name.replace(" ", "")|slice:":2"|upper }}</td>
+                        {{ project_name|slugify|cut:"-"|slice:":2"|upper }}</td>
                     </tr>
                   </table>
                 </td>

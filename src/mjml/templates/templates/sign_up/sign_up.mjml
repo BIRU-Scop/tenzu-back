@@ -17,10 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 -->
-{% load i18n %}
-{% load email_extra %}
 
 <mjml>
+  <mj-raw position="file-start">
+    {% load i18n email_extra static %}
+  </mj-raw>
   <mj-head>
       <mj-title>{% trans "emails.sign_up.title" %}</mj-title>
     <mj-include path="../../components/head.mjml" />

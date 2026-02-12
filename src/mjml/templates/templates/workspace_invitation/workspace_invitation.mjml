@@ -17,10 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 -->
-{% load i18n %}
-{% load email_extra %}
 
 <mjml>
+  <mj-raw position="file-start">
+    {% load i18n email_extra static %}
+  </mj-raw>
   <mj-head>
       <mj-title>{% trans "emails.workspace_invitation.title" %}</mj-title>
     <mj-include path="../../components/head.mjml" />
@@ -29,7 +30,6 @@ You can contact BIRU at ask@biru.sh
   <mj-body css-class="body">
     <mj-raw>
       {% front_url "WORKSPACE_INVITATION" invitation_token=invitation_token as invitation_url %}
-      {% with workspace_abbreviation = workspace_name|slice:":2"|upper %}
     </mj-raw>
     <mj-wrapper css-class="body-content">
       <mj-include path="../../components/header-logo.mjml" />
@@ -60,7 +60,7 @@ You can contact BIRU at ask@biru.sh
                     <tr>
                       <td class="color-{{ workspace_color }}"
                         style="height: 24px; width: 24px; text-align: center; font-size: 11px; text-transform: uppercase; border-radius: 3px;">
-                        {{ workspace_name.replace(" ", "")|slice:":2"|upper }}</td>
+                        {{ workspace_name|slugify|cut:"-"|slice:":2"|upper }}</td>
                     </tr>
                   </table>
                 </td>

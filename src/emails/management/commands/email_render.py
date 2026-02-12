@@ -28,7 +28,7 @@ from rich.syntax import Syntax
 
 from commons import i18n
 from emails import render as email_render
-from emails.emails import EmailPart, Emails
+from emails.emails import EmailPart, Emails, extra_email_context
 
 TEMPLATES_PATH: Final[Path] = (
     Path(__file__).resolve().parent.joinpath("templates")
@@ -65,6 +65,7 @@ class Command(BaseCommand):
         except FileNotFoundError:
             context = {}
 
+        context = extra_email_context | context
         # Print email part
         console = Console()
         with translation.override(options["lang"]):

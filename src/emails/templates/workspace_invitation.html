@@ -1,3 +1,4 @@
+{% load i18n email_extra static %}
 <!doctype html>
 <html lang="und" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 
@@ -397,7 +398,7 @@
 </head>
 
 <body style="word-spacing:normal;">
-  <div aria-label="{% trans "emails.workspace_invitation.title" %}" aria-roledescription="email" class="body" style="" role="article" lang="und" dir="auto"> {% front_url "WORKSPACE_INVITATION" invitation_token=invitation_token as invitation_url %} {% with workspace_abbreviation = workspace_name|slice:":2"|upper %} <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="body-content-outlook" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+  <div aria-label="{% trans "emails.workspace_invitation.title" %}" aria-roledescription="email" class="body" style="" role="article" lang="und" dir="auto"> {% front_url "WORKSPACE_INVITATION" invitation_token=invitation_token as invitation_url %} <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="body-content-outlook" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div class="body-content" style="margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
         <tbody>
@@ -479,7 +480,7 @@
                                           <table>
                                             <tr>
                                               <td class="color-{{ workspace_color }}" style="height: 24px; width: 24px; text-align: center; font-size: 11px; text-transform: uppercase; border-radius: 3px;">
-                                                {{ workspace_name.replace(" ", "")|slice:":2"|upper }}
+                                                {{ workspace_name|slugify|cut:"-"|slice:":2"|upper }}
                                               </td>
                                             </tr>
                                           </table>
