@@ -22,9 +22,10 @@ from urllib.parse import urljoin
 
 from django import template
 from django.conf import settings
+from django.utils.html import conditional_escape
 from django.utils.http import urlencode
+from django.utils.safestring import mark_safe
 from django.utils.translation import ngettext
-from markupsafe import Markup
 
 from commons.front import Urls
 from commons.front.exceptions import InvalidFrontUrl
@@ -49,14 +50,14 @@ def front_url(
     return url
 
 
-@register.filter
-def wbr_split(text: str, size: int = 70) -> Markup:
+@register.filter(needs_autoescape=True)
+def wbr_split(text: str, size: int = 70, autoescape=True):
     """
     This filter is used to split large strings at ``text`` by introducing the html tag <wbr> every 70 characters, by
     default, according to ``size`` attribute.
 
-    .. sourcecode:: jinja
-        {% set long_word = "thisisaverylongword1thisisaverylongword2thisisaverylongword3thisisaver<wbr>ylongword4" %}
+    .. sourcecode:: django-template
+        {% with long_word = "thisisaverylongword1thisisaverylongword2thisisaverylongword3thisisaverylongword4" %}
         {{ long_word | wbr_split }}
 
     .. sourcecode:: html
@@ -64,7 +65,7 @@ def wbr_split(text: str, size: int = 70) -> Markup:
 
     or with a custom size
 
-    .. sourcecode:: jinja
+    .. sourcecode:: django-template
         {{ "thisisaverylongword" | wbr_split(size=3) }}
         {{ "otherverylongword" | wbr_split(3) }}
 
@@ -73,7 +74,9 @@ def wbr_split(text: str, size: int = 70) -> Markup:
         oth<wbr>erv<wbr>ery<wbr>lon<wbr>gwo<wbr>rd
 
     """
-    return Markup("<wbr>").join([text[x : x + size] for x in range(0, len(text), size)])
+    esc = conditional_escape if autoescape else lambda x: x
+    result = "<wbr/>".join([esc(text[x : x + size]) for x in range(0, len(text), size)])
+    return mark_safe(result)
 
 
 @register.filter
