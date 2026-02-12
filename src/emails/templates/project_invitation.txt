@@ -17,26 +17,27 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 #}
+{% load i18n %}
+{% load email_extra %}
 
-{% with invitation_url = resolve_front_url("PROJECT_INVITATION", invitation_token=invitation_token) -%}
-{% with project_url = resolve_front_url("PROJECT_INVITATION_PREVIEW", project_id=project_id, invitation_token=invitation_token) -%}
+{% front_url "PROJECT_INVITATION" invitation_token=invitation_token as invitation_url %}
+{% front_url "PROJECT_INVITATION_PREVIEW", project_id=project_id, invitation_token=invitation_token as project_url %}
 
-{% trans %}emails.project_invitation.title{% endtrans %}
+{% trans "emails.project_invitation.title" %}
 
-{% if receiver_name -%}
-{% trans name=receiver_name %}emails.project_invitation.hi_name{% endtrans %}
-{% else -%}
-{% trans %}emails.project_invitation.hi_there{% endtrans %}
-{% endif -%}
-
-{% trans name=sender_name %}emails.project_invitation.sender{% endtrans %}
+{% if receiver_name %}
+{% blocktrans with name=receiver_name %}emails.project_invitation.hi_name {{name}}{% endblocktrans %}
+{% else %}
+{% trans "emails.project_invitation.hi_there" %}
+{% endif %}
+{% blocktrans with name=sender_name %}emails.project_invitation.sender {{name}}{% endblocktrans %}
 
 {{ project_name }}: {{ project_url }}
 {{ project_workspace }}
 
-{% if not receiver_name -%}
-{% trans %}emails.project_invitation.tenzu_description{% endtrans %}
-{% endif -%}
+{% if not receiver_name %}
+{% trans "emails.project_invitation.tenzu_description" %}
+{% endif %}
 {{ invitation_url }}
 
-{% trans support_email=settings.SUPPORT_EMAIL %}emails.commons.support_txt{% endtrans %}
+{% blocktrans with support_email=settings.SUPPORT_EMAIL %}emails.commons.support_txt {{support_email}}{% endblocktrans %}

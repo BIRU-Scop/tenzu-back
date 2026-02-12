@@ -17,5 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 #}
+{% load i18n %}
 
-{% trans name=project_name %}emails.project_invitation.subject{% endtrans %}
+{% trans "emails.sign_up.subject" %}

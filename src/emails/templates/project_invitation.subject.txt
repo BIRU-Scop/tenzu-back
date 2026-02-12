@@ -17,5 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 #}
+{% load i18n %}
 
-{% trans %}emails.reset_password.subject{% endtrans %}
+{% blocktrans with name=project_name %}emails.project_invitation.subject {{name}}{% endblocktrans %}

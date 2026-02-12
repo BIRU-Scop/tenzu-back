@@ -17,5 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 #}
+{% load i18n %}
 
-{% trans name=workspace_name %}emails.workspace_invitation.subject{% endtrans %}
+{% blocktrans with name=workspace_name %}emails.workspace_invitation.subject {{name}}{% endblocktrans %}

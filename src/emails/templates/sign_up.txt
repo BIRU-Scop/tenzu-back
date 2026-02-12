@@ -17,22 +17,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 #}
+{% load i18n %}
+{% load email_extra %}
 
-{% with verify_url = resolve_front_url("VERIFY_SIGNUP", verification_token=verification_token) -%}
+{% front_url "VERIFY_SIGNUP" verification_token=verification_token as verify_url %}
 
-{% trans %}emails.sign_up.title{% endtrans %}
+{% trans "emails.sign_up.title" %}
 
-{% trans %}emails.sign_up.verify{% endtrans %}
+{% trans "emails.sign_up.verify" %}
 
-{% trans %}emails.sign_up.copy_link{% endtrans %}
+{% trans "emails.sign_up.copy_link" %}
 {{ verify_url }}
 
-{% trans %}emails.sign_up.welcome{% endtrans %}
+{% trans "emails.sign_up.welcome" %}
 
-{% trans %}emails.commons.team{% endtrans %}
+{% trans "emails.commons.team" %}
 
-{% trans expiration=display_lifetime(settings.ACCOUNT.VERIFY_USER_TOKEN_LIFETIME) %}emails.expiration_date.expiration{% endtrans %}
+{% blocktrans with expiration=settings.ACCOUNT.VERIFY_USER_TOKEN_LIFETIME|display_lifetime %}emails.expiration_date.expiration {{expiration}}{% endblocktrans %}
 
-{% trans %}emails.expiration_date.ignore{% endtrans %}
+{% trans "emails.expiration_date.ignore" %}
 
-{% trans support_email=settings.SUPPORT_EMAIL %}emails.commons.support_txt{% endtrans %}
+{% blocktrans with support_email=settings.SUPPORT_EMAIL %}emails.commons.support_txt {{support_email}}{% endblocktrans %}

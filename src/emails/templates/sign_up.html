@@ -2,7 +2,7 @@
 <html lang="und" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 
 <head>
-  <title>{% trans %}emails.sign_up.title{% endtrans %}</title>
+  <title>{% trans "emails.sign_up.title" %}</title>
   <!--[if !mso]><!-->
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <!--<![endif]-->
@@ -355,8 +355,7 @@
 </head>
 
 <body style="word-spacing:normal;">
-  <div aria-label="{% trans %}emails.sign_up.title{% endtrans %}" aria-roledescription="email" class="body" style="" role="article" lang="und" dir="auto"> {% set verify_url = resolve_front_url("VERIFY_SIGNUP",
-      verification_token=verification_token) -%} <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="body-content-outlook" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+  <div aria-label="{% trans "emails.sign_up.title" %}" aria-roledescription="email" class="body" style="" role="article" lang="und" dir="auto"> {% front_url "VERIFY_SIGNUP" verification_token=verification_token as verify_url %} <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="body-content-outlook" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
     <div class="body-content" style="margin:0px auto;max-width:600px;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;">
         <tbody>
@@ -375,9 +374,9 @@
                               <tr>
                                 <td>
                                   <a href="{{ settings.FRONTEND_URL }}">
-                                    <img alt="Tenzu logo" class="light-image" align="left" padding="0" width="100" src="{{ 'emails/tenzu-logo.png' | static_url }}" />
+                                    <img alt="Tenzu logo" class="light-image" align="left" padding="0" width="100" src="{% static 'emails/tenzu-logo.png' %}" />
                                     <!--[if !mso]><! -->
-                                    <div class="dark-image-wrapper" style="mso-hide: all; display: none;"><img alt="Tenzu logo" style="display: none;" class="dark-image" align="left" padding="0" width="100" src="{{ 'emails/tenzu-logo.png' | static_url }}" /></div><!--<![endif]-->
+                                    <div class="dark-image-wrapper" style="mso-hide: all; display: none;"><img alt="Tenzu logo" style="display: none;" class="dark-image" align="left" padding="0" width="100" src="{% static 'emails/tenzu-logo.png' %}" /></div><!--<![endif]-->
                                   </a>
                                 </td>
                               </tr>
@@ -402,12 +401,12 @@
                             <tbody>
                               <tr>
                                 <td align="left" class="dm-text" style="font-size:0px;padding:0;padding-bottom:24px;word-break:break-word;">
-                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:21px;font-weight:500;line-height:24px;text-align:left;color:#262C39;">{% trans %}emails.sign_up.verify{% endtrans %}</div>
+                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:21px;font-weight:500;line-height:24px;text-align:left;color:#262C39;">{% trans "emails.sign_up.verify" %}</div>
                                 </td>
                               </tr>
                               <tr>
                                 <td align="left" class="dm-text" style="font-size:0px;padding:0;padding-bottom:24px;word-break:break-word;">
-                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:18px;font-weight:400;line-height:150%;text-align:left;color:#384051;">{% trans %}emails.sign_up.click_button{% endtrans %}</div>
+                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:18px;font-weight:400;line-height:150%;text-align:left;color:#384051;">{% trans "emails.sign_up.click_button" %}</div>
                                 </td>
                               </tr>
                               <tr>
@@ -416,7 +415,7 @@
                                     <tbody>
                                       <tr>
                                         <td align="center" bgcolor="#9ca4ff" role="presentation" style="border:none;border-radius:4px;cursor:auto;mso-padding-alt:10px;text-align:center;background:#9ca4ff;" valign="middle">
-                                          <a href="{{ verify_url }}" style="display:inline-block;background:#9ca4ff;color:#4e56ae;font-family:Atkinson Hyperlegible;font-size:18px;font-weight:500;line-height:21px;margin:0;text-decoration:none;text-transform:none;padding:10px;mso-padding-alt:0px;border-radius:4px;" target="_blank"> {% trans %}emails.sign_up.verify{% endtrans %} </a>
+                                          <a href="{{ verify_url }}" style="display:inline-block;background:#9ca4ff;color:#4e56ae;font-family:Atkinson Hyperlegible;font-size:18px;font-weight:500;line-height:21px;margin:0;text-decoration:none;text-transform:none;padding:10px;mso-padding-alt:0px;border-radius:4px;" target="_blank"> {% trans "emails.sign_up.verify" %} </a>
                                         </td>
                                       </tr>
                                     </tbody>
@@ -425,7 +424,7 @@
                               </tr>
                               <tr>
                                 <td align="left" class="dm-text" style="font-size:0px;padding:0;word-break:break-word;">
-                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:14px;font-weight:400;line-height:21px;text-align:left;color:#63738F;">{% trans %}emails.sign_up.button_not_working{% endtrans %}</div>
+                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:14px;font-weight:400;line-height:21px;text-align:left;color:#63738F;">{% trans "emails.sign_up.button_not_working" %}</div>
                                 </td>
                               </tr>
                               <tr>
@@ -435,12 +434,12 @@
                               </tr>
                               <tr>
                                 <td align="left" class="dm-text" style="font-size:0px;padding:0;word-break:break-word;">
-                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:14px;font-weight:400;line-height:21px;text-align:left;color:#505C74;">{% trans %}emails.sign_up.welcome{% endtrans %}</div>
+                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:14px;font-weight:400;line-height:21px;text-align:left;color:#505C74;">{% trans "emails.sign_up.welcome" %}</div>
                                 </td>
                               </tr>
                               <tr>
                                 <td align="left" class="dm-text" style="font-size:0px;padding:0;padding-bottom:24px;word-break:break-word;">
-                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:14px;font-weight:400;line-height:21px;text-align:left;color:#505C74;">{% trans %}emails.commons.team{% endtrans %}</div>
+                                  <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:14px;font-weight:400;line-height:21px;text-align:left;color:#505C74;">{% trans "emails.commons.team" %}</div>
                                 </td>
                               </tr>
                             </tbody>
@@ -468,12 +467,12 @@
                                     <tbody>
                                       <tr>
                                         <td align="left" class="dm-text" style="font-size:0px;padding:0;word-break:break-word;">
-                                          <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:12px;font-weight:400;line-height:1.5;text-align:left;color:#384051;">{% trans expiration=display_lifetime(settings.ACCOUNT.VERIFY_USER_TOKEN_LIFETIME) %}emails.expiration_date.expiration{% endtrans %}</div>
+                                          <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:12px;font-weight:400;line-height:1.5;text-align:left;color:#384051;">{% blocktrans with expiration=settings.ACCOUNT.VERIFY_USER_TOKEN_LIFETIME|display_lifetime %}emails.expiration_date.expiration {{expiration}}{% endblocktrans %}</div>
                                         </td>
                                       </tr>
                                       <tr>
                                         <td align="left" class="dm-text" style="font-size:0px;padding:0;word-break:break-word;">
-                                          <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:12px;font-weight:400;line-height:1.5;text-align:left;color:#384051;">{% trans %}emails.expiration_date.ignore{% endtrans %}</div>
+                                          <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:12px;font-weight:400;line-height:1.5;text-align:left;color:#384051;">{% trans "emails.expiration_date.ignore" %}</div>
                                         </td>
                                       </tr>
                                     </tbody>
@@ -505,7 +504,7 @@
                                     <tbody>
                                       <tr>
                                         <td align="left" class="secondary-link dm-text" style="font-size:0px;padding:0;word-break:break-word;">
-                                          <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:14px;font-weight:400;line-height:21px;text-align:left;color:#63738F;">{% trans email=settings.SUPPORT_EMAIL %}emails.footer.help_support{% endtrans %}</div>
+                                          <div style="font-family:Atkinson Hyperlegible, sans-serif;font-size:14px;font-weight:400;line-height:21px;text-align:left;color:#63738F;">{% blocktrans with email=settings.SUPPORT_EMAIL %}emails.footer.help_support {{email}}{% endblocktrans %}</div>
                                         </td>
                                       </tr>
                                     </tbody>
