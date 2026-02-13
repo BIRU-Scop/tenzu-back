@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,9 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from pydantic import ConfigDict
-
-from base.serializers import UUIDB64, BaseModel
 from memberships.serializers import (
     CreateInvitationsSerializer,  # noqa
     InvitationBaseSerializer,
@@ -31,10 +28,7 @@ from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 
 class PublicProjectPendingInvitationSerializer(PublicPendingInvitationBaseSerializer):
     project: ProjectLinkNestedSerializer
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectInvitationSerializer(InvitationBaseSerializer):
     project: ProjectLinkNestedSerializer
-
-    model_config = ConfigDict(from_attributes=True)

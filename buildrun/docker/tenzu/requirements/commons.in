@@ -1,5 +1,5 @@
 # channel
-channels[daphne]
+channels[daphne,types]
 channels_redis
 redis[hiredis]
 
@@ -27,14 +27,8 @@ easy-thumbnails[svg] # Images and thumbnails
 django-nonrelated-inlines # admin
 django-cors-headers
 
-# Mailing module
-jinja2 # Templates system
-
 # Task Queue Module
 procrastinate[django]
-
-# I18n & l10n
-babel
 
 # Auth
 PyJWT # For auth
@@ -50,7 +44,6 @@ whitenoise[brotli]
 faker # For sampledata
 python-json-logger # JSON logger
 python-slugify # To generate slugs
-typer # To manage CLI
 sentry-sdk  # error event handler
 
 #pycrdt

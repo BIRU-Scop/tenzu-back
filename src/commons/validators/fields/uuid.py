@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -26,6 +26,6 @@ from base.utils.uuid import decode_b64str_to_uuid
 
 B64UUID = Annotated[
     str,
-    AfterValidator(lambda x: decode_b64str_to_uuid(x)),
+    AfterValidator(decode_b64str_to_uuid),
     WithJsonSchema({"example": "6JgsbGyoEe2VExhWgGrI2w"}),
 ]

@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -34,9 +34,9 @@ class LanguageCodeModel(BaseModel):
 
 
 def test_language_code_with_valid_value():
-    m = LanguageCodeModel(x="en-US")
+    m = LanguageCodeModel(x="en-us")
 
-    assert m.x == "en-US"
+    assert m.x == "en-us"
 
 
 @pytest.mark.parametrize(

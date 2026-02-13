@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict, EmailStr
+from pydantic import EmailStr
 
 from base.serializers import UUIDB64, BaseModel
 
@@ -28,4 +28,3 @@ class UserNestedSerializer(BaseModel):
     full_name: str
     color: int
     email: EmailStr
-    model_config = ConfigDict(from_attributes=True)

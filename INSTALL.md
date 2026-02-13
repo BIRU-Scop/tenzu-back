@@ -107,9 +107,33 @@ Add your dependencies to the corresponding requirement file:
 
 The following commands are available:
 ```shell
-# upgrade all dependencies in compiled requirement *.txt files while following any version constraint specified in their *.in equivalent
+# Sync compiled requirement *.txt files and update the version while following any constraint specified in the corresponding *.in
+# Use "task compile-dep" only if you don't want to update the version of existing packages
 task compile-dep-upgrade
 
 # compile requirement *.txt files and rebuild the image after having changed the requirements
 task update-dep
+```
+
+## Translation and emails
+
+To make change to emails, you can edit the templates in src/mjml/templates.
+
+Then, the processed results need to be synced to the emails django app. For that:
+Go to src/mjml, run `npm install` if you need to then call `npm run emails`. This will
+update the files in src/emails/templates, which must never be edited otherwise.
+
+Useful translation commands:
+ 
+```shell
+# don't forget to go to task folder
+cd buildrun/docker/docker-compose/dev-env
+
+# Sync translation files for all already translated languages
+task manage -- makeallmessages
+
+# Replace <LANG> with the locale you want to add, 
+# this will add the translation file for a new language.
+# Don't forget to create the appropriate files for that new locale on the frontend side.
+task manage -- makemessage -l <LANG>
 ```

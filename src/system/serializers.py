@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,10 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 from enum import Enum
+from typing import Annotated
 
-from base.i18n import choices as i18n_choices
+from pydantic import AfterValidator
+
 from base.serializers import BaseModel
 from base.utils.enum import OrderedEnum
+from commons.i18n import choices as i18n_choices
 
 
 class TextDirection(Enum):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pydantic import ConfigDict
-
 from base.serializers import BaseModel
 from memberships.serializers import RoleSerializer
 from projects.projects.serializers.nested import (
@@ -30,7 +28,6 @@ from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 class _WorkspaceListProjectsSummarySerializer(BaseModel):
     user_member_projects: list[ProjectNestedSerializer]
     user_invited_projects: list[ProjectNestedSerializer]
-    model_config = ConfigDict(from_attributes=True)
 
 
 class WorkspaceSummarySerializer(
@@ -39,7 +36,6 @@ class WorkspaceSummarySerializer(
     user_is_invited: bool
     user_is_member: bool
     user_can_create_projects: bool
-    model_config = ConfigDict(from_attributes=True)
 
 
 class WorkspaceDetailSerializer(WorkspaceSummarySerializer):
@@ -48,4 +44,3 @@ class WorkspaceDetailSerializer(WorkspaceSummarySerializer):
     # should always be empty, field are added to satisfy "detail inherit from summary" in the frontend
     user_member_projects: list[ProjectNestedSerializer] = []
     user_invited_projects: list[ProjectNestedSerializer] = []
-    model_config = ConfigDict(from_attributes=True)

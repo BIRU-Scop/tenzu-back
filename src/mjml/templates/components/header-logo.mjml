@@ -17,16 +17,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 You can contact BIRU at ask@biru.sh
 -->
+{% load static %}
+
 <mj-section mj-class="padding-bottom-24">
   <mj-column>
     <mj-raw>
       <tr>
         <td>
           <a href="{{ settings.FRONTEND_URL }}">
-            <img alt="Tenzu logo" class="light-image" align="left" padding="0" width="100" src="{{ 'emails/tenzu-logo.png' | static_url }}" />
+            <img alt="Tenzu logo" class="light-image" align="left" padding="0" width="100" src="{% absolute_static 'emails/tenzu-logo.png' %}" />
             <!--[if !mso]><! -->
             <div class="dark-image-wrapper" style="mso-hide: all; display: none;">
-              <img alt="Tenzu logo" style="display: none;" class="dark-image" align="left" padding="0" width="100" src="{{ 'emails/tenzu-logo.png' | static_url }}" />
+              <img alt="Tenzu logo" style="display: none;" class="dark-image" align="left" padding="0" width="100" src="{% absolute_static 'emails/tenzu-logo.png' %}" />
             </div>
             <!--<![endif]-->
           </a>

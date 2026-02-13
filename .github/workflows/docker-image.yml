@@ -1,10 +1,12 @@
 #
 name: Create and publish a Docker image
 
-# Configures this workflow to run every time a change is pushed to the branch called `release`.
+# Configures this workflow to run every time a new release tag is make, excluding alpha releases
 on:
   push:
-    tags: ['v*']
+    tags:
+      - 'v*'
+      - '!v*-*'
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
@@ -58,4 +60,15 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+      - name: Generate SBOM
+        run: |
+          curl -Lo $RUNNER_TEMP/sbom-tool https://github.com/microsoft/sbom-tool/releases/latest/download/sbom-tool-linux-x64
+          chmod +x $RUNNER_TEMP/sbom-tool
+          cp ./buildrun/docker/tenzu/requirements/prod.txt ./buildrun/docker/tenzu/requirements/requirements.txt
+          $RUNNER_TEMP/sbom-tool generate -b ./build_output -bc . -di ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}  -pn $(basename ${{ github.repository }}) -pv ${{ github.ref_name }} -ps BIRU -nsb https://biru.sh/sbom -mi SPDX:3.0 -V Verbose
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: build_output
 

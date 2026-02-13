@@ -18,8 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 from typing import Literal
 
-from pydantic import ConfigDict
-
 from base.serializers import UUIDB64, BaseModel
 from workflows.serializers.nested import (
     WorkflowNestedSerializer,
@@ -30,22 +28,18 @@ from workflows.serializers.nested import (
 class WorkflowSerializer(WorkflowNestedSerializer):
     order: int
     statuses: list[WorkflowStatusNestedSerializer]
-    model_config = ConfigDict(from_attributes=True)
 
 
 class WorkflowStatusSerializer(WorkflowStatusNestedSerializer):
     workflow: WorkflowNestedSerializer
-    model_config = ConfigDict(from_attributes=True)
 
 
 class _ReorderSerializer(BaseModel):
     place: Literal["before", "after"]
     status_id: UUIDB64
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ReorderWorkflowStatusesSerializer(BaseModel):
     workflow: WorkflowNestedSerializer
     status_ids: list[UUIDB64]
     reorder: _ReorderSerializer | None = None
-    model_config = ConfigDict(from_attributes=True)

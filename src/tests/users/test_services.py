@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -67,7 +67,7 @@ async def test_create_user_ok_accept_invitation(
     full_name = "Full Name"
     color = 8
     password = "CorrectP4ssword$"
-    lang = "es-ES"
+    lang = "es-es"
     user = f.build_user(
         id=1,
         email=email,
@@ -114,7 +114,7 @@ async def test_create_user_ok_accept_invitation(
         assert job["args"] == {
             "email_name": "sign_up",
             "to": "email@email.com",
-            "lang": "es-ES",
+            "lang": "es-es",
             "context": {"verification_token": "verify_token"},
         }
 
@@ -231,7 +231,7 @@ async def test_create_user_unverified(tqmanager):
         assert job["args"] == {
             "email_name": "sign_up",
             "to": "email@email.com",
-            "lang": "en-US",
+            "lang": "en-us",
             "context": {"verification_token": "verify_token"},
         }
 
@@ -850,9 +850,9 @@ async def test_list_paginated_default_project_users_by_text_ok():
 
 
 async def test_update_user_ok(tqmanager):
-    user = f.build_user(id=1, full_name="Full Name", lang="es-ES")
+    user = f.build_user(id=1, full_name="Full Name", lang="es-es")
     new_full_name = "New Full Name"
-    new_lang = "en-US"
+    new_lang = "en-us"
 
     with (
         patch("users.services.users_repositories", autospec=True) as fake_users_repo,
@@ -1254,7 +1254,7 @@ async def test_reset_password_send_reset_password_email_ok(tqmanager):
         assert job["args"] == {
             "email_name": "reset_password",
             "to": user.email,
-            "lang": "en-US",
+            "lang": "en-us",
             "context": {"reset_password_token": "reset_token"},
         }
 
