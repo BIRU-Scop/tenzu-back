@@ -66,9 +66,10 @@ jobs:
           curl -Lo $RUNNER_TEMP/sbom-tool https://github.com/microsoft/sbom-tool/releases/latest/download/sbom-tool-linux-x64
           chmod +x $RUNNER_TEMP/sbom-tool
           cp ./buildrun/docker/tenzu/requirements/prod.txt ./buildrun/docker/tenzu/requirements/requirements.txt
+          mkdir ./build_output
           $RUNNER_TEMP/sbom-tool generate -b ./build_output -bc . -di ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}  -pn $(basename ${{ github.repository }}) -pv ${{ github.ref_name }} -ps BIRU -nsb https://biru.sh/sbom -mi SPDX:3.0 -V Verbose
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          path: build_output
+          path: ./build_output
 
