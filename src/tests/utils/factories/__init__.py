@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -87,4 +87,9 @@ from .workspaces import (  # noqa
     create_workspace_invitation,
     create_workspace_membership,
     create_workspace_role,
+)
+from .import_export import (  # noqa
+    ImportationFactory,
+    build_importation,
+    create_importation,
 )
