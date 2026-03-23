@@ -51,7 +51,7 @@ class TokensSettings(BaseModel):
     VERIFYING_KEY: str = ""
     AUDIENCE: str | None = None
     ISSUER: str | None = None
-    ACCESS_TOKEN_LIFETIME: timedelta = timedelta(minutes=5)
+    ACCESS_TOKEN_LIFETIME: timedelta = timedelta(hours=3)
     REFRESH_TOKEN_LIFETIME: timedelta = timedelta(hours=4)
 
     TOKEN_TYPE_CLAIM: str = "token_type"
