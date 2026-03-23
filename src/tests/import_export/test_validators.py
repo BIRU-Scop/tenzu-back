@@ -20,7 +20,7 @@
 import pytest
 from pydantic import ValidationError
 
-from import_export.api import ImportProjectValidator
+from import_export.api import ImportationFileField, ImportProjectValidator
 from import_export.models import ImportationType
 from tests.utils import factories as f
 from tests.utils.utils import check_validation_errors
@@ -31,18 +31,14 @@ from tests.utils.utils import check_validation_errors
 
 
 def test_invalid_import():
-    import_file = f.build_string_uploadfile()
-
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyTypeChecker
-        ImportProjectValidator(origin_type="test", source=import_file)
+        ImportProjectValidator(origin_type="test")
 
     expected_error_fields = [
-        "source",
         "origin_type",
     ]
     expected_error_messages = [
-        "Value error, Invalid importation content type, expected on of application/json",
         f"Input should be {' or '.join(f"'{t}'" for t in ImportationType.values)}",
     ]
     check_validation_errors(
@@ -50,8 +46,21 @@ def test_invalid_import():
     )
 
 
+def test_invalid_import_file():
+    import_file = f.build_string_uploadfile()
+
+    with pytest.raises(ValueError) as validations_error:
+        # noinspection PyTypeChecker
+        ImportationFileField._validate(import_file, None)
+
+    assert validations_error.value.args == (
+        "Invalid importation content type, expected on of application/json",
+    )
+
+
 def test_valid_import():
     import_file = f.build_string_uploadfile(content_type="application/json")
 
     # noinspection PyTypeChecker
-    ImportProjectValidator(origin_type=ImportationType.TAIGA.value, source=import_file)
+    ImportProjectValidator(origin_type=ImportationType.TAIGA.value)
+    ImportationFileField(import_file)

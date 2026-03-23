@@ -18,7 +18,7 @@
 
 import pytest
 
-from import_export.models import ImportationStatus, ImportationType
+from import_export.models import Importation, ImportationStatus, ImportationType
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
 
@@ -34,32 +34,40 @@ async def test_launch_importation_200_ok_being_workspace_member(client):
     workspace = await f.create_workspace()
     data = {
         "originType": ImportationType.TAIGA,
-        "source": f.build_string_uploadfile("taiga_export", "json", "application/json"),
     }
+    source = f.build_string_uploadfile(
+        "taiga_export", "json", "application/json", content="{}"
+    )
 
     client.login(workspace.created_by)
     response = await client.post(
         f"/workspaces/{workspace.b64id}/projects/importation",
-        data=data,  # , files=files
+        data=data,
+        FILES={"source": source},
     )
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
     assert res["originType"] == data["originType"]
     assert res["status"] == ImportationStatus.PENDING
     assert res["errorResultFile"] is None
-    assert res["extraData"]["workspace_id"] == workspace.b64id
+    importation = await Importation.objects.aget()
+    assert importation.extra_data["workspace_id"] == workspace.b64id
 
 
 async def test_launch_importation_404_not_found_workspace_error(client):
     workspace = await f.create_workspace()
     data = {
         "originType": ImportationType.TAIGA,
-        "source": f.build_string_uploadfile("taiga_export", "json", "application/json"),
     }
+    source = f.build_string_uploadfile(
+        "taiga_export", "json", "application/json", content="{}"
+    )
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"/workspaces/{NOT_EXISTING_B64ID}/projects/importation", data=data
+        f"/workspaces/{NOT_EXISTING_B64ID}/projects/importation",
+        data=data,
+        FILES={"source": source},
     )
     assert response.status_code == 404, response.data
 
@@ -69,12 +77,16 @@ async def test_launch_importation_403_being_no_workspace_member(client):
     user2 = await f.create_user()
     data = {
         "originType": ImportationType.TAIGA,
-        "source": f.build_string_uploadfile("taiga_export", "json", "application/json"),
     }
+    source = f.build_string_uploadfile(
+        "taiga_export", "json", "application/json", content="{}"
+    )
 
     client.login(user2)
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects/importation", data=data
+        f"/workspaces/{workspace.b64id}/projects/importation",
+        data=data,
+        FILES={"source": source},
     )
     assert response.status_code == 403, response.data
 
@@ -83,11 +95,15 @@ async def test_launch_importation_401_being_anonymous(client):
     workspace = await f.create_workspace()
     data = {
         "originType": ImportationType.TAIGA,
-        "source": f.build_string_uploadfile("taiga_export", "json", "application/json"),
     }
+    source = f.build_string_uploadfile(
+        "taiga_export", "json", "application/json", content="{}"
+    )
 
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects/importation", data=data
+        f"/workspaces/{workspace.b64id}/projects/importation",
+        data=data,
+        FILES={"source": source},
     )
     assert response.status_code == 401, response.data
 
@@ -96,12 +112,14 @@ async def test_launch_importation_422_unprocessable_file(client):
     workspace = await f.create_workspace()
     data = {
         "originType": ImportationType.TAIGA,
-        "source": f.build_image_uploadfile("taiga_export", "png", "image/png"),
     }
+    source = f.build_string_uploadfile("taiga_export", "png", "image/png")
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects/importation", data=data
+        f"/workspaces/{workspace.b64id}/projects/importation",
+        data=data,
+        FILES={"source": source},
     )
     assert response.status_code == 422, response.data
 
@@ -110,11 +128,15 @@ async def test_launch_importation_422_unprocessable_uuid(client):
     workspace = await f.create_workspace()
     data = {
         "originType": ImportationType.TAIGA,
-        "source": f.build_string_uploadfile("taiga_export", "json", "application/json"),
     }
+    source = f.build_string_uploadfile(
+        "taiga_export", "json", "application/json", content="{}"
+    )
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"/workspaces/{INVALID_B64ID}/projects/importation", data=data
+        f"/workspaces/{INVALID_B64ID}/projects/importation",
+        data=data,
+        FILES={"source": source},
     )
     assert response.status_code == 422, response.data
