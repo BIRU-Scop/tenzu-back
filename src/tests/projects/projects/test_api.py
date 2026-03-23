@@ -49,7 +49,7 @@ async def test_create_project_200_ok_being_workspace_member(client):
     assert res["userIsInvited"] is False
     assert len(res["workflows"]) > 0
     assert res["logo"].startswith(str(settings.BACKEND_URL))
-    assert res["logo"].endswith("logo")
+    assert "/logo?last_mod=" in res["logo"]
 
 
 async def test_create_project_404_not_found_workspace_error(client):
@@ -314,7 +314,9 @@ async def test_get_project_logo_file_200_ok_owner(client, project_template):
     project = await f.create_project(project_template, logo=image)
 
     client.login(project.created_by)
-    response = await client.get(f"/projects/{project.b64id}/logo")
+    response = await client.get(
+        f"/projects/{project.b64id}/logo?last_mod=&format=original"
+    )
     assert response.status_code == 200, response.data["data"]
 
 
@@ -333,7 +335,7 @@ async def test_get_project_logo_200_ok_being_project_member(client, project_temp
     )
 
     client.login(pj_member)
-    response = await client.get(f"/projects/{project.b64id}/logo")
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
     assert response.status_code == 200, response.data["data"]
 
 
@@ -351,14 +353,14 @@ async def test_get_project_logo_200_ok_being_invited_user(client, project_templa
     )
 
     client.login(user)
-    response = await client.get(f"/projects/{project.b64id}/logo")
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
     assert response.status_code == 200, response.data["data"]
 
 
 async def test_get_project_logo_file_401_forbidden_anonymous(client, project_template):
     project = await f.create_project(project_template)
 
-    response = await client.get(f"/projects/{project.b64id}/logo")
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
     assert response.status_code == 401, response.data
 
 
@@ -367,14 +369,14 @@ async def test_get_project_logo_file_403_forbidden_not_member(client, project_te
     user = await f.create_user()
 
     client.login(user)
-    response = await client.get(f"/projects/{project.b64id}/logo")
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
     assert response.status_code == 403, response.data
 
 
 async def test_get_project_logo_file_404_no_project(client, project_template):
     user = await f.create_user()
     client.login(user)
-    response = await client.get(f"/projects/{NOT_EXISTING_B64ID}/logo")
+    response = await client.get(f"/projects/{NOT_EXISTING_B64ID}/logo?last_mod=")
     assert response.status_code == 404, response.data
 
 
@@ -382,8 +384,17 @@ async def test_get_project_logo_file_404_no_logo(client, project_template):
     project = await f.create_project(project_template, logo=None)
 
     client.login(project.created_by)
-    response = await client.get(f"/projects/{project.b64id}/logo")
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
     assert response.status_code == 404, response.data
+
+
+async def test_get_project_logo_file_422_Wrong_formato(client, project_template):
+    image = f.build_image_file("logo")
+    project = await f.create_project(project_template, logo=image)
+
+    client.login(project.created_by)
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=&format=bad")
+    assert response.status_code == 422, response.data
 
 
 ##########################################################
@@ -411,7 +422,7 @@ async def test_update_project_files_200_ok(client, project_template):
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
     assert updated_project["logo"].startswith(str(settings.BACKEND_URL))
-    assert updated_project["logo"].endswith("logo")
+    assert "/logo?last_mod=" in updated_project["logo"]
     assert updated_project["userRole"]["isOwner"] is True
     assert updated_project["userIsInvited"] is False
     assert len(updated_project["workflows"]) > 0
@@ -436,7 +447,7 @@ async def test_update_project_files_200_ok_no_logo_change(client, project_templa
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
     assert updated_project["logo"].startswith(str(settings.BACKEND_URL))
-    assert updated_project["logo"].endswith("logo")
+    assert "/logo?last_mod=" in updated_project["logo"]
     await project.arefresh_from_db(fields={"logo"})
     assert "old-logo.png" in project.logo.name
 
