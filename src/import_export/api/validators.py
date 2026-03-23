@@ -16,32 +16,32 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import json
+from typing import Any
 
+from django.core.files.uploadedfile import UploadedFile as DjangoUploadedFile
 from ninja import UploadedFile
-from pydantic import (
-    AfterValidator,
-)
-from typing_extensions import Annotated
 
 from commons.validators import BaseModel
 from import_export.models import ImportationType
 
 
-def validate_importation(importation: UploadedFile):
-    supported_content_type = {"application/json"}
-    if importation.content_type not in supported_content_type:
-        raise ValueError(
-            f"Invalid importation content type, expected on of {', '.join(supported_content_type)}"
-        )
-    return importation
-
-
-ImportationField = Annotated[
-    UploadedFile,
-    AfterValidator(validate_importation),
-]
+class ImportationFileField(UploadedFile):
+    @classmethod
+    def _validate(cls, v: Any, _: Any) -> Any:
+        importation_file: DjangoUploadedFile = super()._validate(v, _)
+        if importation_file:
+            supported_content_type = {"application/json"}
+            if importation_file.content_type not in supported_content_type:
+                raise ValueError(
+                    f"Invalid importation content type, expected on of {', '.join(supported_content_type)}"
+                )
+            try:
+                json.load(importation_file)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid json file: {e}")
+        return importation_file
 
 
 class ImportProjectValidator(BaseModel):
     origin_type: ImportationType
-    source: ImportationField

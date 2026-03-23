@@ -27,8 +27,6 @@ from import_export.models import ImportationType, ImportationStatus
 class ImportationDetailSerializer(BaseModel):
     origin_type: ImportationType
     status: ImportationStatus
-    source: FileField
     error_result_file: FileField | None = None
-    extra_data: dict
 
     model_config = ConfigDict(from_attributes=True)

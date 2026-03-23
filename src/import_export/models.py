@@ -35,6 +35,7 @@ class ImportationType(TextChoices):
 class ImportationStatus(models.TextChoices):
     PENDING = "P", "Pending"
     ONGOING = "O", "Ongoing"
+    ACTION_NEEDED = "A", "Action needed"
     SUCCESS = "S", "Success"
     FAILURE = "F", "Failure"
 

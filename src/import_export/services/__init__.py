@@ -45,7 +45,7 @@ async def import_project(
     match origin_type:
         case ImportationType.TAIGA:
             await import_taiga_project.defer_async(
-                importation_id=importation.id,
+                importation_id=importation.b64id,
             )
     return ImportationDetailSerializer.from_orm(importation)
 

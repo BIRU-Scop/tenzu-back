@@ -18,17 +18,18 @@
 # You can contact BIRU at ask@biru.sh
 
 import logging
-from uuid import UUID
 
 from procrastinate.contrib.django import app
+
+from base.utils.uuid import decode_b64str_to_uuid
 
 logger = logging.getLogger(__name__)
 
 
 @app.task()
-async def import_taiga_project(importation_id: UUID) -> None:
+async def import_taiga_project(importation_id: str) -> None:
     from import_export import services as import_export_services
 
     importation = await import_export_services.get_importation(
-        importation_id=importation_id
+        importation_id=decode_b64str_to_uuid(importation_id)
     )

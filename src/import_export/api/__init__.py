@@ -16,7 +16,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from ninja import Form, Path, Router
+from ninja import File, Form, Path, Router
 
 from base.serializers import BaseDataModel
 from commons.exceptions import api as ex
@@ -28,7 +28,7 @@ from commons.exceptions.api.errors import (
 )
 from commons.validators import B64UUID
 from import_export import services as import_export_services
-from import_export.api.validators import ImportProjectValidator
+from import_export.api.validators import ImportationFileField, ImportProjectValidator
 from import_export.serializers import ImportationDetailSerializer
 from permissions import (
     check_permissions,
@@ -62,6 +62,7 @@ async def launch_project_importation(
     request,
     workspace_id: Path[B64UUID],
     form: Form[ImportProjectValidator],
+    source: File[ImportationFileField],
 ) -> ImportationDetailSerializer:
     """
     Launch an importation for a project in a given workspace.
@@ -77,5 +78,5 @@ async def launch_project_importation(
         user=request.user,
         workspace=workspace,
         origin_type=form.origin_type,
-        source=form.source,
+        source=source,
     )
