@@ -113,3 +113,5 @@ async def send_email(
         raise ex.EmailDeliveryError(
             f"Unknown error while delivering an email. {delivery_exception}"
         ) from delivery_exception
+    else:
+        logger.info(f"Email to {to_emails} with subject {subject} sent")

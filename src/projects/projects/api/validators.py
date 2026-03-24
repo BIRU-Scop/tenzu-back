@@ -20,30 +20,22 @@ from typing import Any, Literal
 
 from ninja import UploadedFile
 from pydantic import (
-    AfterValidator,
     BeforeValidator,
-    Field,
     PlainValidator,
     StringConstraints,
-    WithJsonSchema,
+    conint,
+    constr,
 )
 from typing_extensions import Annotated
 
-from base.utils.images import valid_content_type, valid_image_content
-from base.utils.uuid import decode_b64str_to_uuid
+from base.utils.images import valid_image_content, valid_image_content_type
 from commons.colors import NUM_COLORS
 from commons.validators import BaseModel
 
-B64UUID = Annotated[
-    str,
-    AfterValidator(decode_b64str_to_uuid),
-    WithJsonSchema({"type": "str", "examples": "6JgsbGyoEe2VExhWgGrI2w"}),
-]
 
-
-def validate_logo(logo: UploadedFile):
+def validate_logo(logo: UploadedFile) -> UploadedFile:
     if logo:
-        if not valid_content_type(logo):
+        if not valid_image_content_type(logo):
             raise ValueError("Invalid image content type")
         if not valid_image_content(logo):
             raise ValueError("Invalid image content")
@@ -71,11 +63,8 @@ class CreateProjectValidator(BaseModel):
     name: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
     ]  # type: ignore
-    # description max_length validation to 220 characteres to resolve
-    # this problem https://stackoverflow.com/a/69851342/2883148
-    description: Annotated[str, StringConstraints(max_length=220)] | None = None  # type: ignore
-    color: Annotated[int, Field(gt=0, le=NUM_COLORS)] | None = None  # type: ignore
-    logo: LogoField | None = None
+    description: constr(max_length=220) | None = None  # type: ignore
+    color: conint(gt=0, le=NUM_COLORS) | None = None  # type: ignore
 
 
 class UpdateProjectValidator(BaseModel):

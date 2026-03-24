@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -131,8 +131,7 @@ async def get_comment(
 ##########################################################
 
 
-@sync_to_async
-def update_comment(
+async def update_comment(
     comment: Comment, values: dict[str, Any] = {}, update_modified_at=True
 ) -> Comment:
     for attr, value in values.items():
@@ -140,7 +139,7 @@ def update_comment(
 
     if update_modified_at:
         comment.modified_at = aware_utcnow()
-    comment.save()
+    await comment.asave(update_fields={*values.keys(), "modified_at"})
     return comment
 
 

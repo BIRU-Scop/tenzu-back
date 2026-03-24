@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from permissions.choices import ProjectPermissions
@@ -28,7 +29,7 @@ pytestmark = pytest.mark.django_db
 
 
 ##########################################################
-# POST /projects
+# POST /workspaces/<id>/projects
 ##########################################################
 
 
@@ -36,20 +37,22 @@ pytestmark = pytest.mark.django_db
 async def test_create_project_200_ok_being_workspace_member(client):
     workspace = await f.create_workspace()
     data = {"name": "Project test", "color": 1}
-    files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
+    files = {"logo": f.build_image_uploadfile("logo", "png", "image/png")}
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects", data=data, files=files
+        f"/workspaces/{workspace.b64id}/projects", data=data, FILES=files
     )
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
     assert res["userRole"]["isOwner"] is True
     assert res["userIsInvited"] is False
     assert len(res["workflows"]) > 0
+    assert res["logo"].startswith(str(settings.BACKEND_URL))
+    assert "/logo?last_mod=" in res["logo"]
 
 
-async def test_create_project_400_bad_request_invalid_workspace_error(client):
+async def test_create_project_404_not_found_workspace_error(client):
     workspace = await f.create_workspace()
     data = {"name": "My pro#%&乕شject", "color": 1}
 
@@ -64,11 +67,11 @@ async def test_create_project_403_being_no_workspace_member(client):
     workspace = await f.create_workspace()
     user2 = await f.create_user()
     data = {"name": "Project test", "color": 1}
-    files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
+    files = {"logo": f.build_image_uploadfile("logo", "png", "image/png")}
 
     client.login(user2)
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects", data=data, files=files
+        f"/workspaces/{workspace.b64id}/projects", data=data, FILES=files
     )
     assert response.status_code == 403, response.data
 
@@ -76,10 +79,10 @@ async def test_create_project_403_being_no_workspace_member(client):
 async def test_create_project_401_being_anonymous(client):
     workspace = await f.create_workspace()
     data = {"name": "Project test", "color": 1}
-    files = {"logo": ("logo.png", f.build_image_file("logo"), "image/png")}
+    files = {"logo": f.build_image_uploadfile("logo", "png", "image/png")}
 
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects", data=data, files=files
+        f"/workspaces/{workspace.b64id}/projects", data=data, FILES=files
     )
     assert response.status_code == 401, response.data
 
@@ -99,6 +102,30 @@ async def test_create_project_422_unprocessable_uuid(client):
 
     client.login(workspace.created_by)
     response = await client.post(f"/workspaces/{INVALID_B64ID}/projects", data=data)
+    assert response.status_code == 422, response.data
+
+
+async def test_create_project_422_logo_format_unsupported(client, project_template):
+    workspace = await f.create_workspace()
+    data = {"name": "Project test", "color": 1}
+    files = {"logo": f.build_image_uploadfile("logo", "tiff", "image/tiff")}
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/projects", data=data, FILES=files
+    )
+    assert response.status_code == 422, response.data
+
+
+async def test_create_project_422_logo_not_image(client, project_template):
+    workspace = await f.create_workspace()
+    data = {"name": "Project test", "color": 1}
+    files = {"logo": f.build_string_uploadfile()}
+
+    client.login(workspace.created_by)
+    response = await client.post(
+        f"/workspaces/{workspace.b64id}/projects", data=data, FILES=files
+    )
     assert response.status_code == 422, response.data
 
 
@@ -173,6 +200,7 @@ async def test_get_project_200_ok_being_project_owner(client, project_template):
     assert res["userRole"]["isOwner"] is True
     assert res["userIsInvited"] is False
     assert len(res["workflows"]) > 0
+    assert res["logo"] is None
 
 
 async def test_get_project_200_ok_being_project_member_without_view_workflows(
@@ -277,6 +305,99 @@ async def test_get_project_422_unprocessable_project_b64id(
 
 
 ##########################################################
+# GET /projects/<id>/logo
+##########################################################
+
+
+async def test_get_project_logo_file_200_ok_owner(client, project_template):
+    image = f.build_image_file("logo")
+    project = await f.create_project(project_template, logo=image)
+
+    client.login(project.created_by)
+    response = await client.get(
+        f"/projects/{project.b64id}/logo?last_mod=&format=original"
+    )
+    assert response.status_code == 200, response.data["data"]
+
+
+async def test_get_project_logo_200_ok_being_project_member(client, project_template):
+    image = f.build_image_file("logo")
+    project = await f.create_project(project_template, logo=image)
+    general_member_role = await f.create_project_role(
+        permissions=[ProjectPermissions.VIEW_WORKFLOW.value],
+        is_owner=False,
+        project=project,
+    )
+
+    pj_member = await f.create_user()
+    await f.create_project_membership(
+        user=pj_member, project=project, role=general_member_role
+    )
+
+    client.login(pj_member)
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
+    assert response.status_code == 200, response.data["data"]
+
+
+async def test_get_project_logo_200_ok_being_invited_user(client, project_template):
+    image = f.build_image_file("logo")
+    project = await f.create_project(project_template, logo=image)
+    general_member_role = await f.create_project_role(
+        is_owner=False,
+        project=project,
+    )
+
+    user = await f.create_user()
+    await f.create_project_invitation(
+        user=user, project=project, role=general_member_role
+    )
+
+    client.login(user)
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
+    assert response.status_code == 200, response.data["data"]
+
+
+async def test_get_project_logo_file_401_forbidden_anonymous(client, project_template):
+    project = await f.create_project(project_template)
+
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
+    assert response.status_code == 401, response.data
+
+
+async def test_get_project_logo_file_403_forbidden_not_member(client, project_template):
+    project = await f.create_project(project_template)
+    user = await f.create_user()
+
+    client.login(user)
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
+    assert response.status_code == 403, response.data
+
+
+async def test_get_project_logo_file_404_no_project(client, project_template):
+    user = await f.create_user()
+    client.login(user)
+    response = await client.get(f"/projects/{NOT_EXISTING_B64ID}/logo?last_mod=")
+    assert response.status_code == 404, response.data
+
+
+async def test_get_project_logo_file_404_no_logo(client, project_template):
+    project = await f.create_project(project_template, logo=None)
+
+    client.login(project.created_by)
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=")
+    assert response.status_code == 404, response.data
+
+
+async def test_get_project_logo_file_422_Wrong_formato(client, project_template):
+    image = f.build_image_file("logo")
+    project = await f.create_project(project_template, logo=image)
+
+    client.login(project.created_by)
+    response = await client.get(f"/projects/{project.b64id}/logo?last_mod=&format=bad")
+    assert response.status_code == 422, response.data
+
+
+##########################################################
 # PATCH /projects/<id>/
 ##########################################################
 
@@ -300,14 +421,17 @@ async def test_update_project_files_200_ok(client, project_template):
     updated_project = response.data["data"]
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
-    assert "new-logo.png" in updated_project["logo"]
+    assert updated_project["logo"].startswith(str(settings.BACKEND_URL))
+    assert "/logo?last_mod=" in updated_project["logo"]
     assert updated_project["userRole"]["isOwner"] is True
     assert updated_project["userIsInvited"] is False
     assert len(updated_project["workflows"]) > 0
+    await project.arefresh_from_db(fields={"logo"})
+    assert "new-logo.png" in project.logo.name
 
 
 async def test_update_project_files_200_ok_no_logo_change(client, project_template):
-    image = f.build_image_file("new-logo")
+    image = f.build_image_file("old-logo")
     project = await f.create_project(project_template, logo=image)
 
     data = {"name": "New name", "description": "new description"}
@@ -322,7 +446,10 @@ async def test_update_project_files_200_ok_no_logo_change(client, project_templa
     updated_project = response.data["data"]
     assert updated_project["name"] == "New name"
     assert updated_project["description"] == "new description"
-    assert "new-logo.png" in updated_project["logo"]
+    assert updated_project["logo"].startswith(str(settings.BACKEND_URL))
+    assert "/logo?last_mod=" in updated_project["logo"]
+    await project.arefresh_from_db(fields={"logo"})
+    assert "old-logo.png" in project.logo.name
 
 
 async def test_update_project_files_200_ok_delete_logo(client, project_template):
@@ -447,6 +574,24 @@ async def test_update_project_422_unprocessable_project_b64id(client):
 
     client.login(user)
     response = await client.patch(f"/projects/{INVALID_B64ID}", data=data)
+    assert response.status_code == 422, response.data
+
+
+async def test_update_project_422_logo_format_unsupported(client, project_template):
+    project = await f.create_project(project_template)
+    files = {"logo": f.build_image_uploadfile("logo", "tiff", "image/tiff")}
+
+    client.login(project.created_by)
+    response = await client.patch(f"/projects/{project.b64id}", data={}, FILES=files)
+    assert response.status_code == 422, response.data
+
+
+async def test_update_project_422_logo_not_image(client, project_template):
+    project = await f.create_project(project_template)
+    files = {"logo": f.build_string_uploadfile()}
+
+    client.login(project.created_by)
+    response = await client.patch(f"/projects/{project.b64id}", data={}, FILES=files)
     assert response.status_code == 422, response.data
 
 
