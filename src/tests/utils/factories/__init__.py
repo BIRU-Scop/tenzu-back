@@ -89,7 +89,7 @@ from .workspaces import (  # noqa
     create_workspace_role,
 )
 from .import_export import (  # noqa
-    ImportationFactory,
-    build_importation,
-    create_importation,
+    ProjectImportationFactory,
+    build_project_importation,
+    create_project_importation,
 )

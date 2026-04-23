@@ -19,7 +19,7 @@ import uuid
 from unittest.mock import patch
 
 from import_export import services
-from import_export.serializers import ImportationDetailSerializer
+from import_export.serializers import ProjectImportationDetailSerializer
 from tests.utils import factories as f
 
 ##########################################################
@@ -29,7 +29,9 @@ from tests.utils import factories as f
 
 async def test_import_project():
     workspace = f.build_workspace()
-    importation = f.build_importation(extra_data={"workspace_id": workspace.b64id})
+    importation = f.build_project_importation(
+        extra_data={"workspace_id": workspace.b64id}
+    )
     user = importation.created_by
 
     with (
@@ -47,7 +49,7 @@ async def test_import_project():
 
         # TODO test more once logic is put into place
 
-        assert isinstance(serialised_importation, ImportationDetailSerializer)
+        assert isinstance(serialised_importation, ProjectImportationDetailSerializer)
 
 
 ##########################################################
@@ -61,5 +63,5 @@ async def test_get_importation():
             "import_export.services.import_export_repositories", autospec=True
         ) as fake_import_export_repositories,
     ):
-        await services.get_importation(importation_id=uuid.uuid1())
+        await services.get_project_importation(project_importation_id=uuid.uuid1())
         fake_import_export_repositories.get_importation.assert_called()

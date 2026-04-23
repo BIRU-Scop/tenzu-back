@@ -15,11 +15,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
 from ninja import File, Form, Path, Router
 
 from base.serializers import BaseDataModel
-from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
@@ -29,7 +27,7 @@ from commons.exceptions.api.errors import (
 from commons.validators import B64UUID
 from import_export import services as import_export_services
 from import_export.api.validators import ImportationFileField, ImportProjectValidator
-from import_export.serializers import ImportationDetailSerializer
+from import_export.serializers import ProjectImportationDetailSerializer
 from permissions import (
     check_permissions,
 )
@@ -45,11 +43,11 @@ import_export_router = Router()
 
 
 @import_export_router.post(
-    "/workspaces/{workspace_id}/projects/importation",
+    "/workspaces/{workspace_id}/projects/importations",
     url_name="importation.projects.create",
-    summary="Launch a project importation",
+    summary="Create and launch a project importation",
     response={
-        200: BaseDataModel[ImportationDetailSerializer],
+        200: BaseDataModel[ProjectImportationDetailSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -63,7 +61,7 @@ async def launch_project_importation(
     workspace_id: Path[B64UUID],
     form: Form[ImportProjectValidator],
     source: File[ImportationFileField],
-) -> ImportationDetailSerializer:
+) -> ProjectImportationDetailSerializer:
     """
     Launch an importation for a project in a given workspace.
     """

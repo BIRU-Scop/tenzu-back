@@ -18,7 +18,11 @@
 
 import pytest
 
-from import_export.models import Importation, ImportationStatus, ImportationType
+from import_export.models import (
+    ImportationStatus,
+    ProjectImportation,
+    ProjectImportationType,
+)
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
 
@@ -33,7 +37,7 @@ pytestmark = pytest.mark.django_db
 async def test_launch_importation_200_ok_being_workspace_member(client):
     workspace = await f.create_workspace()
     data = {
-        "originType": ImportationType.TAIGA,
+        "originType": ProjectImportationType.TAIGA,
     }
     source = f.build_string_uploadfile(
         "taiga_export", "json", "application/json", content="{}"
@@ -50,14 +54,14 @@ async def test_launch_importation_200_ok_being_workspace_member(client):
     assert res["originType"] == data["originType"]
     assert res["status"] == ImportationStatus.PENDING
     assert res["errorResultFile"] is None
-    importation = await Importation.objects.aget()
+    importation = await ProjectImportation.objects.aget()
     assert importation.extra_data["workspace_id"] == workspace.b64id
 
 
 async def test_launch_importation_404_not_found_workspace_error(client):
     workspace = await f.create_workspace()
     data = {
-        "originType": ImportationType.TAIGA,
+        "originType": ProjectImportationType.TAIGA,
     }
     source = f.build_string_uploadfile(
         "taiga_export", "json", "application/json", content="{}"
@@ -76,7 +80,7 @@ async def test_launch_importation_403_being_no_workspace_member(client):
     workspace = await f.create_workspace()
     user2 = await f.create_user()
     data = {
-        "originType": ImportationType.TAIGA,
+        "originType": ProjectImportationType.TAIGA,
     }
     source = f.build_string_uploadfile(
         "taiga_export", "json", "application/json", content="{}"
@@ -94,7 +98,7 @@ async def test_launch_importation_403_being_no_workspace_member(client):
 async def test_launch_importation_401_being_anonymous(client):
     workspace = await f.create_workspace()
     data = {
-        "originType": ImportationType.TAIGA,
+        "originType": ProjectImportationType.TAIGA,
     }
     source = f.build_string_uploadfile(
         "taiga_export", "json", "application/json", content="{}"
@@ -111,7 +115,7 @@ async def test_launch_importation_401_being_anonymous(client):
 async def test_launch_importation_422_unprocessable_file(client):
     workspace = await f.create_workspace()
     data = {
-        "originType": ImportationType.TAIGA,
+        "originType": ProjectImportationType.TAIGA,
     }
     source = f.build_string_uploadfile("taiga_export", "png", "image/png")
 
@@ -127,7 +131,7 @@ async def test_launch_importation_422_unprocessable_file(client):
 async def test_launch_importation_422_unprocessable_uuid(client):
     workspace = await f.create_workspace()
     data = {
-        "originType": ImportationType.TAIGA,
+        "originType": ProjectImportationType.TAIGA,
     }
     source = f.build_string_uploadfile(
         "taiga_export", "json", "application/json", content="{}"

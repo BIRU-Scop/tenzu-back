@@ -20,7 +20,7 @@ from uuid import uuid1
 import pytest
 
 from import_export import repositories
-from import_export.models import Importation, ImportationType
+from import_export.models import ProjectImportation, ProjectImportationType
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_UUID
 
@@ -36,10 +36,10 @@ async def test_create_importation():
     source_file = f.build_string_file()
     workspace = await f.create_workspace()
     user = await f.create_user()
-    importation = await repositories.create_importation(
+    importation = await repositories.create_project_importation(
         user=user,
         workspace=workspace,
-        origin_type=ImportationType.TAIGA,
+        origin_type=ProjectImportationType.TAIGA,
         source_file=source_file,
     )
     assert importation.source.name.endswith(source_file.name)
@@ -56,10 +56,15 @@ async def test_create_importation():
 async def test_get_importation_return_importation():
     importation = await test_create_importation()
     assert (
-        await repositories.get_importation(importation_id=importation.id) == importation
+        await repositories.get_project_importation(
+            project_importation_id=importation.id
+        )
+        == importation
     )
 
 
 async def test_get_importation_not_exists():
-    with pytest.raises(Importation.DoesNotExist):
-        await repositories.get_importation(importation_id=NOT_EXISTING_UUID)
+    with pytest.raises(ProjectImportation.DoesNotExist):
+        await repositories.get_project_importation(
+            project_importation_id=NOT_EXISTING_UUID
+        )

@@ -27,7 +27,8 @@ from base.db.models.mixins import CreatedMetaInfoMixin
 from base.utils.files import get_obfuscated_file_path
 
 
-class ImportationType(TextChoices):
+class ProjectImportationType(TextChoices):
+    TENZU = "TZ", "Tenzu"
     TAIGA = "TA", "Taiga"
     TRELLO = "TR", "Trello"
 
@@ -41,23 +42,16 @@ class ImportationStatus(models.TextChoices):
 
 
 get_importation_source_file_path = functools.partial(
-    get_obfuscated_file_path, base_path="importation"
+    get_obfuscated_file_path, base_path="project/importation"
 )
 
 
-def get_error_result_file_path(
-    instance: "Importation", filename: str, base_path: str = ""
-) -> str:
-    source_path = Path(instance.source.name)
-    return str(source_path.with_suffix(f".error_result{''.join(source_path.suffixes)}"))
-
-
-class Importation(BaseModel, CreatedMetaInfoMixin):
+class ProjectImportation(BaseModel, CreatedMetaInfoMixin):
     origin_type = models.CharField(
         max_length=2,
         null=False,
         blank=False,
-        choices=ImportationType.choices,
+        choices=ProjectImportationType.choices,
     )
     status = models.CharField(
         max_length=1,
@@ -65,14 +59,26 @@ class Importation(BaseModel, CreatedMetaInfoMixin):
         default=ImportationStatus.PENDING,
     )
     source = models.FileField(
+        max_length=500,
         upload_to=get_importation_source_file_path,
     )
-    error_result_file = models.FileField(
+    extra_data = JSONField(null=False, blank=True, default=dict)
+    project = models.OneToOneField(
+        "projects.Project",
         null=True,
         blank=True,
-        upload_to=get_error_result_file_path,
+        related_name="importation",
+        on_delete=models.CASCADE,
+        verbose_name="project",
     )
-    extra_data = JSONField(null=False, blank=True, default=dict)
+    workspace = models.ForeignKey(
+        "workspaces.Workspace",
+        null=False,
+        blank=False,
+        related_name="project_importations",
+        on_delete=models.CASCADE,
+        verbose_name="workspace",
+    )
 
     class Meta:
         ordering = ["-created_at"]

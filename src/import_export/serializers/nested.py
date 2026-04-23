@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024-2026 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,19 +16,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import logging
+from pydantic import ConfigDict
 
-from procrastinate.contrib.django import app
-
-from base.utils.uuid import decode_b64str_to_uuid
-
-logger = logging.getLogger(__name__)
+from base.serializers import BaseModel
+from import_export.models import ImportationStatus
 
 
-@app.task()
-async def import_taiga_project(project_importation_id: str) -> None:
-    from import_export import services as import_export_services
-
-    importation = await import_export_services.get_project_importation(
-        project_importation_id=decode_b64str_to_uuid(project_importation_id)
-    )
+class ProjectImportationNestedSerializer(BaseModel):
+    status: ImportationStatus
+    model_config = ConfigDict(from_attributes=True)

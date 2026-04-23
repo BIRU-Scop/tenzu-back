@@ -21,7 +21,7 @@ import pytest
 from pydantic import ValidationError
 
 from import_export.api import ImportationFileField, ImportProjectValidator
-from import_export.models import ImportationType
+from import_export.models import ProjectImportationType
 from tests.utils import factories as f
 from tests.utils.utils import check_validation_errors
 
@@ -39,7 +39,7 @@ def test_invalid_import():
         "origin_type",
     ]
     expected_error_messages = [
-        f"Input should be {' or '.join(f"'{t}'" for t in ImportationType.values)}",
+        f"Input should be {' or '.join(f"'{t}'" for t in ProjectImportationType.values)}",
     ]
     check_validation_errors(
         validations_errors, expected_error_fields, expected_error_messages
@@ -54,7 +54,7 @@ def test_invalid_import_file():
         ImportationFileField._validate(import_file, None)
 
     assert validations_error.value.args == (
-        "Invalid importation content type, expected on of application/json",
+        "Invalid importation content type, expected one of application/json",
     )
 
 
@@ -62,5 +62,5 @@ def test_valid_import():
     import_file = f.build_string_uploadfile(content_type="application/json")
 
     # noinspection PyTypeChecker
-    ImportProjectValidator(origin_type=ImportationType.TAIGA.value)
+    ImportProjectValidator(origin_type=ProjectImportationType.TAIGA.value)
     ImportationFileField(import_file)

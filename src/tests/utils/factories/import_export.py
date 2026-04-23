@@ -21,28 +21,36 @@ import uuid
 from asgiref.sync import sync_to_async
 
 from base.utils.uuid import encode_uuid_to_b64str
-from import_export.models import ImportationType
+from import_export.models import ImportationStatus, ProjectImportationType
 
 from .base import Factory, factory
 
 # IMPORTATION
 
 
-class ImportationFactory(Factory):
-    origin_type = ImportationType.TAIGA
+class ProjectImportationFactory(Factory):
+    status = ImportationStatus.PENDING
+    origin_type = ProjectImportationType.TAIGA
     source = factory.django.FileField(format="json")
-    extra_data = factory.LazyFunction(
-        lambda: {"workspace_id": encode_uuid_to_b64str(uuid.uuid1())}
+    created_by = factory.SubFactory("tests.utils.factories.UserFactory")
+    workspace = factory.SubFactory(
+        "tests.utils.factories.WorkspaceFactory",
+        created_by=factory.SelfAttribute("..created_by"),
     )
+    project = factory.SubFactory(
+        "tests.utils.factories.ProjectFactory",
+        created_by=factory.SelfAttribute("..created_by"),
+    )
+    extra_data = factory.LazyFunction(lambda: {})
 
     class Meta:
         model = "import_export.Importation"
 
 
 @sync_to_async
-def create_importation(**kwargs):
-    return ImportationFactory.create(**kwargs)
+def create_project_importation(**kwargs):
+    return ProjectImportationFactory.create(**kwargs)
 
 
-def build_importation(**kwargs):
-    return ImportationFactory.build(**kwargs)
+def build_project_importation(**kwargs):
+    return ProjectImportationFactory.build(**kwargs)

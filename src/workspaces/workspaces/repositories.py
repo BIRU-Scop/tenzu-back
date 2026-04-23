@@ -20,6 +20,8 @@
 from typing import Any, Literal
 from uuid import UUID
 
+from django.contrib.postgres.fields import ArrayField
+from django.db import models
 from django.db.models import (
     Exists,
     OuterRef,
@@ -30,6 +32,7 @@ from django.db.models import (
 from django.db.models.aggregates import Count
 
 from base.db.utils import Q_for_related
+from import_export.models import ProjectImportation
 from memberships import repositories as memberships_repositories
 from ninja_jwt.utils import aware_utcnow
 from permissions.choices import WorkspacePermissions
@@ -71,12 +74,13 @@ async def create_workspace(name: str, color: int, created_by: User) -> Workspace
 
 def _make_ws_query(
     filters,
-    user,
+    user: User,
     member_projects_qs,
     invited_projects_qs,
     is_invited: bool,
     is_member: bool,
     user_can_create_projects: bool | None,
+    fetch_project_importations: bool = False,
 ):
     user_can_create_projects = (
         Value(user_can_create_projects)
@@ -89,7 +93,7 @@ def _make_ws_query(
             )
         )
     )
-    return (
+    qs = (
         Workspace.objects.filter(filters)
         .annotate(
             user_is_invited=Value(is_invited),
@@ -106,9 +110,22 @@ def _make_ws_query(
                 to_attr="user_invited_projects",
             ),
         )
-        .order_by("-created_at")
-        .distinct()
     )
+    if fetch_project_importations:
+        qs = qs.prefetch_related(
+            Prefetch(
+                "project_importations",
+                queryset=ProjectImportation.objects.filter(created_by=user),
+                to_attr="user_imported_projects",
+            ),
+        )
+    else:
+        qs = qs.annotate(
+            user_imported_projects=Value(
+                [], output_field=ArrayField(models.BooleanField())
+            )
+        )
+    return qs.order_by("-created_at").distinct()
 
 
 async def list_user_workspaces_overview(user: User) -> list[Workspace]:
@@ -163,6 +180,7 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
         is_invited=False,
         is_member=True,
         user_can_create_projects=None,
+        fetch_project_importations=True,
     )
     # queryset for all workspaces where user is member or invited
     # (either directly to workspace or to one of its projects)

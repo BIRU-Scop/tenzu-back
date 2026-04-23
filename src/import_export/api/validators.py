@@ -21,9 +21,10 @@ from typing import Any
 
 from django.core.files.uploadedfile import UploadedFile as DjangoUploadedFile
 from ninja import UploadedFile
+from pydantic import field_validator
 
 from commons.validators import BaseModel
-from import_export.models import ImportationType
+from import_export.models import ProjectImportationType
 
 
 class ImportationFileField(UploadedFile):
@@ -34,7 +35,7 @@ class ImportationFileField(UploadedFile):
             supported_content_type = {"application/json"}
             if importation_file.content_type not in supported_content_type:
                 raise ValueError(
-                    f"Invalid importation content type, expected on of {', '.join(supported_content_type)}"
+                    f"Invalid importation content type, expected one of {', '.join(supported_content_type)}"
                 )
             try:
                 json.load(importation_file)
@@ -44,4 +45,11 @@ class ImportationFileField(UploadedFile):
 
 
 class ImportProjectValidator(BaseModel):
-    origin_type: ImportationType
+    origin_type: ProjectImportationType
+
+    @field_validator("origin_type", mode="after")
+    @classmethod
+    def is_supported(cls, value: ProjectImportationType) -> ProjectImportationType:
+        if value not in (ProjectImportationType.TAIGA,):
+            raise ValueError(f"Importation of type {value} is not supported yet")
+        return value

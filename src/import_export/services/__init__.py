@@ -18,11 +18,14 @@
 # You can contact BIRU at ask@biru.sh
 from uuid import UUID
 
+from django.core.exceptions import SuspiciousFileOperation
+from django.utils.translation import gettext
 from ninja import UploadedFile
+from ninja.errors import ValidationError
 
 from import_export import repositories as import_export_repositories
-from import_export.models import Importation, ImportationType
-from import_export.serializers import ImportationDetailSerializer
+from import_export.models import ProjectImportation, ProjectImportationType
+from import_export.serializers import ProjectImportationDetailSerializer
 from import_export.tasks import import_taiga_project
 from users.models import User
 from workspaces.workspaces.models import Workspace
@@ -33,21 +36,39 @@ from workspaces.workspaces.models import Workspace
 
 
 async def import_project(
-    user: User, workspace: Workspace, origin_type: ImportationType, source: UploadedFile
-) -> ImportationDetailSerializer:
-    importation = await import_export_repositories.create_importation(
-        user=user,
-        workspace=workspace,
-        origin_type=origin_type,
-        source_file=source,
-    )
+    user: User,
+    workspace: Workspace,
+    origin_type: ProjectImportationType,
+    source: UploadedFile,
+) -> ProjectImportationDetailSerializer:
+    try:
+        importation = await import_export_repositories.create_project_importation(
+            user=user,
+            workspace=workspace,
+            origin_type=origin_type,
+            source_file=source,
+        )
+    except SuspiciousFileOperation as e:
+        msg = gettext("Suspicious file, try to shorten the file name")
+        raise ValidationError(
+            [
+                {
+                    "type": "value_error",
+                    "loc": ["file", "source"],
+                    "msg": f"Value error, {msg}",
+                    "ctx": {"error": msg},
+                }
+            ]
+        ) from e
 
     match origin_type:
-        case ImportationType.TAIGA:
+        case ProjectImportationType.TAIGA:
             await import_taiga_project.defer_async(
-                importation_id=importation.b64id,
+                project_importation_id=importation.b64id,
             )
-    return ImportationDetailSerializer.from_orm(importation)
+        case _:
+            raise NotImplementedError
+    return ProjectImportationDetailSerializer.from_orm(importation)
 
 
 ##########################################################
@@ -55,7 +76,9 @@ async def import_project(
 ##########################################################
 
 
-async def get_importation(importation_id: UUID) -> Importation | None:
-    return await import_export_repositories.get_importation(
-        importation_id=importation_id
+async def get_project_importation(
+    project_importation_id: UUID,
+) -> ProjectImportation | None:
+    return await import_export_repositories.get_project_importation(
+        project_importation_id=project_importation_id
     )

@@ -15,18 +15,17 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from import_export.serializers.taiga import TaigaProjectImport  # noqa
 from pydantic import ConfigDict
 
-from base.serializers import BaseModel, FileField
+from import_export.models import ProjectImportationType
+from import_export.serializers.nested import ProjectImportationNestedSerializer
+from import_export.serializers.taiga import TaigaProjectImport  # noqa
 
-from import_export.models import ImportationType, ImportationStatus
+
+class ProjectImportationSummarySerializer(ProjectImportationNestedSerializer):
+    model_config = ConfigDict(from_attributes=True)
 
 
-class ImportationDetailSerializer(BaseModel):
-    origin_type: ImportationType
-    status: ImportationStatus
-    error_result_file: FileField | None = None
-
+class ProjectImportationDetailSerializer(ProjectImportationSummarySerializer):
+    origin_type: ProjectImportationType
     model_config = ConfigDict(from_attributes=True)

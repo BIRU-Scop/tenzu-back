@@ -20,7 +20,7 @@ from uuid import UUID
 
 from django.core.files import File
 
-from import_export.models import Importation, ImportationType
+from import_export.models import ProjectImportation, ProjectImportationType
 from users.models import User
 from workspaces.workspaces.models import Workspace
 
@@ -29,17 +29,17 @@ from workspaces.workspaces.models import Workspace
 ##########################################################
 
 
-async def create_importation(
+async def create_project_importation(
     user: User,
     workspace: Workspace,
-    origin_type: ImportationType,
+    origin_type: ProjectImportationType,
     source_file: File,
-) -> Importation:
-    importation = Importation(
+) -> ProjectImportation:
+    importation = ProjectImportation(
         created_by=user,
         origin_type=origin_type,
         source=source_file,
-        extra_data={"workspace_id": workspace.b64id},
+        workspace=workspace,
     )
 
     await importation.asave()
@@ -52,6 +52,6 @@ async def create_importation(
 ##########################################################
 
 
-async def get_importation(importation_id: UUID) -> Importation:
-    qs = Importation.objects.all()
-    return await qs.aget(id=importation_id)
+async def get_project_importation(project_importation_id: UUID) -> ProjectImportation:
+    qs = ProjectImportation.objects.all()
+    return await qs.aget(id=project_importation_id)
