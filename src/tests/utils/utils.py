@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,11 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import json
 from contextlib import contextmanager
 from typing import Any
 from unittest.mock import Mock, patch
 
+import orjson
 from django.db.models import Model
 from pydantic import ValidationError
 
@@ -29,7 +29,7 @@ from pydantic import ValidationError
 def check_validation_errors(
     validation_errors: ValidationError, error_fields: list[str], error_msgs: list[str]
 ):
-    validation_errors_json = json.loads(validation_errors.value.json())
+    validation_errors_json = orjson.loads(validation_errors.value.json())
     assert len(validation_errors_json) == len(
         error_fields
     ), "Wrong number of validation errors"

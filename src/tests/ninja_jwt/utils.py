@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -37,8 +37,7 @@
 # SOFTWARE.
 
 
-import json
-
+import orjson
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import Client
@@ -64,7 +63,7 @@ def client_action_wrapper(action):
 
         response = getattr(self.client, action)(_url, *args, **kwargs)
         try:
-            response.data = json.loads(response.content)
+            response.data = orjson.loads(response.content)
         except Exception:
             pass
         return response

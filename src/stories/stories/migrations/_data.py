@@ -63,6 +63,7 @@ def migrate_story_in_batches(StoryClass: type[Story]):
                 )
 
             # Send one story as a JSON line to Node
+            # do not use orjson because we need string and orjson dumps gives us bytes
             input_data = json.dumps(
                 {"id": str(story.id), "description": story.description}
             )
