@@ -33,3 +33,4 @@ async def import_taiga_project(project_importation_id: str) -> None:
     importation = await import_export_services.get_project_importation(
         project_importation_id=decode_b64str_to_uuid(project_importation_id)
     )
+    await import_export_services.do_import_taiga_project(importation)

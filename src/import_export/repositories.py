@@ -16,16 +16,18 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Any
 from uuid import UUID
 
 from django.core.files import File
 
 from import_export.models import ProjectImportation, ProjectImportationType
+from ninja_jwt.utils import aware_utcnow
 from users.models import User
 from workspaces.workspaces.models import Workspace
 
 ##########################################################
-# create importation
+# create project importation
 ##########################################################
 
 
@@ -48,10 +50,27 @@ async def create_project_importation(
 
 
 ##########################################################
-#  get importation
+#  get project importation
 ##########################################################
 
 
 async def get_project_importation(project_importation_id: UUID) -> ProjectImportation:
     qs = ProjectImportation.objects.all()
+    qs = qs.select_related("created_by", "workspace")
     return await qs.aget(id=project_importation_id)
+
+
+##########################################################
+# update project importation
+##########################################################
+
+
+async def update_project_importation(
+    project_importation: ProjectImportation, values: dict[str, Any] = {}
+) -> ProjectImportation:
+    for attr, value in values.items():
+        setattr(project_importation, attr, value)
+
+    project_importation.modified_at = aware_utcnow()
+    await project_importation.asave(update_fields={*values.keys(), "modified_at"})
+    return project_importation

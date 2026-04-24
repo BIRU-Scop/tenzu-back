@@ -16,19 +16,33 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import logging
+from typing import Any
 from uuid import UUID
 
 from django.core.exceptions import SuspiciousFileOperation
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils.translation import gettext
 from ninja import UploadedFile
 from ninja.errors import ValidationError
 
 from import_export import repositories as import_export_repositories
-from import_export.models import ProjectImportation, ProjectImportationType
-from import_export.serializers import ProjectImportationDetailSerializer
+from import_export.models import (
+    ImportationStatus,
+    ProjectImportation,
+    ProjectImportationType,
+)
+from import_export.serializers import (
+    ProjectImportationDetailSerializer,
+    TaigaProjectImport,
+)
 from import_export.tasks import import_taiga_project
+from projects.projects import services as projects_services
 from users.models import User
 from workspaces.workspaces.models import Workspace
+
+logger = logging.getLogger(__name__)
+
 
 ##########################################################
 # import project
@@ -71,6 +85,29 @@ async def import_project(
     return ProjectImportationDetailSerializer.from_orm(importation)
 
 
+async def do_import_taiga_project(project_importation: ProjectImportation):
+    with project_importation.source.open() as source_file:
+        taiga_project = TaigaProjectImport.model_validate_json(source_file.read())
+
+    # TODO use a minimal serializer instead, without unused fields, for more efficient parsing
+    if taiga_project.__pydantic_extra__:
+        logger.warning(f"Import contains extra data: {taiga_project.__pydantic_extra_}")
+
+    project = await projects_services._create_project(
+        workspace=project_importation.workspace,
+        name=taiga_project.name,
+        description=taiga_project.description,
+        created_by=project_importation.created_by,
+        color=None,
+        logo_file=SimpleUploadedFile(taiga_project.logo.name, taiga_project.logo.data)
+        if taiga_project.logo is not None
+        else None,
+    )
+    await update_project_importation(
+        project_importation, {"status": ImportationStatus.ONGOING, "project": project}
+    )
+
+
 ##########################################################
 # get importation
 ##########################################################
@@ -82,3 +119,27 @@ async def get_project_importation(
     return await import_export_repositories.get_project_importation(
         project_importation_id=project_importation_id
     )
+
+
+##########################################################
+# update importation
+##########################################################
+
+
+async def update_project_importation(
+    project_importation: ProjectImportation, values: dict[str, Any] = {}
+) -> ProjectImportationDetailSerializer:
+    updated_project_importation = (
+        await import_export_repositories.update_project_importation(
+            project_importation=project_importation, values=values
+        )
+    )
+    project_detail = ProjectImportationDetailSerializer(
+        status=updated_project_importation.status,
+        origin_type=updated_project_importation.origin_type,
+    )
+    # TODO send event about progress
+    # await projects_events.emit_event_when_project_is_updated(
+    #     project_detail=project_detail, updated_by=updated_by
+    # )
+    return project_detail
