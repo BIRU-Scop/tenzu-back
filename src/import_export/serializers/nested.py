@@ -18,10 +18,11 @@
 
 from pydantic import ConfigDict
 
-from base.serializers import BaseModel
+from base.serializers import UUIDB64, BaseModel
 from import_export.models import ImportationStatus
 
 
 class ProjectImportationNestedSerializer(BaseModel):
+    id: UUIDB64
     status: ImportationStatus
     model_config = ConfigDict(from_attributes=True)

@@ -19,7 +19,7 @@ import uuid
 from unittest.mock import patch
 
 from import_export import services
-from import_export.serializers import ProjectImportationDetailSerializer
+from import_export.serializers import ProjectImportationSerializer
 from tests.utils import factories as f
 
 ##########################################################
@@ -49,7 +49,7 @@ async def test_import_project():
 
         # TODO test more once logic is put into place
 
-        assert isinstance(serialised_importation, ProjectImportationDetailSerializer)
+        assert isinstance(serialised_importation, ProjectImportationSerializer)
 
 
 ##########################################################

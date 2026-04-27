@@ -27,12 +27,16 @@ from commons.exceptions.api.errors import (
 from commons.validators import B64UUID
 from import_export import services as import_export_services
 from import_export.api.validators import ImportationFileField, ImportProjectValidator
-from import_export.serializers import ProjectImportationDetailSerializer
+from import_export.models import ProjectImportation
+from import_export.serializers import (
+    ProjectImportationSerializer,
+)
 from permissions import (
     check_permissions,
 )
 from projects.projects.permissions import ProjectPermissionsCheck
 from workspaces.workspaces.api import get_workspace_or_404
+from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 
 import_export_router = Router()
 
@@ -47,7 +51,7 @@ import_export_router = Router()
     url_name="importation.projects.create",
     summary="Create and launch a project importation",
     response={
-        200: BaseDataModel[ProjectImportationDetailSerializer],
+        200: BaseDataModel[ProjectImportationSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -61,7 +65,7 @@ async def launch_project_importation(
     workspace_id: Path[B64UUID],
     form: Form[ImportProjectValidator],
     source: File[ImportationFileField],
-) -> ProjectImportationDetailSerializer:
+) -> ProjectImportationSerializer:
     """
     Launch an importation for a project in a given workspace.
     """
@@ -77,4 +81,39 @@ async def launch_project_importation(
         workspace=workspace,
         origin_type=form.origin_type,
         source=source,
+    )
+
+
+##########################################################
+# list project importations
+##########################################################
+
+
+@import_export_router.get(
+    "/workspaces/{workspace_id}/projects/importations",
+    url_name="importation.projects.list",
+    summary="List workspace project importations",
+    response={
+        200: BaseDataModel[list[ProjectImportationSerializer]],
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    tags=["workspaces", "projects", "import_export"],
+    by_alias=True,
+)
+async def list_project_imporations(
+    request, workspace_id: Path[B64UUID]
+) -> list[ProjectImportation]:
+    """
+    List project importations for a workspace launched by the user.
+    """
+    workspace = await get_workspace_or_404(workspace_id=workspace_id)
+    await check_permissions(
+        permissions=WorkspacePermissionsCheck.VIEW.value,
+        user=request.user,
+        obj=workspace,
+    )
+    return await import_export_services.list_workspace_project_importations_for_user(
+        workspace=workspace, user=request.user
     )

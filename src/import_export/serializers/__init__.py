@@ -22,10 +22,5 @@ from import_export.serializers.nested import ProjectImportationNestedSerializer
 from import_export.serializers.taiga import TaigaProjectImport  # noqa
 
 
-class ProjectImportationSummarySerializer(ProjectImportationNestedSerializer):
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ProjectImportationDetailSerializer(ProjectImportationSummarySerializer):
-    origin_type: ProjectImportationType
+class ProjectImportationSerializer(ProjectImportationNestedSerializer):
     model_config = ConfigDict(from_attributes=True)

@@ -74,3 +74,23 @@ async def update_project_importation(
     project_importation.modified_at = aware_utcnow()
     await project_importation.asave(update_fields={*values.keys(), "modified_at"})
     return project_importation
+
+
+##########################################################
+# list project importations
+##########################################################
+
+
+async def list_workspace_project_importations_for_user(
+    workspace: Workspace, user: User
+) -> list[ProjectImportation]:
+    qs = (
+        ProjectImportation.objects.filter(
+            created_by=user,
+            workspace=workspace,
+        )
+        .distinct()
+        .order_by("-created_at")
+    )
+
+    return [pi async for pi in qs]

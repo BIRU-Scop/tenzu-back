@@ -444,7 +444,7 @@ class _TaigaTimeline(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class TaigaProjectImport(BaseModel):
+class FullTaigaProjectImport(BaseModel):
     owner: EmailStr | None = None
     watchers: list[EmailStr | None] = None
 
@@ -526,5 +526,23 @@ class TaigaProjectImport(BaseModel):
     wiki_links: list[_TaigaWikiLink] = None
     wiki_pages: list[WikiPageExport] = None
     timeline: list[_TaigaTimeline]
+
+    model_config = ConfigDict(extra="allow")
+
+
+class TaigaProjectImport(BaseModel):
+    owner: EmailStr | None = None
+
+    name: str
+    description: str
+    logo: _TaigaFile | None = None
+    created_date: datetime
+    is_kanban_activated: bool
+
+    roles: list[_TaigaRole] = None
+    memberships: list[_TaigaMembership] = None
+    us_statuses: list[_TaigaUserStoryStatus] = None
+    swimlanes: list[_TaigaSwimlane] = None
+    user_stories: list[_TaigaUserStory] = None
 
     model_config = ConfigDict(extra="allow")
