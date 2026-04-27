@@ -32,7 +32,7 @@ from django.db.models import (
 from django.db.models.aggregates import Count
 
 from base.db.utils import Q_for_related
-from import_export.models import ProjectImportation
+from import_export.models import ImportationStatus, ProjectImportation
 from memberships import repositories as memberships_repositories
 from ninja_jwt.utils import aware_utcnow
 from permissions.choices import WorkspacePermissions
@@ -115,7 +115,9 @@ def _make_ws_query(
         qs = qs.prefetch_related(
             Prefetch(
                 "project_importations",
-                queryset=ProjectImportation.objects.filter(created_by=user),
+                queryset=ProjectImportation.objects.filter(created_by=user).exclude(
+                    status=ImportationStatus.SUCCESS
+                ),
                 to_attr="user_imported_projects",
             ),
         )
@@ -185,6 +187,14 @@ async def list_user_workspaces_overview(user: User) -> list[Workspace]:
     # queryset for all workspaces where user is member or invited
     # (either directly to workspace or to one of its projects)
     workspaces = [ws async for ws in ws_qs]
+    for ws in workspaces:
+        # remove duplicate for projects contained in an ongoing importation
+        ws.user_member_projects = [
+            pj
+            for pj in ws.user_member_projects
+            if pj.id
+            not in {imported_pj.project_id for imported_pj in ws.user_imported_projects}
+        ]
     workspace_ids = [ws.id for ws in workspaces]
     ws_invited = [ws async for ws in ws_qs_invited.exclude(id__in=workspace_ids)]
     pj_ws_invited = [

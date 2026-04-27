@@ -26,6 +26,7 @@ from django.db.models import Exists, OuterRef, Q
 
 from base.db.utils import Q_for_related
 from commons.utils import transaction_atomic_async
+from import_export.models import ImportationStatus
 from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus
 from ninja_jwt.utils import aware_utcnow
@@ -109,6 +110,10 @@ async def list_workspace_projects_for_user(
     qs = (
         Project.objects.filter(
             user_invited_query | user_member_query,
+            Q(importation__isnull=True)
+            | Q(
+                importation__status=ImportationStatus.SUCCESS
+            ),  # exclude ongoing importation from result
             workspace=workspace,
         )
         .annotate(

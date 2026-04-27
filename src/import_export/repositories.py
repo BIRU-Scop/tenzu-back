@@ -21,7 +21,11 @@ from uuid import UUID
 
 from django.core.files import File
 
-from import_export.models import ProjectImportation, ProjectImportationType
+from import_export.models import (
+    ImportationStatus,
+    ProjectImportation,
+    ProjectImportationType,
+)
 from ninja_jwt.utils import aware_utcnow
 from users.models import User
 from workspaces.workspaces.models import Workspace
@@ -89,6 +93,7 @@ async def list_workspace_project_importations_for_user(
             created_by=user,
             workspace=workspace,
         )
+        .exclude(status=ImportationStatus.SUCCESS)
         .distinct()
         .order_by("-created_at")
     )
