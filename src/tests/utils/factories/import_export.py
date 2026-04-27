@@ -40,11 +40,12 @@ class ProjectImportationFactory(Factory):
     project = factory.SubFactory(
         "tests.utils.factories.ProjectFactory",
         created_by=factory.SelfAttribute("..created_by"),
+        workspace=factory.SelfAttribute("..workspace"),
     )
     extra_data = factory.LazyFunction(lambda: {})
 
     class Meta:
-        model = "import_export.Importation"
+        model = "import_export.ProjectImportation"
 
 
 @sync_to_async

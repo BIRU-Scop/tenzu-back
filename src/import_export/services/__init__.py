@@ -90,9 +90,8 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
     with project_importation.source.open() as source_file:
         taiga_project = TaigaProjectImport.model_validate_json(source_file.read())
 
-    extra_fields = (
-        taiga_project.__pydantic_extra__.keys()
-        - FullTaigaProjectImport.model_fields.keys()
+    extra_fields = FullTaigaProjectImport.filter_unknown_fields(
+        taiga_project.__pydantic_extra__
     )
     if extra_fields:
         logger.warning(
@@ -146,20 +145,17 @@ async def get_project_importation(
 
 async def update_project_importation(
     project_importation: ProjectImportation, values: dict[str, Any] = {}
-) -> ProjectImportationSerializer:
+) -> ProjectImportation:
     updated_project_importation = (
         await import_export_repositories.update_project_importation(
             project_importation=project_importation, values=values
         )
     )
-    project_detail = ProjectImportationSerializer(
-        status=updated_project_importation.status,
-    )
     # TODO send event about progress
     # await projects_events.emit_event_when_project_is_updated(
     #     project_detail=project_detail, updated_by=updated_by
     # )
-    return project_detail
+    return updated_project_importation
 
 
 ##########################################################

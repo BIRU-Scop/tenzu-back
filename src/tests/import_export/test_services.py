@@ -18,7 +18,13 @@
 import uuid
 from unittest.mock import patch
 
+import pytest
+from django.core.exceptions import SuspiciousFileOperation
+from ninja.errors import ValidationError
+
+from base.db.models.mixins import CreatedByMetaInfoMixin
 from import_export import services
+from import_export.models import ProjectImportationType
 from import_export.serializers import ProjectImportationSerializer
 from tests.utils import factories as f
 
@@ -27,22 +33,20 @@ from tests.utils import factories as f
 ##########################################################
 
 
-async def test_import_project():
-    workspace = f.build_workspace()
-    importation = f.build_project_importation(
-        extra_data={"workspace_id": workspace.b64id}
-    )
-    user = importation.created_by
+async def test_import_project(tqmanager):
+    importation = f.build_project_importation()
 
     with (
         patch(
             "import_export.services.import_export_repositories", autospec=True
         ) as fake_import_export_repositories,
     ):
-        fake_import_export_repositories.create_importation.return_value = importation
+        fake_import_export_repositories.create_project_importation.return_value = (
+            importation
+        )
         serialised_importation = await services.import_project(
-            user=user,
-            workspace=workspace,
+            user=importation.created_by,
+            workspace=importation.workspace,
             origin_type=importation.origin_type,
             source=importation.source,
         )
@@ -50,6 +54,47 @@ async def test_import_project():
         # TODO test more once logic is put into place
 
         assert isinstance(serialised_importation, ProjectImportationSerializer)
+        assert len(tqmanager.pending_jobs) == 1
+
+
+async def test_import_project_suspicious_file():
+    importation = f.build_project_importation()
+
+    with (
+        patch(
+            "import_export.services.import_export_repositories", autospec=True
+        ) as fake_import_export_repositories,
+    ):
+        fake_import_export_repositories.create_project_importation.side_effect = (
+            SuspiciousFileOperation()
+        )
+        with pytest.raises(ValidationError):
+            await services.import_project(
+                user=importation.created_by,
+                workspace=importation.workspace,
+                origin_type=importation.origin_type,
+                source=importation.source,
+            )
+
+
+async def test_import_project_not_supported():
+    importation = f.build_project_importation(origin_type=ProjectImportationType.TRELLO)
+
+    with (
+        patch(
+            "import_export.services.import_export_repositories", autospec=True
+        ) as fake_import_export_repositories,
+    ):
+        fake_import_export_repositories.create_project_importation.return_value = (
+            importation
+        )
+        with pytest.raises(NotImplementedError):
+            await services.import_project(
+                user=importation.created_by,
+                workspace=importation.workspace,
+                origin_type=importation.origin_type,
+                source=importation.source,
+            )
 
 
 ##########################################################
@@ -64,4 +109,38 @@ async def test_get_importation():
         ) as fake_import_export_repositories,
     ):
         await services.get_project_importation(project_importation_id=uuid.uuid1())
-        fake_import_export_repositories.get_importation.assert_called()
+        fake_import_export_repositories.get_project_importation.assert_called()
+
+
+##########################################################
+# update_project_importation
+##########################################################
+
+
+async def test_update_project_importation():
+    importation = f.build_project_importation()
+    with (
+        patch(
+            "import_export.services.import_export_repositories", autospec=True
+        ) as fake_import_export_repositories,
+    ):
+        await services.update_project_importation(importation, {})
+        fake_import_export_repositories.update_project_importation.assert_called()
+
+
+##########################################################
+# list_workspace_project_importations_for_user
+##########################################################
+
+
+async def test_list_workspace_project_importations_for_user():
+    workspace = f.build_workspace()
+    with (
+        patch(
+            "import_export.services.import_export_repositories", autospec=True
+        ) as fake_import_export_repositories,
+    ):
+        await services.list_workspace_project_importations_for_user(
+            workspace, workspace.created_by
+        )
+        fake_import_export_repositories.list_workspace_project_importations_for_user.assert_called()

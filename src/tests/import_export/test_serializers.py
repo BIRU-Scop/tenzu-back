@@ -21,6 +21,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from import_export.serializers import TaigaProjectImport
+from import_export.serializers.taiga import FullTaigaProjectImport
 
 #######################################################
 # TaigaProjectImport
@@ -32,6 +33,14 @@ def test_taiga_project_serializer():
         Path(__file__).resolve().parent / "samples" / "export_from_taiga_project1.json"
     )
     data = TaigaProjectImport.model_validate_json(source_path.read_text())
+    assert not FullTaigaProjectImport.filter_unknown_fields(data.__pydantic_extra__)
+
+
+def test_full_taiga_project_serializer():
+    source_path = (
+        Path(__file__).resolve().parent / "samples" / "export_from_taiga_project1.json"
+    )
+    data = FullTaigaProjectImport.model_validate_json(source_path.read_text())
     q = deque()
     q.append(data)
     while q:

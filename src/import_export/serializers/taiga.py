@@ -23,7 +23,7 @@
 #
 # Copyright (c) 2021-present Kaleidos INC
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Iterable, Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, NonNegativeInt, conlist
 
@@ -528,6 +528,14 @@ class FullTaigaProjectImport(BaseModel):
     timeline: list[_TaigaTimeline]
 
     model_config = ConfigDict(extra="allow")
+
+    @staticmethod
+    def filter_unknown_fields(extra_fields: dict[str, Any]) -> Iterable[str]:
+        """
+        Given a __pydantic_extra__ value from a serializer that is a subset of this one,
+        return keys that are not in this FullTaigaProjectImport serializer
+        """
+        return extra_fields.keys() - FullTaigaProjectImport.model_fields.keys()
 
 
 class TaigaProjectImport(BaseModel):

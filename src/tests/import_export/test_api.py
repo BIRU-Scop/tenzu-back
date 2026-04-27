@@ -45,17 +45,15 @@ async def test_launch_importation_200_ok_being_workspace_member(client):
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects/importation",
+        f"/workspaces/{workspace.b64id}/projects/importations",
         data=data,
         FILES={"source": source},
     )
     assert response.status_code == 200, response.data["data"]
     res = response.data["data"]
-    assert res["originType"] == data["originType"]
     assert res["status"] == ImportationStatus.PENDING
-    assert res["errorResultFile"] is None
     importation = await ProjectImportation.objects.aget()
-    assert importation.extra_data["workspace_id"] == workspace.b64id
+    assert importation.workspace_id == workspace.id
 
 
 async def test_launch_importation_404_not_found_workspace_error(client):
@@ -69,7 +67,7 @@ async def test_launch_importation_404_not_found_workspace_error(client):
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"/workspaces/{NOT_EXISTING_B64ID}/projects/importation",
+        f"/workspaces/{NOT_EXISTING_B64ID}/projects/importations",
         data=data,
         FILES={"source": source},
     )
@@ -88,7 +86,7 @@ async def test_launch_importation_403_being_no_workspace_member(client):
 
     client.login(user2)
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects/importation",
+        f"/workspaces/{workspace.b64id}/projects/importations",
         data=data,
         FILES={"source": source},
     )
@@ -105,7 +103,7 @@ async def test_launch_importation_401_being_anonymous(client):
     )
 
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects/importation",
+        f"/workspaces/{workspace.b64id}/projects/importations",
         data=data,
         FILES={"source": source},
     )
@@ -121,7 +119,7 @@ async def test_launch_importation_422_unprocessable_file(client):
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"/workspaces/{workspace.b64id}/projects/importation",
+        f"/workspaces/{workspace.b64id}/projects/importations",
         data=data,
         FILES={"source": source},
     )
@@ -139,8 +137,51 @@ async def test_launch_importation_422_unprocessable_uuid(client):
 
     client.login(workspace.created_by)
     response = await client.post(
-        f"/workspaces/{INVALID_B64ID}/projects/importation",
+        f"/workspaces/{INVALID_B64ID}/projects/importations",
         data=data,
         FILES={"source": source},
     )
+    assert response.status_code == 422, response.data
+
+
+##########################################################
+# GET /workspaces/<id>/projects/importations
+##########################################################
+
+
+async def test_list_project_importations_200_ok_owner_no_importation(client):
+    workspace = await f.create_workspace()
+    client.login(workspace.created_by)
+    response = await client.get(f"/workspaces/{workspace.b64id}/projects/importations")
+    assert response.status_code == 200, response.data["data"]
+    assert response.data == {"data": []}
+
+
+async def test_list_project_importations_200_ok_owner_one_project(client):
+    importation = await f.create_project_importation(project=None)
+
+    client.login(importation.workspace.created_by)
+    response = await client.get(
+        f"/workspaces/{importation.workspace.b64id}/projects/importations"
+    )
+    assert response.status_code == 200, response.data["data"]
+    res = response.data["data"]
+    assert len(res) == 1
+    assert res[0]["id"] == importation.b64id
+    assert res[0]["status"] == ImportationStatus.PENDING
+
+
+async def test_list_project_importations_404_not_found_workspace_b64id(client):
+    user = await f.create_user()
+    client.login(user)
+    response = await client.get(
+        f"/workspaces/{NOT_EXISTING_B64ID}/projects/importations"
+    )
+    assert response.status_code == 404, response.text
+
+
+async def test_list_project_importations_422_unprocessable_workspace_b64id(client):
+    user = await f.create_user()
+    client.login(user)
+    response = await client.get(f"/workspaces/{INVALID_B64ID}/projects/importations")
     assert response.status_code == 422, response.data

@@ -102,7 +102,7 @@ async def launch_project_importation(
     tags=["workspaces", "projects", "import_export"],
     by_alias=True,
 )
-async def list_project_imporations(
+async def list_project_importations(
     request, workspace_id: Path[B64UUID]
 ) -> list[ProjectImportation]:
     """

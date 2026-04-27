@@ -38,8 +38,9 @@ def test_invalid_import():
     expected_error_fields = [
         "origin_type",
     ]
+    enum_values = [f"'{t}'" for t in ProjectImportationType.values]
     expected_error_messages = [
-        f"Input should be {' or '.join(f"'{t}'" for t in ProjectImportationType.values)}",
+        f"Input should be {', '.join(enum_values[:-1]) + ' or ' + enum_values[-1]}",
     ]
     check_validation_errors(
         validations_errors, expected_error_fields, expected_error_messages
