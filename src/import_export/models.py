@@ -41,6 +41,10 @@ class ImportationStatus(models.TextChoices):
     FAILURE = "F", "Failure"
 
 
+class ImportationError(models.TextChoices):
+    INVALID = "file_validation_failed"
+
+
 get_importation_source_file_path = functools.partial(
     get_obfuscated_file_path, base_path="project/importation"
 )

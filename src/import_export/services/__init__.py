@@ -24,10 +24,13 @@ from django.core.exceptions import SuspiciousFileOperation
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils.translation import gettext
 from ninja import UploadedFile
-from ninja.errors import ValidationError
+from ninja.errors import ValidationError as APIValidationError
+from pydantic import ValidationError
+from pydantic_core import ErrorDetails
 
 from import_export import repositories as import_export_repositories
 from import_export.models import (
+    ImportationError,
     ImportationStatus,
     ProjectImportation,
     ProjectImportationType,
@@ -65,14 +68,15 @@ async def import_project(
         )
     except SuspiciousFileOperation as e:
         msg = gettext("Suspicious file, try to shorten the file name")
-        raise ValidationError(
+        raise APIValidationError(
             [
-                {
-                    "type": "value_error",
-                    "loc": ["file", "source"],
-                    "msg": f"Value error, {msg}",
-                    "ctx": {"error": msg},
-                }
+                ErrorDetails(
+                    type="suspicious_file_operation",
+                    loc=["file", "source"],
+                    msg=msg,
+                    ctx={"error": msg},
+                    input=source.name,
+                )
             ]
         ) from e
 
@@ -88,7 +92,20 @@ async def import_project(
 
 async def do_import_taiga_project(project_importation: ProjectImportation):
     with project_importation.source.open() as source_file:
-        taiga_project = TaigaProjectImport.model_validate_json(source_file.read())
+        try:
+            taiga_project = TaigaProjectImport.model_validate_json(source_file.read())
+        except ValidationError as e:
+            await update_project_importation(
+                project_importation,
+                {
+                    "status": ImportationStatus.FAILURE,
+                    "extra_data": {"error_code": ImportationError.INVALID},
+                },
+            )
+            logger.warning(
+                f"Project import {project_importation.id} validation failed: {e}"
+            )
+            return
 
     extra_fields = FullTaigaProjectImport.filter_unknown_fields(
         taiga_project.__pydantic_extra__
@@ -98,6 +115,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             f"Project import {project_importation.id} contains extra data: {extra_fields}"
         )
 
+    # TODO add transaction and rollback if later error
     project = await projects_services._create_project(
         workspace=project_importation.workspace,
         name=taiga_project.name,
@@ -151,7 +169,7 @@ async def update_project_importation(
             project_importation=project_importation, values=values
         )
     )
-    # TODO send event about progress
+    # TODO send event about progress or error, send project creation event on success
     # await projects_events.emit_event_when_project_is_updated(
     #     project_detail=project_detail, updated_by=updated_by
     # )

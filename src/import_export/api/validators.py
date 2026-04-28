@@ -37,11 +37,6 @@ class ImportationFileField(UploadedFile):
                 raise ValueError(
                     f"Invalid importation content type, expected one of {', '.join(supported_content_type)}"
                 )
-            try:
-                # TODO don't do this on upload as file might be very big
-                json.load(importation_file)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid json file: {e}")
         return importation_file
 
 

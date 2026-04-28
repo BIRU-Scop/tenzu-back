@@ -22,17 +22,30 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # Copyright (c) 2021-present Kaleidos INC
+from base64 import b64decode
 from datetime import datetime
 from typing import Any, Iterable, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, NonNegativeInt, conlist
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    NonNegativeInt,
+    conlist,
+    field_validator,
+)
 
 
 class _TaigaFile(BaseModel):
-    data: str
+    data: str  # base64 encoded binary file
     name: str
 
     model_config = ConfigDict(extra="allow")
+
+    @field_validator("data", mode="after")
+    @classmethod
+    def decode(cls, value: str) -> bytes:
+        return b64decode(value, validate=True)
 
 
 _TaigaCustomAttributesValue = str | int | bool
