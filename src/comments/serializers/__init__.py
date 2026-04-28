@@ -20,14 +20,11 @@
 from datetime import datetime
 
 from base.serializers import UUIDB64, BaseModel
+from comments.serializers.nested import CommentNestedSerializer
 from users.serializers.nested import UserNestedSerializer
 
 
-class CommentSerializer(BaseModel):
-    id: UUIDB64
-    text: str
-    created_at: datetime
-    created_by: UserNestedSerializer | None = None
+class CommentSerializer(CommentNestedSerializer):
     modified_at: datetime | None = None
     deleted_at: datetime | None = None
     deleted_by: UserNestedSerializer | None = None

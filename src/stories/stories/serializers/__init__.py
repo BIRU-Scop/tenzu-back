@@ -20,7 +20,10 @@
 from datetime import datetime
 
 from base.serializers import UUIDB64, BaseModel
-from stories.stories.serializers.nested import StoryNeighborSerializer
+from stories.stories.serializers.nested import (
+    StoryNeighborSerializer,
+    StoryNestedSerializer,
+)
 from users.serializers.nested import UserNestedSerializer
 from workflows.serializers.nested import (
     WorkflowNestedSerializer,
@@ -28,12 +31,8 @@ from workflows.serializers.nested import (
 )
 
 
-class StorySummarySerializer(BaseModel):
-    ref: int
-    title: str
+class StorySummarySerializer(StoryNestedSerializer):
     status_id: UUIDB64
-    workflow_id: UUIDB64
-    project_id: UUIDB64
     version: int
     assignee_ids: list[UUIDB64]
 
