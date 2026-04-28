@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -30,12 +30,15 @@ from users.models import User
 
 
 async def notify_users(
-    type: str, emitted_by: User, notified_user_ids: Iterable[UUID], content: BaseModel
+    notification_type: str,
+    emitted_by: User | None,
+    notified_user_ids: Iterable[UUID],
+    content: BaseModel,
 ) -> None:
     notifications = await notifications_repositories.create_notifications(
         owner_ids=notified_user_ids,
         created_by=emitted_by,
-        notification_type=type,
+        notification_type=notification_type,
         content=content.dict(),
     )
     await notifications_events.emit_event_when_notifications_are_created(

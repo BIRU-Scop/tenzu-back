@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -50,7 +50,7 @@ NotificationSelectRelated = list[Literal["owner", "created_by"]]
 
 async def create_notifications(
     owner_ids: Iterable[UUID],
-    created_by: User,
+    created_by: User | None,
     notification_type: str,
     content: dict[str, Any],
 ) -> list[Notification]:

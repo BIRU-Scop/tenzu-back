@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -50,7 +50,10 @@ async def test_notify_users():
         fake_notifications_repository.create_notifications.return_value = [notification]
 
         await services.notify_users(
-            type="test", emitted_by=user, notified_user_ids=[user.id], content=content
+            notification_type="test",
+            emitted_by=user,
+            notified_user_ids=[user.id],
+            content=content,
         )
 
         fake_notifications_repository.create_notifications.assert_called_once_with(

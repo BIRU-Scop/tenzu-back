@@ -28,6 +28,7 @@ from ninja.errors import ValidationError as APIValidationError
 from pydantic import ValidationError
 from pydantic_core import ErrorDetails
 
+from import_export import notifications
 from import_export import repositories as import_export_repositories
 from import_export.models import (
     ImportationError,
@@ -101,6 +102,9 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
                     "status": ImportationStatus.FAILURE,
                     "extra_data": {"error_code": ImportationError.INVALID},
                 },
+            )
+            await notifications.notify_when_project_importation_fail(
+                project_importation
             )
             logger.warning(
                 f"Project import {project_importation.id} validation failed: {e}"
