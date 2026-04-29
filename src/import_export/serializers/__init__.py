@@ -17,7 +17,6 @@
 # You can contact BIRU at ask@biru.sh
 from pydantic import ConfigDict
 
-from import_export.models import ProjectImportationType
 from import_export.serializers.nested import ProjectImportationNestedSerializer
 from import_export.serializers.taiga import TaigaProjectImport  # noqa
 

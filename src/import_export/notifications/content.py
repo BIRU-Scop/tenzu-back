@@ -25,4 +25,3 @@ from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializ
 class ProjectImportationFailNotificationContent(BaseModel):
     workspace: WorkspaceLinkNestedSerializer
     project_importation: ProjectImportationNestedSerializer
-    file_name: str

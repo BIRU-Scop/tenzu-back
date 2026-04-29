@@ -37,6 +37,5 @@ async def notify_when_project_importation_fail(
         content=ProjectImportationFailNotificationContent(
             workspace=project_importation.workspace,
             project_importation=project_importation,
-            file_name=Path(project_importation.source.name).name,
         ),
     )

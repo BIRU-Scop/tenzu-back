@@ -15,14 +15,26 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from pathlib import Path
+from typing import TypedDict
 
 from pydantic import ConfigDict
 
 from base.serializers import UUIDB64, BaseModel
-from import_export.models import ImportationStatus
+from import_export.models import ImportationError, ImportationStatus, ProjectImportation
+
+
+class ProjectImportationData(TypedDict, total=False):
+    error_code: ImportationError
 
 
 class ProjectImportationNestedSerializer(BaseModel):
     id: UUIDB64
     status: ImportationStatus
+    extra_data: ProjectImportationData
+    source_name: str | None
     model_config = ConfigDict(from_attributes=True)
+
+    @staticmethod
+    def resolve_source_name(obj: ProjectImportation) -> str | None:
+        return Path(obj.source.name).name if obj.source.name else None
