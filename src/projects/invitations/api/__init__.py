@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -33,11 +33,6 @@ from commons.validators import B64UUID
 from memberships.api.validators import (
     InvitationsValidator,
     UpdateInvitationValidator,
-)
-from memberships.services.exceptions import (
-    BadInvitationTokenError,
-    InvitationNonExistingUsernameError,
-    OwnerRoleNotAuthorisedError,
 )
 from permissions import check_permissions
 from projects.invitations import services as invitations_services
@@ -88,16 +83,11 @@ async def create_project_invitations(
         obj=project,
     )
 
-    try:
-        return await invitations_services.create_project_invitations(
-            project=project,
-            invitations=form.model_dump()["invitations"],
-            invited_by=request.user,
-        )
-    except InvitationNonExistingUsernameError as e:
-        raise ex.BadRequest(str(e))
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await invitations_services.create_project_invitations(
+        project=project,
+        invitations=form.model_dump()["invitations"],
+        invited_by=request.user,
+    )
 
 
 ##########################################################
@@ -160,8 +150,6 @@ async def get_public_pending_project_invitation(
         invitation = await invitations_services.get_public_pending_project_invitation(
             token=token
         )
-    except BadInvitationTokenError as e:
-        raise ex.BadRequest(str(e))
 
     except ProjectInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation not found") from e
@@ -266,12 +254,9 @@ async def accept_project_invitation_by_token(request, token: str) -> ProjectInvi
     """
     A user accepts a project invitation using an invitation token
     """
-    try:
-        invitation = await get_project_invitation_by_token_or_404(
-            token=token, select_related=["user", "project", "role"]
-        )
-    except BadInvitationTokenError as e:
-        raise ex.BadRequest(str(e))
+    invitation = await get_project_invitation_by_token_or_404(
+        token=token, select_related=["user", "project", "role"]
+    )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.ANSWER.value,
         user=request.user,
@@ -380,14 +365,11 @@ async def update_project_invitation(
         obj=invitation,
     )
 
-    try:
-        return await invitations_services.update_project_invitation(
-            invitation=invitation,
-            role_id=form.role_id,
-            user=request.user,
-        )
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await invitations_services.update_project_invitation(
+        invitation=invitation,
+        role_id=form.role_id,
+        user=request.user,
+    )
 
 
 ##########################################################

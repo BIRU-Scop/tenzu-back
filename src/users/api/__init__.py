@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -337,10 +337,6 @@ async def reset_password(
     """
     user = await users_services.reset_password(token=token, password=form.password)
 
-    if not user:
-        raise ex.BadRequest(
-            "The user is inactive or does not exist.", detail="inactive-user"
-        )
     refresh: RefreshToken = await sync_to_async(RefreshToken.for_user)(user)
     username_field = User.USERNAME_FIELD
 

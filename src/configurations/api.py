@@ -19,17 +19,23 @@ from importlib import import_module
 
 from django.conf import settings
 from ninja import NinjaAPI, Router, Swagger
+from ninja.errors import ValidationError
 
 from auth.api import auth_router as social_auth_router
-from base.services.exceptions import TenzuServiceException
+from base.services.exceptions import TenzuAuthException, TenzuServiceException
 from base.utils.strings import to_kebab
-from commons.exceptions.api import codes
+from commons.exceptions.api import HTTPException, codes
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
 from import_export.api import import_export_router
 from ninja_jwt.api import auth_router
 from ninja_jwt.authentication import AsyncJWTAuth
-from ninja_jwt.ninja_extra.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
+from ninja_jwt.ninja_extra.status import (
+    HTTP_200_OK,
+    HTTP_400_BAD_REQUEST,
+    HTTP_403_FORBIDDEN,
+    HTTP_422_UNPROCESSABLE_ENTITY,
+)
 from notifications.api import notifications_router
 from projects.invitations.api import invitations_router as projects_invitations_router
 from projects.memberships.api import (
@@ -58,7 +64,7 @@ api = NinjaAPI(
 
 
 @api.exception_handler(TenzuServiceException)
-def tenzu_exception(request, exc):
+def tenzu_exception(request, exc: TenzuServiceException):
     return api.create_response(
         request,
         {
@@ -69,6 +75,51 @@ def tenzu_exception(request, exc):
             }
         },
         status=HTTP_400_BAD_REQUEST,
+    )
+
+
+@api.exception_handler(TenzuAuthException)
+def tenzu_auth_exception(request, exc: TenzuAuthException):
+    return api.create_response(
+        request,
+        {
+            "error": {
+                "code": codes.EX_FORBIDDEN.code,
+                "detail": to_kebab(exc.__class__.__name__),
+                "msg": str(exc),
+            }
+        },
+        status=HTTP_403_FORBIDDEN,
+    )
+
+
+@api.exception_handler(ValidationError)
+def http_validation_exception(request, exc: ValidationError):
+    return api.create_response(
+        request,
+        {
+            "error": {
+                "code": codes.EX_VALIDATION_ERROR.code,
+                "detail": exc.errors,
+                "msg": codes.EX_VALIDATION_ERROR.msg,
+            }
+        },
+        status=HTTP_422_UNPROCESSABLE_ENTITY,
+    )
+
+
+@api.exception_handler(HTTPException)
+def http_exception(request, exc: HTTPException):
+    return api.create_response(
+        request,
+        {
+            "error": {
+                "code": exc.code,
+                "detail": exc.detail,
+                "msg": exc.message,
+            }
+        },
+        status=exc.status_code,
     )
 
 

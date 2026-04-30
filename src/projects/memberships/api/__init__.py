@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -31,10 +31,6 @@ from commons.exceptions.api.errors import (
 )
 from commons.validators import B64UUID
 from memberships.api.validators import DeleteMembershipQuery, MembershipValidator
-from memberships.services.exceptions import (
-    NonEditableRoleError,
-    OwnerRoleNotAuthorisedError,
-)
 from permissions import check_permissions
 from projects.memberships import services as memberships_services
 from projects.memberships.api.validators import (
@@ -122,12 +118,9 @@ async def update_project_membership(
         obj=membership,
     )
 
-    try:
-        return await memberships_services.update_project_membership(
-            membership=membership, role_id=form.role_id, user=request.user
-        )
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await memberships_services.update_project_membership(
+        membership=membership, role_id=form.role_id, user=request.user
+    )
 
 
 ##########################################################
@@ -317,11 +310,7 @@ async def update_project_role(
     )
     values = form.model_dump(exclude_unset=True)
 
-    try:
-        return await memberships_services.update_project_role(role, values)
-    except NonEditableRoleError as exc:
-        # change the bad-request into a forbidden error
-        raise ex.ForbiddenError(str(exc))
+    return await memberships_services.update_project_role(role, values)
 
 
 ##########################################################
@@ -357,15 +346,11 @@ async def delete_project_role(
         user=request.user,
         obj=role,
     )
-    try:
-        await memberships_services.delete_project_role(
-            user=request.user,
-            role=role,
-            target_role_id=query_params.move_to,
-        )
-    except (NonEditableRoleError, OwnerRoleNotAuthorisedError) as exc:
-        # change the bad-request into a forbidden error
-        raise ex.ForbiddenError(str(exc))
+    await memberships_services.delete_project_role(
+        user=request.user,
+        role=role,
+        target_role_id=query_params.move_to,
+    )
     return 204, None
 
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -30,11 +30,6 @@ from commons.exceptions.api.errors import (
 )
 from commons.validators import B64UUID
 from memberships.api.validators import InvitationsValidator, UpdateInvitationValidator
-from memberships.services.exceptions import (
-    BadInvitationTokenError,
-    InvitationNonExistingUsernameError,
-    OwnerRoleNotAuthorisedError,
-)
 from permissions import check_permissions
 from workspaces.invitations import services as invitations_services
 from workspaces.invitations.models import WorkspaceInvitation
@@ -84,16 +79,11 @@ async def create_workspace_invitations(
         obj=workspace,
     )
 
-    try:
-        return await invitations_services.create_workspace_invitations(
-            workspace=workspace,
-            invitations=form.model_dump()["invitations"],
-            invited_by=request.user,
-        )
-    except InvitationNonExistingUsernameError as e:
-        raise ex.BadRequest(str(e))
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await invitations_services.create_workspace_invitations(
+        workspace=workspace,
+        invitations=form.model_dump()["invitations"],
+        invited_by=request.user,
+    )
 
 
 ##########################################################
@@ -158,8 +148,6 @@ async def get_public_pending_workspace_invitation(
         invitation = await invitations_services.get_public_pending_workspace_invitation(
             token=token
         )
-    except BadInvitationTokenError as e:
-        raise ex.BadRequest(str(e))
     except WorkspaceInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation not found") from e
 
@@ -261,12 +249,9 @@ async def accept_workspace_invitation_by_token(
     """
     A user accepts a workspace invitation using an invitation token
     """
-    try:
-        invitation = await get_workspace_invitation_by_token_or_404(
-            token=token, select_related=["user", "workspace", "role"]
-        )
-    except BadInvitationTokenError as e:
-        raise ex.BadRequest(str(e))
+    invitation = await get_workspace_invitation_by_token_or_404(
+        token=token, select_related=["user", "workspace", "role"]
+    )
 
     await check_permissions(
         permissions=WorkspaceInvitationPermissionsCheck.ANSWER.value,
@@ -377,14 +362,11 @@ async def update_workspace_invitation(
         obj=invitation,
     )
 
-    try:
-        return await invitations_services.update_workspace_invitation(
-            invitation=invitation,
-            role_id=form.role_id,
-            user=request.user,
-        )
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await invitations_services.update_workspace_invitation(
+        invitation=invitation,
+        role_id=form.role_id,
+        user=request.user,
+    )
 
 
 ##########################################################
