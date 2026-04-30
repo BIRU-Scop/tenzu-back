@@ -28,6 +28,7 @@ from ninja.errors import ValidationError as APIValidationError
 from pydantic import ValidationError
 from pydantic_core import ErrorDetails
 
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from import_export import notifications
 from import_export import repositories as import_export_repositories
 from import_export.models import (
@@ -41,7 +42,9 @@ from import_export.serializers import (
     TaigaProjectImport,
 )
 from import_export.serializers.taiga import FullTaigaProjectImport
+from import_export.services import exceptions as ex
 from import_export.tasks import import_taiga_project
+from projects.projects import events as projects_events
 from projects.projects import services as projects_services
 from users.models import User
 from workspaces.workspaces.models import Workspace
@@ -91,6 +94,7 @@ async def import_project(
     return ProjectImportationSerializer.from_orm(importation)
 
 
+@transaction_atomic_async
 async def do_import_taiga_project(project_importation: ProjectImportation):
     with project_importation.source.open() as source_file:
         try:
@@ -119,7 +123,6 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             f"Project import {project_importation.id} contains extra data: {extra_fields}"
         )
 
-    # TODO add transaction and rollback if later error
     project = await projects_services._create_project(
         workspace=project_importation.workspace,
         name=taiga_project.name,
@@ -130,38 +133,39 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
         if taiga_project.logo is not None
         else None,
     )
-    await projects_services._update_project(
+    project = await projects_services._update_project(
         project, {"created_at": taiga_project.created_date}
     )
     await update_project_importation(
         project_importation, {"status": ImportationStatus.ONGOING, "project": project}
     )
-    # TODO users
+    # TODO users&roles
 
     if not taiga_project.is_kanban_activated:
         await update_project_importation(
             project_importation,
             {"status": ImportationStatus.SUCCESS},
         )
+        await transaction_on_commit_async(
+            projects_events.emit_event_when_project_is_created
+        )(project=project)
         return
     # TODO stories
 
 
 ##########################################################
-# get importation
+# get project importation
 ##########################################################
 
 
-async def get_project_importation(
-    project_importation_id: UUID,
-) -> ProjectImportation | None:
+async def get_project_importation(project_importation_id: UUID) -> ProjectImportation:
     return await import_export_repositories.get_project_importation(
         project_importation_id=project_importation_id
     )
 
 
 ##########################################################
-# update importation
+# update project importation
 ##########################################################
 
 
@@ -181,7 +185,7 @@ async def update_project_importation(
 
 
 ##########################################################
-# list projects
+# list project importations
 ##########################################################
 
 
@@ -193,3 +197,37 @@ async def list_workspace_project_importations_for_user(
             workspace=workspace, user=user
         )
     )
+
+
+##########################################################
+# delete project importation
+##########################################################
+
+
+@transaction_atomic_async
+async def delete_project_importation(project_importation: ProjectImportation) -> bool:
+    if project_importation.status not in (ImportationStatus.FAILURE,):
+        raise ex.NotDeletableImportation()
+
+    if project_importation.project is not None:
+        await projects_services.delete_project(
+            project_importation.project, deleted_by=project_importation.created_by
+        )
+    deleted = await import_export_repositories.delete_project_importation(
+        project_importation=project_importation
+    )
+
+    if deleted > 0:
+        # Emit event
+        # TODO
+        # await transaction_on_commit_async(
+        #     projects_events.emit_event_when_project_is_deleted
+        # )(
+        #     workspace_id=project.workspace_id,
+        #     project=project,
+        #     deleted_by=deleted_by,
+        # )
+
+        return True
+
+    return False

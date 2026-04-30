@@ -25,7 +25,7 @@ from django.core.files import File
 from django.db.models.deletion import RestrictedError
 
 from commons.storage.models import StoragedObject
-from commons.utils import transaction_atomic_async
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from ninja_jwt.utils import aware_utcnow
 
 ##########################################################
@@ -78,7 +78,7 @@ async def delete_storaged_object(
         # TODO: log this
         return False
     else:
-        storaged_object.file.delete(save=False)
+        await transaction_on_commit_async(storaged_object.file.delete)(save=False)
         return True
 
 

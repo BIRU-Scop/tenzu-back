@@ -21,6 +21,7 @@ from uuid import UUID
 
 from django.core.files import File
 
+from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from import_export.models import (
     ImportationStatus,
     ProjectImportation,
@@ -60,7 +61,7 @@ async def create_project_importation(
 
 async def get_project_importation(project_importation_id: UUID) -> ProjectImportation:
     qs = ProjectImportation.objects.all()
-    qs = qs.select_related("created_by", "workspace")
+    qs = qs.select_related("created_by", "workspace", "project")
     return await qs.aget(id=project_importation_id)
 
 
@@ -99,3 +100,15 @@ async def list_workspace_project_importations_for_user(
     )
 
     return [pi async for pi in qs]
+
+
+##########################################################
+# delete project importations
+########################################################
+
+
+@transaction_atomic_async
+async def delete_project_importation(project_importation: ProjectImportation) -> int:
+    deleted, _ = await project_importation.adelete()
+    await transaction_on_commit_async(project_importation.source.delete)(save=False)
+    return deleted

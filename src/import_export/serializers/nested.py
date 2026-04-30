@@ -36,5 +36,11 @@ class ProjectImportationNestedSerializer(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
-    def resolve_source_name(obj: ProjectImportation) -> str | None:
+    def resolve_source_name(
+        obj: "ProjectImportation | ProjectImportationNestedSerializer",
+    ) -> str | None:
+        source_name = getattr(obj, "source_name", None)
+        if source_name is not None:
+            # This happens when serializer is called on already serialized object
+            return source_name
         return Path(obj.source.name).name if obj.source.name else None

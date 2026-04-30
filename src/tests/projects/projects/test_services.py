@@ -41,8 +41,12 @@ async def test_create_project():
     with (
         patch("projects.projects.services._create_project") as fake_create_project,
         patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+        patch(
             "projects.projects.services.get_project_detail"
         ) as fake_get_project_detail,
+        patch_db_transaction(),
     ):
         await services.create_project(
             workspace=workspace,
@@ -55,6 +59,9 @@ async def test_create_project():
         fake_create_project.assert_awaited_once()
         fake_get_project_detail.assert_awaited_once_with(
             project=fake_create_project.return_value, user=workspace.created_by
+        )
+        fake_projects_events.emit_event_when_project_is_created.assert_awaited_once_with(
+            project=fake_create_project.return_value
         )
 
 

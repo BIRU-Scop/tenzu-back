@@ -15,9 +15,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from uuid import UUID
+
 from ninja import File, Form, Path, Router
 
 from base.serializers import BaseDataModel
+from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
@@ -28,15 +31,14 @@ from commons.validators import B64UUID
 from import_export import services as import_export_services
 from import_export.api.validators import ImportationFileField, ImportProjectValidator
 from import_export.models import ProjectImportation
+from import_export.permissions import ProjectImportationPermissionsCheck
 from import_export.serializers import (
     ProjectImportationSerializer,
 )
 from permissions import (
     check_permissions,
 )
-from projects.projects.permissions import ProjectPermissionsCheck
 from workspaces.workspaces.api import get_workspace_or_404
-from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 
 import_export_router = Router()
 
@@ -72,7 +74,7 @@ async def launch_project_importation(
     workspace = await get_workspace_or_404(workspace_id=workspace_id)
 
     await check_permissions(
-        permissions=ProjectPermissionsCheck.CREATE.value,
+        permissions=ProjectImportationPermissionsCheck.CREATE.value,
         user=request.user,
         obj=workspace,
     )
@@ -110,10 +112,66 @@ async def list_project_importations(
     """
     workspace = await get_workspace_or_404(workspace_id=workspace_id)
     await check_permissions(
-        permissions=WorkspacePermissionsCheck.VIEW.value,
+        permissions=ProjectImportationPermissionsCheck.VIEW.value,
         user=request.user,
         obj=workspace,
     )
     return await import_export_services.list_workspace_project_importations_for_user(
         workspace=workspace, user=request.user
     )
+
+
+##########################################################
+# delete project
+##########################################################
+
+
+@import_export_router.delete(
+    "/projects/importations/{project_importation_id}",
+    url_name="importations.projects.delete",
+    summary="Delete project importation",
+    response={
+        204: None,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def delete_project_importation(
+    request,
+    project_importation_id: Path[B64UUID],
+) -> tuple[int, None]:
+    """
+    Delete a project importation
+    """
+    project_importation = await get_project_importation_or_404(project_importation_id)
+    await check_permissions(
+        permissions=ProjectImportationPermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=project_importation,
+    )
+
+    await import_export_services.delete_project_importation(
+        project_importation=project_importation
+    )
+    return 204, None
+
+
+##########################################################
+# misc get project importation or 404
+##########################################################
+
+
+async def get_project_importation_or_404(
+    project_importation_id: UUID,
+) -> ProjectImportation:
+    try:
+        project_importation = await import_export_services.get_project_importation(
+            project_importation_id=project_importation_id
+        )
+    except ProjectImportation.DoesNotExist as e:
+        raise ex.NotFoundError("Project Importation does not exist") from e
+
+    return project_importation
