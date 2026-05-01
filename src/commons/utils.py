@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -15,10 +15,10 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from functools import partial
 from urllib.parse import urljoin
 
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import async_to_sync, iscoroutinefunction, sync_to_async
 from django.conf import settings
 from django.db import transaction
 from pydantic_core import Url
@@ -43,6 +43,7 @@ def transaction_atomic_async(func):
 def transaction_on_commit_async(func):
     @sync_to_async
     def wrapper(*args, **kwargs):
-        transaction.on_commit(lambda: async_to_sync(func)(*args, **kwargs))
+        sync_func = async_to_sync(func) if iscoroutinefunction(func) else func
+        transaction.on_commit(partial(sync_func, *args, **kwargs))
 
     return wrapper
