@@ -43,23 +43,30 @@ from tests.utils.utils import patch_db_transaction
 
 
 async def test_import_project(tqmanager):
-    importation = f.build_project_importation()
+    project_importation = f.build_project_importation()
 
     with (
         patch(
             "import_export.services.import_export_repositories", autospec=True
         ) as fake_import_export_repositories,
+        patch(
+            "import_export.services.import_export_events", autospec=True
+        ) as fake_import_export_events,
+        patch_db_transaction(),
     ):
         fake_import_export_repositories.create_project_importation.return_value = (
-            importation
+            project_importation
         )
         serialised_importation = await services.import_project(
-            user=importation.created_by,
-            workspace=importation.workspace,
-            origin_type=importation.origin_type,
-            source=importation.source,
+            user=project_importation.created_by,
+            workspace=project_importation.workspace,
+            origin_type=project_importation.origin_type,
+            source=project_importation.source,
         )
 
+        fake_import_export_events.emit_event_when_project_importation_is_created.assert_awaited_once_with(
+            project_importation=project_importation
+        )
         assert isinstance(serialised_importation, ProjectImportationSerializer)
         assert len(tqmanager.pending_jobs) == 1
 
@@ -117,6 +124,7 @@ async def test_import_project_suspicious_file():
         patch(
             "import_export.services.import_export_repositories", autospec=True
         ) as fake_import_export_repositories,
+        patch_db_transaction(),
     ):
         fake_import_export_repositories.create_project_importation.side_effect = (
             SuspiciousFileOperation()
@@ -137,6 +145,7 @@ async def test_import_project_not_supported():
         patch(
             "import_export.services.import_export_repositories", autospec=True
         ) as fake_import_export_repositories,
+        patch_db_transaction(),
     ):
         fake_import_export_repositories.create_project_importation.return_value = (
             importation
@@ -214,6 +223,9 @@ async def test_delete_project_fail():
         patch(
             "import_export.services.import_export_repositories", autospec=True
         ) as fake_import_export_repositories,
+        patch(
+            "import_export.services.import_export_events", autospec=True
+        ) as fake_import_export_events,
         patch_db_transaction(),
         pytest.raises(NotDeletableImportation),
     ):
@@ -221,6 +233,7 @@ async def test_delete_project_fail():
             project_importation=project_importation
         )
 
+        fake_import_export_events.emit_event_when_project_importation_is_deleted.assert_not_awaited()
         fake_projects_services.delete_project.assert_not_awaited()
         fake_import_export_repositories.delete_project_importation.assert_not_awaited()
 
@@ -233,6 +246,9 @@ async def test_delete_project_ok():
         patch(
             "import_export.services.import_export_repositories", autospec=True
         ) as fake_import_export_repositories,
+        patch(
+            "import_export.services.import_export_events", autospec=True
+        ) as fake_import_export_events,
         patch_db_transaction(),
     ):
         fake_import_export_repositories.delete_project_importation.return_value = 1
@@ -248,9 +264,15 @@ async def test_delete_project_ok():
         fake_import_export_repositories.delete_project_importation.assert_awaited_once_with(
             project_importation=project_importation
         )
+        fake_import_export_events.emit_event_when_project_importation_is_deleted.assert_awaited_once_with(
+            workspace_id=project_importation.workspace_id,
+            project_importation_id=project_importation.id,
+            importation_owner=project_importation.created_by,
+        )
 
         # with project
         fake_import_export_repositories.delete_project_importation.reset_mock()
+        fake_import_export_events.emit_event_when_project_importation_is_deleted.reset_mock()
         project_importation = f.build_project_importation(
             status=ImportationStatus.FAILURE, created_by=project_importation.created_by
         )
@@ -263,4 +285,9 @@ async def test_delete_project_ok():
         )
         fake_import_export_repositories.delete_project_importation.assert_awaited_with(
             project_importation=project_importation
+        )
+        fake_import_export_events.emit_event_when_project_importation_is_deleted.assert_awaited_once_with(
+            workspace_id=project_importation.workspace_id,
+            project_importation_id=project_importation.id,
+            importation_owner=project_importation.created_by,
         )

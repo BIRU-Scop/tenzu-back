@@ -17,6 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 import logging
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -29,6 +30,7 @@ from pydantic import ValidationError
 from pydantic_core import ErrorDetails
 
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from import_export import events as import_export_events
 from import_export import notifications
 from import_export import repositories as import_export_repositories
 from import_export.models import (
@@ -57,6 +59,7 @@ logger = logging.getLogger(__name__)
 ##########################################################
 
 
+@transaction_atomic_async
 async def import_project(
     user: User,
     workspace: Workspace,
@@ -64,11 +67,13 @@ async def import_project(
     source: UploadedFile,
 ) -> ProjectImportationSerializer:
     try:
-        importation = await import_export_repositories.create_project_importation(
-            user=user,
-            workspace=workspace,
-            origin_type=origin_type,
-            source_file=source,
+        project_importation = (
+            await import_export_repositories.create_project_importation(
+                user=user,
+                workspace=workspace,
+                origin_type=origin_type,
+                source_file=source,
+            )
         )
     except SuspiciousFileOperation as e:
         msg = gettext("Suspicious file, try to shorten the file name")
@@ -87,11 +92,18 @@ async def import_project(
     match origin_type:
         case ProjectImportationType.TAIGA:
             await import_taiga_project.defer_async(
-                project_importation_id=importation.b64id,
+                project_importation_id=project_importation.b64id,
             )
         case _:
             raise NotImplementedError
-    return ProjectImportationSerializer.from_orm(importation)
+
+    # Emit event
+    await transaction_on_commit_async(
+        import_export_events.emit_event_when_project_importation_is_created
+    )(
+        project_importation=project_importation,
+    )
+    return ProjectImportationSerializer.from_orm(project_importation)
 
 
 @transaction_atomic_async
@@ -111,7 +123,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
                 project_importation
             )
             logger.warning(
-                f"Project import {project_importation.id} validation failed: {e}"
+                f"Project import {project_importation.id} for file '{Path(project_importation.source.name or "").name}' validation failed: {e}"
             )
             return
 
@@ -120,7 +132,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
     )
     if extra_fields:
         logger.warning(
-            f"Project import {project_importation.id} contains extra data: {extra_fields}"
+            f"Project import {project_importation.id} for file '{Path(project_importation.source.name or "").name}' contains extra data: {extra_fields}"
         )
 
     project = await projects_services._create_project(
@@ -177,7 +189,7 @@ async def update_project_importation(
             project_importation=project_importation, values=values
         )
     )
-    # TODO send event about progress or error, send project creation event on success
+    # TODO send event about progress or error
     # await projects_events.emit_event_when_project_is_updated(
     #     project_detail=project_detail, updated_by=updated_by
     # )
@@ -219,14 +231,13 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
 
     if deleted > 0:
         # Emit event
-        # TODO
-        # await transaction_on_commit_async(
-        #     projects_events.emit_event_when_project_is_deleted
-        # )(
-        #     workspace_id=project.workspace_id,
-        #     project=project,
-        #     deleted_by=deleted_by,
-        # )
+        await transaction_on_commit_async(
+            import_export_events.emit_event_when_project_importation_is_deleted
+        )(
+            workspace_id=project_importation.workspace_id,
+            project_importation_id=project_importation.id,
+            importation_owner=project_importation.created_by,
+        )
 
         return True
 

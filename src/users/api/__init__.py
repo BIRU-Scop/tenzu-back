@@ -233,7 +233,7 @@ async def delete_current_user(request) -> tuple[int, None]:
     - All workspaces where the user is the only workspace member are deleted (cascade)
     - All projects where the user is the only project member are deleted (cascade)
     - If there are any workspace or project with other members where user is the only owner
-      an error is raised and the deletion is canceled
+      an error is raised and the deletion is cancelled
     - All memberships related with this user in workspaces and projects are deleted
     - All invitations related with this user in workspaces and projects are deleted
     - User is deleted

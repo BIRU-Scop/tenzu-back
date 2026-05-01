@@ -109,6 +109,9 @@ async def list_workspace_project_importations_for_user(
 
 @transaction_atomic_async
 async def delete_project_importation(project_importation: ProjectImportation) -> int:
-    deleted, _ = await project_importation.adelete()
+    # don't call project_importation.adelete directly since it will set id to None and we might need it for events
+    count, _ = await ProjectImportation.objects.filter(
+        id=project_importation.id
+    ).adelete()
     await transaction_on_commit_async(project_importation.source.delete)(save=False)
-    return deleted
+    return count
