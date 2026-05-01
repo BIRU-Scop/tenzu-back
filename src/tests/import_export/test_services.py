@@ -31,9 +31,11 @@ from import_export.models import (
     ProjectImportationType,
 )
 from import_export.serializers import ProjectImportationSerializer
+from import_export.services.exceptions import NotDeletableImportation
 from projects.projects.models import Project
 from tests.utils import factories as f
 from tests.utils.taskqueue import TestTasksQueueManager
+from tests.utils.utils import patch_db_transaction
 
 ##########################################################
 # import_project
@@ -195,3 +197,70 @@ async def test_list_workspace_project_importations_for_user():
             workspace, workspace.created_by
         )
         fake_import_export_repositories.list_workspace_project_importations_for_user.assert_called()
+
+
+##########################################################
+# delete_project_importation
+##########################################################
+
+
+async def test_delete_project_fail():
+    project_importation = f.build_project_importation(status=ImportationStatus.SUCCESS)
+
+    with (
+        patch(
+            "import_export.services.projects_services", autospec=True
+        ) as fake_projects_services,
+        patch(
+            "import_export.services.import_export_repositories", autospec=True
+        ) as fake_import_export_repositories,
+        patch_db_transaction(),
+        pytest.raises(NotDeletableImportation),
+    ):
+        await services.delete_project_importation(
+            project_importation=project_importation
+        )
+
+        fake_projects_services.delete_project.assert_not_awaited()
+        fake_import_export_repositories.delete_project_importation.assert_not_awaited()
+
+
+async def test_delete_project_ok():
+    with (
+        patch(
+            "import_export.services.projects_services", autospec=True
+        ) as fake_projects_services,
+        patch(
+            "import_export.services.import_export_repositories", autospec=True
+        ) as fake_import_export_repositories,
+        patch_db_transaction(),
+    ):
+        fake_import_export_repositories.delete_project_importation.return_value = 1
+        # without project
+        project_importation = f.build_project_importation(
+            status=ImportationStatus.FAILURE, project=None
+        )
+        await services.delete_project_importation(
+            project_importation=project_importation
+        )
+
+        fake_projects_services.delete_project.assert_not_awaited()
+        fake_import_export_repositories.delete_project_importation.assert_awaited_once_with(
+            project_importation=project_importation
+        )
+
+        # with project
+        fake_import_export_repositories.delete_project_importation.reset_mock()
+        project_importation = f.build_project_importation(
+            status=ImportationStatus.FAILURE, created_by=project_importation.created_by
+        )
+        await services.delete_project_importation(
+            project_importation=project_importation
+        )
+
+        fake_projects_services.delete_project.assert_awaited_with(
+            project_importation.project, deleted_by=project_importation.created_by
+        )
+        fake_import_export_repositories.delete_project_importation.assert_awaited_with(
+            project_importation=project_importation
+        )

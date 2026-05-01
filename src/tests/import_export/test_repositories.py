@@ -15,11 +15,10 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from uuid import uuid1
+from pathlib import Path
 
 import pytest
 
-from base.db.models.mixins import CreatedByMetaInfoMixin
 from import_export import repositories
 from import_export.models import (
     ImportationStatus,
@@ -28,6 +27,7 @@ from import_export.models import (
 )
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_UUID
+from tests.utils.utils import async_django_capture_on_commit_callbacks
 
 pytestmark = pytest.mark.django_db
 
@@ -150,3 +150,23 @@ async def test_list_workspace_project_importations_for_user() -> (
         )
         == 5
     )
+
+
+##########################################################
+# delete_project_importation
+##########################################################
+
+
+async def test_delete_project_importation():
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.FAILURE, project=None
+    )
+    source_path = Path(project_importation.source.path)
+    assert Path(source_path).exists()
+
+    async with async_django_capture_on_commit_callbacks(execute=True):
+        deleted = await repositories.delete_project_importation(
+            project_importation=project_importation
+        )
+    assert deleted == 1
+    assert not Path(source_path).exists()

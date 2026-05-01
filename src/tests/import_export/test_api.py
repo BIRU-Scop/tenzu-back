@@ -23,6 +23,7 @@ from import_export.models import (
     ProjectImportation,
     ProjectImportationType,
 )
+from projects.projects.models import Project
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
 
@@ -184,4 +185,89 @@ async def test_list_project_importations_422_unprocessable_workspace_b64id(clien
     user = await f.create_user()
     client.login(user)
     response = await client.get(f"/workspaces/{INVALID_B64ID}/projects/importations")
+    assert response.status_code == 422, response.data
+
+
+##########################################################
+# DELETE /projects/importations/<id>
+##########################################################
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_delete_project_importation_204_no_content_being_importation_creator(
+    client,
+):
+    # without project
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.FAILURE, project=None
+    )
+
+    client.login(project_importation.created_by)
+    response = await client.delete(
+        f"/projects/importations/{project_importation.b64id}"
+    )
+    assert response.status_code == 204, response.data
+
+    # with project
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.FAILURE,
+    )
+
+    client.login(project_importation.created_by)
+    response = await client.delete(
+        f"/projects/importations/{project_importation.b64id}"
+    )
+    assert response.status_code == 204, response.data
+    with pytest.raises(Project.DoesNotExist):
+        await project_importation.project.arefresh_from_db()
+
+
+async def test_delete_project_importation_403_forbidden_not_creator(client):
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.FAILURE, project=None
+    )
+    user = await f.create_user()
+
+    client.login(user)
+    response = await client.delete(
+        f"/projects/importations/{project_importation.b64id}"
+    )
+    assert response.status_code == 403, response.data
+
+
+async def test_delete_project_importation_400_bad_request_invalid_status(client):
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.SUCCESS, project=None
+    )
+
+    client.login(project_importation.created_by)
+    response = await client.delete(
+        f"/projects/importations/{project_importation.b64id}"
+    )
+    assert response.status_code == 400, response.data
+
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.ACTION_NEEDED,
+        project=None,
+        created_by=project_importation.created_by,
+    )
+
+    client.login(project_importation.created_by)
+    response = await client.delete(
+        f"/projects/importations/{project_importation.b64id}"
+    )
+    assert response.status_code == 400, response.data
+
+
+async def test_delete_project_importation_404_not_found_project_b64id(client):
+    user = await f.create_user()
+    client.login(user)
+    response = await client.delete(f"/projects/importations/{NOT_EXISTING_B64ID}")
+    assert response.status_code == 404, response.data
+
+
+async def test_delete_project_importation_422_unprocessable_project_b64id(client):
+    user = await f.create_user()
+    client.login(user)
+    response = await client.delete(f"/projects/importations/{INVALID_B64ID}")
     assert response.status_code == 422, response.data
