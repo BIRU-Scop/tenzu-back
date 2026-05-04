@@ -17,12 +17,11 @@
 # You can contact BIRU at ask@biru.sh
 
 import functools
-from pathlib import Path
 
 from django.db import models
 from django.db.models import JSONField, TextChoices
 
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from base.utils.files import get_obfuscated_file_path
 
@@ -50,7 +49,7 @@ get_importation_source_file_path = functools.partial(
 )
 
 
-class ProjectImportation(BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
+class ProjectImportation(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
     origin_type = models.CharField(
         max_length=2,
         null=False,

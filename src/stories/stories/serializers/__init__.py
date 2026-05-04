@@ -19,7 +19,7 @@
 
 from datetime import datetime
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from stories.stories.serializers.nested import (
     StoryNeighborSerializer,
     StoryNestedSerializer,
@@ -51,12 +51,12 @@ class StoryDetailSerializer(StorySummarySerializer):
     total_comments: int
 
 
-class ReorderSerializer(BaseModel):
+class ReorderSerializer(BaseSchema):
     place: str
     ref: int
 
 
-class ReorderStoriesSerializer(BaseModel):
+class ReorderStoriesSerializer(BaseSchema):
     status_id: UUIDB64
     status: WorkflowStatusNestedSerializer
     stories: list[int]

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,13 +21,13 @@ from typing import Any
 
 from pydantic import Field
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from events.context import get_current_correlation_id
 
-EventContent = BaseModel | None
+EventContent = BaseSchema | None
 
 
-class Event(BaseModel):
+class Event(BaseSchema):
     type: str
     content: dict[str, Any] | EventContent = None
     correlation_id: str | None = Field(default_factory=get_current_correlation_id)
@@ -43,7 +43,7 @@ class Event(BaseModel):
     def __repr__(self) -> str:
         _content = (
             self.content.model_dump(by_alias=True)
-            if isinstance(self.content, BaseModel)
+            if isinstance(self.content, BaseSchema)
             else self.content
         )
         return f"Event(type={self.type!r}, correlation_id={self.correlation_id}, content={_content!r})"

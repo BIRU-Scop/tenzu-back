@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,15 +17,15 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from stories.attachments.serializers import StoryAttachmentSerializer
 
 
-class CreateStoryAttachmentContent(BaseModel):
+class CreateStoryAttachmentContent(BaseSchema):
     ref: int
     attachment: StoryAttachmentSerializer
 
 
-class DeleteStoryAttachmentContent(BaseModel):
+class DeleteStoryAttachmentContent(BaseSchema):
     ref: int
     attachment: StoryAttachmentSerializer

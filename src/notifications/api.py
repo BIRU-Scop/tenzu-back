@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
@@ -50,7 +50,7 @@ notifications_router = Router()
     url_name="notifications.list",
     summary="List all the user notifications",
     response={
-        200: BaseDataModel[list[NotificationSerializer]],
+        200: BaseDataSchema[list[NotificationSerializer]],
         403: ERROR_RESPONSE_403,
     },
     by_alias=True,
@@ -108,7 +108,7 @@ async def count_my_notifications(request) -> dict[str, int]:
     url_name="notifications.mark.all.read",
     summary="Mark all notifications as read",
     response={
-        200: BaseDataModel[list[NotificationSerializer]],
+        200: BaseDataSchema[list[NotificationSerializer]],
         403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
     },
@@ -134,7 +134,7 @@ async def mark_all_my_notification_as_read(
     url_name="notifications.mark.read",
     summary="Mark notification as read",
     response={
-        200: BaseDataModel[NotificationSerializer],
+        200: BaseDataSchema[NotificationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

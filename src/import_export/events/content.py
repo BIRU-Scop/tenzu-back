@@ -17,20 +17,20 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from import_export.serializers import ProjectImportationSerializer
 
 
-class CreateProjectImportationContent(BaseModel):
+class CreateProjectImportationContent(BaseSchema):
     project_importation: ProjectImportationSerializer
     workspace_id: UUIDB64
 
 
-class UpdateProjectImportationContent(BaseModel):
+class UpdateProjectImportationContent(BaseSchema):
     project_importation: ProjectImportationSerializer
     workspace_id: UUIDB64
 
 
-class DeleteProjectImportationContent(BaseModel):
+class DeleteProjectImportationContent(BaseSchema):
     project_importation_id: UUIDB64
     workspace_id: UUIDB64

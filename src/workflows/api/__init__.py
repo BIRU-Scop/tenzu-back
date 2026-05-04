@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@ from uuid import UUID
 
 from ninja import Path, Query, Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -62,7 +62,7 @@ workflows_router = Router()
     url_name="project.workflow.create",
     summary="Create workflows",
     response={
-        200: BaseDataModel[WorkflowSerializer],
+        200: BaseDataSchema[WorkflowSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -100,7 +100,7 @@ async def create_workflow(
     url_name="project.workflow.list",
     summary="List project workflows",
     response={
-        200: BaseDataModel[list[WorkflowSerializer]],
+        200: BaseDataSchema[list[WorkflowSerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -132,7 +132,7 @@ async def list_workflows(
     url_name="project.workflow.get_by_slug",
     summary="Get project workflow by slug",
     response={
-        200: BaseDataModel[WorkflowSerializer],
+        200: BaseDataSchema[WorkflowSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -163,7 +163,7 @@ async def get_workflow_by_slug(
     url_name="project.workflow.get",
     summary="Get project workflow",
     response={
-        200: BaseDataModel[WorkflowSerializer],
+        200: BaseDataSchema[WorkflowSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -197,7 +197,7 @@ async def get_workflow(
     url_name="project.workflow.update",
     summary="Update workflow",
     response={
-        200: BaseDataModel[WorkflowSerializer],
+        200: BaseDataSchema[WorkflowSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
@@ -308,7 +308,7 @@ async def get_workflow_or_404(workflow_id: UUID) -> Workflow:
     url_name="project.workflowstatus.create",
     summary="Create a workflow status",
     response={
-        200: BaseDataModel[WorkflowStatusSerializer],
+        200: BaseDataSchema[WorkflowStatusSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -385,7 +385,7 @@ async def reorder_workflow_statuses(
     url_name="project.workflowstatus.update",
     summary="Update workflow status",
     response={
-        200: BaseDataModel[WorkflowStatusSerializer],
+        200: BaseDataSchema[WorkflowStatusSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

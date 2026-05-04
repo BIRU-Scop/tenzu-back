@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,20 +17,20 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from comments.serializers import CommentSerializer
 
 
-class CreateStoryCommentContent(BaseModel):
+class CreateStoryCommentContent(BaseSchema):
     ref: int
     comment: CommentSerializer
 
 
-class UpdateStoryCommentContent(BaseModel):
+class UpdateStoryCommentContent(BaseSchema):
     ref: int
     comment: CommentSerializer
 
 
-class DeleteStoryCommentContent(BaseModel):
+class DeleteStoryCommentContent(BaseSchema):
     ref: int
     comment: CommentSerializer

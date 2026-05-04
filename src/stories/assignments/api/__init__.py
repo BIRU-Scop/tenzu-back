@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_403,
@@ -50,7 +50,7 @@ assignments_router = Router()
     url_name="project.story.assignments.create",
     summary="Create story assignment",
     response={
-        200: BaseDataModel[StoryAssignmentSerializer],
+        200: BaseDataSchema[StoryAssignmentSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

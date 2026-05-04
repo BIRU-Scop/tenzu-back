@@ -21,7 +21,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from uuid import UUID
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from notifications import events as notifications_events
 from notifications import repositories as notifications_repositories
 from notifications.models import Notification
@@ -33,7 +33,7 @@ async def notify_users(
     notification_type: str,
     emitted_by: User | None,
     notified_user_ids: Iterable[UUID],
-    content: BaseModel,
+    content: BaseSchema,
 ) -> None:
     notifications = await notifications_repositories.create_notifications(
         owner_ids=notified_user_ids,

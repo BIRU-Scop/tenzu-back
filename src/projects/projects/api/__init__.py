@@ -27,7 +27,7 @@ from django.views.decorators.cache import cache_control
 from ninja import File, Form, Path, Router
 from ninja.decorators import decorate_view
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from base.utils.files import iterfile
 from base.utils.images import ImageSizeFormat
 from commons.exceptions import api as ex
@@ -69,7 +69,7 @@ projects_router = Router()
     url_name="projects.create",
     summary="Create projects",
     response={
-        200: BaseDataModel[ProjectDetailSerializer],
+        200: BaseDataSchema[ProjectDetailSerializer],
         400: ERROR_RESPONSE_404,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -115,7 +115,7 @@ async def create_project(
     url_name="workspace.projects.list",
     summary="List workspace projects",
     response={
-        200: BaseDataModel[list[ProjectSummarySerializer]],
+        200: BaseDataSchema[list[ProjectSummarySerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -150,7 +150,7 @@ async def list_workspace_projects(
     url_name="project.get",
     summary="Get project",
     response={
-        200: BaseDataModel[ProjectDetailSerializer],
+        200: BaseDataSchema[ProjectDetailSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -227,7 +227,7 @@ async def get_project_logo(
     url_name="project.update",
     summary="Update project",
     response={
-        200: BaseDataModel[ProjectDetailSerializer],
+        200: BaseDataSchema[ProjectDetailSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,

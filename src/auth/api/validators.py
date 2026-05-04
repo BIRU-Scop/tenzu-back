@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,10 +22,10 @@ from urllib.parse import urljoin
 from django.conf import settings
 from pydantic import Field, field_validator
 
-from commons.validators import BaseModel, check_not_empty
+from commons.validators import BaseValidatorSchema, check_not_empty
 
 
-class ProviderRedirectValidator(BaseModel):
+class ProviderRedirectValidator(BaseValidatorSchema):
     callback_url: str = Field(
         description="The URL relative to the frontend to return to after the redirect flow is complete."
     )
@@ -45,7 +45,7 @@ class ProviderRedirectValidator(BaseModel):
         return urljoin(str(settings.FRONTEND_URL), value)
 
 
-class ProviderContinueSignupValidator(BaseModel):
+class ProviderContinueSignupValidator(BaseValidatorSchema):
     social_session_key: str
     accept_terms_of_service: bool = False
     accept_privacy_policy: bool = False

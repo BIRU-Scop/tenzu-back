@@ -17,11 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from memberships.choices import InvitationStatus
 from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializer
 
 
-class WorkspaceInvitationNestedSerializer(BaseModel):
+class WorkspaceInvitationNestedSerializer(BaseSchema):
     status: InvitationStatus
     workspace: WorkspaceLinkNestedSerializer

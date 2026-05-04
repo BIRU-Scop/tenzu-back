@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,7 +19,7 @@
 
 from typing import Any
 
-from commons.validators.base import BaseModel  # noqa
+from commons.validators.base import BaseValidatorSchema  # noqa
 from commons.validators.fields import *  # noqa
 
 

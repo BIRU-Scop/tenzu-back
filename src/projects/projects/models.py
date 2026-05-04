@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,7 +24,7 @@ from django.core.validators import MaxValueValidator
 from django.db import models
 from slugify import slugify
 
-from base.db.models import BaseModel, LowerSlugField
+from base.db.models import BaseDBModel, LowerSlugField
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from base.utils.files import get_obfuscated_file_path
 from base.utils.slug import slugify_uniquely
@@ -39,7 +39,7 @@ get_project_logo_file_path = functools.partial(
 )
 
 
-class Project(BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
+class Project(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
     name = models.CharField(max_length=80, null=False, blank=False, verbose_name="name")
     description = models.CharField(
         max_length=220, null=False, blank=True, default="", verbose_name="description"
@@ -104,7 +104,7 @@ class Project(BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
         references.create_project_references_sequence(project_id=self.id)
 
 
-class ProjectTemplate(BaseModel):
+class ProjectTemplate(BaseDBModel):
     name = models.CharField(
         max_length=250, null=False, blank=False, verbose_name="name"
     )

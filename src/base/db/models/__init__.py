@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -35,7 +35,7 @@ def uuid_generator() -> uuid.UUID:
     return uuid.uuid1(node=settings.UUID_NODE)
 
 
-class BaseModel(Model):
+class BaseDBModel(Model):
     id = UUIDField(
         primary_key=True,
         null=False,

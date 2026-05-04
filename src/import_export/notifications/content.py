@@ -17,11 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from import_export.serializers import ProjectImportationNestedSerializer
 from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializer
 
 
-class ProjectImportationFailNotificationContent(BaseModel):
+class ProjectImportationFailNotificationContent(BaseSchema):
     workspace: WorkspaceLinkNestedSerializer
     project_importation: ProjectImportationNestedSerializer

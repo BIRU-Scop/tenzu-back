@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -29,10 +29,10 @@ from base.mocks import (
     MIN_LIST_LENGTH,
     mock_serializer,
 )
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 
 
-class SimpleModel(BaseModel):
+class SimpleModel(BaseSchema):
     text: str
     num: int
     boolean: bool
@@ -40,7 +40,7 @@ class SimpleModel(BaseModel):
     dictionary: dict
 
 
-class ListsModel(BaseModel):
+class ListsModel(BaseSchema):
     num_list: list[int]
     text_list: list[str]
     boolean_list: list[bool]
@@ -49,25 +49,25 @@ class ListsModel(BaseModel):
     simple_model_list: list[SimpleModel]
 
 
-class NestedModel1(BaseModel):
+class NestedModel1(BaseSchema):
     foo: Union["NestedModel2", None] = None
     bar: SimpleModel
     model_config = ConfigDict(from_attributes=False)
 
 
-class NestedModel2(BaseModel):
+class NestedModel2(BaseSchema):
     foo: Union["NestedModel3", None] = None
     bar: SimpleModel
     model_config = ConfigDict(from_attributes=False)
 
 
-class NestedModel3(BaseModel):
+class NestedModel3(BaseSchema):
     foo: Union["NestedModel1", None] = None
     bar: SimpleModel
     model_config = ConfigDict(from_attributes=False)
 
 
-class OptionalModel(BaseModel):
+class OptionalModel(BaseSchema):
     foo: SimpleModel | None = None
     bar: int
     model_config = ConfigDict(from_attributes=False)

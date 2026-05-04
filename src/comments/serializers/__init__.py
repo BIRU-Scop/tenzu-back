@@ -19,7 +19,6 @@
 
 from datetime import datetime
 
-from base.serializers import UUIDB64, BaseModel
 from comments.serializers.nested import CommentNestedSerializer
 from users.serializers.nested import UserNestedSerializer
 

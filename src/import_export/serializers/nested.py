@@ -18,9 +18,7 @@
 from pathlib import Path
 from typing import TypedDict
 
-from pydantic import ConfigDict
-
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from import_export.models import ImportationError, ImportationStatus, ProjectImportation
 
 
@@ -28,12 +26,11 @@ class ProjectImportationData(TypedDict, total=False):
     error_code: ImportationError
 
 
-class ProjectImportationNestedSerializer(BaseModel):
+class ProjectImportationNestedSerializer(BaseSchema):
     id: UUIDB64
     status: ImportationStatus
     extra_data: ProjectImportationData
     source_name: str | None
-    model_config = ConfigDict(from_attributes=True)
 
     @staticmethod
     def resolve_source_name(

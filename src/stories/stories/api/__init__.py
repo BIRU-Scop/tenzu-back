@@ -23,7 +23,7 @@ from django.http import HttpResponse
 from ninja import Path, Query, Router
 
 from base.api import Pagination, PaginationQuery, set_pagination
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -60,7 +60,7 @@ stories_router = Router()
     url_name="project.stories.create",
     summary="Create a story",
     response={
-        200: BaseDataModel[StoryDetailSerializer],
+        200: BaseDataSchema[StoryDetailSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -100,7 +100,7 @@ async def create_story(
     url_name="project.workflow.stories.list",
     summary="List stories by workflow",
     response={
-        200: BaseDataModel[list[StorySummarySerializer]],
+        200: BaseDataSchema[list[StorySummarySerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -143,7 +143,7 @@ async def list_stories_for_workflow(
     url_name="project.stories.get",
     summary="Get story",
     response={
-        200: BaseDataModel[StoryDetailSerializer],
+        200: BaseDataSchema[StoryDetailSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -176,7 +176,7 @@ async def get_story(
     url_name="project.stories.update",
     summary="Update story",
     response={
-        200: BaseDataModel[StoryDetailSerializer],
+        200: BaseDataSchema[StoryDetailSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

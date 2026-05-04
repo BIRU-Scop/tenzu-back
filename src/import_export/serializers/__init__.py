@@ -22,4 +22,4 @@ from import_export.serializers.taiga import TaigaProjectImport  # noqa
 
 
 class ProjectImportationSerializer(ProjectImportationNestedSerializer):
-    model_config = ConfigDict(from_attributes=True)
+    pass

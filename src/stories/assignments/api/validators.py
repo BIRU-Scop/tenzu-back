@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,8 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from commons.validators import B64UUID, BaseModel, StrNotEmpty
+from commons.validators import B64UUID, BaseValidatorSchema, StrNotEmpty
 
 
-class StoryAssignmentValidator(BaseModel):
+class StoryAssignmentValidator(BaseValidatorSchema):
     user_id: B64UUID

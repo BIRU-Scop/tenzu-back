@@ -19,7 +19,7 @@ from uuid import UUID
 
 from ninja import File, Form, Path, Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -53,7 +53,7 @@ import_export_router = Router()
     url_name="importation.projects.create",
     summary="Create and launch a project importation",
     response={
-        200: BaseDataModel[ProjectImportationSerializer],
+        200: BaseDataSchema[ProjectImportationSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -96,7 +96,7 @@ async def launch_project_importation(
     url_name="importation.projects.list",
     summary="List workspace project importations",
     response={
-        200: BaseDataModel[list[ProjectImportationSerializer]],
+        200: BaseDataSchema[list[ProjectImportationSerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

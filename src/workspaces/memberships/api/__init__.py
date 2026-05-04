@@ -21,7 +21,7 @@ from uuid import UUID
 
 from ninja import Path, Query, Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -58,7 +58,7 @@ workspace_membership_router = Router()
     url_name="workspace.memberships.list",
     summary="List workspace memberships",
     response={
-        200: BaseDataModel[list[WorkspaceMembershipSerializer]],
+        200: BaseDataSchema[list[WorkspaceMembershipSerializer]],
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
@@ -92,7 +92,7 @@ async def list_workspace_memberships(
     url_name="workspace.memberships.update",
     summary="Update workspace membership",
     response={
-        200: BaseDataModel[WorkspaceMembershipSerializer],
+        200: BaseDataSchema[WorkspaceMembershipSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -216,7 +216,7 @@ async def delete_workspace_membership(
     url_name="workspace.roles.list",
     summary="List workspace roles",
     response={
-        200: BaseDataModel[list[WorkspaceRoleSerializer]],
+        200: BaseDataSchema[list[WorkspaceRoleSerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

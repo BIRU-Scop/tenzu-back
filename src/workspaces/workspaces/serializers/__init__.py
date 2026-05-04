@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from import_export.serializers import ProjectImportationNestedSerializer
 from memberships.serializers import RoleSerializer
 from projects.projects.serializers.nested import (
@@ -26,7 +26,7 @@ from projects.projects.serializers.nested import (
 from workspaces.workspaces.serializers.nested import WorkspaceNestedSerializer
 
 
-class _WorkspaceListProjectsSummarySerializer(BaseModel):
+class _WorkspaceListProjectsSummarySerializer(BaseSchema):
     user_member_projects: list[ProjectNestedSerializer]
     user_invited_projects: list[ProjectNestedSerializer]
     user_imported_projects: list[ProjectImportationNestedSerializer]

@@ -22,14 +22,14 @@ import pytest
 from pydantic import ValidationError
 
 from base.utils.uuid import encode_uuid_to_b64str
-from commons.validators import B64UUID, BaseModel, LanguageCode, StrNotEmpty
+from commons.validators import B64UUID, BaseValidatorSchema, LanguageCode, StrNotEmpty
 
 #########################################################
 # LanguageCode
 #########################################################
 
 
-class LanguageCodeModel(BaseModel):
+class LanguageCodeModel(BaseValidatorSchema):
     x: LanguageCode
 
 
@@ -53,7 +53,7 @@ def test_language_code_with_invalid_value(value):
 #########################################################
 
 
-class StrNotEmptyModel(BaseModel):
+class StrNotEmptyModel(BaseValidatorSchema):
     x: StrNotEmpty
 
 
@@ -75,7 +75,7 @@ def test_str_not_empty_with_invalid_value(value):
 #########################################################
 
 
-class B64UUIDModel(BaseModel):
+class B64UUIDModel(BaseValidatorSchema):
     x: B64UUID
 
 

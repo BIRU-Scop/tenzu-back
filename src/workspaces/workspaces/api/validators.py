@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,17 +21,17 @@ from pydantic import Field, StringConstraints
 from typing_extensions import Annotated
 
 from commons.colors import NUM_COLORS
-from commons.validators import BaseModel
+from commons.validators import BaseValidatorSchema
 
 Name = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)
 ]
 
 
-class WorkspaceValidator(BaseModel):
+class WorkspaceValidator(BaseValidatorSchema):
     name: Name
     color: Annotated[int, Field(gt=0, le=NUM_COLORS)]  # type: ignore
 
 
-class UpdateWorkspaceValidator(BaseModel):
+class UpdateWorkspaceValidator(BaseValidatorSchema):
     name: Name | None

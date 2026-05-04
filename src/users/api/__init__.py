@@ -21,7 +21,7 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 from ninja import Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -65,7 +65,7 @@ users_router = Router()
     by_alias=True,
     auth=None,
     response={
-        200: BaseDataModel[UserSerializer],
+        200: BaseDataSchema[UserSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
@@ -160,7 +160,7 @@ async def verify_user(
     "/users/me",
     url_name="user.get.me",
     summary="Get authenticated user",
-    response=BaseDataModel[UserSerializer],
+    response=BaseDataSchema[UserSerializer],
     by_alias=True,
 )
 async def get_current_user(request) -> User:
@@ -184,7 +184,7 @@ async def get_current_user(request) -> User:
     url_name="user.update.me",
     summary="Update authenticated user",
     response={
-        200: BaseDataModel[UserSerializer],
+        200: BaseDataSchema[UserSerializer],
         400: ERROR_RESPONSE_400,
         401: ERROR_RESPONSE_401,
         403: ERROR_RESPONSE_403,

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from memberships.serializers import RoleSerializer
 from projects.memberships.serializers import (
     ProjectMembershipSerializer,
@@ -26,24 +26,24 @@ from projects.memberships.serializers import (
 from projects.projects.serializers import ProjectSummarySerializer
 
 
-class ProjectMembershipContent(BaseModel):
+class ProjectMembershipContent(BaseSchema):
     membership: ProjectMembershipSerializer
     role: RoleSerializer
     self_recipient: bool = False
     project: ProjectSummarySerializer | None
 
 
-class DeleteProjectMembershipContent(BaseModel):
+class DeleteProjectMembershipContent(BaseSchema):
     membership: ProjectMembershipSerializer
     workspace_id: UUIDB64
     self_recipient: bool = False
 
 
-class ProjectRoleContent(BaseModel):
+class ProjectRoleContent(BaseSchema):
     role: ProjectRoleSerializer
 
 
-class DeleteProjectRoleContent(BaseModel):
+class DeleteProjectRoleContent(BaseSchema):
     role_id: UUIDB64
     target_role: RoleSerializer | None
     project_id: UUIDB64

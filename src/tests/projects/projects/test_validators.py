@@ -21,7 +21,7 @@
 import pytest
 from pydantic import ValidationError
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from projects.projects.api.validators import (
     CreateProjectValidator,
     LogoField,
@@ -35,7 +35,7 @@ from tests.utils.utils import check_validation_errors
 ##########################################################
 
 
-class LogoValidator(BaseModel):
+class LogoValidator(BaseSchema):
     logo: LogoField | None
 
 

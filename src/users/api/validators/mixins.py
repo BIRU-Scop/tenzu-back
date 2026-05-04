@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,10 +23,10 @@ from collections import Counter
 from pydantic import StringConstraints, field_validator
 from typing_extensions import Annotated
 
-from commons.validators import BaseModel
+from commons.validators import BaseValidatorSchema
 
 
-class PasswordMixin(BaseModel):
+class PasswordMixin(BaseValidatorSchema):
     password: Annotated[str, StringConstraints(min_length=8, max_length=256)]  # type: ignore
 
     @field_validator("password")

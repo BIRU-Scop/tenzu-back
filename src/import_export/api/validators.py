@@ -16,14 +16,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-import json
 from typing import Any
 
 from django.core.files.uploadedfile import UploadedFile as DjangoUploadedFile
 from ninja import UploadedFile
 from pydantic import field_validator
 
-from commons.validators import BaseModel
+from commons.validators import BaseValidatorSchema
 from import_export.models import ProjectImportationType
 
 
@@ -40,7 +39,7 @@ class ImportationFileField(UploadedFile):
         return importation_file
 
 
-class ImportProjectValidator(BaseModel):
+class ImportProjectValidator(BaseValidatorSchema):
     origin_type: ProjectImportationType
 
     @field_validator("origin_type", mode="after")

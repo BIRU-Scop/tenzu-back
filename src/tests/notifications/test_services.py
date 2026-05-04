@@ -19,13 +19,13 @@
 
 from unittest.mock import call, patch
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from ninja_jwt.utils import aware_utcnow
 from notifications import services
 from tests.utils import factories as f
 
 
-class SampleContent(BaseModel):
+class SampleContent(BaseSchema):
     msg: str
 
 

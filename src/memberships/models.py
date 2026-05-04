@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,7 +24,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models.base import ModelBase
 
-from base.db.models import BaseModel, LowerEmailField, LowerSlugField
+from base.db.models import BaseDBModel, LowerEmailField, LowerSlugField
 from base.db.models.mixins import CreatedAtMetaInfoMixin
 from base.utils.datetime import timestamp_mics
 from base.utils.slug import (
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from django_stubs_ext.db.models.manager import ManyRelatedManager
 
 
-def _get_reference_model_filter(reference_model: type[BaseModel]):
+def _get_reference_model_filter(reference_model: type[BaseDBModel]):
     @property
     def reference_model_filter(self) -> dict[str, UUID]:
         """
@@ -68,7 +68,7 @@ class RoleBase(ModelBase):
             return super().__new__(metacls, name, bases, attrs, **kwargs)
 
         try:
-            reference_model: type[BaseModel] = kwargs["reference_model"]
+            reference_model: type[BaseDBModel] = kwargs["reference_model"]
             permissions_choices: list = kwargs["permissions_choices"]
         except KeyError as e:
             raise ValueError(
@@ -141,7 +141,7 @@ class RoleBase(ModelBase):
         return super().__new__(metacls, name, bases, attrs)
 
 
-class Role(BaseModel, metaclass=RoleBase):
+class Role(BaseDBModel, metaclass=RoleBase):
     """
     Abstract class for roles
     You need to pass `reference_model` and `permissions_choices` to meta class argument like so
@@ -193,7 +193,7 @@ class MembershipBase(ModelBase):
             return super().__new__(metacls, name, bases, attrs, **kwargs)
 
         try:
-            reference_model: type[BaseModel] = kwargs["reference_model"]
+            reference_model: type[BaseDBModel] = kwargs["reference_model"]
         except KeyError as e:
             raise ValueError(
                 f"{e.args[0]} must be specified when inheriting from this class"
@@ -259,7 +259,7 @@ class MembershipBase(ModelBase):
         return super().__new__(metacls, name, bases, attrs)
 
 
-class Membership(BaseModel, CreatedAtMetaInfoMixin, metaclass=MembershipBase):
+class Membership(BaseDBModel, CreatedAtMetaInfoMixin, metaclass=MembershipBase):
     """
     Abstract class for membership, used as `through` table for roles
     You need to pass `reference_model` to meta class argument like so
@@ -297,7 +297,7 @@ class InvitationBase(ModelBase):
             return super().__new__(metacls, name, bases, attrs, **kwargs)
 
         try:
-            reference_model: type[BaseModel] = kwargs["reference_model"]
+            reference_model: type[BaseDBModel] = kwargs["reference_model"]
         except KeyError as e:
             raise ValueError(
                 f"{e.args[0]} must be specified when inheriting from this class"
@@ -366,7 +366,7 @@ class InvitationBase(ModelBase):
         return super().__new__(metacls, name, bases, attrs)
 
 
-class Invitation(BaseModel, CreatedAtMetaInfoMixin, metaclass=InvitationBase):
+class Invitation(BaseDBModel, CreatedAtMetaInfoMixin, metaclass=InvitationBase):
     """
     Abstract class for invitation
     You need to pass `reference_model` to meta class argument like so
