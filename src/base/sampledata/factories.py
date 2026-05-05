@@ -41,6 +41,7 @@ from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects import services as projects_services
 from projects.projects.models import Project
+from projects.projects.repositories import ProjectTemplateModel
 from projects.references import get_new_project_reference_id
 from stories.assignments.models import StoryAssignment
 from stories.stories.models import Story
@@ -234,6 +235,7 @@ async def get_project_with_related_info(id: UUID) -> Project:
 
 
 async def create_project(
+    template: ProjectTemplateModel,
     workspace: Workspace,
     created_by: User,
     name: str | None = None,
@@ -250,6 +252,7 @@ async def create_project(
             else None
         )
         return await projects_services._create_project(
+            template,
             name=name,
             description=description,
             color=fake.random_int(min=1, max=NUM_COLORS),

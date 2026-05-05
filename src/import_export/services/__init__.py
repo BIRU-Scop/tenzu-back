@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
@@ -17,36 +16,27 @@
 #
 # You can contact BIRU at ask@biru.sh
 import logging
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 from django.core.exceptions import SuspiciousFileOperation
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils.translation import gettext
 from ninja import UploadedFile
 from ninja.errors import ValidationError as APIValidationError
-from pydantic import ValidationError
 from pydantic_core import ErrorDetails
 
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from import_export import events as import_export_events
-from import_export import notifications
 from import_export import repositories as import_export_repositories
 from import_export.models import (
-    ImportationError,
     ImportationStatus,
     ProjectImportation,
     ProjectImportationType,
 )
 from import_export.serializers import (
     ProjectImportationSerializer,
-    TaigaProjectImport,
 )
-from import_export.serializers.taiga import FullTaigaProjectImport
 from import_export.services import exceptions as ex
-from import_export.tasks import import_taiga_project
-from projects.projects import events as projects_events
 from projects.projects import services as projects_services
 from users.models import User
 from workspaces.workspaces.models import Workspace
@@ -89,80 +79,23 @@ async def import_project(
             ]
         ) from e
 
-    match origin_type:
-        case ProjectImportationType.TAIGA:
-            await import_taiga_project.defer_async(
-                project_importation_id=project_importation.b64id,
-            )
-        case _:
-            raise NotImplementedError
-
     # Emit event
     await transaction_on_commit_async(
         import_export_events.emit_event_when_project_importation_is_created
     )(
         project_importation=project_importation,
     )
-    return ProjectImportationSerializer.from_orm(project_importation)
+    match origin_type:
+        case ProjectImportationType.TAIGA:
+            from import_export.tasks import import_taiga_project
 
-
-@transaction_atomic_async
-async def do_import_taiga_project(project_importation: ProjectImportation):
-    with project_importation.source.open() as source_file:
-        try:
-            taiga_project = TaigaProjectImport.model_validate_json(source_file.read())
-        except ValidationError as e:
-            await update_project_importation(
-                project_importation,
-                {
-                    "status": ImportationStatus.FAILURE,
-                    "extra_data": {"error_code": ImportationError.INVALID},
-                },
+            await import_taiga_project.defer_async(
+                project_importation_id=project_importation.b64id,
             )
-            await notifications.notify_when_project_importation_fail(
-                project_importation
-            )
-            logger.warning(
-                f"Project import {project_importation.id} for file '{Path(project_importation.source.name or "").name}' validation failed: {e}"
-            )
-            return
+        case _:
+            raise NotImplementedError
 
-    extra_fields = FullTaigaProjectImport.filter_unknown_fields(
-        taiga_project.__pydantic_extra__
-    )
-    if extra_fields:
-        logger.warning(
-            f"Project import {project_importation.id} for file '{Path(project_importation.source.name or "").name}' contains extra data: {extra_fields}"
-        )
-
-    project = await projects_services._create_project(
-        workspace=project_importation.workspace,
-        name=taiga_project.name,
-        description=taiga_project.description,
-        created_by=project_importation.created_by,
-        color=None,
-        logo_file=SimpleUploadedFile(taiga_project.logo.name, taiga_project.logo.data)
-        if taiga_project.logo is not None
-        else None,
-    )
-    project = await projects_services._update_project(
-        project, {"created_at": taiga_project.created_date}
-    )
-    await update_project_importation(
-        project_importation, {"status": ImportationStatus.ONGOING, "project": project}
-    )
-    # TODO users&roles
-
-    if not taiga_project.is_kanban_activated:
-        await update_project_importation(
-            project_importation,
-            {"status": ImportationStatus.SUCCESS},
-        )
-        await transaction_on_commit_async(
-            projects_events.emit_event_when_project_is_created
-        )(project=project)
-        return
-    # TODO stories
+    return ProjectImportationSerializer.model_validate(project_importation)
 
 
 ##########################################################

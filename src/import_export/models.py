@@ -42,6 +42,7 @@ class ImportationStatus(models.TextChoices):
 
 class ImportationError(models.TextChoices):
     INVALID = "file_validation_failed"
+    SERVER_ERROR = "server_error_while_processing"
 
 
 get_importation_source_file_path = functools.partial(

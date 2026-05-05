@@ -23,6 +23,7 @@ from uuid import UUID
 from asgiref.sync import sync_to_async
 from django.core.files import File
 from django.db.models import Exists, OuterRef, Q
+from pydantic import BaseModel, PositiveInt
 
 from base.db.utils import Q_for_related
 from commons.utils import transaction_atomic_async
@@ -30,6 +31,7 @@ from import_export.models import ImportationStatus
 from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus
 from ninja_jwt.utils import aware_utcnow
+from permissions.choices import ProjectPermissions
 from projects import references
 from projects.invitations.models import ProjectInvitation
 from projects.memberships import repositories as pj_memberships_repositories
@@ -39,6 +41,35 @@ from users.models import User
 from workflows import repositories as workflows_repositories
 from workflows.models import Workflow, WorkflowStatus
 from workspaces.workspaces.models import Workspace
+
+##########################################################
+# Project - utility type
+##########################################################
+
+
+class ProjectTemplateModel(BaseModel):
+    class WorkflowModel(TypedDict):
+        name: str
+        slug: str
+        order: PositiveInt
+
+    class WorkflowStatusModel(TypedDict):
+        name: str
+        color: PositiveInt
+        order: PositiveInt
+
+    class RoleModel(TypedDict):
+        name: str
+        slug: str
+        order: PositiveInt
+        editable: bool
+        is_owner: bool
+        permissions: list[ProjectPermissions]
+
+    roles: list[RoleModel]
+    workflows: list[WorkflowModel]
+    workflow_statuses: list[WorkflowStatusModel]
+
 
 ##########################################################
 # Project - filters and querysets
@@ -216,7 +247,7 @@ class ProjectTemplateFilters(TypedDict, total=False):
 
 async def get_project_template(
     filters: ProjectTemplateFilters = {},
-) -> ProjectTemplate | None:
+) -> ProjectTemplate:
     qs = ProjectTemplate.objects.all().filter(**filters)
 
     return await qs.aget()
@@ -229,7 +260,7 @@ async def get_project_template(
 
 @transaction_atomic_async
 async def apply_template_to_project(
-    template: ProjectTemplate, project: Project
+    template: ProjectTemplateModel, project: Project
 ) -> list[ProjectRole]:
     roles = await pj_memberships_repositories.bulk_create_project_roles(
         [

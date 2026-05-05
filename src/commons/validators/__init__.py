@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Any
+from typing import Any, Callable
 
 from commons.validators.base import BaseValidatorSchema  # noqa
 from commons.validators.fields import *  # noqa
@@ -27,3 +27,14 @@ def check_not_empty(v: Any) -> Any:
     if v == "" or v == []:
         raise ValueError("Empty field is not allowed")
     return v
+
+
+def UniqueInListValidator(attribute_name: str) -> Callable[[list], list]:
+    def is_unique(value: list) -> list:
+        if len(set(getattr(elt, attribute_name) for elt in value)) < len(value):
+            raise ValueError(
+                f"{attribute_name} of each element is not unique for the given project"
+            )
+        return value
+
+    return is_unique

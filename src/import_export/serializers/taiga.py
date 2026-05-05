@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
@@ -21,12 +20,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# Copyright (c) 2021-present Kaleidos INC
 from base64 import b64decode
 from datetime import datetime
-from typing import Any, Iterable, Literal
+from typing import Annotated, Any, Iterable, Literal
 
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     EmailStr,
@@ -34,6 +33,8 @@ from pydantic import (
     conlist,
     field_validator,
 )
+
+from commons.validators import UniqueInListValidator
 
 
 class _TaigaFile(BaseModel):
@@ -86,6 +87,7 @@ _TaigaMemberPermission = Literal[
     "modify_wiki_link",
     "delete_wiki_link",
 ]
+
 _TaigaAnonPermission = Literal[
     "view_project",
     "view_milestones",
@@ -150,15 +152,17 @@ class _TaigaStatus(BaseModel):
 
 
 class _TaigaUserStoryStatus(_TaigaStatus):
-    name: str
-    slug: str
-    order: int
-    is_closed: bool
-    color: str  # hex code
     is_archived: bool
     wip_limit: int | None
 
     model_config = ConfigDict(extra="allow")
+
+
+_UniqueTaigaUserStoryStatuses = Annotated[
+    list[_TaigaUserStoryStatus],
+    AfterValidator(UniqueInListValidator("slug")),
+    AfterValidator(UniqueInListValidator("name")),
+]
 
 
 class _TaigaDueDate(BaseModel):
@@ -210,6 +214,11 @@ class _TaigaSwimlane(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
+_UniqueTaigaSwimlanes = Annotated[
+    list[_TaigaSwimlane], AfterValidator(UniqueInListValidator("name"))
+]
+
+
 class _TaigaRole(BaseModel):
     name: str
     slug: str
@@ -218,6 +227,11 @@ class _TaigaRole(BaseModel):
     permissions: list[_TaigaMemberPermission] | None = None
 
     model_config = ConfigDict(extra="allow")
+
+
+_UniqueTaigaRoles = Annotated[
+    list[_TaigaRole], AfterValidator(UniqueInListValidator("slug"))
+]
 
 
 class _TaigaCustomAttribute(BaseModel):
@@ -513,11 +527,11 @@ class FullTaigaProjectImport(BaseModel):
     default_issue_type: str | None = None  # related name
     default_swimlane: str | None = None  # related name
 
-    roles: list[_TaigaRole] = None
+    roles: _UniqueTaigaRoles = None
     memberships: list[_TaigaMembership] = None
     points: list[_TaigaPoints] = None
     epic_statuses: list[_TaigaStatus] = None
-    us_statuses: list[_TaigaUserStoryStatus] = None
+    us_statuses: _UniqueTaigaUserStoryStatuses = None
     us_duedates: list[_TaigaDueDate] = None
     task_statuses: list[_TaigaStatus] = None
     task_duedates: list[_TaigaDueDate] = None
@@ -526,7 +540,7 @@ class FullTaigaProjectImport(BaseModel):
     issue_duedates: list[_TaigaDueDate] = None
     priorities: list[_TaigaPriority] = None
     severities: list[_TaigaSeverity] = None
-    swimlanes: list[_TaigaSwimlane] = None
+    swimlanes: _UniqueTaigaSwimlanes = None
     epiccustomattributes: list[_TaigaCustomAttribute] = None
     userstorycustomattributes: list[_TaigaCustomAttribute] = None
     taskcustomattributes: list[_TaigaCustomAttribute] = None
@@ -560,10 +574,10 @@ class TaigaProjectImport(BaseModel):
     created_date: datetime
     is_kanban_activated: bool
 
-    roles: list[_TaigaRole] = None
+    roles: _UniqueTaigaRoles = None
     memberships: list[_TaigaMembership] = None
-    us_statuses: list[_TaigaUserStoryStatus] = None
-    swimlanes: list[_TaigaSwimlane] = None
+    us_statuses: _UniqueTaigaUserStoryStatuses = None
+    swimlanes: _UniqueTaigaSwimlanes = None
     user_stories: list[_TaigaUserStory] = None
 
     model_config = ConfigDict(extra="allow")
