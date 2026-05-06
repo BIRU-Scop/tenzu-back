@@ -21,6 +21,7 @@ from unittest.mock import patch
 
 from permissions.choices import ProjectPermissions
 from projects.projects import services
+from projects.projects.repositories import ProjectTemplateModel
 from tests.utils import factories as f
 from tests.utils.utils import patch_db_transaction
 
@@ -41,6 +42,9 @@ async def test_create_project():
     with (
         patch("projects.projects.services._create_project") as fake_create_project,
         patch(
+            "projects.projects.services._get_default_template"
+        ) as fake_get_default_template,
+        patch(
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
         patch(
@@ -57,6 +61,7 @@ async def test_create_project():
         )
 
         fake_create_project.assert_awaited_once()
+        fake_get_default_template.assert_awaited_once()
         fake_get_project_detail.assert_awaited_once_with(
             project=fake_create_project.return_value, user=workspace.created_by
         )
@@ -107,6 +112,7 @@ async def test_internal_create_project():
 async def test_create_project_with_logo():
     workspace = f.build_workspace()
     project = f.build_project(workspace=workspace)
+    project_template = f.build_project_template()
     owner_role = f.build_project_role(project=project, is_owner=True)
 
     logo = f.build_image_uploadfile()
@@ -126,6 +132,9 @@ async def test_create_project_with_logo():
         ]
 
         await services._create_project(
+            template=ProjectTemplateModel.model_validate(
+                project_template, from_attributes=True
+            ),
             workspace=workspace,
             name="n",
             description="d",
@@ -158,12 +167,14 @@ async def test_create_project_with_no_logo():
         ) as fake_memberships_repositories,
         patch_db_transaction(),
     ):
-        fake_project_repository.get_project_template.return_value = project_template
         fake_project_repository.create_project.return_value = project
         fake_project_repository.apply_template_to_project.return_value = [
             owner_role,
         ]
         await services._create_project(
+            template=ProjectTemplateModel.model_validate(
+                project_template, from_attributes=True
+            ),
             workspace=workspace,
             name="n",
             description="d",

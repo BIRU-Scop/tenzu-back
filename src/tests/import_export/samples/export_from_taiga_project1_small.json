@@ -51,7 +51,7 @@
 "issue_duedates": [{"name": "Default", "order": 1, "by_default": true, "color": "#9dce0a", "days_to_due": null}, {"name": "Due soon", "order": 2, "by_default": false, "color": "#ff9900", "days_to_due": 14}, {"name": "Past due", "order": 3, "by_default": false, "color": "#E44057", "days_to_due": 0}],
 "priorities": [{"name": "Low", "order": 1, "color": "#A8E440"}, {"name": "Normal", "order": 3, "color": "#E4CE40"}, {"name": "High", "order": 5, "color": "#E47C40"}],
 "severities": [{"name": "Wishlist", "order": 1, "color": "#70728F"}, {"name": "Minor", "order": 2, "color": "#40A8E4"}, {"name": "Normal", "order": 3, "color": "#40E47C"}, {"name": "Important", "order": 4, "color": "#E4A240"}, {"name": "Critical", "order": 5, "color": "#D35450"}],
-"swimlanes": [],
+"swimlanes": [{"name": "test", "order": 1768927734868, "statuses": [{"status": "discovery", "wip_limit": null}, {"status": "refinement", "wip_limit": null}, {"status": "Ready", "wip_limit": null}, {"status": "In progress", "wip_limit": null}, {"status": "Ready for test", "wip_limit": null}, {"status": "Run", "wip_limit": null}, {"status": "Archived", "wip_limit": null}]}, {"name": "test2", "order": 1768927851745, "statuses": [{"status": "discovery", "wip_limit": null}, {"status": "refinement", "wip_limit": null}, {"status": "Ready", "wip_limit": null}, {"status": "In progress", "wip_limit": null}, {"status": "Ready for test", "wip_limit": null}, {"status": "Run", "wip_limit": null}, {"status": "Archived", "wip_limit": null}]}],
 "tags_colors": [["frontend", "#51D355"]],
 "default_points": "?",
 "default_epic_status": "New",

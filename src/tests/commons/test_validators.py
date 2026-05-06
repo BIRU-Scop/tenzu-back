@@ -15,14 +15,20 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from typing import Annotated
 from uuid import uuid1
 
 import pytest
-from pydantic import ValidationError
+from pydantic import AfterValidator, BaseModel, ValidationError
 
 from base.utils.uuid import encode_uuid_to_b64str
-from commons.validators import B64UUID, BaseValidatorSchema, LanguageCode, StrNotEmpty
+from commons.validators import (
+    B64UUID,
+    BaseValidatorSchema,
+    LanguageCode,
+    StrNotEmpty,
+    UniqueInListValidator,
+)
 
 #########################################################
 # LanguageCode
@@ -94,3 +100,43 @@ def test_b64uuid_with_valid_value():
 def test_b64uuid_with_invalid_value(value):
     with pytest.raises(ValidationError):
         B64UUIDModel(x=value)
+
+
+#########################################################
+# UniqueInListValidator
+#########################################################
+
+
+class ObjectWithName(BaseModel):
+    name: str
+
+
+UniqueNameList = Annotated[
+    list[ObjectWithName],
+    AfterValidator(UniqueInListValidator("name")),
+]
+
+
+class TestModel(BaseValidatorSchema):
+    x: UniqueNameList
+
+
+def test_unique_in_list_with_valid_value():
+    names_list = [
+        ObjectWithName(name="name0"),
+        ObjectWithName(name="name1"),
+        ObjectWithName(name="name2"),
+        ObjectWithName(name="name3"),
+    ]
+    TestModel(x=names_list)
+
+
+def test_unique_in_list_with_invalid_value():
+    names_list = [
+        ObjectWithName(name="name0"),
+        ObjectWithName(name="name1"),
+        ObjectWithName(name="name0"),
+        ObjectWithName(name="name3"),
+    ]
+    with pytest.raises(ValidationError):
+        TestModel(x=names_list)
