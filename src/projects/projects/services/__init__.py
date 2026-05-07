@@ -109,6 +109,7 @@ async def _create_project(
     description: str | None,
     color: int | None,
     logo_file: UploadedFile | None = None,
+    **kwargs,
 ) -> Project:
     """
     Create project using provided template and set user cache property for role
@@ -127,6 +128,7 @@ async def _create_project(
         color=color,
         logo=logo_file,
         landing_page=landing_page,
+        **kwargs,
     )
 
     roles = await projects_repositories.apply_template_to_project(

@@ -105,6 +105,7 @@ async def create_project(
     description: str | None = None,
     color: int | None = None,
     logo: File | None = None,
+    **kwargs,
 ) -> Project:
     project = Project(
         name=name,
@@ -112,6 +113,7 @@ async def create_project(
         workspace=workspace,
         logo=logo,
         landing_page=landing_page,
+        **kwargs,
     )
     if description:
         project.description = description

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -59,7 +59,7 @@ AttachmentPrefetchRelated = list[
 
 async def create_attachment(
     file: UploadedFile,
-    created_by: User,
+    created_by: User | None,
     object: Model,
 ) -> Attachment:
     storaged_object = await storage_repositories.create_storaged_object(file)

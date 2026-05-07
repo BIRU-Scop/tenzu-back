@@ -23,7 +23,7 @@ import pytest
 from django.core.files.uploadedfile import UploadedFile
 from django.test import override_settings
 
-from commons.ordering import DEFAULT_ORDER_OFFSET
+from attachments.models import Attachment
 from import_export import services
 from import_export.models import (
     ImportationStatus,
@@ -31,10 +31,15 @@ from import_export.models import (
     ProjectImportationType,
 )
 from import_export.serializers import TaigaProjectImport
-from import_export.serializers.taiga import _TaigaUserStory
+from import_export.serializers.taiga import (
+    _TaigaAttachment,
+    _TaigaFile,
+    _TaigaUserStory,
+)
 from import_export.services.taiga import (
     convert_to_tenzu_permissions,
     do_import_taiga_stories,
+    do_import_taiga_stories_attachment,
     ensure_roles_unique_attributes,
     get_template_from_taiga_project,
 )
@@ -80,7 +85,9 @@ async def test_do_import_project_no_kanban(tqmanager: TestTasksQueueManager, cap
 
 
 @pytest.mark.django_db
-@override_settings(**{"MAX_NUM_WORKFLOWS": 1})
+@override_settings(
+    **{"MAX_NUM_WORKFLOWS": 1, "MAX_UPLOAD_FILE_SIZE": 100 * 1024 * 1024}
+)
 async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, caplog):
     workspace = await f.create_workspace()
     source_path = (
@@ -109,6 +116,7 @@ async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, capl
         await ProjectRole.objects.acount() == 9
     )  # 3 mandatory from Tenzu, 6 from import
     assert await Story.objects.acount() == 6
+    assert await Attachment.objects.acount() == 4
     assert not caplog.records
 
 
@@ -340,10 +348,19 @@ async def test_do_import_taiga_stories(caplog):
             statuses=[f.build_workflow_status(), f.build_workflow_status()]
         )
     ]
+    now = aware_utcnow()
+    attachment = _TaigaAttachment.model_construct(order=0)
     with (
         patch(
             "import_export.services.taiga.stories_repositories", autospec=True
         ) as fake_stories_repositories,
+        patch(
+            "import_export.services.taiga.story_assignments_repositories", autospec=True
+        ) as fake_story_assignments_repositories,
+        patch(
+            "import_export.services.taiga.do_import_taiga_stories_attachment",
+            autospec=True,
+        ) as fake_do_import_taiga_stories_attachment,
     ):
         await do_import_taiga_stories(
             project_importation,
@@ -360,14 +377,28 @@ async def test_do_import_taiga_stories(caplog):
                         subject="Test title1",
                         swimlane=None,
                         status=workflows[0].statuses.all()[1].name,
+                        kanban_order=1,
+                        created_date=now,
+                        modified_date=None,
+                        version=1,
+                        attachments=[],
                     ),
                     _TaigaUserStory.model_construct(
                         assigned_to="1user@tenzu.test",
-                        assigned_users=["1user@tenzu.test", "2user@tenzu.test"],
+                        assigned_users=[
+                            "1user@tenzu.test",
+                            "2user@tenzu.test",
+                            project_importation.created_by.email,
+                        ],
                         owner=project_importation.created_by.email,
                         subject="Test title2",
                         swimlane=None,
                         status=workflows[0].statuses.all()[1].name,
+                        kanban_order=10,
+                        created_date=now,
+                        modified_date=None,
+                        version=3,
+                        attachments=[attachment],
                     ),
                 ]
             ),
@@ -381,7 +412,10 @@ async def test_do_import_taiga_stories(caplog):
                     workflow_id=workflows[0].id,
                     status_id=workflows[0].statuses.all()[1].id,
                     user_id=None,
-                    order=0,
+                    order=1,
+                    created_at=now,
+                    description_updated_at=None,
+                    version=1,
                 ),
                 call(
                     title="Test title2",
@@ -390,10 +424,97 @@ async def test_do_import_taiga_stories(caplog):
                     workflow_id=workflows[0].id,
                     status_id=workflows[0].statuses.all()[1].id,
                     user_id=project_importation.created_by_id,
-                    order=0 + DEFAULT_ORDER_OFFSET,
+                    order=10,
+                    created_at=now,
+                    description_updated_at=None,
+                    version=3,
                 ),
             ]
         )
 
     assert len(caplog.records) == 1
     assert "Test invalid" in caplog.records[0].message
+    fake_do_import_taiga_stories_attachment.assert_awaited_once_with(
+        project_importation,
+        fake_stories_repositories.create_story.return_value,
+        attachment,
+    )
+    fake_story_assignments_repositories.create_story_assignment.assert_awaited_once_with(
+        story=fake_stories_repositories.create_story.return_value,
+        user=project_importation.created_by,
+    )
+
+
+async def test_do_import_taiga_stories_attachment_ok():
+    project_importation = f.build_project_importation()
+    story = f.build_story()
+    with (
+        patch(
+            "import_export.services.taiga.attachments_repositories", autospec=True
+        ) as fake_attachments_repositories,
+    ):
+        attachment = _TaigaAttachment.model_construct(
+            owner=project_importation.created_by.email,
+            name="test_file.png",
+            attached_file=_TaigaFile.model_construct(
+                data=b"some initial text data", name="path/test_file.png"
+            ),
+        )
+        await do_import_taiga_stories_attachment(project_importation, story, attachment)
+        fake_attachments_repositories.create_attachment.assert_awaited_once()
+        assert (
+            story
+            == fake_attachments_repositories.create_attachment.await_args.kwargs[
+                "object"
+            ]
+        )
+        assert (
+            project_importation.created_by
+            == fake_attachments_repositories.create_attachment.await_args.kwargs[
+                "created_by"
+            ]
+        )
+
+        attachment.owner = "1user@tenzu.test"
+        fake_attachments_repositories.create_attachment.reset_mock()
+
+        await do_import_taiga_stories_attachment(project_importation, story, attachment)
+        fake_attachments_repositories.create_attachment.assert_awaited_once()
+        assert (
+            story
+            == fake_attachments_repositories.create_attachment.await_args.kwargs[
+                "object"
+            ]
+        )
+        assert (
+            fake_attachments_repositories.create_attachment.await_args.kwargs[
+                "created_by"
+            ]
+            is None
+        )
+
+
+@override_settings(**{"MAX_UPLOAD_FILE_SIZE": 0})
+async def test_do_import_taiga_stories_attachment_ko():
+    project_importation = f.build_project_importation()
+    story = f.build_story()
+    with (
+        patch(
+            "import_export.services.taiga.notifications", autospec=True
+        ) as fake_notifications,
+    ):
+        attachment = _TaigaAttachment.model_construct(
+            owner="1user@tenzu.test",
+            name="test_file.png",
+            attached_file=None,
+        )
+        # next statement won't do anything, hence it won't trigger any DB operation
+        await do_import_taiga_stories_attachment(project_importation, story, attachment)
+
+        attachment.attached_file = _TaigaFile.model_construct(
+            data=b"some initial text data", name="path/test_file.png"
+        )
+        await do_import_taiga_stories_attachment(project_importation, story, attachment)
+        fake_notifications.notify_when_project_importation_file_too_big_warning.assert_awaited_once_with(
+            project_importation, "test_file.png", len(attachment.attached_file.data)
+        )

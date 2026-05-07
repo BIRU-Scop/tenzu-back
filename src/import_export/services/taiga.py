@@ -16,17 +16,20 @@
 #
 # You can contact BIRU at ask@biru.sh
 import logging
+import mimetypes
+from operator import attrgetter
 from pathlib import Path
 from typing import Literal
 from uuid import UUID
 
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from pydantic import ValidationError
 from slugify import slugify
 
+from attachments import repositories as attachments_repositories
 from base.utils.slug import generate_incremental_int_suffix
 from commons.colors import ordered_colour_generator
-from commons.ordering import DEFAULT_ORDER_OFFSET
 from import_export import notifications
 from import_export.models import (
     ImportationError,
@@ -38,6 +41,7 @@ from import_export.serializers import (
 )
 from import_export.serializers.taiga import (
     FullTaigaProjectImport,
+    _TaigaAttachment,
     _TaigaMemberPermission,
 )
 from import_export.services import (
@@ -47,7 +51,9 @@ from import_export.services import (
 from permissions.choices import ProjectPermissions
 from projects.projects import services as projects_services
 from projects.projects.repositories import ProjectTemplateModel
+from stories.assignments import repositories as story_assignments_repositories
 from stories.stories import repositories as stories_repositories
+from stories.stories.models import Story
 from workflows import services as workflows_services
 from workflows.models import Workflow
 
@@ -177,12 +183,10 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             )
             if taiga_project.logo is not None
             else None,
-        )
-        project = await projects_services._update_project(
-            project, {"created_at": taiga_project.created_date}
+            created_at=taiga_project.created_date,
         )
         await update_project_importation(project_importation, {"project": project})
-        # TODO users
+        # TODO users data from memberships and owner
 
         if not taiga_project.is_kanban_activated:
             await succeed_project_importation(project_importation)
@@ -207,9 +211,6 @@ async def do_import_taiga_stories(
     workflows: list[Workflow],
     taiga_project: TaigaProjectImport,
 ):
-    order_by_status = {
-        status.id: 0 for workflow in workflows for status in workflow.statuses.all()
-    }
     ids_by_name: dict[str | None, tuple[UUID, dict[str, UUID]]] = {
         workflow.name: (
             workflow.id,
@@ -235,8 +236,6 @@ async def do_import_taiga_stories(
         )
         workflow_id, statuses = ids_by_name[taiga_story.swimlane]
         status_id = statuses[taiga_story.status]
-        order = order_by_status[status_id]
-        order_by_status[status_id] += DEFAULT_ORDER_OFFSET
         story = await stories_repositories.create_story(
             title=taiga_story.subject,
             description="",  # TODO
@@ -244,6 +243,46 @@ async def do_import_taiga_stories(
             workflow_id=workflow_id,
             status_id=status_id,
             user_id=user_id,
-            order=order,
+            order=taiga_story.kanban_order,
+            created_at=taiga_story.created_date,
+            description_updated_at=taiga_story.modified_date,
+            version=taiga_story.version,
         )
-    # todo attachment, comment, assignment
+        if project_importation.created_by.email in assigned_users:
+            await story_assignments_repositories.create_story_assignment(
+                story=story, user=project_importation.created_by
+            )
+        # TODO keep track of other assigned users for later processing
+        for attachment in sorted(taiga_story.attachments, key=attrgetter("order")):
+            await do_import_taiga_stories_attachment(
+                project_importation, story, attachment
+            )
+    # todo comments
+
+
+async def do_import_taiga_stories_attachment(
+    project_importation: ProjectImportation, story: Story, attachment: _TaigaAttachment
+):
+    if attachment.attached_file is None:
+        return
+    user = (
+        project_importation.created_by
+        if project_importation.created_by.email == attachment.owner
+        else None
+    )
+    file = SimpleUploadedFile(
+        name=attachment.name,
+        content=attachment.attached_file.data,
+        content_type=mimetypes.guess_file_type(attachment.attached_file.name)[0]
+        or "application/octet-stream",
+    )
+    if file.size > settings.MAX_UPLOAD_FILE_SIZE:
+        await notifications.notify_when_project_importation_file_too_big_warning(
+            project_importation, file.name, file.size
+        )
+    else:
+        await attachments_repositories.create_attachment(
+            file=file,
+            object=story,
+            created_by=user,
+        )

@@ -19,9 +19,17 @@
 
 from base.serializers import BaseSchema
 from import_export.serializers import ProjectImportationNestedSerializer
+from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializer
 
 
 class ProjectImportationFailNotificationContent(BaseSchema):
     workspace: WorkspaceLinkNestedSerializer
     project_importation: ProjectImportationNestedSerializer
+
+
+class ProjectImportationWarningFileNotificationContent(BaseSchema):
+    project: ProjectLinkNestedSerializer
+    project_importation: ProjectImportationNestedSerializer
+    file_name: str
+    file_size: int

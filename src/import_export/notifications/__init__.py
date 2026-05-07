@@ -21,10 +21,12 @@ from pathlib import Path
 from import_export.models import ProjectImportation
 from import_export.notifications.content import (
     ProjectImportationFailNotificationContent,
+    ProjectImportationWarningFileNotificationContent,
 )
 from notifications import services as notifications_services
 
 PROJECT_IMPORTATION_FAILURE = "project_importation.fail"
+PROJECT_IMPORTATION_WARNING_FILE_TOO_BIG = "project_importation.warning.file_too_big"
 
 
 async def notify_when_project_importation_fail(
@@ -37,5 +39,21 @@ async def notify_when_project_importation_fail(
         content=ProjectImportationFailNotificationContent(
             workspace=project_importation.workspace,
             project_importation=project_importation,
+        ),
+    )
+
+
+async def notify_when_project_importation_file_too_big_warning(
+    project_importation: ProjectImportation, file_name: str, file_size: int
+) -> None:
+    await notifications_services.notify_users(
+        notification_type=PROJECT_IMPORTATION_WARNING_FILE_TOO_BIG,
+        emitted_by=None,
+        notified_user_ids=[project_importation.created_by_id],
+        content=ProjectImportationWarningFileNotificationContent(
+            project=project_importation.project,
+            project_importation=project_importation,
+            file_name=file_name,
+            file_size=file_size,
         ),
     )

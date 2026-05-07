@@ -86,6 +86,7 @@ async def create_story(
     user_id: UUID | None,
     order: Decimal,
     description: str | None = None,
+    **kwargs,
 ) -> Story:
     return await Story.objects.acreate(
         title=title,
@@ -95,6 +96,7 @@ async def create_story(
         status_id=status_id,
         created_by_id=user_id,
         order=order,
+        **kwargs,
     )
 
 
