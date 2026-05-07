@@ -45,7 +45,6 @@ from workflows.api.validators import (
 from workflows.models import Workflow, WorkflowStatus
 from workflows.permissions import WorkflowPermissionsCheck
 from workflows.serializers import (
-    ReorderWorkflowStatusesSerializer,
     WorkflowSerializer,
     WorkflowStatusSerializer,
 )

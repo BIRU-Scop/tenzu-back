@@ -18,6 +18,7 @@
 import logging
 from pathlib import Path
 from typing import Literal
+from uuid import UUID
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from pydantic import ValidationError
@@ -25,7 +26,7 @@ from slugify import slugify
 
 from base.utils.slug import generate_incremental_int_suffix
 from commons.colors import ordered_colour_generator
-from commons.utils import transaction_on_commit_async
+from commons.ordering import DEFAULT_ORDER_OFFSET
 from import_export import notifications
 from import_export.models import (
     ImportationError,
@@ -39,11 +40,16 @@ from import_export.serializers.taiga import (
     FullTaigaProjectImport,
     _TaigaMemberPermission,
 )
-from import_export.services import update_project_importation
+from import_export.services import (
+    succeed_project_importation,
+    update_project_importation,
+)
 from permissions.choices import ProjectPermissions
-from projects.projects import events as projects_events
 from projects.projects import services as projects_services
 from projects.projects.repositories import ProjectTemplateModel
+from stories.stories import repositories as stories_repositories
+from workflows import services as workflows_services
+from workflows.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -179,15 +185,11 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
         # TODO users
 
         if not taiga_project.is_kanban_activated:
-            await update_project_importation(
-                project_importation,
-                {"status": ImportationStatus.SUCCESS},
-            )
-            await transaction_on_commit_async(
-                projects_events.emit_event_when_project_is_created
-            )(project=project)
+            await succeed_project_importation(project_importation)
             return
-        # TODO stories
+        workflows = await workflows_services.list_workflows(project_id=project.id)
+        await do_import_taiga_stories(project_importation, workflows, taiga_project)
+        await succeed_project_importation(project_importation)
     except Exception as e:
         await update_project_importation(
             project_importation,
@@ -198,3 +200,50 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
         )
         await notifications.notify_when_project_importation_fail(project_importation)
         raise e
+
+
+async def do_import_taiga_stories(
+    project_importation: ProjectImportation,
+    workflows: list[Workflow],
+    taiga_project: TaigaProjectImport,
+):
+    order_by_status = {
+        status.id: 0 for workflow in workflows for status in workflow.statuses.all()
+    }
+    ids_by_name: dict[str | None, tuple[UUID, dict[str, UUID]]] = {
+        workflow.name: (
+            workflow.id,
+            {status.name: status.id for status in workflow.statuses.all()},
+        )
+        for workflow in workflows
+    }
+    ids_by_name[None] = next(
+        iter(ids_by_name.values())
+    )  # handle the case of no swimlane
+    for taiga_story in taiga_project.user_stories:
+        if taiga_story.status is None:
+            logger.warning(
+                f"Project import {project_importation.id} for file '{Path(project_importation.source.name or '').name}' has a story without status: #{taiga_story.ref} {taiga_story.subject}"
+            )
+            continue
+        assigned_users = {taiga_story.assigned_to, *taiga_story.assigned_users}
+        assigned_users.discard(None)
+        user_id = (
+            project_importation.created_by_id
+            if project_importation.created_by.email == taiga_story.owner
+            else None
+        )
+        workflow_id, statuses = ids_by_name[taiga_story.swimlane]
+        status_id = statuses[taiga_story.status]
+        order = order_by_status[status_id]
+        order_by_status[status_id] += DEFAULT_ORDER_OFFSET
+        story = await stories_repositories.create_story(
+            title=taiga_story.subject,
+            description="",  # TODO
+            project_id=project_importation.project_id,
+            workflow_id=workflow_id,
+            status_id=status_id,
+            user_id=user_id,
+            order=order,
+        )
+    # todo attachment, comment, assignment

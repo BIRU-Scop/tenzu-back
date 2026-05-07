@@ -37,6 +37,7 @@ from import_export.serializers import (
     ProjectImportationSerializer,
 )
 from import_export.services import exceptions as ex
+from projects.projects import events as projects_events
 from projects.projects import services as projects_services
 from users.models import User
 from workspaces.workspaces.models import Workspace
@@ -127,6 +128,16 @@ async def update_project_importation(
     #     project_detail=project_detail, updated_by=updated_by
     # )
     return updated_project_importation
+
+
+async def succeed_project_importation(project_importation: ProjectImportation):
+    await update_project_importation(
+        project_importation,
+        {"status": ImportationStatus.SUCCESS},
+    )
+    await transaction_on_commit_async(
+        projects_events.emit_event_when_project_is_created
+    )(project=project_importation.project)
 
 
 ##########################################################

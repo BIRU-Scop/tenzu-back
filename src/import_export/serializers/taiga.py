@@ -362,7 +362,9 @@ class _TaigaUserStory(BaseModel):
     watchers: list[EmailStr | None] = None
     owner: EmailStr | None = None
     assigned_to: EmailStr | None = None
-    assigned_users: list[EmailStr | None] = None
+    assigned_users: list[EmailStr | None] = (
+        None  # usually also contains assigned_to, but there is no guarantee of that
+    )
     status: str | None  # related name
     swimlane: str | None = None  # related name
     milestone: str | None = None  # related name

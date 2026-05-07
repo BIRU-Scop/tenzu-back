@@ -83,7 +83,7 @@ async def create_story(
     project_id: UUID,
     workflow_id: UUID,
     status_id: UUID,
-    user_id: UUID,
+    user_id: UUID | None,
     order: Decimal,
     description: str | None = None,
 ) -> Story:

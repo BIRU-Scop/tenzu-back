@@ -17,12 +17,13 @@
 # You can contact BIRU at ask@biru.sh
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 from django.core.files.uploadedfile import UploadedFile
 from django.test import override_settings
 
+from commons.ordering import DEFAULT_ORDER_OFFSET
 from import_export import services
 from import_export.models import (
     ImportationStatus,
@@ -30,8 +31,10 @@ from import_export.models import (
     ProjectImportationType,
 )
 from import_export.serializers import TaigaProjectImport
+from import_export.serializers.taiga import _TaigaUserStory
 from import_export.services.taiga import (
     convert_to_tenzu_permissions,
+    do_import_taiga_stories,
     ensure_roles_unique_attributes,
     get_template_from_taiga_project,
 )
@@ -40,6 +43,7 @@ from permissions.choices import ProjectPermissions
 from projects.memberships.models import ProjectRole
 from projects.projects.models import Project
 from projects.projects.repositories import ProjectTemplateModel
+from stories.stories.models import Story
 from tests.utils import factories as f
 from tests.utils.taskqueue import TestTasksQueueManager
 from workflows.models import Workflow, WorkflowStatus
@@ -71,6 +75,7 @@ async def test_do_import_project_no_kanban(tqmanager: TestTasksQueueManager, cap
     assert (
         await ProjectRole.objects.acount() == 9
     )  # 3 mandatory from Tenzu, 6 from import
+    assert not await Story.objects.aexists()
     assert not caplog.records
 
 
@@ -96,13 +101,14 @@ async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, capl
     project = await Project.objects.aget()
     importation = await ProjectImportation.objects.select_related("project").aget()
     assert project.created_at.year == 2025
-    assert importation.status == ImportationStatus.ONGOING
+    assert importation.status == ImportationStatus.SUCCESS
     assert importation.project == project
     assert await Workflow.objects.acount() == 2
     assert await WorkflowStatus.objects.acount() == 7 * 2
     assert (
         await ProjectRole.objects.acount() == 9
     )  # 3 mandatory from Tenzu, 6 from import
+    assert await Story.objects.acount() == 6
     assert not caplog.records
 
 
@@ -325,3 +331,69 @@ async def test_get_template_from_taiga_project():
                 ),
             ],
         )
+
+
+async def test_do_import_taiga_stories(caplog):
+    project_importation = f.build_project_importation()
+    workflows = [
+        f.build_workflow(
+            statuses=[f.build_workflow_status(), f.build_workflow_status()]
+        )
+    ]
+    with (
+        patch(
+            "import_export.services.taiga.stories_repositories", autospec=True
+        ) as fake_stories_repositories,
+    ):
+        await do_import_taiga_stories(
+            project_importation,
+            workflows,
+            TaigaProjectImport.model_construct(
+                user_stories=[
+                    _TaigaUserStory.model_construct(
+                        status=None, ref=1, subject="Test invalid"
+                    ),
+                    _TaigaUserStory.model_construct(
+                        assigned_to="1user@tenzu.test",
+                        assigned_users=["1user@tenzu.test", "2user@tenzu.test"],
+                        owner="1user@tenzu.test",
+                        subject="Test title1",
+                        swimlane=None,
+                        status=workflows[0].statuses.all()[1].name,
+                    ),
+                    _TaigaUserStory.model_construct(
+                        assigned_to="1user@tenzu.test",
+                        assigned_users=["1user@tenzu.test", "2user@tenzu.test"],
+                        owner=project_importation.created_by.email,
+                        subject="Test title2",
+                        swimlane=None,
+                        status=workflows[0].statuses.all()[1].name,
+                    ),
+                ]
+            ),
+        )
+        fake_stories_repositories.create_story.assert_has_awaits(
+            [
+                call(
+                    title="Test title1",
+                    description="",
+                    project_id=project_importation.project_id,
+                    workflow_id=workflows[0].id,
+                    status_id=workflows[0].statuses.all()[1].id,
+                    user_id=None,
+                    order=0,
+                ),
+                call(
+                    title="Test title2",
+                    description="",
+                    project_id=project_importation.project_id,
+                    workflow_id=workflows[0].id,
+                    status_id=workflows[0].statuses.all()[1].id,
+                    user_id=project_importation.created_by_id,
+                    order=0 + DEFAULT_ORDER_OFFSET,
+                ),
+            ]
+        )
+
+    assert len(caplog.records) == 1
+    assert "Test invalid" in caplog.records[0].message
