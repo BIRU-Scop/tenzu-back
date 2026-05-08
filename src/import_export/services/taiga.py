@@ -29,6 +29,7 @@ from slugify import slugify
 
 from attachments import repositories as attachments_repositories
 from base.utils.slug import generate_incremental_int_suffix
+from comments import repositories as comments_repositories
 from commons.colors import ordered_colour_generator
 from import_export import notifications
 from import_export.models import (
@@ -42,6 +43,7 @@ from import_export.serializers import (
 from import_export.serializers.taiga import (
     FullTaigaProjectImport,
     _TaigaAttachment,
+    _TaigaHistory,
     _TaigaMemberPermission,
 )
 from import_export.services import (
@@ -229,6 +231,7 @@ async def do_import_taiga_stories(
             continue
         assigned_users = {taiga_story.assigned_to, *taiga_story.assigned_users}
         assigned_users.discard(None)
+        # TODO handle users other than owner
         user_id = (
             project_importation.created_by_id
             if project_importation.created_by.email == taiga_story.owner
@@ -257,7 +260,8 @@ async def do_import_taiga_stories(
             await do_import_taiga_stories_attachment(
                 project_importation, story, attachment
             )
-    # todo comments
+        for event in taiga_story.history:
+            await do_import_taiga_stories_comment(project_importation, story, event)
 
 
 async def do_import_taiga_stories_attachment(
@@ -265,6 +269,7 @@ async def do_import_taiga_stories_attachment(
 ):
     if attachment.attached_file is None:
         return
+    # TODO handle users other than owner
     user = (
         project_importation.created_by
         if project_importation.created_by.email == attachment.owner
@@ -286,3 +291,35 @@ async def do_import_taiga_stories_attachment(
             object=story,
             created_by=user,
         )
+
+
+async def do_import_taiga_stories_comment(
+    project_importation: ProjectImportation, story: Story, event: _TaigaHistory
+):
+    if not event.comment:
+        return
+    # TODO handle users other than owner
+    user = (
+        project_importation.created_by
+        if project_importation.created_by.email
+        == (event.user[0] if event.user else None)
+        else None
+    )
+    delete_comment_user = (
+        project_importation.created_by
+        if project_importation.created_by.email
+        == (event.delete_comment_user[0] if event.delete_comment_user else None)
+        else None
+    )
+    comment_markdown = event.comment
+    await comments_repositories.create_comment(
+        content_object=story,
+        text=comment_markdown
+        if not event.delete_comment_date
+        else "",  # TODO convert from markdown
+        created_at=event.created_at,
+        created_by=user,
+        deleted_at=event.delete_comment_date,
+        deleted_by=delete_comment_user,
+        modified_at=event.edit_comment_date,
+    )

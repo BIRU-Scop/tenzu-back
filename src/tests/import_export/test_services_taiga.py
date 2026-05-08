@@ -24,6 +24,7 @@ from django.core.files.uploadedfile import UploadedFile
 from django.test import override_settings
 
 from attachments.models import Attachment
+from comments.models import Comment
 from import_export import services
 from import_export.models import (
     ImportationStatus,
@@ -34,12 +35,14 @@ from import_export.serializers import TaigaProjectImport
 from import_export.serializers.taiga import (
     _TaigaAttachment,
     _TaigaFile,
+    _TaigaHistory,
     _TaigaUserStory,
 )
 from import_export.services.taiga import (
     convert_to_tenzu_permissions,
     do_import_taiga_stories,
     do_import_taiga_stories_attachment,
+    do_import_taiga_stories_comment,
     ensure_roles_unique_attributes,
     get_template_from_taiga_project,
 )
@@ -117,6 +120,7 @@ async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, capl
     )  # 3 mandatory from Tenzu, 6 from import
     assert await Story.objects.acount() == 6
     assert await Attachment.objects.acount() == 4
+    assert await Comment.objects.acount() == 2
     assert not caplog.records
 
 
@@ -350,6 +354,7 @@ async def test_do_import_taiga_stories(caplog):
     ]
     now = aware_utcnow()
     attachment = _TaigaAttachment.model_construct(order=0)
+    event = _TaigaHistory.model_construct()
     with (
         patch(
             "import_export.services.taiga.stories_repositories", autospec=True
@@ -361,6 +366,10 @@ async def test_do_import_taiga_stories(caplog):
             "import_export.services.taiga.do_import_taiga_stories_attachment",
             autospec=True,
         ) as fake_do_import_taiga_stories_attachment,
+        patch(
+            "import_export.services.taiga.do_import_taiga_stories_comment",
+            autospec=True,
+        ) as fake_do_import_taiga_stories_comment,
     ):
         await do_import_taiga_stories(
             project_importation,
@@ -382,6 +391,7 @@ async def test_do_import_taiga_stories(caplog):
                         modified_date=None,
                         version=1,
                         attachments=[],
+                        history=[],
                     ),
                     _TaigaUserStory.model_construct(
                         assigned_to="1user@tenzu.test",
@@ -399,6 +409,7 @@ async def test_do_import_taiga_stories(caplog):
                         modified_date=None,
                         version=3,
                         attachments=[attachment],
+                        history=[event],
                     ),
                 ]
             ),
@@ -434,14 +445,19 @@ async def test_do_import_taiga_stories(caplog):
 
     assert len(caplog.records) == 1
     assert "Test invalid" in caplog.records[0].message
+    fake_story_assignments_repositories.create_story_assignment.assert_awaited_once_with(
+        story=fake_stories_repositories.create_story.return_value,
+        user=project_importation.created_by,
+    )
     fake_do_import_taiga_stories_attachment.assert_awaited_once_with(
         project_importation,
         fake_stories_repositories.create_story.return_value,
         attachment,
     )
-    fake_story_assignments_repositories.create_story_assignment.assert_awaited_once_with(
-        story=fake_stories_repositories.create_story.return_value,
-        user=project_importation.created_by,
+    fake_do_import_taiga_stories_comment.assert_awaited_once_with(
+        project_importation,
+        fake_stories_repositories.create_story.return_value,
+        event,
     )
 
 
@@ -518,3 +534,104 @@ async def test_do_import_taiga_stories_attachment_ko():
         fake_notifications.notify_when_project_importation_file_too_big_warning.assert_awaited_once_with(
             project_importation, "test_file.png", len(attachment.attached_file.data)
         )
+
+
+async def test_do_import_taiga_stories_comment_ok():
+    project_importation = f.build_project_importation()
+    story = f.build_story()
+    now = aware_utcnow()
+    with (
+        patch(
+            "import_export.services.taiga.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
+    ):
+        comment = _TaigaHistory.model_construct(
+            user=(project_importation.created_by.email, ""),
+            created_at=now,
+            comment="Test comment",
+            delete_comment_date=None,
+            delete_comment_user=None,
+            edit_comment_date=now,
+        )
+        await do_import_taiga_stories_comment(project_importation, story, comment)
+        fake_comments_repositories.create_comment.assert_awaited_once_with(
+            content_object=story,
+            text="Test comment",
+            created_at=now,
+            created_by=project_importation.created_by,
+            deleted_at=None,
+            deleted_by=None,
+            modified_at=now,
+        )
+
+
+@pytest.mark.parametrize(
+    "user",
+    [[], None, "not-existing"],
+)
+async def test_do_import_taiga_stories_comment_ok_no_user(user):
+    project_importation = f.build_project_importation()
+    story = f.build_story()
+    now = aware_utcnow()
+    with (
+        patch(
+            "import_export.services.taiga.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
+    ):
+        comment = _TaigaHistory.model_construct(
+            user=user,
+            created_at=now,
+            comment="Test comment",
+            delete_comment_date=None,
+            delete_comment_user=None,
+            edit_comment_date=None,
+        )
+        await do_import_taiga_stories_comment(project_importation, story, comment)
+        fake_comments_repositories.create_comment.assert_awaited_once_with(
+            content_object=story,
+            text="Test comment",
+            created_at=now,
+            created_by=None,
+            deleted_at=None,
+            deleted_by=None,
+            modified_at=None,
+        )
+
+
+async def test_do_import_taiga_stories_comment_ok_deleted():
+    project_importation = f.build_project_importation()
+    story = f.build_story()
+    now = aware_utcnow()
+    with (
+        patch(
+            "import_export.services.taiga.comments_repositories", autospec=True
+        ) as fake_comments_repositories,
+    ):
+        comment = _TaigaHistory.model_construct(
+            user=None,
+            created_at=now,
+            comment="Test comment",
+            delete_comment_date=now,
+            delete_comment_user=(project_importation.created_by.email, ""),
+            edit_comment_date=None,
+        )
+        await do_import_taiga_stories_comment(project_importation, story, comment)
+        fake_comments_repositories.create_comment.assert_awaited_once_with(
+            content_object=story,
+            text="",
+            created_at=now,
+            created_by=None,
+            deleted_at=now,
+            deleted_by=project_importation.created_by,
+            modified_at=None,
+        )
+
+
+async def test_do_import_taiga_stories_comment_ko():
+    project_importation = f.build_project_importation()
+    story = f.build_story()
+    comment = _TaigaHistory.model_construct(
+        comment="",
+    )
+    # next statement won't do anything, hence it won't trigger any DB operation
+    await do_import_taiga_stories_comment(project_importation, story, comment)

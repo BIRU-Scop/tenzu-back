@@ -20,6 +20,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
+import enum
 from base64 import b64decode
 from datetime import datetime
 from typing import Annotated, Any, Iterable, Literal
@@ -99,18 +100,30 @@ _TaigaAnonPermission = Literal[
     "view_wiki_links",
 ]
 
+_TaigaHistoryUser = (
+    tuple[str | None, str] | conlist(Any, max_length=0) | None
+)  # tuple (email, name) usually, [] if field was empty and None if user was not found (deleted)
+
+
+class _TaigaHistoryType(enum.IntEnum):
+    change = 1
+    create = 2
+    delete = 3
+
 
 class _TaigaHistory(BaseModel):
-    user: tuple[str | None, str]
+    user: _TaigaHistoryUser
     created_at: datetime
-    type: int
+    type: Literal[_TaigaHistoryType.change, _TaigaHistoryType.create]
     diff: dict
     snapshot: dict | None
     values: dict
     comment: str
     delete_comment_date: datetime | None
-    delete_comment_user: tuple[str | None, str] | conlist(None, max_length=0) | None
-    comment_versions: list[dict] | None
+    delete_comment_user: _TaigaHistoryUser
+    comment_versions: (
+        list[dict] | None
+    )  # format is {date, user: {id}, comment, comment_html} for each previous version
     edit_comment_date: datetime | None
     is_hidden: bool
     is_snapshot: bool
