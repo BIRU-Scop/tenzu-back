@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -43,7 +43,7 @@ async def test_create_notification():
         owner_ids=[user1.id, user2.id],
         created_by=user3,
         notification_type="test_notification",
-        content={"msg": "test"},
+        content_list=[{"msg": "test"}],
     )
 
     assert len(notifications) == 2

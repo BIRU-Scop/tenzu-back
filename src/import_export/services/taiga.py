@@ -213,6 +213,7 @@ async def do_import_taiga_stories(
     workflows: list[Workflow],
     taiga_project: TaigaProjectImport,
 ):
+    BULK_SIZE = 250
     ids_by_name: dict[str | None, tuple[UUID, dict[str, UUID]]] = {
         workflow.name: (
             workflow.id,
@@ -223,6 +224,7 @@ async def do_import_taiga_stories(
     ids_by_name[None] = next(
         iter(ids_by_name.values())
     )  # handle the case of no swimlane
+    attachment_warnings: list[notifications.WarningFileTooBig] = []
     for taiga_story in taiga_project.user_stories:
         if taiga_story.status is None:
             logger.warning(
@@ -241,7 +243,7 @@ async def do_import_taiga_stories(
         status_id = statuses[taiga_story.status]
         story = await stories_repositories.create_story(
             title=taiga_story.subject,
-            description="",  # TODO
+            description="",  # TODO convert from markdown taiga_story.description
             project_id=project_importation.project_id,
             workflow_id=workflow_id,
             status_id=status_id,
@@ -258,14 +260,26 @@ async def do_import_taiga_stories(
         # TODO keep track of other assigned users for later processing
         for attachment in sorted(taiga_story.attachments, key=attrgetter("order")):
             await do_import_taiga_stories_attachment(
-                project_importation, story, attachment
+                project_importation, story, attachment, attachment_warnings
             )
         for event in taiga_story.history:
             await do_import_taiga_stories_comment(project_importation, story, event)
+        if len(attachment_warnings) >= BULK_SIZE:
+            await notifications.notify_when_project_importation_file_too_big_warning(
+                project_importation, attachment_warnings
+            )
+            attachment_warnings.clear()
+    if attachment_warnings:
+        await notifications.notify_when_project_importation_file_too_big_warning(
+            project_importation, attachment_warnings
+        )
 
 
 async def do_import_taiga_stories_attachment(
-    project_importation: ProjectImportation, story: Story, attachment: _TaigaAttachment
+    project_importation: ProjectImportation,
+    story: Story,
+    attachment: _TaigaAttachment,
+    attachment_warnings: list[notifications.WarningFileTooBig],
 ):
     if attachment.attached_file is None:
         return
@@ -282,9 +296,7 @@ async def do_import_taiga_stories_attachment(
         or "application/octet-stream",
     )
     if file.size > settings.MAX_UPLOAD_FILE_SIZE:
-        await notifications.notify_when_project_importation_file_too_big_warning(
-            project_importation, file.name, file.size
-        )
+        attachment_warnings.append({"file_name": file.name, "file_size": file.size})
     else:
         await attachments_repositories.create_attachment(
             file=file,
@@ -311,12 +323,11 @@ async def do_import_taiga_stories_comment(
         == (event.delete_comment_user[0] if event.delete_comment_user else None)
         else None
     )
-    comment_markdown = event.comment
     await comments_repositories.create_comment(
         content_object=story,
-        text=comment_markdown
+        text=event.comment
         if not event.delete_comment_date
-        else "",  # TODO convert from markdown
+        else "",  # TODO convert from markdown event.comment
         created_at=event.created_at,
         created_by=user,
         deleted_at=event.delete_comment_date,

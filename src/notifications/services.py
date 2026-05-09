@@ -33,13 +33,13 @@ async def notify_users(
     notification_type: str,
     emitted_by: User | None,
     notified_user_ids: Iterable[UUID],
-    content: BaseSchema,
+    content_list: list[BaseSchema],
 ) -> None:
     notifications = await notifications_repositories.create_notifications(
         owner_ids=notified_user_ids,
         created_by=emitted_by,
         notification_type=notification_type,
-        content=content.dict(),
+        content_list=[content.dict() for content in content_list],
     )
     await notifications_events.emit_event_when_notifications_are_created(
         notifications=notifications

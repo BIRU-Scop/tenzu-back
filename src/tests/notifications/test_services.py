@@ -53,14 +53,14 @@ async def test_notify_users():
             notification_type="test",
             emitted_by=user,
             notified_user_ids=[user.id],
-            content=content,
+            content_list=[content],
         )
 
         fake_notifications_repository.create_notifications.assert_called_once_with(
             owner_ids=[user.id],
             created_by=user,
             notification_type="test",
-            content={"msg": "Test notify"},
+            content_list=[{"msg": "Test notify"}],
         )
 
         fake_notifications_events.emit_event_when_notifications_are_created.assert_called_once_with(

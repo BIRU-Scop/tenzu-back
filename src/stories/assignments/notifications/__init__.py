@@ -44,12 +44,14 @@ async def notify_when_story_is_assigned(
         notification_type=STORIES_ASSIGN,
         emitted_by=emitted_by,
         notified_user_ids=notified_user_ids,
-        content=StoryAssignNotificationContent(
-            project=story.project,
-            story=story,
-            assigned_by=emitted_by,
-            assigned_to=assigned_to,
-        ),
+        content_list=[
+            StoryAssignNotificationContent(
+                project=story.project,
+                story=story,
+                assigned_by=emitted_by,
+                assigned_to=assigned_to,
+            )
+        ],
     )
 
 
@@ -68,10 +70,12 @@ async def notify_when_story_is_unassigned(
         notification_type=STORIES_UNASSIGN,
         emitted_by=emitted_by,
         notified_user_ids=notified_user_ids,
-        content=StoryUnassignNotificationContent(
-            project=story.project,
-            story=story,
-            unassigned_by=emitted_by,
-            unassigned_to=unassigned_to,
-        ),
+        content_list=[
+            StoryUnassignNotificationContent(
+                project=story.project,
+                story=story,
+                unassigned_by=emitted_by,
+                unassigned_to=unassigned_to,
+            )
+        ],
     )

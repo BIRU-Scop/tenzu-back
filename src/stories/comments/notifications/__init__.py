@@ -38,10 +38,12 @@ async def notify_when_story_comment_is_created(
         notification_type=STORY_COMMENT_CREATE,
         emitted_by=emitted_by,
         notified_user_ids=notified_user_ids,
-        content=StoryCommentCreateNotificationContent(
-            project=story.project,
-            story=story,
-            commented_by=emitted_by,
-            comment=comment,
-        ),
+        content_list=[
+            StoryCommentCreateNotificationContent(
+                project=story.project,
+                story=story,
+                commented_by=emitted_by,
+                comment=comment,
+            )
+        ],
     )

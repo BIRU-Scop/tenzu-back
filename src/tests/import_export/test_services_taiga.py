@@ -47,6 +47,7 @@ from import_export.services.taiga import (
     get_template_from_taiga_project,
 )
 from ninja_jwt.utils import aware_utcnow
+from notifications.models import Notification
 from permissions.choices import ProjectPermissions
 from projects.memberships.models import ProjectRole
 from projects.projects.models import Project
@@ -84,6 +85,7 @@ async def test_do_import_project_no_kanban(tqmanager: TestTasksQueueManager, cap
         await ProjectRole.objects.acount() == 9
     )  # 3 mandatory from Tenzu, 6 from import
     assert not await Story.objects.aexists()
+    assert not await Notification.objects.aexists()
     assert not caplog.records
 
 
@@ -121,6 +123,34 @@ async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, capl
     assert await Story.objects.acount() == 6
     assert await Attachment.objects.acount() == 4
     assert await Comment.objects.acount() == 2
+    assert not await Notification.objects.aexists()
+    assert not caplog.records
+
+
+@pytest.mark.django_db
+@override_settings(**{"MAX_UPLOAD_FILE_SIZE": 1})
+async def test_do_import_project_complete_with_warnings(
+    tqmanager: TestTasksQueueManager, caplog
+):
+    workspace = await f.create_workspace()
+    source_path = (
+        Path(__file__).resolve().parent
+        / "samples"
+        / "export_from_taiga_project1_small.json"
+    )
+    with open(source_path) as source_file:
+        await services.import_project(
+            user=workspace.created_by,
+            workspace=workspace,
+            origin_type=ProjectImportationType.TAIGA,
+            source=UploadedFile(source_file),
+        )
+    assert len(tqmanager.pending_jobs) == 1
+    await tqmanager.run_async()
+    assert tqmanager.succeeded_jobs and not tqmanager.failed_jobs
+    assert await Story.objects.acount() == 6
+    assert not await Attachment.objects.aexists()
+    assert await Notification.objects.acount() == 4
     assert not caplog.records
 
 
@@ -453,6 +483,7 @@ async def test_do_import_taiga_stories(caplog):
         project_importation,
         fake_stories_repositories.create_story.return_value,
         attachment,
+        [],
     )
     fake_do_import_taiga_stories_comment.assert_awaited_once_with(
         project_importation,
@@ -464,6 +495,7 @@ async def test_do_import_taiga_stories(caplog):
 async def test_do_import_taiga_stories_attachment_ok():
     project_importation = f.build_project_importation()
     story = f.build_story()
+    warnings = []
     with (
         patch(
             "import_export.services.taiga.attachments_repositories", autospec=True
@@ -476,7 +508,9 @@ async def test_do_import_taiga_stories_attachment_ok():
                 data=b"some initial text data", name="path/test_file.png"
             ),
         )
-        await do_import_taiga_stories_attachment(project_importation, story, attachment)
+        await do_import_taiga_stories_attachment(
+            project_importation, story, attachment, warnings
+        )
         fake_attachments_repositories.create_attachment.assert_awaited_once()
         assert (
             story
@@ -494,7 +528,9 @@ async def test_do_import_taiga_stories_attachment_ok():
         attachment.owner = "1user@tenzu.test"
         fake_attachments_repositories.create_attachment.reset_mock()
 
-        await do_import_taiga_stories_attachment(project_importation, story, attachment)
+        await do_import_taiga_stories_attachment(
+            project_importation, story, attachment, warnings
+        )
         fake_attachments_repositories.create_attachment.assert_awaited_once()
         assert (
             story
@@ -508,32 +544,33 @@ async def test_do_import_taiga_stories_attachment_ok():
             ]
             is None
         )
+        assert not warnings
 
 
 @override_settings(**{"MAX_UPLOAD_FILE_SIZE": 0})
 async def test_do_import_taiga_stories_attachment_ko():
     project_importation = f.build_project_importation()
     story = f.build_story()
-    with (
-        patch(
-            "import_export.services.taiga.notifications", autospec=True
-        ) as fake_notifications,
-    ):
-        attachment = _TaigaAttachment.model_construct(
-            owner="1user@tenzu.test",
-            name="test_file.png",
-            attached_file=None,
-        )
-        # next statement won't do anything, hence it won't trigger any DB operation
-        await do_import_taiga_stories_attachment(project_importation, story, attachment)
+    warnings = []
+    attachment = _TaigaAttachment.model_construct(
+        owner="1user@tenzu.test",
+        name="test_file.png",
+        attached_file=None,
+    )
+    # next statement won't do anything, hence it won't trigger any DB operation
+    await do_import_taiga_stories_attachment(
+        project_importation, story, attachment, warnings
+    )
 
-        attachment.attached_file = _TaigaFile.model_construct(
-            data=b"some initial text data", name="path/test_file.png"
-        )
-        await do_import_taiga_stories_attachment(project_importation, story, attachment)
-        fake_notifications.notify_when_project_importation_file_too_big_warning.assert_awaited_once_with(
-            project_importation, "test_file.png", len(attachment.attached_file.data)
-        )
+    attachment.attached_file = _TaigaFile.model_construct(
+        data=b"some initial text data", name="path/test_file.png"
+    )
+    await do_import_taiga_stories_attachment(
+        project_importation, story, attachment, warnings
+    )
+    assert warnings == [
+        {"file_name": "test_file.png", "file_size": len(attachment.attached_file.data)}
+    ]
 
 
 async def test_do_import_taiga_stories_comment_ok():

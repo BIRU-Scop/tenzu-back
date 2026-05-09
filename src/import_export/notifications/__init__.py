@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from pathlib import Path
+from typing import TypedDict
 
 from import_export.models import ProjectImportation
 from import_export.notifications.content import (
@@ -29,6 +29,11 @@ PROJECT_IMPORTATION_FAILURE = "project_importation.fail"
 PROJECT_IMPORTATION_WARNING_FILE_TOO_BIG = "project_importation.warning.file_too_big"
 
 
+class WarningFileTooBig(TypedDict):
+    file_name: str
+    file_size: int
+
+
 async def notify_when_project_importation_fail(
     project_importation: ProjectImportation,
 ) -> None:
@@ -36,24 +41,29 @@ async def notify_when_project_importation_fail(
         notification_type=PROJECT_IMPORTATION_FAILURE,
         emitted_by=None,
         notified_user_ids=[project_importation.created_by_id],
-        content=ProjectImportationFailNotificationContent(
-            workspace=project_importation.workspace,
-            project_importation=project_importation,
-        ),
+        content_list=[
+            ProjectImportationFailNotificationContent(
+                workspace=project_importation.workspace,
+                project_importation=project_importation,
+            )
+        ],
     )
 
 
 async def notify_when_project_importation_file_too_big_warning(
-    project_importation: ProjectImportation, file_name: str, file_size: int
+    project_importation: ProjectImportation, warnings: list[WarningFileTooBig]
 ) -> None:
     await notifications_services.notify_users(
         notification_type=PROJECT_IMPORTATION_WARNING_FILE_TOO_BIG,
         emitted_by=None,
         notified_user_ids=[project_importation.created_by_id],
-        content=ProjectImportationWarningFileNotificationContent(
-            project=project_importation.project,
-            project_importation=project_importation,
-            file_name=file_name,
-            file_size=file_size,
-        ),
+        content_list=[
+            ProjectImportationWarningFileNotificationContent(
+                project=project_importation.project,
+                project_importation=project_importation,
+                file_name=warning["file_name"],
+                file_size=warning["file_size"],
+            )
+            for warning in warnings
+        ],
     )
