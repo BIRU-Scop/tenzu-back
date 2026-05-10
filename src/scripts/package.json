@@ -13,7 +13,7 @@
   "dependencies": {
     "@blocknote/code-block": "^0.46.1",
     "@blocknote/core": "^0.46.1",
-    "jsdom": "^27.4.0",
+    "@blocknote/server-util": "^0.46.1",
     "yjs": "^13.6.29"
   }
 }

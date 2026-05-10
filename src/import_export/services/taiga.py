@@ -26,6 +26,7 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import DatabaseError
 from pydantic import ValidationError
 from slugify import slugify
 
@@ -62,6 +63,10 @@ from stories.assignments import repositories as story_assignments_repositories
 from stories.assignments.models import StoryAssignment
 from stories.stories import repositories as stories_repositories
 from stories.stories.models import Story
+from stories.stories.services.blocknote import (
+    BlockNoteConverter,
+    BlockNoteEmptyOutputError,
+)
 from workflows import services as workflows_services
 from workflows.models import Workflow
 
@@ -202,6 +207,9 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
         workflows = await workflows_services.list_workflows(project_id=project.id)
         await do_import_taiga_stories(project_importation, workflows, taiga_project)
         await succeed_project_importation(project_importation)
+    except (RuntimeError, BlockNoteEmptyOutputError, DatabaseError) as e:
+        # TODO those are the errors where a retry of the job should be attempted
+        raise e
     except Exception as e:
         await update_project_importation(
             project_importation,
@@ -245,63 +253,77 @@ async def do_import_taiga_stories(
     await sync_to_async(ContentType.objects.get_for_model)(
         Story
     )  # fill cache for later generic relation queries (e.g. Comment, Attachment)
-    for taiga_story in taiga_project.user_stories:
-        if taiga_story.status is None:
-            logger.warning(
-                f"Project import {project_importation.id} for file '{Path(project_importation.source.name or '').name}' has a story without status: #{taiga_story.ref} {taiga_story.subject}"
+    # Start Node.js process once
+    with BlockNoteConverter(source_format="md") as converter:
+        for taiga_story in taiga_project.user_stories:
+            if taiga_story.status is None:
+                logger.warning(
+                    f"Project import {project_importation.id} for file '{Path(project_importation.source.name or '').name}' has a story without status: #{taiga_story.ref} {taiga_story.subject}"
+                )
+                continue
+            assigned_users = {taiga_story.assigned_to, *taiga_story.assigned_users}
+            assigned_users.discard(None)
+            # TODO handle users other than owner
+            user_id = (
+                project_importation.created_by_id
+                if project_importation.created_by.email == taiga_story.owner
+                else None
             )
-            continue
-        assigned_users = {taiga_story.assigned_to, *taiga_story.assigned_users}
-        assigned_users.discard(None)
-        # TODO handle users other than owner
-        user_id = (
-            project_importation.created_by_id
-            if project_importation.created_by.email == taiga_story.owner
-            else None
-        )
-        workflow_id, statuses = ids_by_name[taiga_story.swimlane]
-        status_id = statuses[taiga_story.status]
-        story = Story(
-            title=taiga_story.subject,
-            description="",  # TODO convert from markdown taiga_story.description
-            project_id=project_importation.project_id,
-            workflow_id=workflow_id,
-            status_id=status_id,
-            created_by_id=user_id,
-            order=taiga_story.kanban_order,
-            created_at=taiga_story.created_date,
-            description_updated_at=taiga_story.modified_date,
-            version=taiga_story.version,
-        )
-        stories_to_create.append(story)
-        if project_importation.created_by.email in assigned_users:
-            assignments_to_create.append(
-                StoryAssignment(story=story, user=project_importation.created_by)
+            workflow_id, statuses = ids_by_name[taiga_story.swimlane]
+            status_id = statuses[taiga_story.status]
+
+            binary_data, block_data = None, None
+            if taiga_story.description:
+                _, binary_data, block_data = converter.convert(
+                    {"id": "0", "content": taiga_story.description}
+                )
+
+            story = Story(
+                title=taiga_story.subject,
+                description=block_data,
+                description_binary=binary_data,
+                project_id=project_importation.project_id,
+                workflow_id=workflow_id,
+                status_id=status_id,
+                created_by_id=user_id,
+                order=taiga_story.kanban_order,
+                created_at=taiga_story.created_date,
+                description_updated_at=taiga_story.modified_date,
+                version=taiga_story.version,
             )
-        # TODO keep track of other assigned users for later processing
-        for taiga_attachment in sorted(
-            taiga_story.attachments, key=attrgetter("order")
-        ):
-            attachment = build_story_attachment_from_taiga(
-                project_importation, story, taiga_attachment, attachment_warnings
-            )
-            if attachment is not None:
-                attachments_to_create.append(attachment)
-        for event in taiga_story.history:
-            comment = build_story_comment_from_taiga(project_importation, story, event)
-            if comment is not None:
-                comments_to_create.append(comment)
-        if any(len(list_to_create) >= BULK_SIZE for list_to_create in all_to_create):
-            await bulk_create_all(
-                project_importation=project_importation,
-                stories_to_create=stories_to_create,
-                assignments_to_create=assignments_to_create,
-                attachments_to_create=attachments_to_create,
-                comments_to_create=comments_to_create,
-                attachment_warnings=attachment_warnings,
-            )
-            for list_to_create in all_to_create:
-                list_to_create.clear()
+            stories_to_create.append(story)
+            if project_importation.created_by.email in assigned_users:
+                assignments_to_create.append(
+                    StoryAssignment(story=story, user=project_importation.created_by)
+                )
+            # TODO keep track of other assigned users for later processing
+            for taiga_attachment in sorted(
+                taiga_story.attachments, key=attrgetter("order")
+            ):
+                attachment = build_story_attachment_from_taiga(
+                    project_importation, story, taiga_attachment, attachment_warnings
+                )
+                if attachment is not None:
+                    attachments_to_create.append(attachment)
+            for event in taiga_story.history:
+                comment = build_story_comment_from_taiga(
+                    converter, project_importation, story, event
+                )
+                if comment is not None:
+                    comments_to_create.append(comment)
+            if any(
+                len(list_to_create) >= BULK_SIZE for list_to_create in all_to_create
+            ):
+                await bulk_create_all(
+                    project_importation=project_importation,
+                    stories_to_create=stories_to_create,
+                    assignments_to_create=assignments_to_create,
+                    attachments_to_create=attachments_to_create,
+                    comments_to_create=comments_to_create,
+                    attachment_warnings=attachment_warnings,
+                )
+                for list_to_create in all_to_create:
+                    list_to_create.clear()
     # Flush remaining objects
     await bulk_create_all(
         project_importation=project_importation,
@@ -376,7 +398,10 @@ def build_story_attachment_from_taiga(
 
 
 def build_story_comment_from_taiga(
-    project_importation: ProjectImportation, story: Story, event: _TaigaHistory
+    converter: BlockNoteConverter,
+    project_importation: ProjectImportation,
+    story: Story,
+    event: _TaigaHistory,
 ) -> Comment | None:
     if not event.comment:
         return None
@@ -393,11 +418,13 @@ def build_story_comment_from_taiga(
         == (event.delete_comment_user[0] if event.delete_comment_user else None)
         else None
     )
+
+    block_data = ""
+    if not event.delete_comment_date:
+        _, _, block_data = converter.convert({"id": "0", "content": event.comment})
     return Comment(
         content_object=story,
-        text=event.comment
-        if not event.delete_comment_date
-        else "",  # TODO convert from markdown event.comment
+        text=block_data,
         created_at=event.created_at,
         created_by=user,
         deleted_at=event.delete_comment_date,

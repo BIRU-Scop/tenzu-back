@@ -17,8 +17,9 @@
 # You can contact BIRU at ask@biru.sh
 
 from pathlib import Path
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, patch
 
+import orjson
 import pytest
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import UploadedFile
@@ -406,6 +407,7 @@ async def test_do_import_taiga_stories(caplog):
                         assigned_users=["1user@tenzu.test", "2user@tenzu.test"],
                         owner="1user@tenzu.test",
                         subject="Test title1",
+                        description="",
                         swimlane=None,
                         status=workflows[0].statuses.all()[1].name,
                         kanban_order=1,
@@ -424,6 +426,7 @@ async def test_do_import_taiga_stories(caplog):
                         ],
                         owner=project_importation.created_by.email,
                         subject="Test title2",
+                        description="*text* \nIn **markdown**\n#Title\n- and\n- a\n- list\n",
                         swimlane=None,
                         status=workflows[0].statuses.all()[1].name,
                         kanban_order=10,
@@ -452,7 +455,7 @@ async def test_do_import_taiga_stories(caplog):
         == value
         for key, value in dict(
             title="Test title1",
-            description="",
+            description=None,
             project_id=project_importation.project_id,
             workflow_id=workflows[0].id,
             status_id=workflows[0].statuses.all()[1].id,
@@ -468,7 +471,6 @@ async def test_do_import_taiga_stories(caplog):
         == value
         for key, value in dict(
             title="Test title2",
-            description="",
             project_id=project_importation.project_id,
             workflow_id=workflows[0].id,
             status_id=workflows[0].statuses.all()[1].id,
@@ -479,6 +481,12 @@ async def test_do_import_taiga_stories(caplog):
             version=3,
         ).items()
     )
+    assert orjson.loads(
+        fake_bulk_create_all.await_args.kwargs["stories_to_create"][1].description
+    )
+    assert fake_bulk_create_all.await_args.kwargs["stories_to_create"][
+        1
+    ].description_binary
     assert len(fake_bulk_create_all.await_args.kwargs["assignments_to_create"]) == 1
     assert len(fake_bulk_create_all.await_args.kwargs["attachments_to_create"]) == 0
     assert len(fake_bulk_create_all.await_args.kwargs["comments_to_create"]) == 0
@@ -558,12 +566,17 @@ async def test_do_import_taiga_stories_comment_ok():
         edit_comment_date=now,
     )
     with patch.object(ContentType.objects, "get_for_model", return_value=ContentType()):
-        comment = build_story_comment_from_taiga(project_importation, story, comment)
+        comment = build_story_comment_from_taiga(
+            MagicMock(convert=lambda _: ("", "", "[]")),
+            project_importation,
+            story,
+            comment,
+        )
     assert all(
         getattr(comment, key) == value
         for key, value in dict(
+            text="[]",
             object_id=story.id,
-            text="Test comment",
             created_at=now,
             created_by_id=project_importation.created_by_id,
             deleted_at=None,
@@ -590,12 +603,17 @@ async def test_do_import_taiga_stories_comment_ok_no_user(user):
         edit_comment_date=None,
     )
     with patch.object(ContentType.objects, "get_for_model", return_value=ContentType()):
-        comment = build_story_comment_from_taiga(project_importation, story, comment)
+        comment = build_story_comment_from_taiga(
+            MagicMock(convert=lambda _: ("", "", "[]")),
+            project_importation,
+            story,
+            comment,
+        )
     assert all(
         getattr(comment, key) == value
         for key, value in dict(
+            text="[]",
             object_id=story.id,
-            text="Test comment",
             created_at=now,
             created_by_id=None,
             deleted_at=None,
@@ -618,7 +636,9 @@ async def test_do_import_taiga_stories_comment_ok_deleted():
         edit_comment_date=None,
     )
     with patch.object(ContentType.objects, "get_for_model", return_value=ContentType()):
-        comment = build_story_comment_from_taiga(project_importation, story, comment)
+        comment = build_story_comment_from_taiga(
+            MagicMock(), project_importation, story, comment
+        )
     assert all(
         getattr(comment, key) == value
         for key, value in dict(
@@ -639,4 +659,7 @@ async def test_do_import_taiga_stories_comment_ko():
     comment = _TaigaHistory.model_construct(
         comment="",
     )
-    assert build_story_comment_from_taiga(project_importation, story, comment) is None
+    assert (
+        build_story_comment_from_taiga(MagicMock(), project_importation, story, comment)
+        is None
+    )
