@@ -71,11 +71,15 @@ CommentOrderBy = list[
 
 
 async def create_comment(
-    content_object: Model, text: str, created_by: User | None, **kwargs
+    content_object: Model, text: str, created_by: User, **kwargs
 ) -> Comment:
     return await Comment.objects.acreate(
         text=text, created_by=created_by, content_object=content_object, **kwargs
     )
+
+
+async def bulk_create_comments(comments: list[Comment]) -> list[Comment]:
+    return await Comment.objects.abulk_create(comments)
 
 
 ##########################################################

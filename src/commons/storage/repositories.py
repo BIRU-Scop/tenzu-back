@@ -49,6 +49,12 @@ async def create_storaged_object(
     return await StoragedObject.objects.acreate(file=file)
 
 
+async def bulk_create_storaged_objects(
+    storaged_objects: list[StoragedObject],
+) -> list[StoragedObject]:
+    return await StoragedObject.objects.abulk_create(storaged_objects)
+
+
 ##########################################################
 # list storaged object
 ##########################################################

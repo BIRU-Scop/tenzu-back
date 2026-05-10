@@ -22,15 +22,20 @@ from pathlib import Path
 from typing import Literal
 from uuid import UUID
 
+from asgiref.sync import sync_to_async
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
 from pydantic import ValidationError
 from slugify import slugify
 
 from attachments import repositories as attachments_repositories
+from attachments.repositories import BulkAttachment
 from base.utils.slug import generate_incremental_int_suffix
 from comments import repositories as comments_repositories
+from comments.models import Comment
 from commons.colors import ordered_colour_generator
+from commons.utils import transaction_atomic_async
 from import_export import notifications
 from import_export.models import (
     ImportationError,
@@ -54,6 +59,7 @@ from permissions.choices import ProjectPermissions
 from projects.projects import services as projects_services
 from projects.projects.repositories import ProjectTemplateModel
 from stories.assignments import repositories as story_assignments_repositories
+from stories.assignments.models import StoryAssignment
 from stories.stories import repositories as stories_repositories
 from stories.stories.models import Story
 from workflows import services as workflows_services
@@ -224,7 +230,21 @@ async def do_import_taiga_stories(
     ids_by_name[None] = next(
         iter(ids_by_name.values())
     )  # handle the case of no swimlane
+    stories_to_create: list[Story] = []
+    assignments_to_create: list[StoryAssignment] = []
+    attachments_to_create: list[BulkAttachment] = []
+    comments_to_create: list[Comment] = []
     attachment_warnings: list[notifications.WarningFileTooBig] = []
+    all_to_create = (
+        stories_to_create,
+        assignments_to_create,
+        attachments_to_create,
+        comments_to_create,
+        attachment_warnings,
+    )
+    await sync_to_async(ContentType.objects.get_for_model)(
+        Story
+    )  # fill cache for later generic relation queries (e.g. Comment, Attachment)
     for taiga_story in taiga_project.user_stories:
         if taiga_story.status is None:
             logger.warning(
@@ -241,46 +261,96 @@ async def do_import_taiga_stories(
         )
         workflow_id, statuses = ids_by_name[taiga_story.swimlane]
         status_id = statuses[taiga_story.status]
-        story = await stories_repositories.create_story(
+        story = Story(
             title=taiga_story.subject,
             description="",  # TODO convert from markdown taiga_story.description
             project_id=project_importation.project_id,
             workflow_id=workflow_id,
             status_id=status_id,
-            user_id=user_id,
+            created_by_id=user_id,
             order=taiga_story.kanban_order,
             created_at=taiga_story.created_date,
             description_updated_at=taiga_story.modified_date,
             version=taiga_story.version,
         )
+        stories_to_create.append(story)
         if project_importation.created_by.email in assigned_users:
-            await story_assignments_repositories.create_story_assignment(
-                story=story, user=project_importation.created_by
+            assignments_to_create.append(
+                StoryAssignment(story=story, user=project_importation.created_by)
             )
         # TODO keep track of other assigned users for later processing
-        for attachment in sorted(taiga_story.attachments, key=attrgetter("order")):
-            await do_import_taiga_stories_attachment(
-                project_importation, story, attachment, attachment_warnings
+        for taiga_attachment in sorted(
+            taiga_story.attachments, key=attrgetter("order")
+        ):
+            attachment = build_story_attachment_from_taiga(
+                project_importation, story, taiga_attachment, attachment_warnings
             )
+            if attachment is not None:
+                attachments_to_create.append(attachment)
         for event in taiga_story.history:
-            await do_import_taiga_stories_comment(project_importation, story, event)
-        if len(attachment_warnings) >= BULK_SIZE:
-            await notifications.notify_when_project_importation_file_too_big_warning(
-                project_importation, attachment_warnings
+            comment = build_story_comment_from_taiga(project_importation, story, event)
+            if comment is not None:
+                comments_to_create.append(comment)
+        if any(len(list_to_create) >= BULK_SIZE for list_to_create in all_to_create):
+            await bulk_create_all(
+                project_importation=project_importation,
+                stories_to_create=stories_to_create,
+                assignments_to_create=assignments_to_create,
+                attachments_to_create=attachments_to_create,
+                comments_to_create=comments_to_create,
+                attachment_warnings=attachment_warnings,
             )
-            attachment_warnings.clear()
+            for list_to_create in all_to_create:
+                list_to_create.clear()
+    # Flush remaining objects
+    await bulk_create_all(
+        project_importation=project_importation,
+        stories_to_create=stories_to_create,
+        assignments_to_create=assignments_to_create,
+        attachments_to_create=attachments_to_create,
+        comments_to_create=comments_to_create,
+        attachment_warnings=attachment_warnings,
+    )
+
+
+@transaction_atomic_async
+async def bulk_create_all(
+    project_importation: ProjectImportation,
+    stories_to_create: list[Story],
+    assignments_to_create: list[StoryAssignment],
+    attachments_to_create: list[BulkAttachment],
+    comments_to_create: list[Comment],
+    attachment_warnings: list[notifications.WarningFileTooBig],
+):
+    if stories_to_create:
+        await stories_repositories.bulk_create_stories(
+            project_importation.project_id,
+            stories_to_create,
+        )
+    if assignments_to_create:
+        await story_assignments_repositories.bulk_create_story_assignments(
+            assignments_to_create,
+        )
+    if attachments_to_create:
+        await attachments_repositories.bulk_create_attachments(
+            attachments_to_create,
+        )
+    if comments_to_create:
+        await comments_repositories.bulk_create_comments(
+            comments_to_create,
+        )
     if attachment_warnings:
         await notifications.notify_when_project_importation_file_too_big_warning(
             project_importation, attachment_warnings
         )
 
 
-async def do_import_taiga_stories_attachment(
+def build_story_attachment_from_taiga(
     project_importation: ProjectImportation,
     story: Story,
     attachment: _TaigaAttachment,
     attachment_warnings: list[notifications.WarningFileTooBig],
-):
+) -> BulkAttachment | None:
     if attachment.attached_file is None:
         return
     # TODO handle users other than owner
@@ -297,19 +367,19 @@ async def do_import_taiga_stories_attachment(
     )
     if file.size > settings.MAX_UPLOAD_FILE_SIZE:
         attachment_warnings.append({"file_name": file.name, "file_size": file.size})
-    else:
-        await attachments_repositories.create_attachment(
-            file=file,
-            object=story,
-            created_by=user,
-        )
+        return None
+    return BulkAttachment(
+        file=file,
+        content_object=story,
+        created_by=user,
+    )
 
 
-async def do_import_taiga_stories_comment(
+def build_story_comment_from_taiga(
     project_importation: ProjectImportation, story: Story, event: _TaigaHistory
-):
+) -> Comment | None:
     if not event.comment:
-        return
+        return None
     # TODO handle users other than owner
     user = (
         project_importation.created_by
@@ -323,7 +393,7 @@ async def do_import_taiga_stories_comment(
         == (event.delete_comment_user[0] if event.delete_comment_user else None)
         else None
     )
-    await comments_repositories.create_comment(
+    return Comment(
         content_object=story,
         text=event.comment
         if not event.delete_comment_date

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,6 +22,7 @@ from asgiref.sync import sync_to_async
 
 from stories.assignments.models import StoryAssignment
 from stories.stories import repositories
+from stories.stories.models import Story
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -49,6 +50,37 @@ async def test_create_story_ok() -> None:
     )
 
     assert story.title == "test_create_story_ok"
+
+
+async def test_bulk_create_stories_ok() -> None:
+    user = await f.create_user()
+    project = await f.create_simple_project()
+    workflow = await f.create_workflow(project=project)
+    status = await f.create_workflow_status(workflow=workflow)
+    stories = [
+        Story(
+            title="test_create_story_ok1",
+            description="description",
+            project_id=project.id,
+            workflow_id=workflow.id,
+            status_id=status.id,
+            created_by_id=user.id,
+            order=100,
+        ),
+        Story(
+            title="test_create_story_ok2",
+            description="description",
+            project_id=project.id,
+            workflow_id=workflow.id,
+            status_id=status.id,
+            created_by_id=user.id,
+            order=100,
+        ),
+    ]
+
+    await repositories.bulk_create_stories(project.id, stories)
+    assert all(story.ref for story in stories)
+    assert all(story.pk for story in stories)
 
 
 ##########################################################

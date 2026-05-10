@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,11 +18,14 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from asgiref.sync import sync_to_async
+from django.contrib.contenttypes.models import ContentType
 
 from base.db.models import get_contenttype_for_model
 from comments import repositories
 from comments.models import Comment
 from ninja_jwt.utils import aware_utcnow
+from stories.stories.models import Story
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -47,6 +50,26 @@ async def test_create_comment_associated_to_and_object():
     assert comment.content_object == story
     assert comment.created_by == user
     assert comment.created_at < aware_utcnow()
+
+
+async def test_bulk_create_comments():
+    user = await f.create_user()
+    story = await f.create_story(created_by=user)
+    text = "some comment example"
+
+    await sync_to_async(ContentType.objects.get_for_model)(
+        Story
+    )  # fill cache for later generic relation queries
+
+    comments = [
+        Comment(text=text, content_object=story, created_by=user),
+        Comment(text=text, content_object=story, created_by=user),
+    ]
+
+    await repositories.bulk_create_comments(comments)
+
+    assert all(comment.pk for comment in comments)
+    assert all(comment.created_at < aware_utcnow() for comment in comments)
 
 
 ##########################################################

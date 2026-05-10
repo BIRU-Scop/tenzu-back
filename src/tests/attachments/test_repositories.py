@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,10 +18,15 @@
 # You can contact BIRU at ask@biru.sh
 
 import pytest
+from asgiref.sync import sync_to_async
+from django.contrib.contenttypes.models import ContentType
 
 from attachments import repositories
 from attachments.models import Attachment
+from attachments.repositories import BulkAttachment
 from base.db.models import get_contenttype_for_model
+from commons.storage.models import StoragedObject
+from stories.stories.models import Story
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -41,13 +46,40 @@ async def test_create_attachment(project_template):
     attachment = await repositories.create_attachment(
         file=file,
         created_by=user,
-        object=story,
+        content_object=story,
     )
 
     assert await story.attachments.acount() == 1
     assert attachment.name == file.name
     assert attachment.content_type == "image/png"
     assert attachment.size == 145
+
+
+async def test_bulk_create_attachment(project_template):
+    project = await f.create_project(project_template)
+    story = await f.create_story(project=project)
+    user = await f.create_user()
+    file = f.build_image_uploadfile(name="test")
+
+    await sync_to_async(ContentType.objects.get_for_model)(
+        Story
+    )  # fill cache for later generic relation queries
+
+    bulk_attachments = [
+        BulkAttachment(
+            file=file,
+            created_by=user,
+            content_object=story,
+        )
+    ] * 2
+    await repositories.bulk_create_attachments(bulk_attachments)
+
+    attachments = [attachment async for attachment in Attachment.objects.all()]
+    assert len(attachments) == 2
+    assert all(attachment.name == file.name for attachment in attachments)
+    assert all(attachment.content_type == "image/png" for attachment in attachments)
+    assert all(attachment.size == 145 for attachment in attachments)
+    assert await StoragedObject.objects.acount() == 2
 
 
 ##########################################################

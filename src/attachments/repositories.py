@@ -27,10 +27,11 @@ from ninja import UploadedFile
 from attachments.models import Attachment
 from base.utils.files import get_size
 from commons.storage import repositories as storage_repositories
+from commons.storage.models import StoragedObject
 from users.models import User
 
 ##########################################################
-# filters and querysets
+# filters, querysets and utility types
 ##########################################################
 
 
@@ -52,6 +53,12 @@ AttachmentPrefetchRelated = list[
 ]
 
 
+class BulkAttachment(TypedDict):
+    file: UploadedFile
+    created_by: User | None
+    content_object: Model
+
+
 ##########################################################
 # create attachment
 ##########################################################
@@ -59,8 +66,8 @@ AttachmentPrefetchRelated = list[
 
 async def create_attachment(
     file: UploadedFile,
-    created_by: User | None,
-    object: Model,
+    created_by: User,
+    content_object: Model,
 ) -> Attachment:
     storaged_object = await storage_repositories.create_storaged_object(file)
 
@@ -69,9 +76,29 @@ async def create_attachment(
         name=file.name or "unknown",
         size=get_size(file.file),
         content_type=file.content_type or "application/octet-stream",
-        content_object=object,
+        content_object=content_object,
         created_by=created_by,
     )
+
+
+async def bulk_create_attachments(
+    bulk_attachments: list[BulkAttachment],
+) -> list[Attachment]:
+    attachments = [
+        Attachment(
+            storaged_object=StoragedObject(file=attachment["file"]),
+            name=attachment["file"].name or "unknown",
+            size=get_size(attachment["file"].file),
+            content_type=attachment["file"].content_type or "application/octet-stream",
+            content_object=attachment["content_object"],
+            created_by=attachment["created_by"],
+        )
+        for attachment in bulk_attachments
+    ]
+    storaged_objects = [attachment.storaged_object for attachment in attachments]
+    # done first in order to populate ids of storaged_objects, only work on compatible database like postgres
+    await storage_repositories.bulk_create_storaged_objects(storaged_objects)
+    return await Attachment.objects.abulk_create(attachments)
 
 
 ##########################################################

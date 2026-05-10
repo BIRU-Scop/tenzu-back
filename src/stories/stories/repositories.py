@@ -21,12 +21,14 @@ from decimal import Decimal
 from typing import Any, Final, Literal, TypedDict
 from uuid import UUID
 
+from asgiref.sync import sync_to_async
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Q, QuerySet
 
 from base.occ import repositories as occ_repositories
 from base.repositories import neighbors as neighbors_repositories
 from base.repositories.neighbors import Neighbor
+from projects.references import get_multiple_new_project_reference_ids
 from stories.stories.models import Story
 
 ##########################################################
@@ -83,10 +85,9 @@ async def create_story(
     project_id: UUID,
     workflow_id: UUID,
     status_id: UUID,
-    user_id: UUID | None,
+    user_id: UUID,
     order: Decimal,
     description: str | None = None,
-    **kwargs,
 ) -> Story:
     return await Story.objects.acreate(
         title=title,
@@ -96,8 +97,16 @@ async def create_story(
         status_id=status_id,
         created_by_id=user_id,
         order=order,
-        **kwargs,
     )
+
+
+async def bulk_create_stories(project_id: UUID, stories: list[Story]) -> list[Story]:
+    refs = await sync_to_async(get_multiple_new_project_reference_ids)(
+        project_id, len(stories)
+    )
+    for story in stories:
+        story.ref = next(refs)
+    return await Story.objects.abulk_create(stories)
 
 
 ##########################################################
