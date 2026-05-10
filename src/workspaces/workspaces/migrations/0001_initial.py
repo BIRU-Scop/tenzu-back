@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,12 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+import uuid
+
 import django.core.validators
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
-import base.db.models
 import ninja_jwt.utils
 
 
@@ -41,7 +42,7 @@ class Migration(migrations.Migration):
                     "id",
                     models.UUIDField(
                         blank=True,
-                        default=base.db.models.uuid_generator,
+                        default=uuid.uuid7,
                         editable=False,
                         primary_key=True,
                         serialize=False,

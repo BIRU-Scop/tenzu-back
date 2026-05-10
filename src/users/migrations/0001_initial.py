@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 import re
+import uuid
 
 import django.contrib.auth.models
 import django.contrib.postgres.fields.jsonb
@@ -26,7 +27,6 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
-import base.db.models
 import base.db.models.fields
 import commons.colors
 import users.models
@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                     "id",
                     models.UUIDField(
                         blank=True,
-                        default=base.db.models.uuid_generator,
+                        default=uuid.uuid7,
                         editable=False,
                         primary_key=True,
                         serialize=False,
@@ -156,7 +156,7 @@ class Migration(migrations.Migration):
                     "id",
                     models.UUIDField(
                         blank=True,
-                        default=base.db.models.uuid_generator,
+                        default=uuid.uuid7,
                         editable=False,
                         primary_key=True,
                         serialize=False,

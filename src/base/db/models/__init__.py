@@ -40,7 +40,7 @@ class BaseDBModel(Model):
         primary_key=True,
         null=False,
         blank=True,
-        default=uuid_generator,
+        default=uuid.uuid7,  # TODO Try to replace with UUIDv7 db_default once on django 6.1 and postgres 18
         editable=False,
         verbose_name="ID",
     )
