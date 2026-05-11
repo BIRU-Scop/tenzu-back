@@ -46,6 +46,7 @@ include:
           changes:
             - "buildrun/docker/tenzu/Dockerfile"
             - "buildrun/docker/tenzu/requirements/devel.txt"
+            - "src/scripts/package-lock.json"
             - ".gitlab-ci.yml"
 
 stages:
