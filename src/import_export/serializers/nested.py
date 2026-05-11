@@ -24,6 +24,7 @@ from import_export.models import ImportationError, ImportationStatus, ProjectImp
 
 class ProjectImportationData(TypedDict, total=False):
     error_code: ImportationError
+    progress_percentage: int
 
 
 class ProjectImportationNestedSerializer(BaseSchema):

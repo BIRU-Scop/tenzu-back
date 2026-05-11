@@ -123,10 +123,12 @@ async def update_project_importation(
             project_importation=project_importation, values=values
         )
     )
-    # TODO send event about progress or error
-    # await projects_events.emit_event_when_project_is_updated(
-    #     project_detail=project_detail, updated_by=updated_by
-    # )
+    # Emit event
+    await transaction_on_commit_async(
+        import_export_events.emit_event_when_project_importation_is_updated
+    )(
+        project_importation=project_importation,
+    )
     return updated_project_importation
 
 

@@ -394,6 +394,9 @@ async def test_do_import_taiga_stories(caplog):
             "import_export.services.taiga.bulk_create_all", autospec=True
         ) as fake_bulk_create_all,
         patch.object(ContentType.objects, "get_for_model", return_value=ContentType()),
+        patch(
+            "import_export.services.taiga.update_project_importation", autospec=True
+        ) as fake_update_project_importation,
     ):
         await do_import_taiga_stories(
             project_importation,
@@ -445,6 +448,7 @@ async def test_do_import_taiga_stories(caplog):
     assert "Test invalid" in caplog.records[0].message
 
     fake_bulk_create_all.assert_awaited_once()
+    fake_update_project_importation.assert_awaited()
     assert (
         fake_bulk_create_all.await_args.kwargs["project_importation"]
         == project_importation

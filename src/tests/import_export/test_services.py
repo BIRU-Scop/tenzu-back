@@ -134,9 +134,14 @@ async def test_update_project_importation():
         patch(
             "import_export.services.import_export_repositories", autospec=True
         ) as fake_import_export_repositories,
+        patch(
+            "import_export.services.import_export_events", autospec=True
+        ) as fake_import_export_events,
+        patch_db_transaction(),
     ):
         await services.update_project_importation(importation, {})
         fake_import_export_repositories.update_project_importation.assert_called()
+        fake_import_export_events.emit_event_when_project_importation_is_updated.assert_called()
 
 
 ##########################################################

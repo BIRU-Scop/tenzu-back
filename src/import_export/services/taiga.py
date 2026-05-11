@@ -198,7 +198,14 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             else None,
             created_at=taiga_project.created_date,
         )
-        await update_project_importation(project_importation, {"project": project})
+        # send small progress percentage to indicate creation of statuses, workflow and roles
+        await update_project_importation(
+            project_importation,
+            {
+                "project": project,
+                "extra_data": {"progress_percentage": 2},
+            },
+        )
         # TODO users data from memberships and owner
 
         if not taiga_project.is_kanban_activated:
@@ -227,6 +234,9 @@ async def do_import_taiga_stories(
     workflows: list[Workflow],
     taiga_project: TaigaProjectImport,
 ):
+    processed_stories = 0
+    total_stories = len(taiga_project.user_stories)
+    current_percentage = project_importation.extra_data.get("progress_percentage", 0)
     BULK_SIZE = 250
     ids_by_name: dict[str | None, tuple[UUID, dict[str, UUID]]] = {
         workflow.name: (
@@ -324,6 +334,18 @@ async def do_import_taiga_stories(
                 )
                 for list_to_create in all_to_create:
                     list_to_create.clear()
+            processed_stories += 1
+            percentage = round(processed_stories / total_stories * 100)
+            # send update every 5% gain
+            if percentage >= current_percentage + 5:
+                current_percentage = percentage
+                await update_project_importation(
+                    project_importation,
+                    {
+                        "extra_data": {"progress_percentage": current_percentage},
+                    },
+                )
+
     # Flush remaining objects
     await bulk_create_all(
         project_importation=project_importation,
