@@ -15,6 +15,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+
+import functools
+from asyncio import Task, create_task
 from functools import partial
 from urllib.parse import urljoin
 
@@ -47,3 +50,28 @@ def transaction_on_commit_async(func):
         transaction.on_commit(partial(sync_func, *args, **kwargs))
 
     return wrapper
+
+
+def async_cache(async_function):
+    """
+    Decorator to use functools.cache with async function
+    !!!
+    autospec won't work with patch in tests, should be called instead with:
+        patch("PATH.FUNCTION_NAME", new=AsyncMock())
+    """
+
+    def clear_cache_on_exception(future: Task):
+        try:
+            future.result()
+        except Exception as e:
+            # prevent exception from being cached, to reproduce behaviour from functools.cache
+            cached_async_function.cache_clear()
+
+    @functools.cache
+    def cached_async_function(*args, **kwargs) -> Task:
+        coroutine = async_function(*args, **kwargs)
+        future = create_task(coroutine)
+        future.add_done_callback(clear_cache_on_exception)
+        return future
+
+    return cached_async_function

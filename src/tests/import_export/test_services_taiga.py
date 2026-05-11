@@ -17,7 +17,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import orjson
 import pytest
@@ -250,8 +250,9 @@ def test_ensure_roles_unique_attributes():
 async def test_get_template_from_taiga_project():
     with (
         patch(
-            "import_export.services.taiga.projects_services", autospec=True
-        ) as fake_projects_services,
+            "import_export.services.taiga.projects_services._get_default_template",
+            new=AsyncMock(),
+        ) as fake_get_default_template,
     ):
         default_roles = [
             {
@@ -272,8 +273,8 @@ async def test_get_template_from_taiga_project():
             },
         ]
         project_template = f.build_project_template(roles=default_roles)
-        fake_projects_services._get_default_template.return_value = (
-            ProjectTemplateModel.model_validate(project_template, from_attributes=True)
+        fake_get_default_template.return_value = ProjectTemplateModel.model_validate(
+            project_template, from_attributes=True
         )
         taiga_project = TaigaProjectImport(
             name="test",

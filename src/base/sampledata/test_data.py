@@ -33,7 +33,6 @@ from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects import services as projects_services
 from projects.projects.models import Project
-from projects.projects.repositories import ProjectTemplateModel
 from projects.projects.services import _get_default_template
 from users.models import User
 from workflows.models import Workflow, WorkflowStatus
@@ -59,7 +58,6 @@ PASSWORD = make_password("123123")
 
 @transaction_atomic_async
 async def load_test_data() -> None:
-    template = await _get_default_template()
     # USERS. Create users
     print("  - Creating sample users")
     all_users = await _create_users()
@@ -84,7 +82,7 @@ async def load_test_data() -> None:
         # create one project (kanban) in each workspace with the same creator
         # it applies a template and creates also owner and other roles
         project = await factories.create_project(
-            template=template, workspace=workspace, created_by=workspace.created_by
+            workspace=workspace, created_by=workspace.created_by
         )
 
         # add other users to different roles
@@ -106,27 +104,25 @@ async def load_test_data() -> None:
     )
     await factories.create_workspace_memberships(workspace=workspace, users=all_users)
     await factories.create_workspace_invitations(workspace=workspace, invitees=[])
-    await _create_empty_project(
-        template=template, created_by=custom_user, workspace=workspace
-    )
+    await _create_empty_project(created_by=custom_user, workspace=workspace)
     await _create_project_with_several_roles(
-        template=template, created_by=custom_user, workspace=workspace, users=users
+        created_by=custom_user, workspace=workspace, users=users
     )
-    await _create_project_membership_scenario(template)
+    await _create_project_membership_scenario()
 
     # CUSTOM SCENARIOS
     print("  - Creating scenario to check project invitations")
-    await _create_scenario_with_invitations(template)
+    await _create_scenario_with_invitations()
     print("  - Creating scenario to check user searching")
-    await _create_scenario_for_searches(template)
+    await _create_scenario_for_searches()
     print("  - Creating scenario to check revoke invitations")
-    await _create_scenario_for_revoke(template)
+    await _create_scenario_for_revoke()
     print("  - Creating scenarios to check big kanbans")
     await _create_scenario_with_1k_stories(
-        template=template, workspace=workspace, created_by=custom_user, users=all_users
+        workspace=workspace, created_by=custom_user, users=all_users
     )
     await _create_scenario_with_2k_stories_and_40_workflow_statuses(
-        template=template, workspace=workspace, created_by=custom_user, users=all_users
+        workspace=workspace, created_by=custom_user, users=all_users
     )
 
 
@@ -231,11 +227,9 @@ async def _create_workflow_status(
 ################################
 
 
-async def _create_empty_project(
-    template: ProjectTemplateModel, created_by: User, workspace: Workspace
-) -> None:
+async def _create_empty_project(created_by: User, workspace: Workspace) -> None:
     await projects_services._create_project(
-        template=template,
+        template=await _get_default_template(),
         name="Empty project",
         description=fake.paragraph(nb_sentences=2),
         color=fake.random_int(min=1, max=NUM_COLORS),
@@ -245,16 +239,10 @@ async def _create_empty_project(
 
 
 async def _create_project_with_several_roles(
-    template: ProjectTemplateModel,
-    created_by: User,
-    workspace: Workspace,
-    users: list[User],
+    created_by: User, workspace: Workspace, users: list[User]
 ) -> None:
     project = await factories.create_project(
-        template=template,
-        name="Several Roles",
-        created_by=created_by,
-        workspace=workspace,
+        name="Several Roles", created_by=created_by, workspace=workspace
     )
     await _create_project_role(project=project, name="UX/UI")
     await _create_project_role(project=project, name="Developer")
@@ -264,9 +252,7 @@ async def _create_project_with_several_roles(
     await factories.create_project_invitations(project, invitees=[])
 
 
-async def _create_project_membership_scenario(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_project_membership_scenario() -> None:
     user1000 = await _create_user(1000)
     user1001 = await _create_user(1001)
     user1002 = await _create_user(1002)
@@ -285,7 +271,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-member
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 11",
@@ -300,7 +285,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-member without permissions
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 12",
@@ -317,7 +301,6 @@ async def _create_project_membership_scenario(
     await project_role.asave()
     # project: user1000 pj-owner, user1001 not pj-member
     await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 13",
@@ -325,7 +308,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 not pj-member
     await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 14",
@@ -333,7 +315,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 no pj-member, user1001 pj-owner, pj-members without permissions
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1001,
         name="pj 15",
@@ -348,7 +329,6 @@ async def _create_project_membership_scenario(
     # more projects
     # project: user1000 pj-owner, user1001 pj-member
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="more - pj 16",
@@ -363,7 +343,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-member
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="more - pj 17",
@@ -378,7 +357,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-member
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="more - pj 18",
@@ -393,7 +371,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-member
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="more - pj 19",
@@ -408,7 +385,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-member
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="more - pj 20",
@@ -435,7 +411,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 not pj-member
     await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 21",
@@ -443,7 +418,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-member without permissions
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 22",
@@ -477,7 +451,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-readonly-invitee
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 41",
@@ -492,7 +465,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-owner-invitee
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 42",
@@ -507,7 +479,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 not pj-member
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 43",
@@ -515,7 +486,6 @@ async def _create_project_membership_scenario(
     )
     # project: user1000 pj-owner, user1001 pj-member without permissions, ws-members allowed
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="pj 44",
@@ -560,7 +530,6 @@ async def _create_project_membership_scenario(
     # project: u1000 pj-owner, u1002 pj-member without permissions, u1001/u1003 no pj-member
     # not-allowed
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="p45 pj-mb-NA ws-mb/public-NA",
@@ -578,7 +547,6 @@ async def _create_project_membership_scenario(
     )
     # project: u1000 pj-owner, u1002 pj-member view_story, u1001/u1003 no pj-members
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="p46 pj-mb-view_story",
@@ -613,7 +581,6 @@ async def _create_project_membership_scenario(
     )
     # project: u1k pj-owner, u1k1 pj-member view_story, u1k2/u1k3 no pj-member
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="p48 pj-mb-view_story public-viewUs ws-mb-NA",
@@ -649,7 +616,6 @@ async def _create_project_membership_scenario(
     )
     # project: u1k pj-owner, u1k2 pj-member view_story, u1k1/u1k3 no pj-member
     project = await factories.create_project(
-        template=template,
         workspace=workspace,
         created_by=user1000,
         name="p49 pj-mb-view_story public-viewUs ws-mb-NA",
@@ -671,9 +637,7 @@ async def _create_project_membership_scenario(
 ################################
 
 
-async def _create_scenario_with_invitations(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_with_invitations() -> None:
     user900 = await _create_user(900)
     user901 = await _create_user(901)
     user902 = await _create_user(902)
@@ -737,12 +701,10 @@ async def _create_scenario_with_invitations(
     )
 
     # user900 creates a project in ws1
-    await factories.create_project(template=template, workspace=ws1, created_by=user900)
+    await factories.create_project(workspace=ws1, created_by=user900)
 
     # user900 creates a project in ws2 and user901 is invited
-    pj2 = await factories.create_project(
-        template=template, workspace=ws2, created_by=user900
-    )
+    pj2 = await factories.create_project(workspace=ws2, created_by=user900)
     project_role = await pj_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj2.id, "slug": "member"},
@@ -752,12 +714,10 @@ async def _create_scenario_with_invitations(
     )
 
     # user900 creates a project in ws3 with ws-members not allowed
-    await factories.create_project(template=template, workspace=ws3, created_by=user900)
+    await factories.create_project(workspace=ws3, created_by=user900)
 
     # user900 creates 7 projects in ws5 and user901 is invited to these with ≠ roles
-    pj = await factories.create_project(
-        template=template, workspace=ws5, created_by=user900
-    )
+    pj = await factories.create_project(workspace=ws5, created_by=user900)
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj.id, "slug": "readonly-member"},
@@ -765,9 +725,7 @@ async def _create_scenario_with_invitations(
     await factories.create_project_invitation(
         user=user901, project=pj, role=project_role
     )
-    pj = await factories.create_project(
-        template=template, workspace=ws5, created_by=user900
-    )
+    pj = await factories.create_project(workspace=ws5, created_by=user900)
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj.id, "slug": "readonly-member"},
@@ -775,9 +733,7 @@ async def _create_scenario_with_invitations(
     await factories.create_project_invitation(
         user=user901, project=pj, role=project_role
     )
-    pj = await factories.create_project(
-        template=template, workspace=ws5, created_by=user900
-    )
+    pj = await factories.create_project(workspace=ws5, created_by=user900)
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj.id, "slug": "admin"},
@@ -785,9 +741,7 @@ async def _create_scenario_with_invitations(
     await factories.create_project_invitation(
         user=user901, project=pj, role=project_role
     )
-    pj = await factories.create_project(
-        template=template, workspace=ws5, created_by=user900
-    )
+    pj = await factories.create_project(workspace=ws5, created_by=user900)
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj.id, "slug": "admin"},
@@ -795,9 +749,7 @@ async def _create_scenario_with_invitations(
     await factories.create_project_invitation(
         user=user901, project=pj, role=project_role
     )
-    pj = await factories.create_project(
-        template=template, workspace=ws5, created_by=user900
-    )
+    pj = await factories.create_project(workspace=ws5, created_by=user900)
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj.id, "slug": "owner"},
@@ -805,9 +757,7 @@ async def _create_scenario_with_invitations(
     await factories.create_project_invitation(
         user=user901, project=pj, role=project_role
     )
-    pj = await factories.create_project(
-        template=template, workspace=ws5, created_by=user900
-    )
+    pj = await factories.create_project(workspace=ws5, created_by=user900)
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj.id, "slug": "member"},
@@ -815,9 +765,7 @@ async def _create_scenario_with_invitations(
     await factories.create_project_invitation(
         user=user901, project=pj, role=project_role
     )
-    pj = await factories.create_project(
-        template=template, workspace=ws5, created_by=user900
-    )
+    pj = await factories.create_project(workspace=ws5, created_by=user900)
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj.id, "slug": "member"},
@@ -827,9 +775,7 @@ async def _create_scenario_with_invitations(
     )
 
 
-async def _create_scenario_for_searches(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_for_searches() -> None:
     # some users
     user800 = await _create_user(800)
     elettescar = await factories.create_user(
@@ -862,9 +808,7 @@ async def _create_scenario_for_searches(
     )
 
     # electra is pj member of a project in ws1
-    pj1 = await factories.create_project(
-        template=template, workspace=ws1, created_by=user800
-    )
+    pj1 = await factories.create_project(workspace=ws1, created_by=user800)
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj1.id, "slug": "member"},
@@ -874,9 +818,7 @@ async def _create_scenario_for_searches(
     )
 
 
-async def _create_scenario_for_revoke(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_for_revoke() -> None:
     # some users
     user1 = await factories.create_user(
         username="pruebastenzu1",
@@ -919,9 +861,7 @@ async def _create_scenario_for_revoke(
         user=user3, workspace=ws, role=workspace_role
     )
 
-    pj = await factories.create_project(
-        template=template, workspace=ws, created_by=user1
-    )
+    pj = await factories.create_project(workspace=ws, created_by=user1)
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
         filters={"project_id": pj.id, "slug": "member"},
@@ -930,16 +870,12 @@ async def _create_scenario_for_revoke(
 
 
 async def _create_scenario_with_1k_stories(
-    template: ProjectTemplateModel,
-    workspace: Workspace,
-    users: list[User],
-    created_by: User,
+    workspace: Workspace, users: list[User], created_by: User
 ) -> None:
     """
     Create a new project with 1000 stories.
     """
     project = await factories.create_project(
-        template=template,
         name="1k Stories",
         description="This project contains 1000 stories.",
         created_by=created_by,
@@ -955,16 +891,12 @@ async def _create_scenario_with_1k_stories(
 
 
 async def _create_scenario_with_2k_stories_and_40_workflow_statuses(
-    template: ProjectTemplateModel,
-    workspace: Workspace,
-    users: list[User],
-    created_by: User,
+    workspace: Workspace, users: list[User], created_by: User
 ) -> None:
     """
     Create a new project with 2000 stories and 40 statuses.
     """
     project = await factories.create_project(
-        template=template,
         name="2k Stories, 40 statuses",
         description="This project contains 2000 stories and 40 statuses.",
         created_by=created_by,

@@ -27,8 +27,6 @@ from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectRole
 from projects.projects.models import Project
-from projects.projects.repositories import ProjectTemplateModel
-from projects.projects.services import _get_default_template
 from users import repositories as users_repositories
 from workspaces.memberships import repositories as ws_memberships_repositories
 from workspaces.memberships.models import WorkspaceRole
@@ -36,27 +34,24 @@ from workspaces.memberships.models import WorkspaceRole
 
 @transaction_atomic_async
 async def load_demo_data() -> None:
-    template = await _get_default_template()
     # CUSTOM SCENARIOS
     print("  - Creating scenario to freelance user working for herself")
-    await _create_scenario_freelance_working_for_herself(template)
+    await _create_scenario_freelance_working_for_herself()
     print("  - Creating scenario to freelance user working for others")
-    await _create_scenario_freelance_working_for_others(template)
+    await _create_scenario_freelance_working_for_others()
     print("  - Creating scenario to user in society working for others")
-    await _create_scenario_user_in_society_working_for_others(template)
+    await _create_scenario_user_in_society_working_for_others()
     print("  - Creating scenario to manager in society working for others")
-    await _create_scenario_manager_in_society_working_for_others(template)
+    await _create_scenario_manager_in_society_working_for_others()
     print("  - Creating scenario to manager in society with big client")
-    await _create_scenario_manager_in_society_with_big_client(template)
+    await _create_scenario_manager_in_society_with_big_client()
     print("  - Creating scenario to manager in society with own product")
-    await _create_scenario_manager_in_society_with_own_product(template)
+    await _create_scenario_manager_in_society_with_own_product()
     print("  - Creating scenario to manager in big society with own product")
-    await _create_scenario_manager_in_big_society_with_own_product(template)
+    await _create_scenario_manager_in_big_society_with_own_product()
 
 
-async def _create_scenario_freelance_working_for_herself(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_freelance_working_for_herself() -> None:
     # USERS
     usera0 = await factories.create_user(username="usera0")
     usera1 = await factories.create_user(username="usera1")
@@ -88,7 +83,7 @@ async def _create_scenario_freelance_working_for_herself(
 
     # pj "The ong" userd0 pj-member/role:general
     ong_proj = await factories.create_project(
-        template=template, workspace=workspace, name="The ong", created_by=created_by
+        workspace=workspace, name="The ong", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(ong_proj.id))
     project_role = await ws_memberships_repositories.get_role(
@@ -101,10 +96,7 @@ async def _create_scenario_freelance_working_for_herself(
 
     # pj "My next idea" usera1 pj-member/role:member
     next_idea_proj = await factories.create_project(
-        template=template,
-        workspace=workspace,
-        name="My next idea",
-        created_by=created_by,
+        workspace=workspace, name="My next idea", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(next_idea_proj.id))
     project_role = await ws_memberships_repositories.get_role(
@@ -119,7 +111,7 @@ async def _create_scenario_freelance_working_for_herself(
     projects_names = ["My current idea", "My old idea"]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template, workspace=workspace, name=pj_name, created_by=created_by
+            workspace=workspace, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -131,9 +123,7 @@ async def _create_scenario_freelance_working_for_herself(
         await factories.create_stories(project=project, with_comments=True)
 
 
-async def _create_scenario_freelance_working_for_others(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_freelance_working_for_others() -> None:
     # USERS
     userb0 = await factories.create_user(username="userb0")
     userb1 = await factories.create_user(username="userb1")
@@ -210,18 +200,13 @@ async def _create_scenario_freelance_working_for_others(
     projects_names = ["Holidays", "Great project"]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template,
-            workspace=ws_my_projects,
-            name=pj_name,
-            created_by=created_by,
+            workspace=ws_my_projects, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
     # for ws "Projects"
     # pj random-name userb1, userb2, userb3 pj-member/role:member
-    proj = await factories.create_project(
-        template=template, workspace=ws_projects, created_by=created_by
-    )
+    proj = await factories.create_project(workspace=ws_projects, created_by=created_by)
     projects.append(await factories.get_project_with_related_info(proj.id))
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
@@ -240,14 +225,12 @@ async def _create_scenario_freelance_working_for_others(
     # 2 pj random-name with no other members
     for i in range(2):
         proj = await factories.create_project(
-            template=template, workspace=ws_projects, created_by=created_by
+            workspace=ws_projects, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
     # pj random-name userf0 pj-member/role:member
-    proj = await factories.create_project(
-        template=template, workspace=ws_projects, created_by=created_by
-    )
+    proj = await factories.create_project(workspace=ws_projects, created_by=created_by)
     projects.append(await factories.get_project_with_related_info(proj.id))
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
@@ -258,9 +241,7 @@ async def _create_scenario_freelance_working_for_others(
     )
 
     # pj random-name userb1, usera1, userd1 pj-member/role:member. userd0 pj-member/role:owner
-    proj = await factories.create_project(
-        template=template, workspace=ws_projects, created_by=created_by
-    )
+    proj = await factories.create_project(workspace=ws_projects, created_by=created_by)
     projects.append(await factories.get_project_with_related_info(proj.id))
     project_role = await ws_memberships_repositories.get_role(
         ProjectRole,
@@ -286,7 +267,7 @@ async def _create_scenario_freelance_working_for_others(
     # for ws random-name
     # pj random-name userd0 pj-member/role:member
     proj = await factories.create_project(
-        template=template, workspace=ws_random_name, created_by=created_by
+        workspace=ws_random_name, created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
     project_role = await ws_memberships_repositories.get_role(
@@ -305,9 +286,7 @@ async def _create_scenario_freelance_working_for_others(
         await factories.create_stories(project=project, with_comments=True)
 
 
-async def _create_scenario_user_in_society_working_for_others(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_user_in_society_working_for_others() -> None:
     # USERS
     userc0 = await factories.create_user(username="userc0")
     created_by = userc0
@@ -327,7 +306,7 @@ async def _create_scenario_user_in_society_working_for_others(
     projects_names = ["TODO", "Holidays", "Family"]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template, workspace=workspace, name=pj_name, created_by=created_by
+            workspace=workspace, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -336,9 +315,7 @@ async def _create_scenario_user_in_society_working_for_others(
         await factories.create_stories(project=project, with_comments=True)
 
 
-async def _create_scenario_manager_in_society_working_for_others(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_manager_in_society_working_for_others() -> None:
     # USERS
     userd0 = await users_repositories.get_user(
         q_filter=users_repositories.username_or_email_query("userd0")
@@ -397,19 +374,13 @@ async def _create_scenario_manager_in_society_working_for_others(
     projects_names = ["Comms", "Human resources"]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template,
-            workspace=ws_internal,
-            name=pj_name,
-            created_by=created_by,
+            workspace=ws_internal, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
     # pj "Innovation week" userc0 pj-member/role:member and others members between 0-150 of usersdx
     proj = await factories.create_project(
-        template=template,
-        workspace=ws_internal,
-        name="Innovation week",
-        created_by=created_by,
+        workspace=ws_internal, name="Innovation week", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
     project_role = await ws_memberships_repositories.get_role(
@@ -422,15 +393,13 @@ async def _create_scenario_manager_in_society_working_for_others(
 
     # for ws "Projects"
     # pj random-name members between 0-150 of usersdx
-    proj = await factories.create_project(
-        template=template, workspace=ws_projects, created_by=created_by
-    )
+    proj = await factories.create_project(workspace=ws_projects, created_by=created_by)
     projects.append(await factories.get_project_with_related_info(proj.id))
 
     # 2 pj random-name userc0 pj-member/role:member and others members between 0-150 of usersdx
     for i in range(2):
         proj = await factories.create_project(
-            template=template, workspace=ws_projects, created_by=created_by
+            workspace=ws_projects, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
         project_role = await ws_memberships_repositories.get_role(
@@ -444,7 +413,7 @@ async def _create_scenario_manager_in_society_working_for_others(
     # for ws "Personal"
     # pj for tasklist with no other members
     proj = await factories.create_project(
-        template=template, workspace=ws_personal, name="TODO", created_by=created_by
+        workspace=ws_personal, name="TODO", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -466,9 +435,7 @@ async def _create_scenario_manager_in_society_working_for_others(
         await factories.create_stories(project=project, with_comments=True)
 
 
-async def _create_scenario_manager_in_society_with_big_client(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_manager_in_society_with_big_client() -> None:
     # USERS
     usere0 = await factories.create_user(username="usere0")
     userc0 = await users_repositories.get_user(
@@ -534,7 +501,7 @@ async def _create_scenario_manager_in_society_with_big_client(
     # 2 pj random-name usere1 pj-member/role:member and others members between 0-50 of usersex
     for i in range(2):
         proj = await factories.create_project(
-            template=template, workspace=ws_random_name1, created_by=created_by
+            workspace=ws_random_name1, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
         project_role = await ws_memberships_repositories.get_role(
@@ -548,7 +515,7 @@ async def _create_scenario_manager_in_society_with_big_client(
     # for ws random-name2
     # pj random-name usere1 pj-member/role:member and others members between 0-50 of usersex
     proj = await factories.create_project(
-        template=template, workspace=ws_random_name2, created_by=created_by
+        workspace=ws_random_name2, created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
     project_role = await ws_memberships_repositories.get_role(
@@ -570,10 +537,7 @@ async def _create_scenario_manager_in_society_with_big_client(
     ]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template,
-            workspace=ws_random_name3,
-            name=pj_name,
-            created_by=created_by,
+            workspace=ws_random_name3, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -581,17 +545,14 @@ async def _create_scenario_manager_in_society_with_big_client(
     # 5 pj random-name members between 0-50 of usersex
     for i in range(5):
         proj = await factories.create_project(
-            template=template, workspace=ws_projects, created_by=created_by
+            workspace=ws_projects, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
     # for ws "Personal"
     # pj "Birthday party" userc0 pj-member/role:member
     proj = await factories.create_project(
-        template=template,
-        workspace=ws_personal,
-        name="Birthday party",
-        created_by=created_by,
+        workspace=ws_personal, name="Birthday party", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
     project_role = await ws_memberships_repositories.get_role(
@@ -604,7 +565,7 @@ async def _create_scenario_manager_in_society_with_big_client(
 
     # pj "tasklist" with no other members
     proj = await factories.create_project(
-        template=template, workspace=ws_personal, name="tasklist", created_by=created_by
+        workspace=ws_personal, name="tasklist", created_by=created_by
     )
     projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -630,9 +591,7 @@ async def _create_scenario_manager_in_society_with_big_client(
         await factories.create_stories(project=project, with_comments=True)
 
 
-async def _create_scenario_manager_in_society_with_own_product(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_manager_in_society_with_own_product() -> None:
     # USERS
     userf0 = await users_repositories.get_user(
         q_filter=users_repositories.username_or_email_query("userf0")
@@ -683,10 +642,7 @@ async def _create_scenario_manager_in_society_with_own_product(
     ]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template,
-            workspace=ws_projects,
-            name=pj_name,
-            created_by=created_by,
+            workspace=ws_projects, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -695,10 +651,7 @@ async def _create_scenario_manager_in_society_with_own_product(
     projects_names = ["Birthday party", "TODO"]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template,
-            workspace=ws_personal,
-            name=pj_name,
-            created_by=created_by,
+            workspace=ws_personal, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -720,9 +673,7 @@ async def _create_scenario_manager_in_society_with_own_product(
         await factories.create_stories(project=project, with_comments=True)
 
 
-async def _create_scenario_manager_in_big_society_with_own_product(
-    template: ProjectTemplateModel,
-) -> None:
+async def _create_scenario_manager_in_big_society_with_own_product() -> None:
     # USERS
     userg0 = await factories.create_user(username="userg0")
     # usersgx total 100
@@ -763,7 +714,7 @@ async def _create_scenario_manager_in_big_society_with_own_product(
     projects_names = ["Human resources", "Innovation week", "Onboarding"]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template, workspace=ws_inner, name=pj_name, created_by=created_by
+            workspace=ws_inner, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -772,7 +723,7 @@ async def _create_scenario_manager_in_big_society_with_own_product(
     projects_names = ["2023", "2022", "2021", "2020"]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template, workspace=ws_events, name=pj_name, created_by=created_by
+            workspace=ws_events, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -781,7 +732,7 @@ async def _create_scenario_manager_in_big_society_with_own_product(
     projects_names = ["First idea that didn’t work", "Design"]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template, workspace=ws_mobile, name=pj_name, created_by=created_by
+            workspace=ws_mobile, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 
@@ -790,7 +741,7 @@ async def _create_scenario_manager_in_big_society_with_own_product(
     projects_names = ["The old product", "Hardware", "Software", "Research", "Support"]
     for pj_name in projects_names:
         proj = await factories.create_project(
-            template=template, workspace=ws_desktop, name=pj_name, created_by=created_by
+            workspace=ws_desktop, name=pj_name, created_by=created_by
         )
         projects.append(await factories.get_project_with_related_info(proj.id))
 

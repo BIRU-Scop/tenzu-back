@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,6 +23,8 @@ from django.conf import settings
 from django.utils.text import capfirst
 
 from permissions.choices import ProjectPermissions
+
+# WARNING: see not about _get_default_template's cache if you ever need to modify this
 
 
 def create_initial_project_template(apps=global_apps, *args, **kwargs):

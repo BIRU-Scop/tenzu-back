@@ -17,10 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from permissions.choices import ProjectPermissions
 from projects.projects import services
+from projects.projects.models import ProjectTemplate
 from projects.projects.repositories import ProjectTemplateModel
 from tests.utils import factories as f
 from tests.utils.utils import patch_db_transaction
@@ -40,15 +43,17 @@ async def test_create_project():
     workspace = f.build_workspace()
 
     with (
-        patch("projects.projects.services._create_project") as fake_create_project,
         patch(
-            "projects.projects.services._get_default_template"
+            "projects.projects.services._create_project", autospec=True
+        ) as fake_create_project,
+        patch(
+            "projects.projects.services._get_default_template", new=AsyncMock()
         ) as fake_get_default_template,
         patch(
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
         patch(
-            "projects.projects.services.get_project_detail"
+            "projects.projects.services.get_project_detail", autospec=True
         ) as fake_get_project_detail,
         patch_db_transaction(),
     ):
@@ -195,6 +200,38 @@ async def test_create_project_with_no_logo():
         fake_memberships_repositories.create_project_membership.assert_awaited_once_with(
             user=workspace.created_by, project=project, role=owner_role
         )
+
+
+async def test_get_default_template_cache():
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_projects_repositories,
+    ):
+        services._get_default_template.cache_clear()
+        fake_projects_repositories.get_project_template.side_effect = (
+            ProjectTemplate.DoesNotExist,
+            f.build_project_template(),
+            ProjectTemplate.DoesNotExist,
+        )
+        with pytest.raises(Exception) as e:
+            await services._get_default_template()
+        assert "not found" in e.value.args[0]
+        assert (
+            await services._get_default_template()
+            == fake_projects_repositories.ProjectTemplateModel.model_validate.return_value
+        )
+        # next call is cached so exception won't be raised
+        assert (
+            await services._get_default_template()
+            == fake_projects_repositories.ProjectTemplateModel.model_validate.return_value
+        )
+        services._get_default_template.cache_clear()
+        with pytest.raises(Exception) as e:
+            await services._get_default_template()
+        assert "not found" in e.value.args[0]
+
+        assert fake_projects_repositories.get_project_template.await_count == 3
 
 
 ##########################################################

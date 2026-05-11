@@ -41,7 +41,7 @@ from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects import services as projects_services
 from projects.projects.models import Project
-from projects.projects.repositories import ProjectTemplateModel
+from projects.projects.services import _get_default_template
 from projects.references import (
     get_multiple_new_project_reference_ids,
 )
@@ -237,12 +237,12 @@ async def get_project_with_related_info(id: UUID) -> Project:
 
 
 async def create_project(
-    template: ProjectTemplateModel,
     workspace: Workspace,
     created_by: User,
     name: str | None = None,
     description: str | None = None,
 ) -> Project:
+    template = await _get_default_template()
     name = name or fake.catch_phrase()
     description = description or fake.paragraph(nb_sentences=2)
     logo = random.choice(list(PROJECT_LOGOS_DIR.iterdir()))
@@ -254,7 +254,7 @@ async def create_project(
             else None
         )
         return await projects_services._create_project(
-            template,
+            template=template,
             name=name,
             description=description,
             color=fake.random_int(min=1, max=NUM_COLORS),

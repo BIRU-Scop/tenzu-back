@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+import functools
 from typing import Any
 from uuid import UUID
 
@@ -28,6 +28,7 @@ from pydantic import ValidationError
 
 from base.utils.images import ImageSizeFormat, get_thumbnail
 from commons.utils import (
+    async_cache,
     get_absolute_url,
     transaction_atomic_async,
     transaction_on_commit_async,
@@ -78,7 +79,14 @@ async def create_project(
     return await get_project_detail(project=project, user=created_by)
 
 
+@async_cache
 async def _get_default_template() -> projects_repositories.ProjectTemplateModel:
+    """
+    This function is cached with no expiry. If the model instance or the model structure is ever changed,
+    the code will need to call _get_default_template.cache_clear()
+    autospec won't work with patch in tests, should be called instead with:
+        patch("PATH._get_default_template", new=AsyncMock())
+    """
     try:
         template = await projects_repositories.get_project_template(
             filters={"slug": settings.DEFAULT_PROJECT_TEMPLATE}
