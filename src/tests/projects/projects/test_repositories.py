@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -29,6 +29,7 @@ from projects import references
 from projects.projects import repositories
 from projects.projects.models import Project
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 
 pytestmark = pytest.mark.django_db
 
@@ -155,9 +156,8 @@ async def test_get_project_return_project(project_template):
 
 
 async def test_get_project_return_none():
-    non_existent_id = uuid1()
     with pytest.raises(Project.DoesNotExist):
-        await repositories.get_project(project_id=non_existent_id)
+        await repositories.get_project(project_id=NOT_EXISTING_UUID)
 
 
 ##########################################################

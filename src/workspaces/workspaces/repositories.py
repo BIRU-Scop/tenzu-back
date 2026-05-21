@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -210,7 +210,7 @@ async def update_workspace(
         setattr(workspace, attr, value)
 
     workspace.modified_at = aware_utcnow()
-    await workspace.asave()
+    await workspace.asave(update_fields={*values.keys(), "modified_at"})
     return workspace
 
 

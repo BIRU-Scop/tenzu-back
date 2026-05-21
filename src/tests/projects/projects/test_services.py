@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -490,9 +490,6 @@ async def test_delete_project_fail():
         patch(
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
-        patch(
-            "projects.projects.services.users_repositories", autospec=True
-        ) as users_repositories,
         patch_db_transaction(),
     ):
         fake_projects_repo.delete_projects.return_value = 0
@@ -517,9 +514,6 @@ async def test_delete_project_ok(tqmanager):
         patch(
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
-        patch(
-            "projects.projects.services.users_repositories", autospec=True
-        ) as users_repositories,
         patch_db_transaction(),
     ):
         fake_projects_repo.delete_projects.return_value = 1

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,25 +22,17 @@ import io
 from os import path, urandom
 from typing import IO, Any, Generator
 
-from django.core.files.base import File as DjangoFile
 from django.db.models.fields.files import FieldFile  # noqa
-from ninja import UploadedFile
+from easy_thumbnails.files import ThumbnailFile
 
 from base.utils.iterators import split_by_n
 from base.utils.slug import slugify
 from ninja_jwt.utils import aware_utcnow
 
-File = DjangoFile
 
-
-def uploadfile_to_file(file: UploadedFile) -> File:
-    """
-    Convert an `ninja.UploadedFile object to a `File` object. Useful to the ORM.
-    """
-    return File(name=file.name, file=file.file)
-
-
-def iterfile(file: File, mode: str | None = "rb") -> Generator[bytes, None, None]:
+def iterfile(
+    file: FieldFile | ThumbnailFile, mode: str | None = "rb"
+) -> Generator[bytes, None, None]:
     """
     Function to iterate over the content of a Django File object.
     This function is useful to iterate over the content of a file so you can stream it.

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,34 +17,44 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from pathlib import Path
+from urllib.parse import urljoin
+from uuid import UUID
 
 from django.conf import settings
-from pydantic import model_validator
+from django.urls import reverse_lazy
 
 from base.serializers import BaseModel, FileField
-from base.utils.concurrency import run_async_as_sync
+from base.utils.uuid import encode_uuid_to_b64str
 
 
-# TODO : extract build of logo_small and logo_large from class
 class ProjectLogoBaseSerializer(BaseModel):
     logo: FileField | None = None
-    logo_small: str | None = None
-    logo_large: str | None = None
 
-    @model_validator(mode="after")
-    def resolve_logo_computed(self):
-        from projects.projects.services import (
-            get_logo_large_thumbnail_url,
-            get_logo_small_thumbnail_url,
+    @staticmethod
+    def resolve_logo(obj):
+        if isinstance(obj, BaseModel):
+            return obj.logo
+        if isinstance(obj, dict):
+            logo = obj.get("logo")
+            obj_id = obj.get("id")
+            obj_mod = obj.get("modified_at")
+        else:
+            logo = obj.logo
+            obj_id = obj.id
+            obj_mod = obj.modified_at
+        if not logo:
+            return logo
+        return urljoin(
+            str(settings.BACKEND_URL),
+            str(
+                reverse_lazy(
+                    f"api-{settings.API_VERSION}:project.get.logo",
+                    kwargs={
+                        "project_id": encode_uuid_to_b64str(obj_id)
+                        if isinstance(obj_id, UUID)
+                        else obj_id,
+                    },
+                    query={"last_mod": obj_mod.timestamp() if obj_mod else ""},
+                )
+            ),
         )
-
-        if self.logo:
-            logo_path = (
-                Path(settings.MEDIA_ROOT, self.logo.path)
-                .__str__()
-                .replace("/media/", "")
-            )
-            self.logo_small = run_async_as_sync(get_logo_small_thumbnail_url(logo_path))
-            self.logo_large = run_async_as_sync(get_logo_large_thumbnail_url(logo_path))
-        return self

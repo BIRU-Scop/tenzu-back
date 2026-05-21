@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import datetime
 
 from base.serializers import UUIDB64, BaseModel
 from projects.projects.serializers.mixins import ProjectLogoBaseSerializer
@@ -32,6 +33,7 @@ class _ProjectBaseNestedSerializer(BaseModel):
 class ProjectNestedSerializer(ProjectLogoBaseSerializer, _ProjectBaseNestedSerializer):
     description: str
     color: int
+    modified_at: datetime.datetime | None
 
 
 class ProjectLinkNestedSerializer(_ProjectBaseNestedSerializer):

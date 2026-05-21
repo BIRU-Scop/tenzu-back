@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,11 +17,19 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+from pathlib import Path as PathlibPath
+from typing import Literal
 from uuid import UUID
 
+from django.conf import settings
+from django.http import FileResponse
+from django.views.decorators.cache import cache_control
 from ninja import File, Form, Path, Router
+from ninja.decorators import decorate_view
 
 from base.serializers import BaseDataModel
+from base.utils.files import iterfile
+from base.utils.images import ImageSizeFormat
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -74,7 +82,8 @@ async def create_project(
     request,
     workspace_id: Path[B64UUID],
     form: Form[CreateProjectValidator],
-    logo: LogoField | None = File(None),
+    logo: File[(LogoField, {"max_length": settings.IMAGES.MAX_UPLOAD_FILE_SIZE})]
+    | None = File(None),
 ) -> ProjectDetailSerializer:
     """
     Create project in a given workspace.
@@ -162,6 +171,52 @@ async def get_project(request, project_id: Path[B64UUID]) -> ProjectDetailSerial
     )
 
 
+@projects_router.get(
+    "/projects/{project_id}/logo",
+    url_name="project.get.logo",
+    summary="Get project logo",
+    response={
+        # FileResponse is not supported by django ninja swagger generation
+        # As presented in the documentation, type the result as str
+        # https://django-ninja.dev/guides/response/#filefield-and-imagefield
+        200: str | None,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+@decorate_view(cache_control(private=True, max_age=31536000, immutable=True))
+async def get_project_logo(
+    request,
+    project_id: Path[B64UUID],
+    last_mod: float | Literal[""],
+    format: ImageSizeFormat = "small",
+) -> FileResponse | None:
+    """
+    Get project logo by project id.
+    last_mod is used for caching purpose
+    """
+
+    project = await get_project_or_404(project_id)
+    await check_permissions(
+        permissions=ProjectPermissionsCheck.VIEW.value, user=request.user, obj=project
+    )
+    if not project.logo:
+        raise ex.NotFoundError("Project has no logo")
+
+    file = await projects_services.get_logo(project, format)
+    if file is None:
+        return file
+
+    response = FileResponse(
+        iterfile(file, mode="rb"),
+        as_attachment=True,
+        filename=PathlibPath(file.name).name,
+    )
+    return response
+
+
 ##########################################################
 # update project
 ##########################################################
@@ -184,7 +239,8 @@ async def update_project(
     request,
     project_id: Path[B64UUID],
     form: Form[UpdateProjectValidator],
-    logo: LogoField | None = File(None),
+    logo: File[(LogoField, {"max_length": settings.IMAGES.MAX_UPLOAD_FILE_SIZE})]
+    | None = File(None),
 ) -> ProjectDetailSerializer:
     """
     Update project
@@ -196,6 +252,7 @@ async def update_project(
 
     values = form.model_dump(exclude_unset=True)
     # if a file is present, we need to assign it
+    # this is the only way to differentiate whether logo is None because it is unset or because it was removed
     if "logo" in request.POST or request.FILES:
         values["logo"] = logo
     return await projects_services.update_project(
