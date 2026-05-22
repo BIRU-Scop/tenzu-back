@@ -24,34 +24,33 @@ from django.conf import settings
 from stories.stories.models import Story
 from stories.stories.services.blocknote import (
     BlockNoteConverter,
-    BlockNoteEmptyOutputError,
     BlockNoteScriptError,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def migrate_story_in_batches(StoryClass: type[Story]):
+async def migrate_story_in_batches(StoryClass: type[Story]):
     BULK_SIZE = 250
     # Start Node.js process once
-    with BlockNoteConverter() as converter:
+    async with BlockNoteConverter() as converter:
         stories_to_process = (
             StoryClass.objects.exclude(description__isnull=True)
             .exclude(description="")
             .only("id", "description")
         )
-        total = stories_to_process.count()
+        total = await stories_to_process.acount()
         print(f"\nStarting batch migration of {total} stories...")
 
         processed_count = 0
         pending_updates: list[Story] = []
 
-        for story in stories_to_process:
+        async for story in stories_to_process:
             if processed_count % 100 == 0:
                 print(f"Progress: {processed_count}/{total}")
 
             try:
-                story_id_str, binary_data, _ = converter.convert(
+                story_id_str, binary_data, _ = await converter.convert(
                     {"id": str(story.id), "content": story.description}
                 )
             except BlockNoteScriptError:
@@ -65,7 +64,7 @@ def migrate_story_in_batches(StoryClass: type[Story]):
             )
 
             if len(pending_updates) >= BULK_SIZE:
-                StoryClass.objects.bulk_update(
+                await StoryClass.objects.abulk_update(
                     pending_updates,
                     ["description_binary"],
                     batch_size=BULK_SIZE,
@@ -75,7 +74,7 @@ def migrate_story_in_batches(StoryClass: type[Story]):
 
         # Flush remaining updates
         if pending_updates:
-            StoryClass.objects.bulk_update(
+            await StoryClass.objects.abulk_update(
                 pending_updates,
                 ["description_binary"],
                 batch_size=BULK_SIZE,

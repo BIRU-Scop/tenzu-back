@@ -264,7 +264,7 @@ async def do_import_taiga_stories(
         Story
     )  # fill cache for later generic relation queries (e.g. Comment, Attachment)
     # Start Node.js process once
-    with BlockNoteConverter(source_format="md") as converter:
+    async with BlockNoteConverter(source_format="md") as converter:
         for taiga_story in taiga_project.user_stories:
             if taiga_story.status is None:
                 logger.warning(
@@ -284,7 +284,7 @@ async def do_import_taiga_stories(
 
             binary_data, block_data = None, None
             if taiga_story.description:
-                _, binary_data, block_data = converter.convert(
+                _, binary_data, block_data = await converter.convert(
                     {"id": "0", "content": taiga_story.description}
                 )
 
@@ -316,7 +316,7 @@ async def do_import_taiga_stories(
                 if attachment is not None:
                     attachments_to_create.append(attachment)
             for event in taiga_story.history:
-                comment = build_story_comment_from_taiga(
+                comment = await build_story_comment_from_taiga(
                     converter, project_importation, story, event
                 )
                 if comment is not None:
@@ -419,7 +419,7 @@ def build_story_attachment_from_taiga(
     )
 
 
-def build_story_comment_from_taiga(
+async def build_story_comment_from_taiga(
     converter: BlockNoteConverter,
     project_importation: ProjectImportation,
     story: Story,
@@ -443,7 +443,9 @@ def build_story_comment_from_taiga(
 
     block_data = ""
     if not event.delete_comment_date:
-        _, _, block_data = converter.convert({"id": "0", "content": event.comment})
+        _, _, block_data = await converter.convert(
+            {"id": "0", "content": event.comment}
+        )
     return Comment(
         content_object=story,
         text=block_data,

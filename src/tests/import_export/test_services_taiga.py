@@ -558,6 +558,10 @@ async def test_do_import_taiga_stories_attachment_ko():
     ]
 
 
+async def dummy_convert(_):
+    return ("", "", "[]")
+
+
 async def test_do_import_taiga_stories_comment_ok():
     project_importation = f.build_project_importation()
     story = f.build_story()
@@ -571,8 +575,8 @@ async def test_do_import_taiga_stories_comment_ok():
         edit_comment_date=now,
     )
     with patch.object(ContentType.objects, "get_for_model", return_value=ContentType()):
-        comment = build_story_comment_from_taiga(
-            MagicMock(convert=lambda _: ("", "", "[]")),
+        comment = await build_story_comment_from_taiga(
+            MagicMock(convert=dummy_convert),
             project_importation,
             story,
             comment,
@@ -608,8 +612,8 @@ async def test_do_import_taiga_stories_comment_ok_no_user(user):
         edit_comment_date=None,
     )
     with patch.object(ContentType.objects, "get_for_model", return_value=ContentType()):
-        comment = build_story_comment_from_taiga(
-            MagicMock(convert=lambda _: ("", "", "[]")),
+        comment = await build_story_comment_from_taiga(
+            MagicMock(convert=dummy_convert),
             project_importation,
             story,
             comment,
@@ -641,7 +645,7 @@ async def test_do_import_taiga_stories_comment_ok_deleted():
         edit_comment_date=None,
     )
     with patch.object(ContentType.objects, "get_for_model", return_value=ContentType()):
-        comment = build_story_comment_from_taiga(
+        comment = await build_story_comment_from_taiga(
             MagicMock(), project_importation, story, comment
         )
     assert all(
@@ -665,6 +669,8 @@ async def test_do_import_taiga_stories_comment_ko():
         comment="",
     )
     assert (
-        build_story_comment_from_taiga(MagicMock(), project_importation, story, comment)
+        await build_story_comment_from_taiga(
+            MagicMock(), project_importation, story, comment
+        )
         is None
     )

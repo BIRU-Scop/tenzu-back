@@ -72,4 +72,4 @@ class Command(BaseCommand):
             if not options["no_demo"]:
                 async_to_sync(load_demo_data)()
                 sanity_check()
-            migrate_story_in_batches(Story)
+            async_to_sync(migrate_story_in_batches)(Story)

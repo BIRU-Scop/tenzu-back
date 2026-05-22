@@ -15,7 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from asgiref.sync import async_to_sync
 from django.db import migrations
 
 from stories.stories.migrations._data import migrate_story_in_batches
@@ -23,7 +23,7 @@ from stories.stories.migrations._data import migrate_story_in_batches
 
 def migrate_in_batches(apps, schema_editor):
     Story = apps.get_model("stories", "Story")
-    migrate_story_in_batches(Story)
+    async_to_sync(migrate_story_in_batches)(Story)
 
 
 class Migration(migrations.Migration):
