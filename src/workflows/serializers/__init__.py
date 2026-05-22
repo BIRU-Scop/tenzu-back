@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 from typing import Literal
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from workflows.serializers.nested import (
     WorkflowNestedSerializer,
     WorkflowStatusNestedSerializer,
@@ -34,12 +34,12 @@ class WorkflowStatusSerializer(WorkflowStatusNestedSerializer):
     workflow: WorkflowNestedSerializer
 
 
-class _ReorderSerializer(BaseModel):
+class _ReorderSerializer(BaseSchema):
     place: Literal["before", "after"]
     status_id: UUIDB64
 
 
-class ReorderWorkflowStatusesSerializer(BaseModel):
+class ReorderWorkflowStatusesSerializer(BaseSchema):
     workflow: WorkflowNestedSerializer
     status_ids: list[UUIDB64]
     reorder: _ReorderSerializer | None = None

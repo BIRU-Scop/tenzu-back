@@ -17,16 +17,16 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 
 
-class StoryNestedSerializer(BaseModel):
+class StoryNestedSerializer(BaseSchema):
     ref: int
     title: str
     project_id: UUIDB64
     workflow_id: UUIDB64
 
 
-class StoryNeighborSerializer(BaseModel):
+class StoryNeighborSerializer(BaseSchema):
     ref: int
     title: str

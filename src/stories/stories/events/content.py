@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,24 +17,24 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from stories.stories.serializers import ReorderStoriesSerializer, StoryDetailSerializer
 from users.serializers.nested import UserNestedSerializer
 
 
-class CreateStoryContent(BaseModel):
+class CreateStoryContent(BaseSchema):
     story: StoryDetailSerializer
 
 
-class UpdateStoryContent(BaseModel):
+class UpdateStoryContent(BaseSchema):
     story: StoryDetailSerializer
     updates_attrs: list[str]
 
 
-class ReorderStoriesContent(BaseModel):
+class ReorderStoriesContent(BaseSchema):
     reorder: ReorderStoriesSerializer
 
 
-class DeleteStoryContent(BaseModel):
+class DeleteStoryContent(BaseSchema):
     ref: int
     deleted_by: UserNestedSerializer

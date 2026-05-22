@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -41,15 +41,17 @@ async def notify_when_story_is_assigned(
     notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
-        type=STORIES_ASSIGN,
+        notification_type=STORIES_ASSIGN,
         emitted_by=emitted_by,
         notified_user_ids=notified_user_ids,
-        content=StoryAssignNotificationContent(
-            project=story.project,
-            story=story,
-            assigned_by=emitted_by,
-            assigned_to=assigned_to,
-        ),
+        content_list=[
+            StoryAssignNotificationContent(
+                project=story.project,
+                story=story,
+                assigned_by=emitted_by,
+                assigned_to=assigned_to,
+            )
+        ],
     )
 
 
@@ -65,13 +67,15 @@ async def notify_when_story_is_unassigned(
     notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
-        type=STORIES_UNASSIGN,
+        notification_type=STORIES_UNASSIGN,
         emitted_by=emitted_by,
         notified_user_ids=notified_user_ids,
-        content=StoryUnassignNotificationContent(
-            project=story.project,
-            story=story,
-            unassigned_by=emitted_by,
-            unassigned_to=unassigned_to,
-        ),
+        content_list=[
+            StoryUnassignNotificationContent(
+                project=story.project,
+                story=story,
+                unassigned_by=emitted_by,
+                unassigned_to=unassigned_to,
+            )
+        ],
     )

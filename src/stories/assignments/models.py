@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,11 +19,11 @@
 
 from django.db import models
 
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedAtMetaInfoMixin
 
 
-class StoryAssignment(BaseModel, CreatedAtMetaInfoMixin):
+class StoryAssignment(BaseDBModel, CreatedAtMetaInfoMixin):
     user = models.ForeignKey(
         "users.User",
         null=False,

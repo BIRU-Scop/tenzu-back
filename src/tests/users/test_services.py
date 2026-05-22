@@ -1355,17 +1355,13 @@ async def test_reset_password_ok_without_user():
         patch(
             "users.services._get_user_and_reset_password_token", autospec=True
         ) as fake_get_user_and_reset_password_token,
-        patch(
-            "users.services.ResetPasswordToken", autospec=True
-        ) as FakeResetPasswordToken,
+        pytest.raises(ex.BadResetPasswordTokenError),
     ):
-        fake_token = FakeResetPasswordToken()
-        fake_token.blacklist.return_value = None
-        fake_get_user_and_reset_password_token.return_value = (fake_token, None)
+        fake_get_user_and_reset_password_token.side_effect = (
+            ex.BadResetPasswordTokenError()
+        )
 
-        ret = await services.reset_password(str(fake_token), password)
-
-        assert ret is None
+        await services.reset_password("", password)
 
 
 ##########################################################

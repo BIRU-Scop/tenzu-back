@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -41,7 +41,10 @@ from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects import services as projects_services
 from projects.projects.models import Project
-from projects.references import get_new_project_reference_id
+from projects.projects.services import _get_default_template
+from projects.references import (
+    get_multiple_new_project_reference_ids,
+)
 from stories.assignments.models import StoryAssignment
 from stories.stories.models import Story
 from users.models import User
@@ -239,6 +242,7 @@ async def create_project(
     name: str | None = None,
     description: str | None = None,
 ) -> Project:
+    template = await _get_default_template()
     name = name or fake.catch_phrase()
     description = description or fake.paragraph(nb_sentences=2)
     logo = random.choice(list(PROJECT_LOGOS_DIR.iterdir()))
@@ -250,6 +254,7 @@ async def create_project(
             else None
         )
         return await projects_services._create_project(
+            template=template,
             name=name,
             description=description,
             color=fake.random_int(min=1, max=NUM_COLORS),
@@ -382,6 +387,9 @@ async def create_stories(
 
     # Create stories
     stories = []
+    refs = await sync_to_async(get_multiple_new_project_reference_ids)(
+        project.id, num_stories_to_create * len(workflows)
+    )
     for workflow in workflows:
         statuses = list(workflow.statuses.all())
 
@@ -389,6 +397,7 @@ async def create_stories(
             status_index = random.randint(0, len(statuses) - 1)
             stories.append(
                 await _create_story(
+                    ref=next(refs),
                     status=statuses[status_index],
                     created_by=random.choice(members),
                     # first N stories will be spaced using offset, others will not (to easily test for edge cases)
@@ -438,6 +447,7 @@ async def create_stories(
 
 
 async def _create_story(
+    ref: int,
     status: WorkflowStatus,
     created_by: User,
     order: int,
@@ -445,7 +455,6 @@ async def _create_story(
     description: str | None = None,
     save: bool = True,
 ) -> Story:
-    _ref = await sync_to_async(get_new_project_reference_id)(status.workflow.project_id)
     _title = (
         title
         or fake.text(max_nb_chars=random.choice(constants.STORY_TITLE_MAX_SIZE))[:500]
@@ -457,7 +466,7 @@ async def _create_story(
     _created_at = fake.date_time_between(start_date="-2y", tzinfo=timezone.utc)
 
     story = Story(
-        ref=_ref,
+        ref=ref,
         title=_title,
         description=_description,
         order=order,

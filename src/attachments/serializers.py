@@ -19,10 +19,10 @@
 
 from datetime import datetime
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 
 
-class AttachmentSerializer(BaseModel):
+class AttachmentSerializer(BaseSchema):
     id: UUIDB64
     name: str
     content_type: str

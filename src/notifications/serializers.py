@@ -19,12 +19,12 @@
 
 from datetime import datetime
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from base.serializers.fields import CamelizeDict
 from users.serializers.nested import UserNestedSerializer
 
 
-class NotificationSerializer(BaseModel):
+class NotificationSerializer(BaseSchema):
     id: UUIDB64
     type: str
     created_by: UserNestedSerializer | None = None
@@ -33,7 +33,7 @@ class NotificationSerializer(BaseModel):
     content: CamelizeDict
 
 
-class NotificationCountersSerializer(BaseModel):
+class NotificationCountersSerializer(BaseSchema):
     read: int
     unread: int
     total: int

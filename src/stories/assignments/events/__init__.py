@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -36,7 +36,7 @@ async def emit_event_when_story_assignment_is_created(
         user=story_assignment.user,
         type=CREATE_STORY_ASSIGNMENT,
         content=CreateStoryAssignmentContent(
-            story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)
+            story_assignment=StoryAssignmentSerializer.model_validate(story_assignment)
         ),
     )
 
@@ -44,7 +44,7 @@ async def emit_event_when_story_assignment_is_created(
         project=story_assignment.story.project,
         type=CREATE_STORY_ASSIGNMENT,
         content=CreateStoryAssignmentContent(
-            story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)
+            story_assignment=StoryAssignmentSerializer.model_validate(story_assignment)
         ),
     )
 
@@ -56,7 +56,7 @@ async def emit_event_when_story_assignment_is_deleted(
         user=story_assignment.user,
         type=DELETE_STORY_ASSIGNMENT,
         content=DeleteStoryAssignmentContent(
-            story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)
+            story_assignment=StoryAssignmentSerializer.model_validate(story_assignment)
         ),
     )
 
@@ -64,6 +64,6 @@ async def emit_event_when_story_assignment_is_deleted(
         project=story_assignment.story.project,
         type=DELETE_STORY_ASSIGNMENT,
         content=DeleteStoryAssignmentContent(
-            story_assignment=StoryAssignmentSerializer.from_orm(story_assignment)
+            story_assignment=StoryAssignmentSerializer.model_validate(story_assignment)
         ),
     )

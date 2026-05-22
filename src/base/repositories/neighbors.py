@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,9 +24,9 @@ from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connection
 from django.db.models import QuerySet
 
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 
-T = TypeVar("T", bound=BaseModel)
+T = TypeVar("T", bound=BaseDBModel)
 
 
 class Neighbor(Generic[T]):

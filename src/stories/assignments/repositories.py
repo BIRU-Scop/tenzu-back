@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -58,6 +58,12 @@ async def create_story_assignment(
     story: Story, user: User
 ) -> tuple[StoryAssignment, bool]:
     return await StoryAssignment.objects.aget_or_create(story=story, user=user)
+
+
+async def bulk_create_story_assignments(
+    assignments: list[StoryAssignment],
+) -> list[StoryAssignment]:
+    return await StoryAssignment.objects.abulk_create(assignments)
 
 
 ##########################################################

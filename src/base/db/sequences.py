@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,6 +22,7 @@ This module contains useful functions for managing sequences in tenzu.
 """
 
 from contextlib import closing
+from typing import Generator
 
 from django.db import connection, transaction
 
@@ -81,6 +82,26 @@ def next_value(seqname: str) -> int:
             cursor.execute(sql, [seqname])
             result = cursor.fetchone()
             return result[0]
+        except ex.ProgrammingError:
+            raise ex.SequenceDoesNotExist()
+
+
+@transaction.atomic
+def next_values(seqname: str, quantity: int) -> Generator[int]:
+    """
+    Increase the current value of a sequence and return the specified number of next values.
+
+    :param seqname: the name of the sequence
+    :type seqname: str
+    :return the current sequence value
+    :rtype int
+    """
+    sql = "SELECT nextval(%s) FROM generate_series(1,%s);"
+    with closing(connection.cursor()) as cursor:
+        try:
+            cursor.execute(sql, [seqname, quantity])
+            result = cursor.fetchall()
+            return (row[0] for row in result)
         except ex.ProgrammingError:
             raise ex.SequenceDoesNotExist()
 

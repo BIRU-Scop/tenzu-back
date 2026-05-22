@@ -24,6 +24,7 @@ from django.core.files import File
 from django.db import models
 
 from base.db import sequences as seq
+from import_export.models import ImportationStatus
 from memberships.choices import InvitationStatus
 from projects import references
 from projects.projects import repositories
@@ -114,12 +115,36 @@ async def test_list_workspace_projects_for_user(project_template):
     await f.create_project(
         template=project_template, workspace=workspace, created_by=workspace.created_by
     )
+    ongoing_imp_pj = await f.create_project(
+        template=project_template,
+        workspace=workspace,
+        created_by=workspace.created_by,
+    )
+    success_imp_pj = await f.create_project(
+        template=project_template,
+        workspace=workspace,
+        created_by=workspace.created_by,
+    )
+    await f.create_project_importation(
+        workspace=workspace,
+        created_by=workspace.created_by,
+        project=ongoing_imp_pj,
+        status=ImportationStatus.ONGOING,
+    )
+    await f.create_project_importation(
+        workspace=workspace,
+        created_by=workspace.created_by,
+        project=success_imp_pj,
+        status=ImportationStatus.SUCCESS,
+    )
     projects = await repositories.list_workspace_projects_for_user(
         workspace, workspace.created_by
     )
-    # owner of project can see them all
-    assert len(projects) == 3
+    # owner of project can see them all, ongoing importation should be excluded
+    assert len(projects) == 4
     assert len([pj for pj in projects if pj.user_is_invited]) == 0
+    assert ongoing_imp_pj.name not in [pj.name for pj in projects]
+    assert success_imp_pj.name in [pj.name for pj in projects]
 
     user = await f.create_user()
     projects = await repositories.list_workspace_projects_for_user(workspace, user)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,7 +22,7 @@ from django.core.validators import MaxValueValidator
 from django.db import models
 from slugify import slugify
 
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from commons.colors import NUM_COLORS
 
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from django_stubs_ext.db.models.manager import ManyRelatedManager
 
 
-class Workspace(BaseModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
+class Workspace(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
     name = models.CharField(max_length=40, null=False, blank=False, verbose_name="name")
     color = models.IntegerField(
         null=False,

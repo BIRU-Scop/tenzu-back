@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@ from uuid import UUID
 
 from ninja import Path, Query, Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -31,10 +31,6 @@ from commons.exceptions.api.errors import (
 )
 from commons.validators import B64UUID
 from memberships.api.validators import DeleteMembershipQuery, MembershipValidator
-from memberships.services.exceptions import (
-    ExistingOwnerProjectMembershipsAndNotOwnerError,
-    OwnerRoleNotAuthorisedError,
-)
 from permissions import check_permissions
 from workspaces.memberships import services as memberships_services
 from workspaces.memberships.models import WorkspaceMembership, WorkspaceRole
@@ -62,7 +58,7 @@ workspace_membership_router = Router()
     url_name="workspace.memberships.list",
     summary="List workspace memberships",
     response={
-        200: BaseDataModel[list[WorkspaceMembershipSerializer]],
+        200: BaseDataSchema[list[WorkspaceMembershipSerializer]],
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
@@ -96,7 +92,7 @@ async def list_workspace_memberships(
     url_name="workspace.memberships.update",
     summary="Update workspace membership",
     response={
-        200: BaseDataModel[WorkspaceMembershipSerializer],
+        200: BaseDataSchema[WorkspaceMembershipSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -121,12 +117,9 @@ async def update_workspace_membership(
         user=request.user,
         obj=membership,
     )
-    try:
-        return await memberships_services.update_workspace_membership(
-            membership=membership, role_id=form.role_id, user=request.user
-        )
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await memberships_services.update_workspace_membership(
+        membership=membership, role_id=form.role_id, user=request.user
+    )
 
 
 ##########################################################
@@ -204,14 +197,11 @@ async def delete_workspace_membership(
         obj=membership,
     )
 
-    try:
-        await memberships_services.delete_workspace_membership(
-            membership=membership,
-            user=request.user,
-            successor_user_id=query_params.successor_user_id,
-        )
-    except ExistingOwnerProjectMembershipsAndNotOwnerError as e:
-        raise ex.ForbiddenError(str(e))
+    await memberships_services.delete_workspace_membership(
+        membership=membership,
+        user=request.user,
+        successor_user_id=query_params.successor_user_id,
+    )
 
     return 204, None
 
@@ -226,7 +216,7 @@ async def delete_workspace_membership(
     url_name="workspace.roles.list",
     summary="List workspace roles",
     response={
-        200: BaseDataModel[list[WorkspaceRoleSerializer]],
+        200: BaseDataSchema[list[WorkspaceRoleSerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

@@ -30,7 +30,7 @@ from typing_extensions import Annotated
 
 from base.utils.images import valid_image_content, valid_image_content_type
 from commons.colors import NUM_COLORS
-from commons.validators import BaseModel
+from commons.validators import BaseValidatorSchema
 
 
 def validate_logo(logo: UploadedFile) -> UploadedFile:
@@ -59,7 +59,7 @@ LogoField = Annotated[
 ]
 
 
-class CreateProjectValidator(BaseModel):
+class CreateProjectValidator(BaseValidatorSchema):
     name: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
     ]  # type: ignore
@@ -67,7 +67,7 @@ class CreateProjectValidator(BaseModel):
     color: conint(gt=0, le=NUM_COLORS) | None = None  # type: ignore
 
 
-class UpdateProjectValidator(BaseModel):
+class UpdateProjectValidator(BaseValidatorSchema):
     name: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
     ] = None

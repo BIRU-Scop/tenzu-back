@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -43,14 +43,14 @@ async def test_create_attachment():
         data = await services.create_attachment(
             file=uploadfiles,
             created_by=attachment.created_by,
-            object=story,
+            content_object=story,
         )
 
         assert data == attachment
         fake_attachments_repositories.create_attachment.assert_awaited_once_with(
             file=uploadfiles,
             created_by=attachment.created_by,
-            object=story,
+            content_object=story,
         )
 
 
@@ -71,14 +71,14 @@ async def test_create_attachment_and_emit_event_on_create():
         await services.create_attachment(
             file=uploadfiles,
             created_by=attachment.created_by,
-            object=story,
+            content_object=story,
             event_on_create=fake_event_on_create,
         )
 
         fake_attachments_repositories.create_attachment.assert_awaited_once_with(
             file=uploadfiles,
             created_by=attachment.created_by,
-            object=story,
+            content_object=story,
         )
         fake_event_on_create.assert_awaited_once_with(attachment=attachment)
 

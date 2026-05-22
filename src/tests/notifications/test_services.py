@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,13 +19,13 @@
 
 from unittest.mock import call, patch
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from ninja_jwt.utils import aware_utcnow
 from notifications import services
 from tests.utils import factories as f
 
 
-class SampleContent(BaseModel):
+class SampleContent(BaseSchema):
     msg: str
 
 
@@ -50,14 +50,17 @@ async def test_notify_users():
         fake_notifications_repository.create_notifications.return_value = [notification]
 
         await services.notify_users(
-            type="test", emitted_by=user, notified_user_ids=[user.id], content=content
+            notification_type="test",
+            emitted_by=user,
+            notified_user_ids=[user.id],
+            content_list=[content],
         )
 
         fake_notifications_repository.create_notifications.assert_called_once_with(
             owner_ids=[user.id],
             created_by=user,
             notification_type="test",
-            content={"msg": "Test notify"},
+            content_list=[{"msg": "Test notify"}],
         )
 
         fake_notifications_events.emit_event_when_notifications_are_created.assert_called_once_with(

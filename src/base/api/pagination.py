@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,7 +23,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from pydantic import Field
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 
 
 @dataclass
@@ -32,7 +32,7 @@ class Pagination:
     limit: int
 
 
-class PaginationQuery(BaseModel):
+class PaginationQuery(BaseSchema):
     offset: int = Field(default=0, ge=0, description="Page offset number")
     limit: int = Field(
         default=settings.DEFAULT_PAGE_SIZE,

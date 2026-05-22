@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,19 +17,24 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import json
-from contextlib import contextmanager
-from typing import Any
+from contextlib import asynccontextmanager, contextmanager
+from typing import Any, AsyncContextManager, Callable
 from unittest.mock import Mock, patch
 
+import orjson
+from asgiref.sync import sync_to_async
 from django.db.models import Model
+from django.test import TestCase
 from pydantic import ValidationError
+from pytest_django.fixtures import (
+    DjangoCaptureOnCommitCallbacks,
+)
 
 
 def check_validation_errors(
     validation_errors: ValidationError, error_fields: list[str], error_msgs: list[str]
 ):
-    validation_errors_json = json.loads(validation_errors.value.json())
+    validation_errors_json = orjson.loads(validation_errors.value.json())
     assert len(validation_errors_json) == len(
         error_fields
     ), "Wrong number of validation errors"
@@ -63,6 +68,21 @@ def patch_db_transaction():
         patch("django.db.transaction.on_commit", new=lambda fn: fn()),
     ):
         yield
+
+
+@asynccontextmanager
+async def async_django_capture_on_commit_callbacks(
+    execute=False,
+) -> AsyncContextManager[list[Callable[[], Any]]]:
+    """
+    can be used like
+        async with async_django_capture_on_commit_callbacks(execute=True) as callbacks:
+    for function registered with transaction_on_commit_async
+    """
+    with await sync_to_async(TestCase.captureOnCommitCallbacks)(
+        execute=execute
+    ) as callbacks:
+        yield callbacks
 
 
 def set_prefetched_qs_cache(model_object: Model, related_values: dict[str, list]):

@@ -71,7 +71,6 @@ class Settings(BaseSettings):
     # SECURITY WARNING: keep the secret key used in production secret!
     SECRET_KEY: str
     SECRET_KEY_FALLBACKS: list[str] = Field(default_factory=list)
-    UUID_NODE: int | None = None
     # SECURITY WARNING: don't run with debug turned on in production!
     DEBUG: bool = False
 
@@ -146,13 +145,6 @@ class Settings(BaseSettings):
     @classmethod
     def set_extra_cors(cls, v: list[AnyHttpUrl], info: ValidationInfo) -> list[str]:
         return [remove_ending_slash(str(cors)) for cors in v]
-
-    @field_validator("UUID_NODE")
-    @classmethod
-    def validate_uuid_node(cls, v: int | None) -> int | None:
-        if v is not None and not 0 <= v < 1 << 48:
-            raise ValueError("out of range (need a 48-bit value)")
-        return v
 
     model_config = SettingsConfigDict(
         env_prefix="TENZU_",

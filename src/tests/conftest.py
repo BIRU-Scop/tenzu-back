@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -84,20 +84,6 @@ def fix_async_db(request):
             yield
     finally:
         object.__setattr__(main_thread_local, "_lock_storage", main_thread_storage)
-
-
-#
-# Start the event manager
-#
-
-
-# @pytest_asyncio.fixture(scope="session", autouse=True)
-# async def connect_events_manage_on_startup():
-#     from events import connect_events_manager, disconnect_events_manager
-#
-#     await connect_events_manager()
-#     yield
-#     await disconnect_events_manager()
 
 
 #

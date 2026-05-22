@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,7 +24,7 @@ from django.contrib.auth.models import AbstractBaseUser, AnonymousUser, UserMana
 from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 
-from base.db.models import BaseModel, LowerCharField, LowerEmailField
+from base.db.models import BaseDBModel, LowerCharField, LowerEmailField
 from base.utils.slug import generate_int_suffix, slugify_uniquely
 from commons.colors import NUM_COLORS, generate_random_color
 
@@ -41,7 +41,7 @@ def default_language() -> str:
     return settings.LANGUAGE_CODE
 
 
-class User(BaseModel, AbstractBaseUser):
+class User(BaseDBModel, AbstractBaseUser):
     username = LowerCharField(
         max_length=255,
         null=False,

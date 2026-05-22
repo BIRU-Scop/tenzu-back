@@ -23,16 +23,16 @@ from uuid import UUID
 from django.conf import settings
 from django.urls import reverse_lazy
 
-from base.serializers import BaseModel, FileField
+from base.serializers import BaseSchema, FileField
 from base.utils.uuid import encode_uuid_to_b64str
 
 
-class ProjectLogoBaseSerializer(BaseModel):
+class ProjectLogoBaseSerializer(BaseSchema):
     logo: FileField | None = None
 
     @staticmethod
     def resolve_logo(obj):
-        if isinstance(obj, BaseModel):
+        if isinstance(obj, BaseSchema):
             return obj.logo
         if isinstance(obj, dict):
             logo = obj.get("logo")

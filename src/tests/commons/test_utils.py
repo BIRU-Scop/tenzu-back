@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -15,10 +15,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from unittest.mock import patch
 
+import pytest
 from pydantic import AnyHttpUrl
 
-from commons.utils import get_absolute_url
+from commons.utils import async_cache, get_absolute_url
 from configurations.utils import add_ending_slash, remove_ending_slash
 
 
@@ -47,3 +49,33 @@ class TestUrlUtils:
         assert get_absolute_url("") == ""
         assert get_absolute_url("//") == "http://localhost/"
         assert str(get_absolute_url(settings.BACKEND_URL)) == "http://localhost/"
+
+
+class TestCacheUtils:
+    @staticmethod
+    def inner_function():
+        return "OK"
+
+    @async_cache
+    async def cached_function(self):
+        return self.inner_function()
+
+    async def test_async_cache(self):
+        with patch.object(
+            TestCacheUtils, "inner_function", autospec=True
+        ) as fake_inner_function:
+            fake_inner_function.side_effect = (
+                NotImplementedError,
+                "OK",
+                ValueError,
+            )
+            with pytest.raises(NotImplementedError):
+                await self.cached_function()
+            assert await self.cached_function() == "OK"
+            # next call is cached so exception won't be raised
+            assert await self.cached_function() == "OK"
+            self.cached_function.cache_clear()
+            with pytest.raises(ValueError):
+                await self.cached_function()
+
+            assert fake_inner_function.call_count == 3

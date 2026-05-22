@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,7 +19,7 @@
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 from base.db.models.mixins import (
     CreatedMetaInfoMixin,
     DeletedMetaInfoMixin,
@@ -29,7 +29,7 @@ from projects.projects.models import Project
 
 
 class Comment(
-    BaseModel,
+    BaseDBModel,
     CreatedMetaInfoMixin,
     ModifiedAtMetaInfoMixin,
     DeletedMetaInfoMixin,
