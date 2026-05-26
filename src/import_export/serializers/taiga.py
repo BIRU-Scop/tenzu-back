@@ -267,7 +267,7 @@ class _TaigaMembership(BaseModel):
     role: str | None  # related name
 
     is_admin: bool
-    email: EmailStr | None
+    email: EmailStr | Literal[""] | None
     created_at: datetime
     invitation_extra_text: str | None
     user_order: int

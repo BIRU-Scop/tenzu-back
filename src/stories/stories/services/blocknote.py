@@ -18,7 +18,8 @@
 import asyncio
 import logging
 import subprocess
-from contextlib import AbstractAsyncContextManager, AbstractContextManager
+import sys
+from contextlib import AbstractAsyncContextManager
 from typing import Literal, TypedDict
 
 import orjson
@@ -64,6 +65,7 @@ class BlockNoteConverter(AbstractAsyncContextManager):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            limit=sys.maxsize,
         )
         return self
 
