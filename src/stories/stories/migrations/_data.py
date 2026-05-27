@@ -16,106 +16,67 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import json
 import logging
 import subprocess
 
 from django.conf import settings
 
 from stories.stories.models import Story
+from stories.stories.services.blocknote import (
+    BlockNoteConverter,
+    BlockNoteScriptError,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def migrate_story_in_batches(StoryClass: type[Story]):
-    script_path = settings.BASE_DIR / "scripts" / "convert_blocknote.mjs"
-
-    # Start Node.js process once
-    process = subprocess.Popen(
-        ["node", "--max-old-space-size=4096", script_path],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1,  # Line buffered
-    )
-
+async def migrate_story_in_batches(StoryClass: type[Story]):
     BULK_SIZE = 250
-
-    try:
+    # Start Node.js process once
+    async with BlockNoteConverter() as converter:
         stories_to_process = (
             StoryClass.objects.exclude(description__isnull=True)
             .exclude(description="")
             .only("id", "description")
         )
-        total = stories_to_process.count()
+        total = await stories_to_process.acount()
         print(f"\nStarting batch migration of {total} stories...")
 
         processed_count = 0
         pending_updates: list[Story] = []
 
-        for story in stories_to_process:
-            # Check if the process is still active
-            if process.poll() is not None:
-                stderr_data = process.stderr.read()
-                raise RuntimeError(
-                    f"Node.js process terminated unexpectedly with code {process.returncode}. Error: {stderr_data}"
-                )
-
-            # Send one story as a JSON line to Node
-            input_data = json.dumps(
-                {"id": str(story.id), "description": story.description}
-            )
-            try:
-                process.stdin.write(input_data + "\n")
-                process.stdin.flush()
-            except BrokenPipeError:
-                stderr_data = process.stderr.read()
-                raise RuntimeError(
-                    f"Broken pipe: Node.js crashed. Details: {stderr_data}"
-                )
-
-            # Read the result (one line)
-            line = process.stdout.readline()
-            if line:
-                story_id_str, hex_data = line.strip().split(":", 1)
-
-                if hex_data in {"ERROR", "EMPTY"}:
-                    logger.error(
-                        f"Error or empty description for story ID: {story_id_str}"
-                    )
-                    processed_count += 1
-                    continue
-
-                binary_data = bytes.fromhex(hex_data)
-
-                # Accumulate updates for bulk_update
-                pending_updates.append(
-                    StoryClass(id=story_id_str, description_binary=binary_data)
-                )
-
-                if len(pending_updates) >= BULK_SIZE:
-                    StoryClass.objects.bulk_update(
-                        pending_updates,
-                        ["description_binary"],
-                        batch_size=BULK_SIZE,
-                    )
-                    pending_updates.clear()
-
-            processed_count += 1
+        async for story in stories_to_process:
             if processed_count % 100 == 0:
                 print(f"Progress: {processed_count}/{total}")
 
+            try:
+                story_id_str, binary_data, _ = await converter.convert(
+                    {"id": str(story.id), "content": story.description}
+                )
+            except BlockNoteScriptError:
+                logger.error(f"Error or empty content for story with ID: {story.id}")
+                processed_count += 1
+                continue
+
+            # Accumulate updates for bulk_update
+            pending_updates.append(
+                StoryClass(id=story_id_str, description_binary=binary_data)
+            )
+
+            if len(pending_updates) >= BULK_SIZE:
+                await StoryClass.objects.abulk_update(
+                    pending_updates,
+                    ["description_binary"],
+                    batch_size=BULK_SIZE,
+                )
+                pending_updates.clear()
+            processed_count += 1
+
         # Flush remaining updates
         if pending_updates:
-            StoryClass.objects.bulk_update(
+            await StoryClass.objects.abulk_update(
                 pending_updates,
                 ["description_binary"],
                 batch_size=BULK_SIZE,
             )
-
-    finally:
-        if process.stdin:
-            process.stdin.close()
-        process.terminate()
-        process.wait()
+        print(f"Progress: {processed_count}/{total}")

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 from ninja import Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -65,7 +65,7 @@ users_router = Router()
     by_alias=True,
     auth=None,
     response={
-        200: BaseDataModel[UserSerializer],
+        200: BaseDataSchema[UserSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
@@ -160,7 +160,7 @@ async def verify_user(
     "/users/me",
     url_name="user.get.me",
     summary="Get authenticated user",
-    response=BaseDataModel[UserSerializer],
+    response=BaseDataSchema[UserSerializer],
     by_alias=True,
 )
 async def get_current_user(request) -> User:
@@ -184,7 +184,7 @@ async def get_current_user(request) -> User:
     url_name="user.update.me",
     summary="Update authenticated user",
     response={
-        200: BaseDataModel[UserSerializer],
+        200: BaseDataSchema[UserSerializer],
         400: ERROR_RESPONSE_400,
         401: ERROR_RESPONSE_401,
         403: ERROR_RESPONSE_403,
@@ -233,7 +233,7 @@ async def delete_current_user(request) -> tuple[int, None]:
     - All workspaces where the user is the only workspace member are deleted (cascade)
     - All projects where the user is the only project member are deleted (cascade)
     - If there are any workspace or project with other members where user is the only owner
-      an error is raised and the deletion is canceled
+      an error is raised and the deletion is cancelled
     - All memberships related with this user in workspaces and projects are deleted
     - All invitations related with this user in workspaces and projects are deleted
     - User is deleted
@@ -337,10 +337,6 @@ async def reset_password(
     """
     user = await users_services.reset_password(token=token, password=form.password)
 
-    if not user:
-        raise ex.BadRequest(
-            "The user is inactive or does not exist.", detail="inactive-user"
-        )
     refresh: RefreshToken = await sync_to_async(RefreshToken.for_user)(user)
     username_field = User.USERNAME_FIELD
 

@@ -23,7 +23,7 @@ from django.urls import reverse_lazy
 from ninja import Schema
 
 from attachments.serializers import AttachmentSerializer
-from base.serializers import BaseModel, FileField
+from base.serializers import BaseSchema, FileField
 from base.utils.uuid import encode_uuid_to_b64str
 
 
@@ -32,7 +32,7 @@ class StoryAttachmentSerializer(AttachmentSerializer):
 
     @staticmethod
     def resolve_file(obj):
-        if isinstance(obj, BaseModel):
+        if isinstance(obj, BaseSchema):
             return obj.file
         if isinstance(obj, dict):
             obj_id = obj.get("id")

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -28,22 +28,22 @@ from pydantic import (
 )
 from typing_extensions import Annotated
 
-from commons.validators import B64UUID, BaseModel
+from commons.validators import B64UUID, BaseValidatorSchema
 from users.api.validators import check_email_in_domain
 
 
-class MembershipValidator(BaseModel):
+class MembershipValidator(BaseValidatorSchema):
     role_id: B64UUID
 
 
-class DeleteMembershipQuery(BaseModel):
+class DeleteMembershipQuery(BaseValidatorSchema):
     successor_user_id: B64UUID | None = None
 
 
 # --- Invitations
 
 
-class _InvitationValidator(BaseModel):
+class _InvitationValidator(BaseValidatorSchema):
     email: EmailStr | None = None
     username: str | None = None
     role_id: B64UUID
@@ -62,10 +62,10 @@ class _InvitationValidator(BaseModel):
         return check_email_in_domain(v)
 
 
-class InvitationsValidator(BaseModel):
+class InvitationsValidator(BaseValidatorSchema):
     # Max items 50 and duplicated items not allowed
     invitations: Annotated[List[_InvitationValidator], Field(max_length=50)]
 
 
-class UpdateInvitationValidator(BaseModel):
+class UpdateInvitationValidator(BaseValidatorSchema):
     role_id: B64UUID

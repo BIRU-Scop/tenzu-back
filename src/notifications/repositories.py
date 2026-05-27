@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -50,9 +50,9 @@ NotificationSelectRelated = list[Literal["owner", "created_by"]]
 
 async def create_notifications(
     owner_ids: Iterable[UUID],
-    created_by: User,
+    created_by: User | None,
     notification_type: str,
-    content: dict[str, Any],
+    content_list: list[dict[str, Any]],
 ) -> list[Notification]:
     notifications = [
         Notification(
@@ -62,6 +62,7 @@ async def create_notifications(
             content=content,
         )
         for owner_id in owner_ids
+        for content in content_list
     ]
 
     return await Notification.objects.abulk_create(notifications)

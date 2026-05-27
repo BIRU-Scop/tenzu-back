@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,6 +20,7 @@
 import pytest
 
 from stories.assignments import repositories
+from stories.assignments.models import StoryAssignment
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
@@ -40,6 +41,21 @@ async def test_create_story_assignment_ok() -> None:
 
     assert story_assignment.user == user
     assert story_assignment.story == story
+
+
+async def test_bulk_create_story_assignment_ok() -> None:
+    user1 = await f.create_user()
+    user2 = await f.create_user()
+    story = await f.create_story()
+
+    assignments = [
+        StoryAssignment(user=user1, story=story),
+        StoryAssignment(user=user2, story=story),
+    ]
+
+    await repositories.bulk_create_story_assignments(assignments)
+
+    assert all(assignment.pk for assignment in assignments)
 
 
 ##########################################################

@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,9 +16,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+import functools
+from asyncio import Task, create_task
+from functools import partial
 from urllib.parse import urljoin
 
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import async_to_sync, iscoroutinefunction, sync_to_async
 from django.conf import settings
 from django.db import transaction
 from pydantic_core import Url
@@ -43,6 +46,32 @@ def transaction_atomic_async(func):
 def transaction_on_commit_async(func):
     @sync_to_async
     def wrapper(*args, **kwargs):
-        transaction.on_commit(lambda: async_to_sync(func)(*args, **kwargs))
+        sync_func = async_to_sync(func) if iscoroutinefunction(func) else func
+        transaction.on_commit(partial(sync_func, *args, **kwargs))
 
     return wrapper
+
+
+def async_cache(async_function):
+    """
+    Decorator to use functools.cache with async function
+    !!!
+    autospec won't work with patch in tests, should be called instead with:
+        patch("PATH.FUNCTION_NAME", new=AsyncMock())
+    """
+
+    def clear_cache_on_exception(future: Task):
+        try:
+            future.result()
+        except Exception as e:
+            # prevent exception from being cached, to reproduce behaviour from functools.cache
+            cached_async_function.cache_clear()
+
+    @functools.cache
+    def cached_async_function(*args, **kwargs) -> Task:
+        coroutine = async_function(*args, **kwargs)
+        future = create_task(coroutine)
+        future.add_done_callback(clear_cache_on_exception)
+        return future
+
+    return cached_async_function

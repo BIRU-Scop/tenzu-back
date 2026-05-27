@@ -25,7 +25,7 @@ from pydantic.alias_generators import to_camel
 from base.serializers.fields import UUIDB64, CamelizeDict, FileField  # noqa
 
 
-class BaseModel(Schema):
+class BaseSchema(Schema):
     model_config = ConfigDict(
         alias_generator=to_camel,
         validate_by_name=True,
@@ -37,7 +37,7 @@ class BaseModel(Schema):
 RootModel = TypeVar("RootModel")
 
 
-class BaseDataModel(BaseModel, Generic[RootModel]):
+class BaseDataSchema(BaseSchema, Generic[RootModel]):
     """
     Utility class to nest given object into a {data: } structure
     """

@@ -17,11 +17,11 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from stories.stories.serializers.nested import StoryNestedSerializer
 from users.serializers.nested import UserNestedSerializer
 
 
-class StoryAssignmentSerializer(BaseModel):
+class StoryAssignmentSerializer(BaseSchema):
     user: UserNestedSerializer
     story: StoryNestedSerializer

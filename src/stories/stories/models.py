@@ -20,7 +20,7 @@
 from django.db import models
 
 from attachments.mixins import RelatedAttachmentsMixin
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 from base.db.models.mixins import (
     CreatedMetaInfoMixin,
     DescriptionUpdatedMetaInfoMixin,
@@ -33,7 +33,7 @@ from projects.references.mixins import ProjectReferenceMixin
 
 
 class Story(
-    BaseModel,
+    BaseDBModel,
     ProjectReferenceMixin,
     VersionedMixin,
     OrderedMixin,

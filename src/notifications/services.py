@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from uuid import UUID
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from notifications import events as notifications_events
 from notifications import repositories as notifications_repositories
 from notifications.models import Notification
@@ -30,13 +30,16 @@ from users.models import User
 
 
 async def notify_users(
-    type: str, emitted_by: User, notified_user_ids: Iterable[UUID], content: BaseModel
+    notification_type: str,
+    emitted_by: User | None,
+    notified_user_ids: Iterable[UUID],
+    content_list: list[BaseSchema],
 ) -> None:
     notifications = await notifications_repositories.create_notifications(
         owner_ids=notified_user_ids,
         created_by=emitted_by,
-        notification_type=type,
-        content=content.dict(),
+        notification_type=notification_type,
+        content_list=[content.dict() for content in content_list],
     )
     await notifications_events.emit_event_when_notifications_are_created(
         notifications=notifications

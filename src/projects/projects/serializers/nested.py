@@ -18,11 +18,11 @@
 # You can contact BIRU at ask@biru.sh
 import datetime
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from projects.projects.serializers.mixins import ProjectLogoBaseSerializer
 
 
-class _ProjectBaseNestedSerializer(BaseModel):
+class _ProjectBaseNestedSerializer(BaseSchema):
     id: UUIDB64
     workspace_id: UUIDB64
     name: str

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -35,12 +35,12 @@ def uuid_generator() -> uuid.UUID:
     return uuid.uuid1(node=settings.UUID_NODE)
 
 
-class BaseModel(Model):
+class BaseDBModel(Model):
     id = UUIDField(
         primary_key=True,
         null=False,
         blank=True,
-        default=uuid_generator,
+        default=uuid.uuid7,  # TODO Try to replace with UUIDv7 db_default once on django 6.1 and postgres 18
         editable=False,
         verbose_name="ID",
     )

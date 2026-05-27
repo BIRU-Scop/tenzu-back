@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,21 +17,21 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from users.serializers.nested import UserNestedSerializer
 from workspaces.workspaces.serializers import WorkspaceDetailSerializer
 
 
-class CreateWorkspaceContent(BaseModel):
+class CreateWorkspaceContent(BaseSchema):
     workspace: WorkspaceDetailSerializer
 
 
-class UpdateWorkspaceContent(BaseModel):
+class UpdateWorkspaceContent(BaseSchema):
     workspace: WorkspaceDetailSerializer
     updated_by: UserNestedSerializer
 
 
-class DeleteWorkspaceContent(BaseModel):
+class DeleteWorkspaceContent(BaseSchema):
     workspace_id: UUIDB64
     name: str
     deleted_by: UserNestedSerializer

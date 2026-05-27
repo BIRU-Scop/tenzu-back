@@ -632,7 +632,7 @@ async def test_request_reset_password_ok_with_invalid_email(client):
 
     response = await client.post("/users/reset-password", json=data)
     assert response.status_code == 422, response.data
-    assert response.data["detail"][0]["type"] == "value_error"
+    assert response.data["error"]["detail"][0]["type"] == "value_error"
 
 
 async def test_request_reset_password_error_with_no_email(client):
@@ -640,7 +640,7 @@ async def test_request_reset_password_error_with_no_email(client):
 
     response = await client.post("/users/reset-password", json=data)
     assert response.status_code == 422, response.data
-    assert response.data["detail"][0]["type"] == "missing"
+    assert response.data["error"]["detail"][0]["type"] == "missing"
 
 
 ##########################################################
@@ -718,7 +718,7 @@ async def test_reset_password_error_with_no_password(client):
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
     assert response.status_code == 422, response.data
-    assert response.data["detail"][0]["type"] == "missing"
+    assert response.data["error"]["detail"][0]["type"] == "missing"
 
 
 async def test_reset_password_error_with_invalid_password(client):
@@ -728,7 +728,7 @@ async def test_reset_password_error_with_invalid_password(client):
 
     response = await client.post(f"/users/reset-password/{token}", json=data)
     assert response.status_code == 422, response.data
-    assert response.data["detail"][0]["type"] == "string_too_short"
+    assert response.data["error"]["detail"][0]["type"] == "string_too_short"
 
 
 async def test_reset_password_error_inactive_user(client):

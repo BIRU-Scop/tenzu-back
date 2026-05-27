@@ -21,7 +21,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from base.utils.enum import OrderedEnum
 from commons.i18n import choices as i18n_choices
 
@@ -57,7 +57,7 @@ def get_script_type(identifier: str) -> ScriptType:
     return ScriptType.OTHER
 
 
-class LanguageSerializer(BaseModel):
+class LanguageSerializer(BaseSchema):
     code: str
     name: str
     english_name: str

@@ -1,0 +1,44 @@
+# Copyright (C) 2026 BIRU
+#
+# This file is part of Tenzu.
+#
+# Tenzu is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# You can contact BIRU at ask@biru.sh
+from pathlib import Path
+from typing import TypedDict
+
+from base.serializers import UUIDB64, BaseSchema
+from import_export.models import ImportationError, ImportationStatus, ProjectImportation
+
+
+class ProjectImportationData(TypedDict, total=False):
+    error_code: ImportationError
+    progress_percentage: int
+
+
+class ProjectImportationNestedSerializer(BaseSchema):
+    id: UUIDB64
+    status: ImportationStatus
+    extra_data: ProjectImportationData
+    source_name: str | None
+
+    @staticmethod
+    def resolve_source_name(
+        obj: "ProjectImportation | ProjectImportationNestedSerializer",
+    ) -> str | None:
+        source_name = getattr(obj, "source_name", None)
+        if source_name is not None:
+            # This happens when serializer is called on already serialized object
+            return source_name
+        return Path(obj.source.name).name if obj.source.name else None

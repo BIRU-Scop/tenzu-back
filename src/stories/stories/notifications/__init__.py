@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -44,15 +44,17 @@ async def notify_when_story_status_change(
     notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
-        type=STORIES_STATUS_CHANGE,
+        notification_type=STORIES_STATUS_CHANGE,
         emitted_by=emitted_by,
         notified_user_ids=notified_user_ids,
-        content=StoryStatusChangeNotificationContent(
-            project=story.project,
-            story=story,
-            changed_by=emitted_by,
-            status=status,
-        ),
+        content_list=[
+            StoryStatusChangeNotificationContent(
+                project=story.project,
+                story=story,
+                changed_by=emitted_by,
+                status=status,
+            )
+        ],
     )
 
 
@@ -68,16 +70,18 @@ async def notify_when_story_workflow_change(
     notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
-        type=STORIES_WORKFLOW_CHANGE,
+        notification_type=STORIES_WORKFLOW_CHANGE,
         emitted_by=emitted_by,
         notified_user_ids=notified_user_ids,
-        content=StoryWorkflowChangeNotificationContent(
-            project=story.project,
-            story=story,
-            changed_by=emitted_by,
-            workflow=workflow,
-            status=status,
-        ),
+        content_list=[
+            StoryWorkflowChangeNotificationContent(
+                project=story.project,
+                story=story,
+                changed_by=emitted_by,
+                workflow=workflow,
+                status=status,
+            )
+        ],
     )
 
 
@@ -91,12 +95,14 @@ async def notify_when_story_is_deleted(story: Story, emitted_by: User) -> None:
     notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
-        type=STORIES_DELETE,
+        notification_type=STORIES_DELETE,
         emitted_by=emitted_by,
         notified_user_ids=notified_user_ids,
-        content=StoryDeleteNotificationContent(
-            project=story.project,
-            story=story,
-            deleted_by=emitted_by,
-        ),
+        content_list=[
+            StoryDeleteNotificationContent(
+                project=story.project,
+                story=story,
+                deleted_by=emitted_by,
+            )
+        ],
     )

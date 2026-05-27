@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -35,13 +35,15 @@ async def notify_when_story_comment_is_created(
     notified_user_ids.discard(emitted_by.id)
 
     await notifications_services.notify_users(
-        type=STORY_COMMENT_CREATE,
+        notification_type=STORY_COMMENT_CREATE,
         emitted_by=emitted_by,
         notified_user_ids=notified_user_ids,
-        content=StoryCommentCreateNotificationContent(
-            project=story.project,
-            story=story,
-            commented_by=emitted_by,
-            comment=comment,
-        ),
+        content_list=[
+            StoryCommentCreateNotificationContent(
+                project=story.project,
+                story=story,
+                commented_by=emitted_by,
+                comment=comment,
+            )
+        ],
     )

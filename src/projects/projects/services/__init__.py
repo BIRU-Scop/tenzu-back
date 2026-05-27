@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+import functools
 from typing import Any
 from uuid import UUID
 
@@ -24,9 +24,11 @@ from django.conf import settings
 from django.db.models.fields.files import FieldFile
 from easy_thumbnails.files import ThumbnailFile
 from ninja import UploadedFile
+from pydantic import ValidationError
 
 from base.utils.images import ImageSizeFormat, get_thumbnail
 from commons.utils import (
+    async_cache,
     get_absolute_url,
     transaction_atomic_async,
     transaction_on_commit_async,
@@ -63,6 +65,7 @@ async def create_project(
     logo: UploadedFile | None = None,
 ) -> ProjectDetailSerializer:
     project = await _create_project(
+        await _get_default_template(),
         workspace=workspace,
         name=name,
         created_by=created_by,
@@ -70,20 +73,19 @@ async def create_project(
         color=color,
         logo_file=logo,
     )
+    await transaction_on_commit_async(
+        projects_events.emit_event_when_project_is_created
+    )(project=project)
     return await get_project_detail(project=project, user=created_by)
 
 
-@transaction_atomic_async
-async def _create_project(
-    workspace: Workspace,
-    name: str,
-    created_by: User,
-    description: str | None,
-    color: int | None,
-    logo_file: UploadedFile | None = None,
-) -> Project:
+@async_cache
+async def _get_default_template() -> projects_repositories.ProjectTemplateModel:
     """
-    Create project and set user cache property for role
+    This function is cached with no expiry. If the model instance or the model structure is ever changed,
+    the code will need to call _get_default_template.cache_clear()
+    autospec won't work with patch in tests, should be called instead with:
+        patch("PATH._get_default_template", new=AsyncMock())
     """
     try:
         template = await projects_repositories.get_project_template(
@@ -94,7 +96,32 @@ async def _create_project(
             f"Default project template '{settings.DEFAULT_PROJECT_TEMPLATE}' not found. "
             "Try to run migrations again and check if the error persist."
         ) from e
+    try:
+        template = projects_repositories.ProjectTemplateModel.model_validate(
+            template, from_attributes=True
+        )
+    except ValidationError as e:
+        raise Exception(
+            f"Default project template '{settings.DEFAULT_PROJECT_TEMPLATE}' is not in the expected format "
+            "Try to run migrations again and check if the error persist."
+        ) from e
+    return template
 
+
+@transaction_atomic_async
+async def _create_project(
+    template: projects_repositories.ProjectTemplateModel,
+    workspace: Workspace,
+    name: str,
+    created_by: User,
+    description: str | None,
+    color: int | None,
+    logo_file: UploadedFile | None = None,
+    **kwargs,
+) -> Project:
+    """
+    Create project using provided template and set user cache property for role
+    """
     landing_page = (
         get_landing_page_for_workflow(template.workflows[0]["slug"])
         if template and template.workflows
@@ -109,6 +136,7 @@ async def _create_project(
         color=color,
         logo=logo_file,
         landing_page=landing_page,
+        **kwargs,
     )
 
     roles = await projects_repositories.apply_template_to_project(
@@ -127,9 +155,6 @@ async def _create_project(
     created_by.project_role = owner_role
 
     project.user_is_invited = False
-    await transaction_on_commit_async(
-        projects_events.emit_event_when_project_is_created
-    )(project=project)
 
     return project
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,11 +19,11 @@
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedMetaInfoMixin
 
 
-class Attachment(BaseModel, CreatedMetaInfoMixin):
+class Attachment(BaseDBModel, CreatedMetaInfoMixin):
     storaged_object = models.ForeignKey(
         "storage.StoragedObject",
         null=False,

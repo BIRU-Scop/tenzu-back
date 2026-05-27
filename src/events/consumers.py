@@ -16,12 +16,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 import asyncio
-import json
 import logging
 from functools import cached_property
 from typing import Any
 from urllib.parse import parse_qs
 
+import orjson
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.conf import settings
@@ -171,15 +171,17 @@ class CollaborationConsumer(YjsConsumer):
             if not self._can_write_story:
                 return
             try:
-                data = json.loads(text_data)
+                data = orjson.loads(text_data)
                 if data.get("command") == "save_now":
                     collaboration_logger.debug("Manual save requested by client")
                     await self.force_save()
                     await self.send(
-                        text_data=json.dumps({"type": "save_status", "status": "saved"})
+                        text_data=orjson.dumps(
+                            {"type": "save_status", "status": "saved"}
+                        )
                     )
                     return None
-            except json.JSONDecodeError:
+            except orjson.JSONDecodeError:
                 pass
 
         # Don't handle any message that modify the doc if it comes from a user with read-only permission

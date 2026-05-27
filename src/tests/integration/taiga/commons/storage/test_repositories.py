@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,6 +24,7 @@ import pytest
 from asgiref.sync import sync_to_async
 
 from commons.storage import repositories
+from commons.storage.models import StoragedObject
 from ninja_jwt.utils import aware_utcnow
 from tests.utils import factories as f
 
@@ -49,6 +50,19 @@ async def test_create_storaged_object():
         )
         == 1
     )
+
+
+async def test_bulk_create_storaged_objects():
+    file = f.build_image_file(name="test")
+
+    storaged_objects = [
+        StoragedObject(
+            file=file,
+        )
+    ]
+
+    await repositories.bulk_create_storaged_objects(storaged_objects)
+    assert all(storaged_object.pk for storaged_object in storaged_objects)
 
 
 ##########################################################

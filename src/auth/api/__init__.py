@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -40,7 +40,7 @@ from auth.api.validators import (
 from auth.decorators import add_allauth_properties
 from auth.serializers import AuthConfigSerializer, AuthSocialSignupError
 from auth.services import get_auth_config
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -60,7 +60,7 @@ auth_router = Router()
     url_name="auth.config",
     summary="Give information about available auth methods",
     response={
-        200: BaseDataModel[AuthConfigSerializer],
+        200: BaseDataSchema[AuthConfigSerializer],
     },
     by_alias=True,
     auth=None,

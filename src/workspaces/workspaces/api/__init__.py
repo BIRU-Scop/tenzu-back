@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -57,7 +57,7 @@ workspace_router = Router()
     url_name="workspaces.post",
     summary="Create workspace",
     response={
-        200: BaseDataModel[WorkspaceDetailSerializer],
+        200: BaseDataSchema[WorkspaceDetailSerializer],
         403: ERROR_RESPONSE_403,
         422: ERROR_RESPONSE_422,
     },
@@ -88,7 +88,7 @@ async def create_workspace(
     url_name="workspaces.list",
     summary="List the overview of the workspaces to which I belong",
     response={
-        200: BaseDataModel[list[WorkspaceSummarySerializer]],
+        200: BaseDataSchema[list[WorkspaceSummarySerializer]],
         401: ERROR_RESPONSE_401,
     },
     by_alias=True,
@@ -114,7 +114,7 @@ async def list_my_workspaces(request) -> list[Workspace]:
     url_name="workspace.get",
     summary="Get workspace",
     response={
-        200: BaseDataModel[WorkspaceDetailSerializer],
+        200: BaseDataSchema[WorkspaceDetailSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -150,7 +150,7 @@ async def get_workspace(
     url_name="workspace.update",
     summary="Update workspace",
     response={
-        200: BaseDataModel[WorkspaceDetailSerializer],
+        200: BaseDataSchema[WorkspaceDetailSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,

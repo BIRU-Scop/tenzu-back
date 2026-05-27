@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from workflows.serializers import (
     ReorderWorkflowStatusesSerializer,
     WorkflowNestedSerializer,
@@ -26,31 +26,31 @@ from workflows.serializers import (
 )
 
 
-class CreateWorkflowContent(BaseModel):
+class CreateWorkflowContent(BaseSchema):
     workflow: WorkflowSerializer
 
 
-class UpdateWorkflowContent(BaseModel):
+class UpdateWorkflowContent(BaseSchema):
     workflow: WorkflowSerializer
 
 
-class DeleteWorkflowContent(BaseModel):
+class DeleteWorkflowContent(BaseSchema):
     workflow: WorkflowNestedSerializer
     target_workflow: WorkflowNestedSerializer | None = None
 
 
-class CreateWorkflowStatusContent(BaseModel):
+class CreateWorkflowStatusContent(BaseSchema):
     workflow_status: WorkflowStatusSerializer
 
 
-class UpdateWorkflowStatusContent(BaseModel):
+class UpdateWorkflowStatusContent(BaseSchema):
     workflow_status: WorkflowStatusSerializer
 
 
-class ReorderWorkflowStatusesContent(BaseModel):
+class ReorderWorkflowStatusesContent(BaseSchema):
     reorder: ReorderWorkflowStatusesSerializer
 
 
-class DeleteWorkflowStatusContent(BaseModel):
+class DeleteWorkflowStatusContent(BaseSchema):
     workflow_status: WorkflowStatusSerializer
     target_status: WorkflowStatusSerializer | None = None

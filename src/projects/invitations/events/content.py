@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,12 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from projects.memberships.serializers import ProjectMembershipSerializer
 from workspaces.memberships.serializers import WorkspaceMembershipSerializer
 
 
-class ProjectInvitationContent(BaseModel):
+class ProjectInvitationContent(BaseSchema):
     workspace_id: UUIDB64
     project_id: UUIDB64
     self_recipient: bool = False

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,3 +15,15 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+
+from enum import Enum
+
+from permissions import IsAuthenticated, IsRelatedToTheUser
+from projects.projects.permissions import ProjectPermissionsCheck
+from workspaces.workspaces.permissions import WorkspacePermissionsCheck
+
+
+class ProjectImportationPermissionsCheck(Enum):
+    VIEW = WorkspacePermissionsCheck.VIEW.value
+    DELETE = IsAuthenticated() & IsRelatedToTheUser("created_by")
+    CREATE = ProjectPermissionsCheck.CREATE.value

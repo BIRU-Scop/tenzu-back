@@ -20,8 +20,6 @@ import json
 import os
 import random
 
-from asgiref.sync import sync_to_async
-
 from base.sampledata import factories
 from commons.utils import transaction_atomic_async
 from memberships.choices import InvitationStatus
@@ -29,7 +27,6 @@ from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectRole
 from projects.projects.models import Project
-from stories.stories.models import Story
 from users import repositories as users_repositories
 from workspaces.memberships import repositories as ws_memberships_repositories
 from workspaces.memberships.models import WorkspaceRole

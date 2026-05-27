@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,7 +22,7 @@ from typing import Any
 from django.core.validators import MaxValueValidator
 from django.db import models
 
-from base.db.models import BaseModel, LowerSlugField
+from base.db.models import BaseDBModel, LowerSlugField
 from base.utils.slug import (
     sync_slug_on_save,
 )
@@ -31,7 +31,7 @@ from commons.ordering import OrderedMixin
 from projects.projects.models import Project
 
 
-class Workflow(BaseModel, OrderedMixin):
+class Workflow(BaseDBModel, OrderedMixin):
     name = models.CharField(
         max_length=250, null=False, blank=False, verbose_name="name"
     )
@@ -71,7 +71,7 @@ class Workflow(BaseModel, OrderedMixin):
         super().save(*args, **kwargs)
 
 
-class WorkflowStatus(BaseModel, OrderedMixin):
+class WorkflowStatus(BaseDBModel, OrderedMixin):
     name = models.CharField(max_length=30, null=False, blank=False, verbose_name="name")
     color = models.IntegerField(
         null=False,

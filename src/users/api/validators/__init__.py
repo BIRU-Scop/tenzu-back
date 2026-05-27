@@ -22,7 +22,7 @@ from pydantic import EmailStr, Field, StrictBool, StringConstraints, field_valid
 from typing_extensions import Annotated, Optional
 
 from commons.colors import NUM_COLORS
-from commons.validators import BaseModel, LanguageCode, check_not_empty
+from commons.validators import BaseValidatorSchema, LanguageCode, check_not_empty
 from users.api.validators.mixins import PasswordMixin
 
 #####################################################################
@@ -42,7 +42,7 @@ def check_email_in_domain(v: str) -> str:
     return v
 
 
-class SendVerifyUserValidator(BaseModel):
+class SendVerifyUserValidator(BaseValidatorSchema):
     email: EmailStr
     project_invitation_token: str | None = None
     workspace_invitation_token: str | None = None
@@ -80,7 +80,7 @@ class CreateUserValidator(PasswordMixin, SendVerifyUserValidator):
         return v
 
 
-class UpdateUserValidator(BaseModel):
+class UpdateUserValidator(BaseValidatorSchema):
     full_name: FullName | None = None
     lang: LanguageCode | None = None
     password: str | None = None
@@ -91,7 +91,7 @@ class UpdateUserValidator(BaseModel):
         return check_not_empty(v)
 
 
-class VerifyTokenValidator(BaseModel):
+class VerifyTokenValidator(BaseValidatorSchema):
     token: str
 
 
@@ -100,9 +100,9 @@ class VerifyTokenValidator(BaseModel):
 #####################################################################
 
 
-class RequestResetPasswordValidator(BaseModel):
+class RequestResetPasswordValidator(BaseValidatorSchema):
     email: EmailStr
 
 
-class ResetPasswordValidator(PasswordMixin, BaseModel):
+class ResetPasswordValidator(PasswordMixin, BaseValidatorSchema):
     pass

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from memberships.serializers import MembershipBaseSerializer, RoleSerializer
 
 
@@ -30,7 +30,7 @@ class WorkspaceMembershipSerializer(WorkspaceMembershipNestedSerializer):
     total_projects_is_member: int
 
 
-class WorkspaceMembershipDeleteInfoSerializer(BaseModel):
+class WorkspaceMembershipDeleteInfoSerializer(BaseSchema):
     is_unique_owner: bool
     member_of_projects: list[str]
     unique_owner_of_projects: list[str]

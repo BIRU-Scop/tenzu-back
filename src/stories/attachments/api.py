@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -25,7 +25,7 @@ from ninja import File, Path, Router, UploadedFile
 
 from attachments import services as attachments_services
 from attachments.models import Attachment
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from base.utils.files import iterfile
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
@@ -54,7 +54,7 @@ attachments_router = Router()
     url_name="project.story.attachments.create",
     summary="Attach a file to a story",
     response={
-        200: BaseDataModel[StoryAttachmentSerializer],
+        200: BaseDataSchema[StoryAttachmentSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -92,7 +92,7 @@ async def create_story_attachments(
     url_name="project.story.attachments.list",
     summary="List story attachments",
     response={
-        200: BaseDataModel[list[StoryAttachmentSerializer]],
+        200: BaseDataSchema[list[StoryAttachmentSerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,

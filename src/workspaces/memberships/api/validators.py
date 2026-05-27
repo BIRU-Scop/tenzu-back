@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,9 +18,9 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from commons.validators import BaseModel
+from commons.validators import BaseValidatorSchema
 from permissions.validators import WorkspacePermissionsField
 
 
-class RoleValidator(BaseModel):
+class RoleValidator(BaseValidatorSchema):
     permissions: WorkspacePermissionsField

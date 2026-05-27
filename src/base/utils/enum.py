@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -44,7 +44,7 @@ class OrderedEnum(Enum):
     """
 
     @classmethod
-    @functools.lru_cache(None)
+    @functools.cache
     def __members_list__(cls) -> list["OrderedEnum"]:
         return list(cls)
 

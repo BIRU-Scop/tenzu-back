@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,7 +20,7 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -30,11 +30,6 @@ from commons.exceptions.api.errors import (
 )
 from commons.validators import B64UUID
 from memberships.api.validators import InvitationsValidator, UpdateInvitationValidator
-from memberships.services.exceptions import (
-    BadInvitationTokenError,
-    InvitationNonExistingUsernameError,
-    OwnerRoleNotAuthorisedError,
-)
 from permissions import check_permissions
 from workspaces.invitations import services as invitations_services
 from workspaces.invitations.models import WorkspaceInvitation
@@ -84,16 +79,11 @@ async def create_workspace_invitations(
         obj=workspace,
     )
 
-    try:
-        return await invitations_services.create_workspace_invitations(
-            workspace=workspace,
-            invitations=form.model_dump()["invitations"],
-            invited_by=request.user,
-        )
-    except InvitationNonExistingUsernameError as e:
-        raise ex.BadRequest(str(e))
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await invitations_services.create_workspace_invitations(
+        workspace=workspace,
+        invitations=form.model_dump()["invitations"],
+        invited_by=request.user,
+    )
 
 
 ##########################################################
@@ -106,7 +96,7 @@ async def create_workspace_invitations(
     url_name="workspace.invitations.list",
     summary="List workspace invitations",
     response={
-        200: BaseDataModel[list[WorkspaceInvitationSerializer]],
+        200: BaseDataSchema[list[WorkspaceInvitationSerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -140,7 +130,7 @@ async def list_workspace_invitations(
     url_name="workspace.invitations.get",
     summary="Get public workspace invitation information by token",
     response={
-        200: BaseDataModel[PublicWorkspacePendingInvitationSerializer],
+        200: BaseDataSchema[PublicWorkspacePendingInvitationSerializer],
         400: ERROR_RESPONSE_400,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -158,8 +148,6 @@ async def get_public_pending_workspace_invitation(
         invitation = await invitations_services.get_public_pending_workspace_invitation(
             token=token
         )
-    except BadInvitationTokenError as e:
-        raise ex.BadRequest(str(e))
     except WorkspaceInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation not found") from e
 
@@ -176,7 +164,7 @@ async def get_public_pending_workspace_invitation(
     url_name="workspace.invitations.resend",
     summary="Resend workspace invitation",
     response={
-        200: BaseDataModel[WorkspaceInvitationSerializer],
+        200: BaseDataSchema[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -211,7 +199,7 @@ async def resend_workspace_invitation(
     url_name="workspace.invitations.revoke",
     summary="Revoke workspace invitation",
     response={
-        200: BaseDataModel[WorkspaceInvitationSerializer],
+        200: BaseDataSchema[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -248,7 +236,7 @@ async def revoke_workspace_invitation(
     url_name="workspace.invitations.accept",
     summary="Accept workspace invitation by token",
     response={
-        200: BaseDataModel[WorkspaceInvitationSerializer],
+        200: BaseDataSchema[WorkspaceInvitationSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -261,12 +249,9 @@ async def accept_workspace_invitation_by_token(
     """
     A user accepts a workspace invitation using an invitation token
     """
-    try:
-        invitation = await get_workspace_invitation_by_token_or_404(
-            token=token, select_related=["user", "workspace", "role"]
-        )
-    except BadInvitationTokenError as e:
-        raise ex.BadRequest(str(e))
+    invitation = await get_workspace_invitation_by_token_or_404(
+        token=token, select_related=["user", "workspace", "role"]
+    )
 
     await check_permissions(
         permissions=WorkspaceInvitationPermissionsCheck.ANSWER.value,
@@ -282,7 +267,7 @@ async def accept_workspace_invitation_by_token(
     url_name="workspace.my.invitations.accept",
     summary="Accept a workspace invitation for authenticated users",
     response={
-        200: BaseDataModel[WorkspaceInvitationSerializer],
+        200: BaseDataSchema[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -318,7 +303,7 @@ async def accept_workspace_invitation_by_workspace(
     url_name="workspace.invitations.deny",
     summary="Deny workspace invitation for authenticated user",
     response={
-        200: BaseDataModel[WorkspaceInvitationSerializer],
+        200: BaseDataSchema[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -353,7 +338,7 @@ async def deny_workspace_invitation_by_workspace(
     url_name="workspace.invitations.update",
     summary="Update workspace invitation",
     response={
-        200: BaseDataModel[WorkspaceInvitationSerializer],
+        200: BaseDataSchema[WorkspaceInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -377,14 +362,11 @@ async def update_workspace_invitation(
         obj=invitation,
     )
 
-    try:
-        return await invitations_services.update_workspace_invitation(
-            invitation=invitation,
-            role_id=form.role_id,
-            user=request.user,
-        )
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await invitations_services.update_workspace_invitation(
+        invitation=invitation,
+        role_id=form.role_id,
+        user=request.user,
+    )
 
 
 ##########################################################

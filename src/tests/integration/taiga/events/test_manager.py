@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,7 +22,7 @@ from unittest.mock import Mock
 import pytest
 from fastapi.websockets import WebSocket
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from events import channels
 from events.event_manager import EventsManager
 from events.events import Event
@@ -30,7 +30,7 @@ from events.pubsub import RedisPubSubBackend
 from tests.utils import factories as f
 
 
-class MsgEventContent(BaseModel):
+class MsgEventContent(BaseSchema):
     msg: str
 
 

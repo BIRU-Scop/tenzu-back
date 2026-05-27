@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     "workspaces.invitations",
     "workspaces.memberships",
     "workspaces.workspaces",
+    "import_export",
     # 3rd-party
     "easy_thumbnails",
     "ninja_jwt",
@@ -302,13 +303,14 @@ locals().update(settings.EMAIL.model_dump())
 
 locals().update(
     settings.STORAGE.model_dump(
-        include=[
+        include={
             field_name
             for field_name, _field_value in settings.STORAGE
             if field_name.startswith("AWS_")
-        ]
+        }
     )
 )
+
 STORAGES = {
     "default": {
         "BACKEND": f"{settings.STORAGE.BACKEND_CLASS.value}",

@@ -17,10 +17,10 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 
 
-class _WorkspaceBaseNestedSerializer(BaseModel):
+class _WorkspaceBaseNestedSerializer(BaseSchema):
     id: UUIDB64
     name: str
     slug: str

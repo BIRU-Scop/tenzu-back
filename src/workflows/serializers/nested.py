@@ -18,17 +18,17 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 
 
-class WorkflowNestedSerializer(BaseModel):
+class WorkflowNestedSerializer(BaseSchema):
     id: UUIDB64
     name: str
     slug: str
     project_id: UUIDB64
 
 
-class WorkflowStatusNestedSerializer(BaseModel):
+class WorkflowStatusNestedSerializer(BaseSchema):
     id: UUIDB64
     name: str
     color: int

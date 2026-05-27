@@ -64,7 +64,6 @@ def build_binary_uploadfile(
 ###########################################################
 
 
-@contextmanager
 def build_string_fileio(content: str = "some initial text data") -> IO[bytes]:
     file = SpooledTemporaryFile()
     file.write(content.encode())
