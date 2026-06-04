@@ -19,11 +19,11 @@
 
 from datetime import datetime
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from users.serializers.nested import UserNestedSerializer
 
 
-class CommentNestedSerializer(BaseModel):
+class CommentNestedSerializer(BaseSchema):
     id: UUIDB64
     text: str
     created_at: datetime

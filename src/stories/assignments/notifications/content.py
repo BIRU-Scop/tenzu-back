@@ -17,20 +17,20 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 from stories.stories.serializers.nested import StoryNestedSerializer
 from users.serializers.nested import UserNestedSerializer
 
 
-class StoryAssignNotificationContent(BaseModel):
+class StoryAssignNotificationContent(BaseSchema):
     project: ProjectLinkNestedSerializer
     story: StoryNestedSerializer
     assigned_by: UserNestedSerializer
     assigned_to: UserNestedSerializer
 
 
-class StoryUnassignNotificationContent(BaseModel):
+class StoryUnassignNotificationContent(BaseSchema):
     project: ProjectLinkNestedSerializer
     story: StoryNestedSerializer
     unassigned_by: UserNestedSerializer

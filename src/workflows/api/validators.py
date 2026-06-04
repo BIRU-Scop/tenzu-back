@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,7 +24,7 @@ from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated
 
 from commons.colors import NUM_COLORS
-from commons.validators import B64UUID, BaseModel
+from commons.validators import B64UUID, BaseValidatorSchema
 
 WorkflowStatusName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)
@@ -34,33 +34,33 @@ WorkflowName = Annotated[
 ]
 
 
-class CreateWorkflowValidator(BaseModel):
+class CreateWorkflowValidator(BaseValidatorSchema):
     name: WorkflowName
 
 
-class DeleteWorkflowQuery(BaseModel):
+class DeleteWorkflowQuery(BaseValidatorSchema):
     move_to: B64UUID | None = None
 
 
-class CreateWorkflowStatusValidator(BaseModel):
+class CreateWorkflowStatusValidator(BaseValidatorSchema):
     name: WorkflowStatusName
     color: Annotated[int, Field(gt=0, le=NUM_COLORS)]  # type: ignore
 
 
-class UpdateWorkflowValidator(BaseModel):
+class UpdateWorkflowValidator(BaseValidatorSchema):
     name: WorkflowName
 
 
-class UpdateWorkflowStatusValidator(BaseModel):
+class UpdateWorkflowStatusValidator(BaseValidatorSchema):
     name: WorkflowStatusName | None
 
 
-class ReorderValidator(BaseModel):
+class ReorderValidator(BaseValidatorSchema):
     place: Literal["before", "after"]
     status_id: B64UUID
 
 
-class ReorderWorkflowStatusesValidator(BaseModel):
+class ReorderWorkflowStatusesValidator(BaseValidatorSchema):
     status_ids: Annotated[List[B64UUID], Field(min_length=1)]  # type: ignore[valid-type]
     reorder: ReorderValidator
 
@@ -76,5 +76,5 @@ class ReorderWorkflowStatusesValidator(BaseModel):
         return sorted(set(v), key=v.index)
 
 
-class DeleteWorkflowStatusQuery(BaseModel):
+class DeleteWorkflowStatusQuery(BaseValidatorSchema):
     move_to: B64UUID | None = None

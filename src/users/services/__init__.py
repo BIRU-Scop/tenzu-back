@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -538,15 +538,12 @@ async def verify_reset_password_token(token: str) -> bool:
     return bool(await _get_user_and_reset_password_token(token))
 
 
-async def reset_password(token: str, password: str) -> User | None:
+async def reset_password(token: str, password: str) -> User:
     reset_token, user = await _get_user_and_reset_password_token(token)
 
-    if user:
-        await users_repositories.change_password(user=user, password=password)
-        await sync_to_async(reset_token.blacklist)()
-        return user
-
-    return None
+    await users_repositories.change_password(user=user, password=password)
+    await sync_to_async(reset_token.blacklist)()
+    return user
 
 
 #####################################################################

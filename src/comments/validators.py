@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,10 +22,10 @@ from typing import List, Literal
 from pydantic import Field, model_serializer
 
 from base.utils.strings import orderby_to_snake
-from commons.validators import BaseModel, StrNotEmpty
+from commons.validators import BaseValidatorSchema, StrNotEmpty
 
 
-class CommentOrderSortQuery(BaseModel):
+class CommentOrderSortQuery(BaseValidatorSchema):
     order: List[Literal["createdAt", "-createdAt"]] = Field(
         default_factory=lambda: ["-createdAt"]
     )
@@ -35,9 +35,9 @@ class CommentOrderSortQuery(BaseModel):
         return [orderby_to_snake(data) for data in self.order]
 
 
-class CreateCommentValidator(BaseModel):
+class CreateCommentValidator(BaseValidatorSchema):
     text: StrNotEmpty
 
 
-class UpdateCommentValidator(BaseModel):
+class UpdateCommentValidator(BaseValidatorSchema):
     text: StrNotEmpty

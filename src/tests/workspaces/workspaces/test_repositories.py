@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,6 +20,7 @@
 
 import pytest
 
+from import_export.models import ImportationStatus
 from memberships.choices import InvitationStatus
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_UUID
@@ -205,6 +206,7 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
     assert not any(ws.user_is_invited for ws in res)
     assert all(ws.user_is_member for ws in res)
     assert all(ws.user_can_create_projects for ws in res)
+    assert not any(ws.user_imported_projects for ws in res)
     assert [pj.name for pj in res[0].user_member_projects] == []  # ws5
     assert [pj.name for pj in res[1].user_member_projects] == [pj1_ws4.name]  # ws4
     assert [pj.name for pj in res[2].user_member_projects] == [
@@ -232,6 +234,7 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
     assert [ws.user_is_invited for ws in res] == [True, False, False, False]
     assert [ws.user_is_member for ws in res] == [False, False, True, True]
     assert [ws.user_can_create_projects for ws in res] == [False, False, False, True]
+    assert not any(ws.user_imported_projects for ws in res)
     assert [pj.name for pj in res[3].user_member_projects] == [pj1_ws2.name]  # ws2
     assert not any(ws.user_member_projects for ws in res[:3])  # ws4, ws1, ws3
 
@@ -248,10 +251,70 @@ async def test_list_user_workspaces_overview_invited_projects(project_template):
     assert not any(ws.user_is_member for ws in res)
     assert not any(ws.user_member_projects for ws in res)
     assert not any(ws.user_can_create_projects for ws in res)
+    assert not any(ws.user_imported_projects for ws in res)
 
     assert [pj.name for pj in res[0].user_invited_projects] == []  # ws3
     assert [pj.name for pj in res[1].user_invited_projects] == [pj1_ws2.name]  # ws2
     assert [pj.name for pj in res[2].user_invited_projects] == [pj2_ws1.name]  # ws1
+
+
+async def test_list_user_workspaces_overview_importations(project_template):
+    user1 = await f.create_user()
+    user2 = await f.create_user()
+
+    ws1 = await f.create_workspace(name="ws1", created_by=user1)
+
+    # user2 is member of ws1
+    ws1_member_role = await ws1.roles.aget(slug="member")
+    await f.create_workspace_invitation(
+        email=user2.email,
+        user=user2,
+        workspace=ws1,
+        role=ws1_member_role,
+        invited_by=user1,
+        status=InvitationStatus.ACCEPTED,
+    )
+    await f.create_workspace_membership(user=user2, workspace=ws1, role=ws1_member_role)
+
+    pj1_ws1 = await f.create_project(
+        template=project_template, name="pj1_ws1", workspace=ws1, created_by=user1
+    )
+    pj2_ws1 = await f.create_project(
+        template=project_template, name="pj2_ws1", workspace=ws1, created_by=user2
+    )
+    pj3_ws1 = await f.create_project(
+        template=project_template, name="pj3_ws1", workspace=ws1, created_by=user1
+    )
+    pj4_ws1 = await f.create_project(
+        template=project_template, name="pj4_ws1", workspace=ws1, created_by=user1
+    )
+    imp_no_pj = await f.create_project_importation(workspace=ws1, created_by=user1)
+    imp_pj1_pending = await f.create_project_importation(
+        workspace=ws1, created_by=user1, project=pj1_ws1
+    )
+    imp_pj4_success = await f.create_project_importation(
+        workspace=ws1,
+        created_by=user1,
+        project=pj4_ws1,
+        status=ImportationStatus.SUCCESS,
+    )
+    imp_pj_user2 = await f.create_project_importation(workspace=ws1, created_by=user2)
+
+    # ASSERTS
+    # all queries are ordered by reverse on created_at
+    res = await repositories.list_user_workspaces_overview(user1)
+    assert [ws.name for ws in res] == [ws1.name]
+    assert not any(ws.user_is_invited for ws in res)
+    assert all(ws.user_is_member for ws in res)
+    assert all(ws.user_can_create_projects for ws in res)
+    assert [pj.name for pj in res[0].user_member_projects] == [
+        pj4_ws1.name,
+        pj3_ws1.name,
+    ]
+    assert [imp.id for imp in res[0].user_imported_projects] == [
+        imp_pj1_pending.id,
+        imp_no_pj.id,
+    ]
 
 
 ##########################################################

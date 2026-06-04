@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -36,12 +36,12 @@ from users.models import User
 async def create_attachment(
     file: UploadedFile,
     created_by: User,
-    object: Model,
+    content_object: Model,
     event_on_create: EventOnCreateCallable | None = None,
 ) -> Attachment:
     attachment = await attachments_repositories.create_attachment(
         file=file,
-        object=object,
+        content_object=content_object,
         created_by=created_by,
     )
 

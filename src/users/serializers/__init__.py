@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 from pydantic import constr
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from ninja_jwt.schema import TokenObtainPairOutputSchema
 from projects.invitations.serializers.nested import ProjectInvitationNestedSerializer
 from projects.projects.serializers.nested import (
@@ -41,7 +41,7 @@ class UserSearchSerializer(UserNestedSerializer):
     user_has_pending_invitation: bool | None = None
 
 
-class VerificationInfoSerializer(BaseModel):
+class VerificationInfoSerializer(BaseSchema):
     auth: TokenObtainPairOutputSchema
     project_invitation: ProjectInvitationNestedSerializer | None = None
     workspace_invitation: WorkspaceInvitationNestedSerializer | None = None
@@ -51,7 +51,7 @@ class _WorkspaceForDeleteWithProjectsNestedSerializer(WorkspaceNestedSerializer)
     projects: list[ProjectLinkNestedSerializer]
 
 
-class UserDeleteInfoSerializer(BaseModel):
+class UserDeleteInfoSerializer(BaseSchema):
     only_owner_collective_workspaces: list[WorkspaceNestedSerializer]
     only_owner_collective_projects: list[ProjectNestedSerializer]
     only_member_workspaces: list[_WorkspaceForDeleteWithProjectsNestedSerializer]

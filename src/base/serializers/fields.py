@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -26,8 +26,6 @@ from pydantic.json_schema import WithJsonSchema
 from base.utils.strings import dict_to_camel
 from base.utils.uuid import encode_uuid_to_b64str
 from commons.utils import get_absolute_url
-
-CallableGenerator = Generator[Callable[..., Any], None, None]
 
 UUIDB64 = Annotated[
     UUID,

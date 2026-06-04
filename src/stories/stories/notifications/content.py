@@ -17,26 +17,26 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 from stories.stories.serializers.nested import StoryNestedSerializer
 from users.serializers.nested import UserNestedSerializer
 
 
-class StoryDeleteNotificationContent(BaseModel):
+class StoryDeleteNotificationContent(BaseSchema):
     project: ProjectLinkNestedSerializer
     story: StoryNestedSerializer
     deleted_by: UserNestedSerializer
 
 
-class StoryStatusChangeNotificationContent(BaseModel):
+class StoryStatusChangeNotificationContent(BaseSchema):
     project: ProjectLinkNestedSerializer
     story: StoryNestedSerializer
     changed_by: UserNestedSerializer
     status: str
 
 
-class StoryWorkflowChangeNotificationContent(BaseModel):
+class StoryWorkflowChangeNotificationContent(BaseSchema):
     project: ProjectLinkNestedSerializer
     story: StoryNestedSerializer
     changed_by: UserNestedSerializer

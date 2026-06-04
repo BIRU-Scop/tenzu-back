@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +17,8 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from unittest.mock import patch
 
+from configurations.conf import settings
 from projects.projects import serializers
 from tests.utils import factories as f
 
@@ -27,44 +27,22 @@ from tests.utils import factories as f
 #######################################################
 
 
-def test_project_logo_mixin_serializer_with_logo():
+def test_project_logo_mixin_serializer_with_logo(monkeypatch):
     project = f.build_project(logo=f.build_image_file())
 
-    with (
-        patch(
-            "projects.projects.services.get_logo_small_thumbnail_url", autospec=True
-        ) as fake_get_logo_small,
-        patch(
-            "projects.projects.services.get_logo_large_thumbnail_url", autospec=True
-        ) as fake_get_logo_large,
-    ):
-        fake_get_logo_small.return_value = "small_logo.png"
-        fake_get_logo_large.return_value = "large_logo.png"
+    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
+    data = serializers.ProjectLogoBaseSerializer.model_validate(project)
 
-        data = serializers.ProjectLogoBaseSerializer(logo=project.logo)
+    assert str(data.logo).startswith(str(settings.BACKEND_URL))
 
-        assert str(data.logo).endswith(project.logo.url)
-        assert data.logo_small == "small_logo.png"
-        assert data.logo_large == "large_logo.png"
+    data = serializers.ProjectLogoBaseSerializer(
+        **{"logo": project.logo, "id": project.id}
+    )
 
-        fake_get_logo_small.assert_awaited_once_with(project.logo)
-        fake_get_logo_large.assert_awaited_once_with(project.logo)
+    assert str(data.logo).startswith(str(settings.BACKEND_URL))
 
 
 def test_project_logo_mixin_serializer_without_logo():
-    with (
-        patch(
-            "projects.projects.services.get_logo_small_thumbnail_url", autospec=True
-        ) as fake_get_logo_small,
-        patch(
-            "projects.projects.services.get_logo_large_thumbnail_url", autospec=True
-        ) as fake_get_logo_large,
-    ):
-        data = serializers.ProjectLogoBaseSerializer(logo=None)
+    data = serializers.ProjectLogoBaseSerializer(logo=None)
 
-        assert data.logo is None
-        assert data.logo_small is None
-        assert data.logo_large is None
-
-        fake_get_logo_small.assert_not_awaited()
-        fake_get_logo_large.assert_not_awaited()
+    assert data.logo is None

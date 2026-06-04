@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -33,6 +33,7 @@ from projects.memberships import repositories as pj_memberships_repositories
 from projects.memberships.models import ProjectMembership, ProjectRole
 from projects.projects import services as projects_services
 from projects.projects.models import Project
+from projects.projects.services import _get_default_template
 from users.models import User
 from workflows.models import Workflow, WorkflowStatus
 from workspaces.memberships import repositories as ws_memberships_repositories
@@ -228,6 +229,7 @@ async def _create_workflow_status(
 
 async def _create_empty_project(created_by: User, workspace: Workspace) -> None:
     await projects_services._create_project(
+        template=await _get_default_template(),
         name="Empty project",
         description=fake.paragraph(nb_sentences=2),
         color=fake.random_int(min=1, max=NUM_COLORS),

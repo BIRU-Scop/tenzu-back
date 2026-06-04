@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from typing import Generator
 from uuid import UUID
 
 from base.db import exceptions as ex
@@ -39,6 +39,17 @@ def get_new_project_reference_id(project_id: UUID) -> int:
     except ex.SequenceDoesNotExist:
         seq.create(seqname)
         return seq.next_value(seqname)
+
+
+def get_multiple_new_project_reference_ids(
+    project_id: UUID, quantity: int
+) -> Generator[int]:
+    seqname = get_project_references_seqname(project_id)
+    try:
+        return seq.next_values(seqname, quantity)
+    except ex.SequenceDoesNotExist:
+        seq.create(seqname)
+        return seq.next_values(seqname, quantity)
 
 
 def delete_project_references_sequences(project_ids: list[UUID]) -> None:

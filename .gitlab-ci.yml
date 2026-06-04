@@ -46,6 +46,7 @@ include:
           changes:
             - "buildrun/docker/tenzu/Dockerfile"
             - "buildrun/docker/tenzu/requirements/devel.txt"
+            - "src/scripts/package-lock.json"
             - ".gitlab-ci.yml"
 
 stages:
@@ -133,6 +134,15 @@ test:
     TENZU_DB__HOST: "db"
     TENZU_SECRET_KEY: secret
     TENZU_TOKENS__SIGNING_KEY: secret2
+  cache:
+    key:
+      files:
+        - src/scripts/package-lock.json
+    paths:
+      - .npm/
+  before_script:
+      - cd $CI_PROJECT_DIR/src/scripts && npm ci --cache .npm --prefer-offline
+      - cd $CI_PROJECT_DIR/src/
   script:
     - cd $CI_PROJECT_DIR/src/
     - ./manage.py compilemessages

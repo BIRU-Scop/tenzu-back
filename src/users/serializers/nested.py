@@ -19,10 +19,10 @@
 
 from pydantic import EmailStr
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 
 
-class UserNestedSerializer(BaseModel):
+class UserNestedSerializer(BaseSchema):
     id: UUIDB64
     username: str
     full_name: str

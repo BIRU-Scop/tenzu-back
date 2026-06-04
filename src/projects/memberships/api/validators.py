@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,7 +20,7 @@ from typing import Annotated
 
 from pydantic import StringConstraints
 
-from commons.validators import B64UUID, BaseModel
+from commons.validators import B64UUID, BaseValidatorSchema
 from permissions.validators import ProjectPermissionsField
 
 _RoleName = Annotated[
@@ -28,15 +28,15 @@ _RoleName = Annotated[
 ]
 
 
-class UpdateRoleValidator(BaseModel):
+class UpdateRoleValidator(BaseValidatorSchema):
     name: _RoleName | None = None
     permissions: ProjectPermissionsField | None = None
 
 
-class CreateRoleValidator(BaseModel):
+class CreateRoleValidator(BaseValidatorSchema):
     name: _RoleName
     permissions: ProjectPermissionsField
 
 
-class DeleteRoleQuery(BaseModel):
+class DeleteRoleQuery(BaseValidatorSchema):
     move_to: B64UUID | None = None

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -95,7 +95,7 @@ async def test_create_workspace_invitations_owner_no_permission(
         f"/workspaces/{workspace.b64id}/invitations", json=data
     )
     assert response.status_code == 403, response.data
-    detail = response.data["detail"]
+    detail = response.data["error"]["msg"]
     assert (
         existing_invitation.user.username in detail and "invitee2@tenzu.demo" in detail
     )

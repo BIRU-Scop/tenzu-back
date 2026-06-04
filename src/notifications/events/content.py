@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,13 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from notifications.serializers import NotificationSerializer
 
 
-class CreateNotificationContent(BaseModel):
+class CreateNotificationContent(BaseSchema):
     notification: NotificationSerializer
 
 
-class ReadNotificationsContent(BaseModel):
+class ReadNotificationsContent(BaseSchema):
     notifications_ids: list[UUIDB64]

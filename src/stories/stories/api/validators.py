@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,20 +23,20 @@ from pydantic import Field, StringConstraints, field_validator, model_validator
 from pydantic.types import PositiveInt
 from typing_extensions import Annotated
 
-from commons.validators import B64UUID, BaseModel
+from commons.validators import B64UUID, BaseValidatorSchema
 
 Title = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)
 ]
 
 
-class CreateStoryValidator(BaseModel):
+class CreateStoryValidator(BaseValidatorSchema):
     title: Title
     description: str | None = None
     status_id: B64UUID
 
 
-class UpdateStoryValidator(BaseModel):
+class UpdateStoryValidator(BaseValidatorSchema):
     version: PositiveInt
     title: Title | None = None
     description: str | None = None
@@ -50,12 +50,12 @@ class UpdateStoryValidator(BaseModel):
         return self
 
 
-class ReorderValidator(BaseModel):
+class ReorderValidator(BaseValidatorSchema):
     place: Literal["before", "after"]
     ref: int
 
 
-class ReorderStoriesValidator(BaseModel):
+class ReorderStoriesValidator(BaseValidatorSchema):
     status_id: B64UUID
     stories: Annotated[List[int], Field(min_length=1)]  # type: ignore[valid-type]
     reorder: ReorderValidator | None = None

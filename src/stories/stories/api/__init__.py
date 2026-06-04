@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,9 +23,10 @@ from django.http import HttpResponse
 from ninja import Path, Query, Router
 
 from base.api import Pagination, PaginationQuery, set_pagination
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
+    ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
@@ -41,11 +42,9 @@ from stories.stories.api.validators import (
 from stories.stories.models import Story
 from stories.stories.permissions import StoryPermissionsCheck
 from stories.stories.serializers import (
-    ReorderStoriesSerializer,
     StoryDetailSerializer,
     StorySummarySerializer,
 )
-from stories.stories.services.exceptions import InvalidStatusError, InvalidStoryRefError
 from workflows.api import get_workflow_or_404
 
 stories_router = Router()
@@ -61,7 +60,8 @@ stories_router = Router()
     url_name="project.stories.create",
     summary="Create a story",
     response={
-        200: BaseDataModel[StoryDetailSerializer],
+        200: BaseDataSchema[StoryDetailSerializer],
+        400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -80,17 +80,14 @@ async def create_story(
     await check_permissions(
         permissions=StoryPermissionsCheck.CREATE.value, user=request.user, obj=workflow
     )
-    try:
-        return await stories_services.create_story(
-            title=form.title,
-            description=form.description,
-            project=workflow.project,
-            workflow=workflow,
-            status_id=form.status_id,
-            user=request.user,
-        )
-    except InvalidStatusError as e:
-        raise ex.BadRequest(str(e))
+    return await stories_services.create_story(
+        title=form.title,
+        description=form.description,
+        project=workflow.project,
+        workflow=workflow,
+        status_id=form.status_id,
+        user=request.user,
+    )
 
 
 ################################################
@@ -103,7 +100,7 @@ async def create_story(
     url_name="project.workflow.stories.list",
     summary="List stories by workflow",
     response={
-        200: BaseDataModel[list[StorySummarySerializer]],
+        200: BaseDataSchema[list[StorySummarySerializer]],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -146,7 +143,7 @@ async def list_stories_for_workflow(
     url_name="project.stories.get",
     summary="Get story",
     response={
-        200: BaseDataModel[StoryDetailSerializer],
+        200: BaseDataSchema[StoryDetailSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -179,7 +176,7 @@ async def get_story(
     url_name="project.stories.update",
     summary="Update story",
     response={
-        200: BaseDataModel[StoryDetailSerializer],
+        200: BaseDataSchema[StoryDetailSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -221,6 +218,7 @@ async def update_story(
     summary="Reorder stories",
     response={
         200: None,
+        400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -239,17 +237,14 @@ async def reorder_stories(
     await check_permissions(
         permissions=StoryPermissionsCheck.MODIFY.value, user=request.user, obj=workflow
     )
-    try:
-        return await stories_services.reorder_stories(
-            reordered_by=request.user,
-            project=workflow.project,
-            workflow=workflow,
-            target_status_id=form.status_id,
-            stories_refs=form.stories,
-            reorder=form.get_reorder_dict(),
-        )
-    except InvalidStoryRefError as e:
-        raise ex.BadRequest(str(e))
+    return await stories_services.reorder_stories(
+        reordered_by=request.user,
+        project=workflow.project,
+        workflow=workflow,
+        target_status_id=form.status_id,
+        stories_refs=form.stories,
+        reorder=form.get_reorder_dict(),
+    )
 
 
 ################################################

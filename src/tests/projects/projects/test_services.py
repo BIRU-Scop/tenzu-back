@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,10 +17,14 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from permissions.choices import ProjectPermissions
 from projects.projects import services
+from projects.projects.models import ProjectTemplate
+from projects.projects.repositories import ProjectTemplateModel
 from tests.utils import factories as f
 from tests.utils.utils import patch_db_transaction
 
@@ -39,10 +43,19 @@ async def test_create_project():
     workspace = f.build_workspace()
 
     with (
-        patch("projects.projects.services._create_project") as fake_create_project,
         patch(
-            "projects.projects.services.get_project_detail"
+            "projects.projects.services._create_project", autospec=True
+        ) as fake_create_project,
+        patch(
+            "projects.projects.services._get_default_template", new=AsyncMock()
+        ) as fake_get_default_template,
+        patch(
+            "projects.projects.services.projects_events", autospec=True
+        ) as fake_projects_events,
+        patch(
+            "projects.projects.services.get_project_detail", autospec=True
         ) as fake_get_project_detail,
+        patch_db_transaction(),
     ):
         await services.create_project(
             workspace=workspace,
@@ -53,8 +66,12 @@ async def test_create_project():
         )
 
         fake_create_project.assert_awaited_once()
+        fake_get_default_template.assert_awaited_once()
         fake_get_project_detail.assert_awaited_once_with(
             project=fake_create_project.return_value, user=workspace.created_by
+        )
+        fake_projects_events.emit_event_when_project_is_created.assert_awaited_once_with(
+            project=fake_create_project.return_value
         )
 
 
@@ -100,6 +117,7 @@ async def test_internal_create_project():
 async def test_create_project_with_logo():
     workspace = f.build_workspace()
     project = f.build_project(workspace=workspace)
+    project_template = f.build_project_template()
     owner_role = f.build_project_role(project=project, is_owner=True)
 
     logo = f.build_image_uploadfile()
@@ -119,6 +137,9 @@ async def test_create_project_with_logo():
         ]
 
         await services._create_project(
+            template=ProjectTemplateModel.model_validate(
+                project_template, from_attributes=True
+            ),
             workspace=workspace,
             name="n",
             description="d",
@@ -151,12 +172,14 @@ async def test_create_project_with_no_logo():
         ) as fake_memberships_repositories,
         patch_db_transaction(),
     ):
-        fake_project_repository.get_project_template.return_value = project_template
         fake_project_repository.create_project.return_value = project
         fake_project_repository.apply_template_to_project.return_value = [
             owner_role,
         ]
         await services._create_project(
+            template=ProjectTemplateModel.model_validate(
+                project_template, from_attributes=True
+            ),
             workspace=workspace,
             name="n",
             description="d",
@@ -177,6 +200,38 @@ async def test_create_project_with_no_logo():
         fake_memberships_repositories.create_project_membership.assert_awaited_once_with(
             user=workspace.created_by, project=project, role=owner_role
         )
+
+
+async def test_get_default_template_cache():
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_projects_repositories,
+    ):
+        services._get_default_template.cache_clear()
+        fake_projects_repositories.get_project_template.side_effect = (
+            ProjectTemplate.DoesNotExist,
+            f.build_project_template(),
+            ProjectTemplate.DoesNotExist,
+        )
+        with pytest.raises(Exception) as e:
+            await services._get_default_template()
+        assert "not found" in e.value.args[0]
+        assert (
+            await services._get_default_template()
+            == fake_projects_repositories.ProjectTemplateModel.model_validate.return_value
+        )
+        # next call is cached so exception won't be raised
+        assert (
+            await services._get_default_template()
+            == fake_projects_repositories.ProjectTemplateModel.model_validate.return_value
+        )
+        services._get_default_template.cache_clear()
+        with pytest.raises(Exception) as e:
+            await services._get_default_template()
+        assert "not found" in e.value.args[0]
+
+        assert fake_projects_repositories.get_project_template.await_count == 3
 
 
 ##########################################################
@@ -490,9 +545,6 @@ async def test_delete_project_fail():
         patch(
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
-        patch(
-            "projects.projects.services.users_repositories", autospec=True
-        ) as users_repositories,
         patch_db_transaction(),
     ):
         fake_projects_repo.delete_projects.return_value = 0
@@ -517,9 +569,6 @@ async def test_delete_project_ok(tqmanager):
         patch(
             "projects.projects.services.projects_events", autospec=True
         ) as fake_projects_events,
-        patch(
-            "projects.projects.services.users_repositories", autospec=True
-        ) as users_repositories,
         patch_db_transaction(),
     ):
         fake_projects_repo.delete_projects.return_value = 1

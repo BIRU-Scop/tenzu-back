@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,7 +19,7 @@
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedMetaInfoMixin
 
 #######################################################################
@@ -27,7 +27,7 @@ from base.db.models.mixins import CreatedMetaInfoMixin
 ######################################################################
 
 
-class Notification(BaseModel, CreatedMetaInfoMixin):
+class Notification(BaseDBModel, CreatedMetaInfoMixin):
     type = models.CharField(
         max_length=500,
         null=False,

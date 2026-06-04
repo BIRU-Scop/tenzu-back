@@ -137,3 +137,9 @@ task manage -- makeallmessages
 # Don't forget to create the appropriate files for that new locale on the frontend side.
 task manage -- makemessage -l <LANG>
 ```
+
+## BlockNoteJS
+
+As we use BlockNoteJS as the editor for the content of the stories and comments,
+we have utility nodeJS scripts in the script/ folder.
+If you need to make change to the dependencies, NPM commands must be run inside the container.

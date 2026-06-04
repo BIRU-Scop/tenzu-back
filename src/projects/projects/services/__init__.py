@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,17 +16,23 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from functools import partial
+import functools
 from typing import Any
 from uuid import UUID
 
 from django.conf import settings
+from django.db.models.fields.files import FieldFile
+from easy_thumbnails.files import ThumbnailFile
 from ninja import UploadedFile
+from pydantic import ValidationError
 
-from base.utils.files import uploadfile_to_file
-from base.utils.images import get_thumbnail_url
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from base.utils.images import ImageSizeFormat, get_thumbnail
+from commons.utils import (
+    async_cache,
+    get_absolute_url,
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from permissions.choices import ProjectPermissions
 from projects.memberships import repositories as memberships_repositories
 from projects.projects import events as projects_events
@@ -36,7 +42,6 @@ from projects.projects.models import Project, ProjectTemplate
 from projects.projects.serializers import (
     ProjectDetailSerializer,
 )
-from users import repositories as users_repositories
 from users.models import AnyUser, User
 from workflows import repositories as workflows_repositories
 from workspaces.workspaces.models import Workspace
@@ -60,6 +65,7 @@ async def create_project(
     logo: UploadedFile | None = None,
 ) -> ProjectDetailSerializer:
     project = await _create_project(
+        await _get_default_template(),
         workspace=workspace,
         name=name,
         created_by=created_by,
@@ -67,20 +73,19 @@ async def create_project(
         color=color,
         logo_file=logo,
     )
+    await transaction_on_commit_async(
+        projects_events.emit_event_when_project_is_created
+    )(project=project)
     return await get_project_detail(project=project, user=created_by)
 
 
-@transaction_atomic_async
-async def _create_project(
-    workspace: Workspace,
-    name: str,
-    created_by: User,
-    description: str | None,
-    color: int | None,
-    logo_file: UploadedFile | None = None,
-) -> Project:
+@async_cache
+async def _get_default_template() -> projects_repositories.ProjectTemplateModel:
     """
-    Create project and set user cache property for role
+    This function is cached with no expiry. If the model instance or the model structure is ever changed,
+    the code will need to call _get_default_template.cache_clear()
+    autospec won't work with patch in tests, should be called instead with:
+        patch("PATH._get_default_template", new=AsyncMock())
     """
     try:
         template = await projects_repositories.get_project_template(
@@ -91,7 +96,32 @@ async def _create_project(
             f"Default project template '{settings.DEFAULT_PROJECT_TEMPLATE}' not found. "
             "Try to run migrations again and check if the error persist."
         ) from e
+    try:
+        template = projects_repositories.ProjectTemplateModel.model_validate(
+            template, from_attributes=True
+        )
+    except ValidationError as e:
+        raise Exception(
+            f"Default project template '{settings.DEFAULT_PROJECT_TEMPLATE}' is not in the expected format "
+            "Try to run migrations again and check if the error persist."
+        ) from e
+    return template
 
+
+@transaction_atomic_async
+async def _create_project(
+    template: projects_repositories.ProjectTemplateModel,
+    workspace: Workspace,
+    name: str,
+    created_by: User,
+    description: str | None,
+    color: int | None,
+    logo_file: UploadedFile | None = None,
+    **kwargs,
+) -> Project:
+    """
+    Create project using provided template and set user cache property for role
+    """
     landing_page = (
         get_landing_page_for_workflow(template.workflows[0]["slug"])
         if template and template.workflows
@@ -106,6 +136,7 @@ async def _create_project(
         color=color,
         logo=logo_file,
         landing_page=landing_page,
+        **kwargs,
     )
 
     roles = await projects_repositories.apply_template_to_project(
@@ -124,9 +155,6 @@ async def _create_project(
     created_by.project_role = owner_role
 
     project.user_is_invited = False
-    await transaction_on_commit_async(
-        projects_events.emit_event_when_project_is_created
-    )(project=project)
 
     return project
 
@@ -183,6 +211,7 @@ async def get_project_detail(
         logo=project.logo,
         landing_page=project.landing_page,
         workspace_id=project.workspace_id,
+        modified_at=project.modified_at,
         workflows=workflows,
         user_role=user.project_role,
         user_is_invited=user.is_invited or False,
@@ -229,7 +258,7 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
     file_to_delete = None
     if "logo" in values:
         if logo := values.get("logo"):
-            values["logo"] = uploadfile_to_file(file=logo)
+            values["logo"] = logo
         else:
             values["logo"] = None
 
@@ -287,17 +316,25 @@ async def delete_project(project: Project, deleted_by: User) -> bool:
 ##########################################################
 
 
-async def get_logo_thumbnail_url(
-    thumbnailer_size: str, logo_relative_path: str
-) -> str | None:
-    if logo_relative_path:
-        return await get_thumbnail_url(logo_relative_path, thumbnailer_size)
+async def get_logo(
+    project: Project, format: ImageSizeFormat
+) -> FieldFile | ThumbnailFile | None:
+    match format:
+        case "small":
+            return await get_thumbnail(
+                project.logo, settings.IMAGES.THUMBNAIL_FORMAT_SMALL
+            )
+        case "large":
+            return await get_thumbnail(
+                project.logo, settings.IMAGES.THUMBNAIL_FORMAT_LARGE
+            )
+        case "original":
+            return project.logo
+
+
+async def get_logo_url(project: Project, format: ImageSizeFormat) -> str | None:
+    if project.logo:
+        thumbnail = await get_logo(project, format)
+        if thumbnail:
+            return get_absolute_url(thumbnail.url)
     return None
-
-
-get_logo_small_thumbnail_url = partial(
-    get_logo_thumbnail_url, settings.IMAGES.THUMBNAIL_PROJECT_LOGO_SMALL
-)
-get_logo_large_thumbnail_url = partial(
-    get_logo_thumbnail_url, settings.IMAGES.THUMBNAIL_PROJECT_LOGO_LARGE
-)

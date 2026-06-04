@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,9 +18,15 @@
 # You can contact BIRU at ask@biru.sh
 
 import random
+from typing import Generator
 
 NUM_COLORS = 8
 
 
 def generate_random_color(min_color: int = 1, max_color: int = NUM_COLORS) -> int:
     return random.randint(min_color, max_color)
+
+
+def ordered_colour_generator() -> Generator[int]:
+    while True:
+        yield from range(1, NUM_COLORS + 1)

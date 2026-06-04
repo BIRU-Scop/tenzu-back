@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -93,7 +93,9 @@ async def workspace_member_projects_list(
 ##########################################################
 
 
-async def bulk_create_workspace_default_roles(workspace) -> list[WorkspaceRole]:
+async def bulk_create_workspace_default_roles(
+    workspace: Workspace,
+) -> list[WorkspaceRole]:
     """
     Order of returned object is important for calling functions
     """

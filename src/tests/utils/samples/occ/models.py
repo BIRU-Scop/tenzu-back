@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,11 +19,11 @@
 
 from django.db import models
 
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 from base.occ.models import VersionedMixin
 
 
-class SampleOCCItem(BaseModel, VersionedMixin):
+class SampleOCCItem(BaseDBModel, VersionedMixin):
     name = models.CharField(max_length=80, null=False, blank=False)
     description = models.CharField(max_length=220, null=True, blank=True)
     is_active = models.BooleanField(default=True, null=False, blank=False)

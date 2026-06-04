@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,7 +20,7 @@
 from django.db import models
 from django.db.models.functions import TruncDate
 
-from base.db.models import BaseModel
+from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin
 from base.utils.files import get_obfuscated_file_path
 
@@ -29,7 +29,7 @@ def get_storaged_object_file_patch(instance: "StoragedObject", filename: str) ->
     return get_obfuscated_file_path(instance, filename, "storagedobjets")
 
 
-class StoragedObject(BaseModel, CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin):
+class StoragedObject(BaseDBModel, CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin):
     file = models.FileField(
         upload_to=get_storaged_object_file_patch,
         max_length=500,

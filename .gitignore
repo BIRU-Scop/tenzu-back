@@ -348,6 +348,7 @@ exports/
 tenzu-back-portal/
 
 /src/mjml/node_modules/*
+/src/scripts/node_modules/*
 
 # test reports
 src/*-report.xml

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,7 +20,7 @@
 import pytest
 from pydantic import ValidationError
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 from permissions.validators import ProjectPermissionsField, WorkspacePermissionsField
 
 #####################################################################
@@ -28,11 +28,11 @@ from permissions.validators import ProjectPermissionsField, WorkspacePermissions
 #####################################################################
 
 
-class ProjectPermissionsValidator(BaseModel):
+class ProjectPermissionsValidator(BaseSchema):
     permissions: ProjectPermissionsField
 
 
-class WorkspacePermissionsValidator(BaseModel):
+class WorkspacePermissionsValidator(BaseSchema):
     permissions: WorkspacePermissionsField
 
 

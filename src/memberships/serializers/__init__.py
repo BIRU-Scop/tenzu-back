@@ -19,18 +19,18 @@ import datetime
 
 from pydantic import EmailStr
 
-from base.serializers import UUIDB64, BaseModel
+from base.serializers import UUIDB64, BaseSchema
 from memberships.choices import InvitationStatus
 from users.serializers.nested import UserNestedSerializer
 
 
-class MembershipBaseSerializer(BaseModel):
+class MembershipBaseSerializer(BaseSchema):
     id: UUIDB64
     user: UserNestedSerializer
     role_id: UUIDB64
 
 
-class RoleSerializer(BaseModel):
+class RoleSerializer(BaseSchema):
     id: UUIDB64
     name: str
     slug: str
@@ -40,7 +40,7 @@ class RoleSerializer(BaseModel):
     permissions: list[str]
 
 
-class InvitationBaseSerializer(BaseModel):
+class InvitationBaseSerializer(BaseSchema):
     id: UUIDB64
     status: InvitationStatus
     user: UserNestedSerializer | None = None
@@ -51,11 +51,11 @@ class InvitationBaseSerializer(BaseModel):
     num_emails_sent: int
 
 
-class CreateInvitationsSerializer(BaseModel):
+class CreateInvitationsSerializer(BaseSchema):
     invitations: list[InvitationBaseSerializer]
     already_members: int
 
 
-class PublicPendingInvitationBaseSerializer(BaseModel):
+class PublicPendingInvitationBaseSerializer(BaseSchema):
     email: EmailStr
     existing_user: bool

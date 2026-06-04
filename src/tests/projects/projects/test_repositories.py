@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -24,11 +24,13 @@ from django.core.files import File
 from django.db import models
 
 from base.db import sequences as seq
+from import_export.models import ImportationStatus
 from memberships.choices import InvitationStatus
 from projects import references
 from projects.projects import repositories
 from projects.projects.models import Project
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 
 pytestmark = pytest.mark.django_db
 
@@ -113,12 +115,36 @@ async def test_list_workspace_projects_for_user(project_template):
     await f.create_project(
         template=project_template, workspace=workspace, created_by=workspace.created_by
     )
+    ongoing_imp_pj = await f.create_project(
+        template=project_template,
+        workspace=workspace,
+        created_by=workspace.created_by,
+    )
+    success_imp_pj = await f.create_project(
+        template=project_template,
+        workspace=workspace,
+        created_by=workspace.created_by,
+    )
+    await f.create_project_importation(
+        workspace=workspace,
+        created_by=workspace.created_by,
+        project=ongoing_imp_pj,
+        status=ImportationStatus.ONGOING,
+    )
+    await f.create_project_importation(
+        workspace=workspace,
+        created_by=workspace.created_by,
+        project=success_imp_pj,
+        status=ImportationStatus.SUCCESS,
+    )
     projects = await repositories.list_workspace_projects_for_user(
         workspace, workspace.created_by
     )
-    # owner of project can see them all
-    assert len(projects) == 3
+    # owner of project can see them all, ongoing importation should be excluded
+    assert len(projects) == 4
     assert len([pj for pj in projects if pj.user_is_invited]) == 0
+    assert ongoing_imp_pj.name not in [pj.name for pj in projects]
+    assert success_imp_pj.name in [pj.name for pj in projects]
 
     user = await f.create_user()
     projects = await repositories.list_workspace_projects_for_user(workspace, user)
@@ -155,9 +181,8 @@ async def test_get_project_return_project(project_template):
 
 
 async def test_get_project_return_none():
-    non_existent_id = uuid1()
     with pytest.raises(Project.DoesNotExist):
-        await repositories.get_project(project_id=non_existent_id)
+        await repositories.get_project(project_id=NOT_EXISTING_UUID)
 
 
 ##########################################################

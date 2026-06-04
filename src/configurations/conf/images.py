@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,12 +19,12 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PositiveInt
 
 
 class ImageSettings(BaseModel):
-    THUMBNAIL_PROJECT_LOGO_SMALL: str = "32x32_crop"
-    THUMBNAIL_PROJECT_LOGO_LARGE: str = "80x80_crop"
+    THUMBNAIL_FORMAT_SMALL: str = "32x32_crop"
+    THUMBNAIL_FORMAT_LARGE: str = "80x80_crop"
     VALID_CONTENT_TYPES: list[str] = Field(
         default=[
             "image/jpeg",
@@ -33,6 +33,7 @@ class ImageSettings(BaseModel):
             "image/webp",
         ]
     )
+    MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 500 * 1024  # 500 KB
     # easy_thumbnails
     THUMBNAIL_ALIASES: dict[str, Any] = Field(
         default={

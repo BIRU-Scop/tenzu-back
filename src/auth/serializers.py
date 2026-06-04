@@ -16,24 +16,24 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.serializers import BaseModel
+from base.serializers import BaseSchema
 
 
-class SocialProvider(BaseModel):
+class SocialProvider(BaseSchema):
     id: str
     name: str
     client_id: str | None = None
 
 
-class SocialAccountNestedSerializer(BaseModel):
+class SocialAccountNestedSerializer(BaseSchema):
     providers: list[SocialProvider]
 
 
-class AuthConfigSerializer(BaseModel):
+class AuthConfigSerializer(BaseSchema):
     socialaccount: SocialAccountNestedSerializer
 
 
-class AuthSocialSignupError(BaseModel):
+class AuthSocialSignupError(BaseSchema):
     error: str
     error_process: str
     social_session_key: str | None = None

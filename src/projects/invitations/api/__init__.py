@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -21,7 +21,7 @@ from uuid import UUID
 
 from ninja import Path, Router
 
-from base.serializers import BaseDataModel
+from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -33,11 +33,6 @@ from commons.validators import B64UUID
 from memberships.api.validators import (
     InvitationsValidator,
     UpdateInvitationValidator,
-)
-from memberships.services.exceptions import (
-    BadInvitationTokenError,
-    InvitationNonExistingUsernameError,
-    OwnerRoleNotAuthorisedError,
 )
 from permissions import check_permissions
 from projects.invitations import services as invitations_services
@@ -88,16 +83,11 @@ async def create_project_invitations(
         obj=project,
     )
 
-    try:
-        return await invitations_services.create_project_invitations(
-            project=project,
-            invitations=form.model_dump()["invitations"],
-            invited_by=request.user,
-        )
-    except InvitationNonExistingUsernameError as e:
-        raise ex.BadRequest(str(e))
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await invitations_services.create_project_invitations(
+        project=project,
+        invitations=form.model_dump()["invitations"],
+        invited_by=request.user,
+    )
 
 
 ##########################################################
@@ -110,7 +100,7 @@ async def create_project_invitations(
     url_name="project.invitations.list",
     summary="List project invitations",
     response={
-        200: BaseDataModel[list[ProjectInvitationSerializer]],
+        200: BaseDataSchema[list[ProjectInvitationSerializer]],
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
     },
@@ -142,7 +132,7 @@ async def list_project_invitations(
     url_name="project.invitations.get",
     summary="Get public project invitation information by token",
     response={
-        200: BaseDataModel[PublicProjectPendingInvitationSerializer],
+        200: BaseDataSchema[PublicProjectPendingInvitationSerializer],
         400: ERROR_RESPONSE_400,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -160,8 +150,6 @@ async def get_public_pending_project_invitation(
         invitation = await invitations_services.get_public_pending_project_invitation(
             token=token
         )
-    except BadInvitationTokenError as e:
-        raise ex.BadRequest(str(e))
 
     except ProjectInvitation.DoesNotExist as e:
         raise ex.NotFoundError("Invitation not found") from e
@@ -179,7 +167,7 @@ async def get_public_pending_project_invitation(
     url_name="project.invitations.resend",
     summary="Resend project invitation",
     response={
-        200: BaseDataModel[ProjectInvitationSerializer],
+        200: BaseDataSchema[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -217,7 +205,7 @@ async def resend_project_invitation(
     url_name="project.invitations.revoke",
     summary="Revoke project invitation",
     response={
-        200: BaseDataModel[ProjectInvitationSerializer],
+        200: BaseDataSchema[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -254,7 +242,7 @@ async def revoke_project_invitation(
     url_name="project.invitations.accept",
     summary="Accept project invitation by token",
     response={
-        200: BaseDataModel[ProjectInvitationSerializer],
+        200: BaseDataSchema[ProjectInvitationSerializer],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -266,12 +254,9 @@ async def accept_project_invitation_by_token(request, token: str) -> ProjectInvi
     """
     A user accepts a project invitation using an invitation token
     """
-    try:
-        invitation = await get_project_invitation_by_token_or_404(
-            token=token, select_related=["user", "project", "role"]
-        )
-    except BadInvitationTokenError as e:
-        raise ex.BadRequest(str(e))
+    invitation = await get_project_invitation_by_token_or_404(
+        token=token, select_related=["user", "project", "role"]
+    )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.ANSWER.value,
         user=request.user,
@@ -285,7 +270,7 @@ async def accept_project_invitation_by_token(request, token: str) -> ProjectInvi
     url_name="project.my.invitations.accept",
     summary="Accept a project invitation for authenticated users",
     response={
-        200: BaseDataModel[ProjectInvitationSerializer],
+        200: BaseDataSchema[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -321,7 +306,7 @@ async def accept_project_invitation_by_project(
     url_name="project.invitations.deny",
     summary="Deny project invitation for authenticated user",
     response={
-        200: BaseDataModel[ProjectInvitationSerializer],
+        200: BaseDataSchema[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -356,7 +341,7 @@ async def deny_project_invitation_by_project(
     url_name="project.invitations.update",
     summary="Update project invitation",
     response={
-        200: BaseDataModel[ProjectInvitationSerializer],
+        200: BaseDataSchema[ProjectInvitationSerializer],
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         422: ERROR_RESPONSE_422,
@@ -380,14 +365,11 @@ async def update_project_invitation(
         obj=invitation,
     )
 
-    try:
-        return await invitations_services.update_project_invitation(
-            invitation=invitation,
-            role_id=form.role_id,
-            user=request.user,
-        )
-    except OwnerRoleNotAuthorisedError as e:
-        raise ex.ForbiddenError(str(e))
+    return await invitations_services.update_project_invitation(
+        invitation=invitation,
+        role_id=form.role_id,
+        user=request.user,
+    )
 
 
 ##########################################################

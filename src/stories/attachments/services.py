@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -38,7 +38,7 @@ async def create_attachment(
     )
     return await attachments_services.create_attachment(
         file=file,
-        object=story,
+        content_object=story,
         created_by=created_by,
         event_on_create=event_on_create,
     )

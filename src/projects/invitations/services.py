@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -319,14 +319,14 @@ async def send_project_invitation_email(
     receiver = invitation.user
     email = receiver.email if receiver else invitation.email
     invitation_token = await _generate_project_invitation_token(invitation)
-    from projects.projects.services import get_logo_small_thumbnail_url
+    from projects.projects.services import get_logo_url
 
     context = {
         "invitation_token": invitation_token,
         "project_name": project.name,
         "project_id": project.b64id,
         "project_color": project.color,
-        "project_image_url": await get_logo_small_thumbnail_url(project.logo),
+        "project_image_url": await get_logo_url(project, "small"),
         "project_workspace": project.workspace.name,
         "sender_name": sender.full_name if sender else None,
         "receiver_name": receiver.full_name if receiver else None,

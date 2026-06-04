@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from base.services.exceptions import TenzuServiceException
+from base.services.exceptions import TenzuAuthException, TenzuServiceException
 
 
 class NonExistingRoleError(TenzuServiceException):
@@ -40,7 +40,7 @@ class ExistingProjectMembershipsError(TenzuServiceException):
     pass
 
 
-class ExistingOwnerProjectMembershipsAndNotOwnerError(TenzuServiceException):
+class ExistingOwnerProjectMembershipsAndNotOwnerError(TenzuAuthException):
     pass
 
 
@@ -48,19 +48,11 @@ class NoRelatedWorkspaceMembershipsError(TenzuServiceException):
     pass
 
 
-class NonEditableRoleError(TenzuServiceException):
+class NonEditableRoleError(TenzuAuthException):
     pass
 
 
-class NotValidPermissionsSetError(TenzuServiceException):
-    pass
-
-
-class IncompatiblePermissionsSetError(TenzuServiceException):
-    pass
-
-
-class OwnerRoleNotAuthorisedError(TenzuServiceException):
+class OwnerRoleNotAuthorisedError(TenzuAuthException):
     pass
 
 
