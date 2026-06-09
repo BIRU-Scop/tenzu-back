@@ -21,7 +21,7 @@ from uuid import UUID
 
 from django.conf import settings
 from django.http import FileResponse, HttpRequest
-from ninja import File, Path, Router, UploadedFile
+from ninja import File, Path, Router, Status, UploadedFile
 
 from attachments import services as attachments_services
 from attachments.models import Attachment
@@ -137,7 +137,7 @@ async def list_story_attachment(
 async def delete_story_attachment(
     request,
     attachment_id: Path[B64UUID],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Delete a story attachment
     """
@@ -151,7 +151,7 @@ async def delete_story_attachment(
     await services.delete_attachment(
         attachment=attachment, project=attachment.content_object.project
     )
-    return 204, None
+    return Status(204, None)
 
 
 ##########################################################

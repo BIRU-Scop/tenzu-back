@@ -19,7 +19,7 @@
 
 from uuid import UUID
 
-from ninja import Path, Query, Router
+from ninja import Path, Query, Router, Status
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -178,7 +178,7 @@ async def delete_workspace_membership(
     request,
     membership_id: Path[B64UUID],
     query_params: Query[DeleteMembershipQuery],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Delete a workspace membership
     If the deleted member is the only owner of some projects in this workspace:
@@ -203,7 +203,7 @@ async def delete_workspace_membership(
         successor_user_id=query_params.successor_user_id,
     )
 
-    return 204, None
+    return Status(204, None)
 
 
 ##########################################################

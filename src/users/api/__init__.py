@@ -19,7 +19,7 @@
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from ninja import Router
+from ninja import Router, Status
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -225,7 +225,7 @@ async def update_current_user(request, form: UpdateUserValidator) -> User:
     response={204: None, 400: ERROR_RESPONSE_400, 401: ERROR_RESPONSE_401},
     by_alias=True,
 )
-async def delete_current_user(request) -> tuple[int, None]:
+async def delete_current_user(request) -> Status[None]:
     """
     Delete a user.
 
@@ -243,7 +243,7 @@ async def delete_current_user(request) -> tuple[int, None]:
     )
 
     await users_services.delete_user(user=request.user)
-    return 204, None
+    return Status(204, None)
 
 
 #####################################################################

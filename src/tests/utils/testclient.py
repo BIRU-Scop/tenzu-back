@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -70,18 +70,15 @@ class TestSyncClient(TextClientAuthMixin, TestClientBase):
 
 
 @pytest.fixture(scope="function")
-def client(monkeypatch):
-    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
+def client():
     return TestAsyncClient(api)
 
 
 @pytest.fixture(scope="function")
-def sync_client(monkeypatch):
-    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
+def sync_client():
     return TestSyncClient(api)
 
 
 @pytest.fixture(scope="function")
-def ssr_client(monkeypatch):
-    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
+def ssr_client():
     return Client()

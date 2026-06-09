@@ -19,7 +19,7 @@
 
 from uuid import UUID
 
-from ninja import Path, Router
+from ninja import Path, Router, Status
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -101,7 +101,7 @@ async def delete_story_assignment(
     project_id: Path[B64UUID],
     ref: Path[int],
     user_id: Path[B64UUID],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Delete a story assignment
     """
@@ -115,7 +115,7 @@ async def delete_story_assignment(
     await story_assignments_services.delete_story_assignment(
         story_assignment=story_assignment, deleted_by=request.user
     )
-    return 204, None
+    return Status(204, None)
 
 
 ################################################

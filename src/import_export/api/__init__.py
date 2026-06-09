@@ -17,7 +17,7 @@
 # You can contact BIRU at ask@biru.sh
 from uuid import UUID
 
-from ninja import File, Form, Path, Router
+from ninja import File, Form, Path, Router, Status
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -142,7 +142,7 @@ async def list_project_importations(
 async def delete_project_importation(
     request,
     project_importation_id: Path[B64UUID],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Delete a project importation
     """
@@ -156,7 +156,7 @@ async def delete_project_importation(
     await import_export_services.delete_project_importation(
         project_importation=project_importation
     )
-    return 204, None
+    return Status(204, None)
 
 
 ##########################################################

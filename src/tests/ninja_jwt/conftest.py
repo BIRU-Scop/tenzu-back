@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -50,8 +50,7 @@ def set_settings(settings):
 
 
 @pytest.fixture(scope="function")
-def client(set_settings, monkeypatch):
-    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
+def client(set_settings):
     return TestClient(sync_api)
 
 

@@ -19,7 +19,7 @@
 
 from uuid import UUID
 
-from ninja import Path, Router
+from ninja import Path, Router, Status
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -197,7 +197,7 @@ async def update_workspace(
     },
     by_alias=True,
 )
-async def delete_workspace(request, workspace_id: Path[B64UUID]) -> tuple[int, None]:
+async def delete_workspace(request, workspace_id: Path[B64UUID]) -> Status[None]:
     """
     Delete a workspace
     """
@@ -211,7 +211,7 @@ async def delete_workspace(request, workspace_id: Path[B64UUID]) -> tuple[int, N
     await workspaces_services.delete_workspace(
         workspace=workspace, deleted_by=request.user
     )
-    return 204, None
+    return Status(204, None)
 
 
 ##########################################################
