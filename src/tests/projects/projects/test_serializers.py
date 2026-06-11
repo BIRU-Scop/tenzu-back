@@ -27,10 +27,9 @@ from tests.utils import factories as f
 #######################################################
 
 
-def test_project_logo_mixin_serializer_with_logo(monkeypatch):
+def test_project_logo_mixin_serializer_with_logo():
     project = f.build_project(logo=f.build_image_file())
 
-    monkeypatch.setenv("NINJA_SKIP_REGISTRY", "true")
     data = serializers.ProjectLogoBaseSerializer.model_validate(project)
 
     assert str(data.logo).startswith(str(settings.BACKEND_URL))

@@ -311,7 +311,7 @@ async def test_verify_user():
         ) as fake_workspace_invitations_services,
         patch("users.services.aware_utcnow") as fake_aware_utcnow,
         patch(
-            "users.models.User.emailaddress_set",
+            "allauth.account.models.EmailAddress.objects",
             new_callable=AsyncMock,
         ),
         patch_db_transaction(),
@@ -353,7 +353,7 @@ async def test_verify_user_ok_no_invitation_tokens_to_accept():
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
         patch(
-            "users.models.User.emailaddress_set",
+            "allauth.account.models.EmailAddress.objects",
             new_callable=AsyncMock,
         ),
         patch_db_transaction(),
@@ -420,7 +420,7 @@ async def test_verify_user_ok_accepting_or_not_a_project_invitation_token(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
         patch(
-            "users.models.User.emailaddress_set",
+            "allauth.account.models.EmailAddress.objects",
             new_callable=AsyncMock,
         ),
         patch_db_transaction(),
@@ -503,7 +503,7 @@ async def test_verify_user_ok_accepting_or_not_a_workspace_invitation_token(
             "users.services.workspace_invitations_services", autospec=True
         ) as fake_ws_invitations_services,
         patch(
-            "users.models.User.emailaddress_set",
+            "allauth.account.models.EmailAddress.objects",
             new_callable=AsyncMock,
         ),
         patch_db_transaction(),
@@ -603,7 +603,7 @@ async def test_verify_user_error_project_invitation_token(exception):
         patch("users.services.workspace_invitations_services", autospec=True),
         patch("users.services.auth_services", autospec=True) as fake_auth_services,
         patch(
-            "users.models.User.emailaddress_set",
+            "allauth.account.models.EmailAddress.objects",
             new_callable=AsyncMock,
         ),
         patch_db_transaction(),
@@ -662,7 +662,7 @@ async def test_verify_user_error_workspace_invitation_token(exception):
         ) as fake_invitations_services,
         patch("users.services.auth_services", autospec=True) as fake_auth_services,
         patch(
-            "users.models.User.emailaddress_set",
+            "allauth.account.models.EmailAddress.objects",
             new_callable=AsyncMock,
         ),
         patch_db_transaction(),

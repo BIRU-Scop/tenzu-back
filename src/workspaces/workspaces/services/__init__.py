@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -90,9 +90,7 @@ async def list_user_workspaces(user: User) -> list[Workspace]:
 ##########################################################
 
 
-async def get_workspace(
-    workspace_id: UUID, get_total_project=False
-) -> Workspace | None:
+async def get_workspace(workspace_id: UUID, get_total_project=False) -> Workspace:
     return await workspaces_repositories.get_workspace(
         workspace_id=workspace_id, get_total_project=get_total_project
     )

@@ -4,7 +4,7 @@ a2wsgi==1.10.10
     # via -r requirements/commons.in
 annotated-types==0.7.0
     # via pydantic
-anyio==4.12.1
+anyio==4.13.0
     # via
     #   pycrdt
     #   pycrdt-store
@@ -25,7 +25,9 @@ asgiref==3.11.1
     #   django-cors-headers
     #   procrastinate
     #   types-channels
-attrs==25.4.0
+ast-serialize==0.5.0
+    # via mypy
+attrs==26.1.0
     # via
     #   procrastinate
     #   service-identity
@@ -34,17 +36,17 @@ autobahn==25.12.2
     # via daphne
 automat==25.4.16
     # via twisted
-boto3==1.42.45
+boto3==1.43.25
     # via django-storages
-botocore==1.42.45
+botocore==1.43.25
     # via
     #   boto3
     #   s3transfer
 brotli==1.2.0
     # via whitenoise
-cbor2==5.8.0
+cbor2==6.1.2
     # via autobahn
-certifi==2026.1.4
+certifi==2026.5.20
     # via
     #   requests
     #   sentry-sdk
@@ -59,21 +61,21 @@ channels==4.3.2
     #   channels-redis
 channels-redis==4.3.0
     # via -r requirements/commons.in
-charset-normalizer==3.4.4
+charset-normalizer==3.4.7
     # via
     #   reportlab
     #   requests
-click==8.3.1
+click==8.4.1
     # via
     #   granian
     #   uvicorn
 constantly==23.10.4
     # via twisted
-coverage==7.13.4
+coverage==7.14.1
     # via pytest-cov
-croniter==6.0.0
+croniter==6.2.2
     # via procrastinate
-cryptography==46.0.4
+cryptography==48.0.0
     # via
     #   -r requirements/commons.in
     #   autobahn
@@ -82,15 +84,15 @@ cryptography==46.0.4
     #   service-identity
     #   types-pyopenssl
     #   types-redis
-cssselect2==0.8.0
+cssselect2==0.9.0
     # via svglib
-daphne==4.2.1
+daphne==4.2.2
     # via
     #   -r requirements/devel.in
     #   channels
 defusedxml==0.7.1
     # via python3-openid
-django==6.0.2
+django==6.0.6
     # via
     #   -r requirements/commons.in
     #   channels
@@ -106,7 +108,7 @@ django==6.0.2
     #   django-watchfiles
     #   easy-thumbnails
     #   procrastinate
-django-allauth==65.14.1
+django-allauth==65.18.0
     # via -r requirements/commons.in
 django-auth-ldap==5.3.0
     # via -r requirements/commons.in
@@ -114,17 +116,17 @@ django-cors-headers==4.9.0
     # via -r requirements/commons.in
 django-extensions==4.1
     # via -r requirements/commons.in
-django-ninja==1.5.3
+django-ninja==1.6.2
     # via -r requirements/commons.in
 django-nonrelated-inlines==0.2
     # via -r requirements/commons.in
 django-storages==1.14.6
     # via -r requirements/commons.in
-django-stubs==5.2.9
+django-stubs==6.0.5
     # via
     #   -r requirements/devel.in
     #   types-channels
-django-stubs-ext==5.2.9
+django-stubs-ext==6.0.5
     # via django-stubs
 django-watchfiles==1.4.0
     # via -r requirements/devel.in
@@ -138,7 +140,7 @@ execnet==2.1.2
     # via pytest-xdist
 factory-boy==3.3.3
     # via -r requirements/devel.in
-faker==40.4.0
+faker==40.21.0
     # via
     #   -r requirements/commons.in
     #   factory-boy
@@ -146,23 +148,23 @@ freetype-py==2.5.1
     # via rlpycairo
 freezegun==1.5.5
     # via -r requirements/devel.in
-granian==2.7.1
+granian==2.7.5
     # via -r requirements/commons.in
-gunicorn==25.0.3
+gunicorn==26.0.0
     # via
     #   -r requirements/commons.in
     #   uvicorn-worker
 h11==0.16.0
     # via uvicorn
-hiredis==3.3.0
+hiredis==3.4.0
     # via redis
-httptools==0.7.1
+httptools==0.8.0
     # via uvicorn
 hyperlink==21.0.0
     # via
     #   autobahn
     #   twisted
-idna==3.11
+idna==3.18
     # via
     #   anyio
     #   email-validator
@@ -179,14 +181,14 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
-librt==0.7.8
+librt==0.11.0
     # via mypy
-lxml==6.0.2
+lxml==6.1.1
     # via
     #   python3-saml
     #   svglib
     #   xmlsec
-markdown-it-py==4.0.0
+markdown-it-py==4.2.0
     # via rich
 mdurl==0.1.2
     # via markdown-it-py
@@ -194,24 +196,24 @@ msgpack==1.1.2
     # via
     #   autobahn
     #   channels-redis
-mypy==1.19.1
+mypy==2.1.0
     # via -r requirements/devel.in
 mypy-extensions==1.1.0
     # via mypy
 oauthlib==3.3.1
     # via django-allauth
-orjson==3.11.7
+orjson==3.11.9
     # via -r requirements/commons.in
-packaging==26.0
+packaging==26.2
     # via
     #   gunicorn
     #   incremental
     #   procrastinate
     #   pytest
     #   pytest-rerunfailures
-pathspec==1.0.4
+pathspec==1.1.1
     # via mypy
-pillow==12.1.0
+pillow==12.2.0
     # via
     #   easy-thumbnails
     #   reportlab
@@ -219,61 +221,58 @@ pluggy==1.6.0
     # via
     #   pytest
     #   pytest-cov
-procrastinate==3.7.2
+procrastinate==3.8.1
     # via -r requirements/commons.in
 psutil==7.2.2
     # via pytest-xdist
-psycopg==3.3.2
+psycopg==3.3.4
     # via
     #   -r requirements/commons.in
     #   procrastinate
-psycopg-c==3.3.2
+psycopg-c==3.3.4
     # via psycopg
-psycopg-pool==3.3.0
+psycopg-pool==3.3.1
     # via psycopg
 py-ubjson==0.16.1
     # via autobahn
-pyasn1==0.6.2
+pyasn1==0.6.3
     # via
     #   pyasn1-modules
     #   python-ldap
-    #   service-identity
 pyasn1-modules==0.4.2
-    # via
-    #   python-ldap
-    #   service-identity
+    # via python-ldap
 pycairo==1.29.0
     # via rlpycairo
 pycparser==3.0
     # via cffi
-pycrdt==0.12.46
+pycrdt==0.13.1
     # via
     #   pycrdt-store
     #   pycrdt-websocket
-pycrdt-store==0.1.3
+pycrdt-store==0.1.4
     # via pycrdt-websocket
-pycrdt-websocket==0.16.0
+pycrdt-websocket==0.16.2
     # via -r requirements/commons.in
-pydantic==2.12.5
+pydantic==2.13.4
     # via
     #   -r requirements/commons.in
     #   django-ninja
     #   pydantic-settings
-pydantic-core==2.41.5
+pydantic-core==2.46.4
     # via pydantic
-pydantic-settings==2.12.0
+pydantic-settings==2.14.1
     # via -r requirements/commons.in
-pygments==2.19.2
+pygments==2.20.0
     # via
     #   pytest
     #   rich
-pyjwt==2.11.0
+pyjwt==2.13.0
     # via
     #   -r requirements/commons.in
     #   django-allauth
-pyopenssl==25.3.0
+pyopenssl==26.2.0
     # via twisted
-pytest==9.0.2
+pytest==9.0.3
     # via
     #   -r requirements/devel.in
     #   pytest-asyncio
@@ -281,13 +280,13 @@ pytest==9.0.2
     #   pytest-django
     #   pytest-rerunfailures
     #   pytest-xdist
-pytest-asyncio==1.3.0
+pytest-asyncio==1.4.0
     # via -r requirements/devel.in
-pytest-cov==7.0.0
+pytest-cov==7.1.0
     # via -r requirements/devel.in
-pytest-django==4.11.1
+pytest-django==4.12.0
     # via -r requirements/devel.in
-pytest-rerunfailures==16.1
+pytest-rerunfailures==16.3
     # via -r requirements/devel.in
 pytest-xdist==3.8.0
     # via -r requirements/devel.in
@@ -297,13 +296,13 @@ python-dateutil==2.9.0.post0
     #   croniter
     #   freezegun
     #   procrastinate
-python-dotenv==1.2.1
+python-dotenv==1.2.2
     # via
     #   pydantic-settings
     #   uvicorn
-python-json-logger==4.0.0
+python-json-logger==4.1.0
     # via -r requirements/commons.in
-python-ldap==3.4.5
+python-ldap==3.4.7
     # via django-auth-ldap
 python-slugify==8.0.4
     # via -r requirements/commons.in
@@ -311,33 +310,31 @@ python3-openid==3.2.0
     # via django-allauth
 python3-saml==1.16.0
     # via django-allauth
-pytz==2025.2
-    # via croniter
 pyyaml==6.0.3
     # via uvicorn
-redis==7.1.1
+redis==8.0.0
     # via
     #   -r requirements/commons.in
     #   channels-redis
-reportlab==4.4.9
+reportlab==4.5.1
     # via
     #   easy-thumbnails
     #   svglib
-requests==2.32.5
+requests==2.34.2
     # via django-allauth
-rich==14.3.2
+rich==15.0.0
     # via -r requirements/commons.in
 rlpycairo==0.4.0
     # via svglib
-s3transfer==0.16.0
+s3transfer==0.18.0
     # via boto3
-sentry-sdk==2.52.0
+sentry-sdk==2.62.0
     # via -r requirements/commons.in
-service-identity==24.2.0
+service-identity==26.1.0
     # via twisted
 six==1.17.0
     # via python-dateutil
-sqlite-anyio==0.2.5
+sqlite-anyio==0.2.8
     # via pycrdt-store
 sqlparse==0.5.5
     # via django
@@ -349,13 +346,13 @@ tinycss2==1.5.1
     # via
     #   cssselect2
     #   svglib
-twisted==25.5.0
+twisted==26.4.0
     # via daphne
 txaio==25.12.2
     # via autobahn
-types-cffi==1.17.0.20250915
+types-cffi==2.0.0.20260518
     # via types-pyopenssl
-types-channels==4.3.0.20250822
+types-channels==4.3.0.20260518
     # via channels
 types-pillow==10.2.0.20240822
     # via -r requirements/devel.in
@@ -363,11 +360,11 @@ types-pyopenssl==24.1.0.20240722
     # via types-redis
 types-python-slugify==8.0.2.20240310
     # via -r requirements/devel.in
-types-pyyaml==6.0.12.20250915
+types-pyyaml==6.0.12.20260518
     # via django-stubs
 types-redis==4.6.0.20241004
     # via -r requirements/devel.in
-types-setuptools==82.0.0.20260210
+types-setuptools==82.0.0.20260518
     # via types-cffi
 typing-extensions==4.15.0
     # via
@@ -378,20 +375,21 @@ typing-extensions==4.15.0
     #   psycopg-pool
     #   pydantic
     #   pydantic-core
+    #   sqlite-anyio
     #   twisted
     #   typing-inspection
 typing-inspection==0.4.2
     # via
     #   pydantic
     #   pydantic-settings
-ujson==5.11.0
+ujson==5.12.1
     # via autobahn
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   botocore
     #   requests
     #   sentry-sdk
-uvicorn==0.40.0
+uvicorn==0.49.0
     # via
     #   -r requirements/commons.in
     #   uvicorn-worker
@@ -401,7 +399,7 @@ uvloop==0.22.1
     # via
     #   -r requirements/commons.in
     #   uvicorn
-watchfiles==1.1.1
+watchfiles==1.2.0
     # via
     #   django-watchfiles
     #   uvicorn
@@ -411,9 +409,9 @@ webencodings==0.5.1
     #   tinycss2
 websockets==16.0
     # via uvicorn
-whitenoise==6.11.0
+whitenoise==6.12.0
     # via -r requirements/commons.in
 xmlsec==1.3.17
     # via python3-saml
-zope-interface==8.2
+zope-interface==8.5
     # via twisted

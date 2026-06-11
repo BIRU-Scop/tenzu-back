@@ -19,7 +19,7 @@
 
 from uuid import UUID
 
-from ninja import Path, Query, Router
+from ninja import Path, Query, Router, Status
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -245,7 +245,7 @@ async def delete_workflow(
     request,
     workflow_id: Path[B64UUID],
     query_params: Query[DeleteWorkflowQuery],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Deletes a workflow in the given project, providing the option to move all the statuses and their stories to another
     workflow.
@@ -269,7 +269,7 @@ async def delete_workflow(
         deleted_by=request.user,
         target_workflow_id=query_params.move_to,
     )
-    return 204, None
+    return Status(204, None)
 
 
 ################################################
@@ -433,7 +433,7 @@ async def delete_workflow_status(
     request,
     status_id: Path[B64UUID],
     query_params: Query[DeleteWorkflowStatusQuery],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Deletes a workflow status in the given project workflow, providing the option to replace the stories it may contain
     to any other existing workflow status in the same workflow.
@@ -457,7 +457,7 @@ async def delete_workflow_status(
         target_status_id=query_params.move_to,  # type: ignore
     )
 
-    return 204, None
+    return Status(204, None)
 
 
 ################################################
