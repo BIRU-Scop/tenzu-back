@@ -139,12 +139,17 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def save_user(self, request, sociallogin, form=None):
         user = self.create_or_update_user(sociallogin, sociallogin.user)
         sociallogin.user = user
+        # empty out alternatives emails because we don't particularly care to keep them in DB
+        sociallogin.email_addresses = [
+            x for x in sociallogin.email_addresses if x.email == user.email
+        ]
         sociallogin.save(request)
         return user
 
     def pre_social_login(self, request, sociallogin):
         # check email here instead of in populate_user
         # because email may have been changed in case of provider that handle multiple emails
+        # sociallogin.lookup() is called just before this, which will search for an existing local user in the fetched user emails
         if sociallogin.user.email:
             try:
                 check_email_in_domain(sociallogin.user.email)

@@ -19,6 +19,7 @@
 import logging
 from uuid import UUID
 
+from allauth.account.models import EmailAddress
 from asgiref.sync import sync_to_async
 from django.conf import settings
 
@@ -229,8 +230,8 @@ async def _verify_user(user: User) -> None:
     await users_repositories.update_user(
         user=user, values={"is_active": True, "date_verification": aware_utcnow()}
     )
-    await user.emailaddress_set.aupdate_or_create(
-        email=user.email, defaults={"verified": True, "primary": True}
+    await EmailAddress.objects.aupdate_or_create(
+        email=user.email, defaults={"verified": True, "primary": True, "user": user}
     )
     await workspace_invitations_services.update_user_workspaces_invitations(user=user)
     await project_invitations_services.update_user_projects_invitations(user=user)

@@ -20,7 +20,7 @@
 from uuid import UUID
 
 from django.http import HttpResponse
-from ninja import Path, Query, Router
+from ninja import Path, Query, Router, Status
 
 from base.api import Pagination, PaginationQuery, set_pagination
 from base.serializers import BaseDataSchema
@@ -268,7 +268,7 @@ async def delete_story(
     request,
     project_id: Path[B64UUID],
     ref: Path[int],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Delete a story
     """
@@ -278,7 +278,7 @@ async def delete_story(
     )
 
     await stories_services.delete_story(story=story, deleted_by=request.user)
-    return 204, None
+    return Status(204, None)
 
 
 ################################################

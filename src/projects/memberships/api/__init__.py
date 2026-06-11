@@ -19,7 +19,7 @@
 
 from uuid import UUID
 
-from ninja import Path, Query, Router
+from ninja import Path, Query, Router, Status
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -145,7 +145,7 @@ async def delete_project_membership(
     request,
     membership_id: Path[B64UUID],
     query_params: Query[DeleteMembershipQuery],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Delete a project membership
 
@@ -167,7 +167,7 @@ async def delete_project_membership(
         user=request.user,
         successor_user_id=query_params.successor_user_id,
     )
-    return 204, None
+    return Status(204, None)
 
 
 ##########################################################
@@ -335,7 +335,7 @@ async def delete_project_role(
     request,
     role_id: Path[B64UUID],
     query_params: Query[DeleteRoleQuery],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Delete project roles
     """
@@ -351,7 +351,7 @@ async def delete_project_role(
         role=role,
         target_role_id=query_params.move_to,
     )
-    return 204, None
+    return Status(204, None)
 
 
 ################################################

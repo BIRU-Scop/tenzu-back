@@ -24,7 +24,7 @@ from uuid import UUID
 from django.conf import settings
 from django.http import FileResponse
 from django.views.decorators.cache import cache_control
-from ninja import File, Form, Path, Router
+from ninja import File, Form, Path, Router, Status
 from ninja.decorators import decorate_view
 
 from base.serializers import BaseDataSchema
@@ -280,7 +280,7 @@ async def update_project(
 async def delete_project(
     request,
     project_id: Path[B64UUID],
-) -> tuple[int, None]:
+) -> Status[None]:
     """
     Delete a project
     """
@@ -290,7 +290,7 @@ async def delete_project(
     )
 
     await projects_services.delete_project(project=project, deleted_by=request.user)
-    return 204, None
+    return Status(204, None)
 
 
 ##########################################################
