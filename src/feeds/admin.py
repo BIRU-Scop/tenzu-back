@@ -23,7 +23,7 @@ from django.contrib.admin import SimpleListFilter
 from django.contrib.admin.widgets import AdminSplitDateTime
 from django.core.exceptions import ValidationError
 from django.db.backends.postgresql.psycopg_any import DateTimeTZRange
-from django.db.models import Case, CharField, IntegerField, Value, When
+from django.db.models import Case, CharField, IntegerField, Q, Value, When
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from martor.widgets import AdminMartorWidget
@@ -43,10 +43,18 @@ _STATUS_DISPLAY_ORDER = (
 
 def _status_annotation(at: datetime) -> Case:
     """Classify each FeedItem (scheduled/active/expired) in SQL, from the bounds
-    defined on the model (`FeedItem.published_q` / `expired_q`)."""
+    defined on the model."""
+    # range object is mandatory to use "fully_" comparison function
+    comparison_range = DateTimeTZRange(at, at, bounds="[]")
     return Case(
-        When(~FeedItem.published_q(at), then=Value(FeedItemStatus.SCHEDULED.value)),
-        When(FeedItem.expired_q(at), then=Value(FeedItemStatus.EXPIRED.value)),
+        When(
+            Q(active_period__fully_gt=comparison_range),
+            then=Value(FeedItemStatus.SCHEDULED.value),
+        ),
+        When(
+            Q(active_period__fully_lt=comparison_range),
+            then=Value(FeedItemStatus.EXPIRED.value),
+        ),
         default=Value(FeedItemStatus.ACTIVE.value),
         output_field=CharField(),
     )
@@ -116,37 +124,22 @@ class FeedItemAdminForm(forms.ModelForm):
                 _("Required when an action title is set."),
             )
 
-        if publication_date and expiration_date and expiration_date < publication_date:
+        if publication_date and expiration_date and expiration_date <= publication_date:
             self.add_error(
                 "expiration_date",
                 _("The end date cannot be earlier than the publication date."),
             )
-
-        if publication_date:
+        elif publication_date:
             self.instance.active_period = DateTimeTZRange(
-                publication_date, expiration_date, bounds="[]"
+                publication_date, expiration_date, bounds="[)"
             )
 
-        # At most one active release (without an end date) at a time.
-        if item_type == FeedItemType.RELEASE and expiration_date is None:
+        # no overlapping release or maintenance
+        if (
+            item_type == FeedItemType.MAINTENANCE or item_type == FeedItemType.RELEASE
+        ) and publication_date:
             others = FeedItem.objects.filter(
-                type=FeedItemType.RELEASE, active_period__upper_inf=True
-            )
-            if self.instance.pk:
-                others = others.exclude(pk=self.instance.pk)
-            existing = others.first()
-            if existing is not None:
-                raise ValidationError(
-                    _(
-                        "An active release without an end date already exists: "
-                        "“%(title)s”. Close it first or set an end date."
-                    )
-                    % {"title": existing.title}
-                )
-
-        if item_type == FeedItemType.MAINTENANCE and publication_date:
-            others = FeedItem.objects.filter(
-                type=FeedItemType.MAINTENANCE,
+                type=item_type,
                 active_period__overlap=self.instance.active_period,
             )
             if self.instance.pk:
@@ -160,10 +153,11 @@ class FeedItemAdminForm(forms.ModelForm):
                 )
                 raise ValidationError(
                     _(
-                        "This maintenance overlaps “%(title)s” "
+                        "This %(item_type)s overlaps “%(title)s” "
                         "(from %(start)s to %(end)s)."
                     )
                     % {
+                        "item_type": item_type,
                         "title": conflict.title,
                         "start": f"{conflict.publication_date:%Y-%m-%d %H:%M}",
                         "end": end,

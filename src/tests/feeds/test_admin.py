@@ -27,57 +27,9 @@ from feeds.admin import FeedItemAdmin, FeedItemAdminForm
 from feeds.models import FeedItem, FeedItemStatus, FeedItemType
 from ninja_jwt.utils import aware_utcnow
 from tests.utils import factories as f
+from tests.utils.admin import admin_field_split_dt
 
 pytestmark = pytest.mark.django_db
-
-
-def _split_dt(name, value):
-    # SplitDateTimeField expects two sub-widgets: <name>_0 (date), <name>_1 (time).
-    return {
-        f"{name}_0": value.strftime("%Y-%m-%d"),
-        f"{name}_1": value.strftime("%H:%M:%S"),
-    }
-
-
-def test_feeditem_admin_is_registered_and_mounted():
-    assert reverse("admin:feeds_feeditem_changelist")
-
-
-def test_restrict_admin_registry_keeps_only_whitelist():
-    from django.contrib.admin import AdminSite
-
-    from configurations.utils import restrict_admin_registry
-    from feeds.models import FeedItem, FeedItemReadStatus
-
-    test_site = AdminSite()
-    test_site.register(FeedItem)
-    test_site.register(FeedItemReadStatus)
-
-    unregistered = restrict_admin_registry(test_site, ["feeds.FeedItem"])
-
-    assert {m._meta.label for m in test_site._registry} == {"feeds.FeedItem"}
-    assert unregistered == ["feeds.FeedItemReadStatus"]
-
-
-##########################################################
-# Superuser-only access
-##########################################################
-
-
-def test_admin_permission_granted_to_superuser(rf):
-    user = f.UserFactory.create(is_superuser=True)
-    request = rf.get("/admin/")
-    request.user = user
-
-    assert site.has_permission(request) is True
-
-
-def test_admin_permission_denied_to_non_superuser(rf):
-    user = f.UserFactory.create(is_superuser=False)
-    request = rf.get("/admin/")
-    request.user = user
-
-    assert site.has_permission(request) is False
 
 
 ##########################################################
@@ -155,10 +107,10 @@ def _base_form_data(
         "type": type,
         "action_title": action_title,
         "action_url": action_url,
-        **_split_dt("publication_date", publication_date),
+        **admin_field_split_dt("publication_date", publication_date),
     }
     if expiration_date is not None:
-        data.update(_split_dt("expiration_date", expiration_date))
+        data.update(admin_field_split_dt("expiration_date", expiration_date))
     return data
 
 

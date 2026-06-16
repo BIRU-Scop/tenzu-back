@@ -284,19 +284,10 @@ msgstr "Required when an action title is set."
 msgid "The end date cannot be earlier than the publication date."
 msgstr "The end date cannot be earlier than the publication date."
 
-#: feeds/admin.py:138
-#, python-format
-msgid ""
-"An active release without an end date already exists: “%(title)s”. Close it "
-"first or set an end date."
-msgstr ""
-"An active release without an end date already exists: “%(title)s”. Close it "
-"first or set an end date."
-
 #: feeds/admin.py:161
 #, python-format
-msgid "This maintenance overlaps “%(title)s” (from %(start)s to %(end)s)."
-msgstr "This maintenance overlaps “%(title)s” (from %(start)s to %(end)s)."
+msgid "This %(item_type)s overlaps “%(title)s” (from %(start)s to %(end)s)."
+msgstr "This %(item_type)s overlaps “%(title)s” (from %(start)s to %(end)s)."
 
 #: feeds/admin.py:184 feeds/admin.py:226
 msgid "status"
@@ -396,4 +387,4 @@ msgstr "feed item read statuses"
 
 #: import_export/services/__init__.py:70
 msgid "Suspicious file, try to shorten the file name"
-msgstr ""
+msgstr "Suspicious file, try to shorten the file name"

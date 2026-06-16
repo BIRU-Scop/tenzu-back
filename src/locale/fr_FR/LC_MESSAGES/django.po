@@ -275,7 +275,7 @@ msgstr "date de fin"
 #: feeds/admin.py:98
 #, python-format
 msgid "Timezone: %(tz)s (stored in UTC)."
-msgstr "Fuseau : %(tz)s (stocké en UTC)."
+msgstr "Fuseau horaire : %(tz)s (stocké en UTC)."
 
 #: feeds/admin.py:112 feeds/admin.py:114
 msgid "Required for a call-to-action."
@@ -289,19 +289,10 @@ msgstr "Requis lorsqu'un titre d'action est renseigné."
 msgid "The end date cannot be earlier than the publication date."
 msgstr "La date de fin ne peut précéder la date de mise en ligne."
 
-#: feeds/admin.py:138
-#, python-format
-msgid ""
-"An active release without an end date already exists: “%(title)s”. Close it "
-"first or set an end date."
-msgstr ""
-"Une release active sans date de fin existe déjà : « %(title)s ». Clôturez-la "
-"d'abord ou renseignez une date de fin."
-
 #: feeds/admin.py:161
 #, python-format
-msgid "This maintenance overlaps “%(title)s” (from %(start)s to %(end)s)."
-msgstr "Cette maintenance chevauche « %(title)s » (du %(start)s au %(end)s)."
+msgid "This %(item_type)s overlaps “%(title)s” (from %(start)s to %(end)s)."
+msgstr "Cette %(item_type)s chevauche « %(title)s » (du %(start)s au %(end)s)."
 
 #: feeds/admin.py:184 feeds/admin.py:226
 msgid "status"
@@ -329,7 +320,7 @@ msgstr "Release"
 
 #: feeds/models.py:41
 msgid "Call to action"
-msgstr "Appel à l'action"
+msgstr "Call to action"
 
 #: feeds/models.py:47
 msgid "Scheduled"
@@ -377,11 +368,11 @@ msgstr "lu par"
 
 #: feeds/models.py:102 feeds/models.py:181
 msgid "feed item"
-msgstr "nouveauté"
+msgstr "actualité"
 
 #: feeds/models.py:103
 msgid "feed items"
-msgstr "nouveautés"
+msgstr "actualités"
 
 #: feeds/models.py:189
 msgid "user"
@@ -393,12 +384,12 @@ msgstr "lu le"
 
 #: feeds/models.py:199
 msgid "feed item read status"
-msgstr "statut de lecture de nouveauté"
+msgstr "statut de lecture d'une actualité'"
 
 #: feeds/models.py:200
 msgid "feed item read statuses"
-msgstr "statuts de lecture de nouveauté"
+msgstr "statuts de lecture des actualités"
 
 #: import_export/services/__init__.py:70
 msgid "Suspicious file, try to shorten the file name"
-msgstr ""
+msgstr "Fichier suspect, essayez de raccourcir le nom du fichier"

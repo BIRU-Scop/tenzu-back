@@ -275,7 +275,7 @@ msgstr "Zona horaria: %(tz)s (almacenada en UTC)."
 
 #: feeds/admin.py:112 feeds/admin.py:114
 msgid "Required for a call-to-action."
-msgstr "Obligatorio para una llamada a la acción."
+msgstr "Obligatorio para una call-to-action."
 
 #: feeds/admin.py:118
 msgid "Required when an action title is set."
@@ -285,19 +285,10 @@ msgstr "Obligatorio cuando se define un título de acción."
 msgid "The end date cannot be earlier than the publication date."
 msgstr "La fecha de fin no puede ser anterior a la fecha de publicación."
 
-#: feeds/admin.py:138
-#, python-format
-msgid ""
-"An active release without an end date already exists: “%(title)s”. Close it "
-"first or set an end date."
-msgstr ""
-"Ya existe una versión activa sin fecha de fin: «%(title)s». Ciérrala primero "
-"o define una fecha de fin."
-
 #: feeds/admin.py:161
 #, python-format
-msgid "This maintenance overlaps “%(title)s” (from %(start)s to %(end)s)."
-msgstr "Este mantenimiento se solapa con «%(title)s» (de %(start)s a %(end)s)."
+msgid "This %(item_type)s overlaps “%(title)s” (from %(start)s to %(end)s)."
+msgstr "Este %(item_type)s se solapa con «%(title)s» (de %(start)s a %(end)s)."
 
 #: feeds/admin.py:184 feeds/admin.py:226
 msgid "status"
@@ -305,7 +296,7 @@ msgstr "estado"
 
 #: feeds/admin.py:219
 msgid "Action (call-to-action)"
-msgstr "Acción (llamada a la acción)"
+msgstr "Acción (call-to-action)"
 
 #: feeds/admin.py:222
 msgid "Scheduling"
@@ -325,7 +316,7 @@ msgstr "Versión"
 
 #: feeds/models.py:41
 msgid "Call to action"
-msgstr "Llamada a la acción"
+msgstr "Call to action"
 
 #: feeds/models.py:47
 msgid "Scheduled"
@@ -373,11 +364,11 @@ msgstr "leído por"
 
 #: feeds/models.py:102 feeds/models.py:181
 msgid "feed item"
-msgstr "novedad"
+msgstr "noticia"
 
 #: feeds/models.py:103
 msgid "feed items"
-msgstr "novedades"
+msgstr "noticias"
 
 #: feeds/models.py:189
 msgid "user"
@@ -389,12 +380,12 @@ msgstr "leído el"
 
 #: feeds/models.py:199
 msgid "feed item read status"
-msgstr "estado de lectura de novedad"
+msgstr "estado de lectura de una noticia"
 
 #: feeds/models.py:200
 msgid "feed item read statuses"
-msgstr "estados de lectura de novedad"
+msgstr "Estados de lectura de las noticias"
 
 #: import_export/services/__init__.py:70
 msgid "Suspicious file, try to shorten the file name"
-msgstr ""
+msgstr "Archivo sospechoso, intenta acortar el nombre del archivo"
