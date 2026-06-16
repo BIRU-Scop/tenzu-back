@@ -27,6 +27,7 @@ from base.utils.strings import to_kebab
 from commons.exceptions.api import HTTPException, codes
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
+from feeds.api import feeds_router
 from import_export.api import import_export_router
 from ninja_jwt.api import auth_router
 from ninja_jwt.authentication import AsyncJWTAuth
@@ -148,6 +149,7 @@ api.add_router("", tags=["stories", "comments"], router=stories_comments_router)
 api.add_router("", tags=["stories", "attachments"], router=stories_attachments_router)
 api.add_router("", tags=["users"], router=users_router)
 api.add_router("", tags=["notifications"], router=notifications_router)
+api.add_router("", tags=["feeds"], router=feeds_router)
 api.add_router("", tags=["workspaces"], router=workspace_router)
 api.add_router("", tags=["workspaces", "invitations"], router=workspace_invit_router)
 api.add_router(
