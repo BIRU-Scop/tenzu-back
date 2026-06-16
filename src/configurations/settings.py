@@ -115,6 +115,7 @@ INSTALLED_APPS = [
     "import_export",
     # 3rd-party
     "easy_thumbnails",
+    "martor",  # markdown editor widget for the admin (feeds)
     "ninja_jwt",
     "ninja_jwt.token_blacklist",
     "procrastinate.contrib.django",
@@ -126,6 +127,51 @@ INSTALLED_APPS = [
     "allauth.headless",
     "allauth.socialaccount",
     *settings.ACCOUNT.SOCIALAPPS_PROVIDERS,
+]
+
+MARTOR_ENABLE_CONFIGS = {
+    "emoji": "false",
+    "imgur": "false",
+    "mention": "false",
+    "jquery": "true",
+    "living": "false",
+    "spellcheck": "false",
+    "hljs": "false",
+}
+MARTOR_TOOLBAR_BUTTONS = [
+    "bold",
+    "italic",
+    "horizontal",
+    "heading",
+    "unordered-list",
+    "ordered-list",
+    "link",
+    "toggle-maximize",
+]
+ADMIN_PROD_VISIBLE_MODELS = ["users.User", "feeds.FeedItem"]
+
+ALLOWED_URL_SCHEMES = ["http", "https", "mailto"]
+ALLOWED_HTML_TAGS = [
+    "a",
+    "b",
+    "blockquote",
+    "br",
+    "code",
+    "del",
+    "em",
+    "h1",
+    "h2",
+    "h3",
+    "hr",
+    "i",
+    "li",
+    "ol",
+    "p",
+    "pre",
+    "s",
+    "strong",
+    "u",
+    "ul",
 ]
 
 MIDDLEWARE = [

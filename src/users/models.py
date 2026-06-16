@@ -156,6 +156,10 @@ class User(BaseDBModel, AbstractBaseUser):
     def is_staff(self) -> bool:
         return self.is_superuser
 
+    @is_staff.setter
+    def is_staff(self, value: bool) -> None:
+        self.is_superuser = value
+
     def has_perm(self, perm: str, obj: AnyUser | None = None) -> bool:
         return self.is_active and self.is_superuser
 
