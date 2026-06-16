@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     "stories.stories",
     "attachments",
     "comments",
+    "feeds",
     "users",
     "workflows",
     "workspaces.invitations",
