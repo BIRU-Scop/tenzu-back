@@ -17,7 +17,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import orjson
 import pytest
@@ -26,12 +26,12 @@ from django.core.files.uploadedfile import UploadedFile
 from django.test import override_settings
 
 from attachments.models import Attachment
-from attachments.repositories import BulkAttachment
 from comments.models import Comment
 from import_export import services
 from import_export.models import (
     ImportationStatus,
     ProjectImportation,
+    ProjectImportationPendingInvitation,
     ProjectImportationType,
 )
 from import_export.serializers import TaigaProjectImport
@@ -42,10 +42,14 @@ from import_export.serializers.taiga import (
     _TaigaUserStory,
 )
 from import_export.services.taiga import (
+    ProjectImportationPendingObject,
     build_story_attachment_from_taiga,
     build_story_comment_from_taiga,
+    bulk_create_all,
     convert_to_tenzu_permissions,
+    do_import_taiga_single_story,
     do_import_taiga_stories,
+    do_import_taiga_users,
     ensure_roles_unique_attributes,
     get_template_from_taiga_project,
 )
@@ -57,7 +61,9 @@ from projects.projects.models import Project
 from projects.projects.repositories import ProjectTemplateModel
 from stories.stories.models import Story
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from tests.utils.taskqueue import TestTasksQueueManager
+from tests.utils.utils import patch_db_transaction
 from workflows.models import Workflow, WorkflowStatus
 
 
@@ -80,7 +86,8 @@ async def test_do_import_project_no_kanban(tqmanager: TestTasksQueueManager, cap
     project = await Project.objects.aget()
     importation = await ProjectImportation.objects.select_related("project").aget()
     assert project.created_at.year == 2025
-    assert importation.status == ImportationStatus.SUCCESS
+    assert importation.status == ImportationStatus.ACTION_NEEDED
+    assert importation.extra_data["progress_percentage"] == 100
     assert importation.project == project
     assert await Workflow.objects.acount() == 1
     assert await WorkflowStatus.objects.acount() == 7
@@ -116,7 +123,8 @@ async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, capl
     project = await Project.objects.aget()
     importation = await ProjectImportation.objects.select_related("project").aget()
     assert project.created_at.year == 2025
-    assert importation.status == ImportationStatus.SUCCESS
+    assert importation.status == ImportationStatus.ACTION_NEEDED
+    assert importation.extra_data["progress_percentage"] == 100
     assert importation.project == project
     assert await Workflow.objects.acount() == 2
     assert await WorkflowStatus.objects.acount() == 7 * 2
@@ -218,9 +226,10 @@ def test_ensure_roles_unique_attributes():
 
     tenzu_roles = [dict(name="", slug="")]
     taiga_roles = [dict(name="", slug="")]
-    ensure_roles_unique_attributes(tenzu_roles, taiga_roles)
+    old_to_new_mapping = ensure_roles_unique_attributes(tenzu_roles, taiga_roles)
     assert tenzu_roles == [dict(name="", slug="")]
     assert taiga_roles == [dict(name="Taiga 1", slug="taiga-1")]
+    assert old_to_new_mapping == {"slug": {"": "taiga-1"}, "name": {"": "Taiga 1"}}
 
     tenzu_roles = [
         dict(name="Foo", slug="bar"),
@@ -233,7 +242,7 @@ def test_ensure_roles_unique_attributes():
         dict(name="Foo", slug="bar"),
         dict(name="Taiga Foo1", slug="taiga-bar1"),
     ]
-    ensure_roles_unique_attributes(tenzu_roles, taiga_roles)
+    old_to_new_mapping = ensure_roles_unique_attributes(tenzu_roles, taiga_roles)
     assert tenzu_roles == [
         dict(name="Foo", slug="bar"),
         dict(name="Admin", slug="admin"),
@@ -245,6 +254,20 @@ def test_ensure_roles_unique_attributes():
         dict(name="Taiga Foo2", slug="taiga-bar2"),
         dict(name="Taiga Foo1", slug="taiga-bar1"),
     ]
+    assert old_to_new_mapping == {
+        "slug": {
+            "": "",
+            "member": "member",
+            "bar": "taiga-bar2",
+            "taiga-bar1": "taiga-bar1",
+        },
+        "name": {
+            "": "",
+            "Member": "Member",
+            "Foo": "Taiga Foo2",
+            "Taiga Foo1": "Taiga Foo1",
+        },
+    }
 
 
 async def test_get_template_from_taiga_project():
@@ -285,12 +308,16 @@ async def test_get_template_from_taiga_project():
             swimlanes=[],
             us_statuses=[],
         )
-        template_model = await get_template_from_taiga_project(taiga_project)
+        (
+            template_model,
+            roles_old_to_new_mapping,
+        ) = await get_template_from_taiga_project(taiga_project)
         assert template_model == ProjectTemplateModel.model_construct(
             roles=[default_roles[0]],
             workflows=[{"slug": "main", "name": "Main", "order": 1}],
             workflow_statuses=[],
         )
+        assert roles_old_to_new_mapping == {"slug": {}, "name": {}}
 
         # noinspection PyTypeChecker
         taiga_project = TaigaProjectImport(
@@ -338,7 +365,10 @@ async def test_get_template_from_taiga_project():
                 ),
             ],
         )
-        template_model = await get_template_from_taiga_project(taiga_project)
+        (
+            template_model,
+            roles_old_to_new_mapping,
+        ) = await get_template_from_taiga_project(taiga_project)
         template_model.roles[1]["permissions"].sort()
         assert template_model == ProjectTemplateModel.model_construct(
             roles=[
@@ -377,6 +407,10 @@ async def test_get_template_from_taiga_project():
                 ),
             ],
         )
+        assert roles_old_to_new_mapping == {
+            "slug": {"owner": "taiga-owner1"},
+            "name": {"Owner": "Taiga Owner1"},
+        }
 
 
 async def test_do_import_taiga_stories(caplog):
@@ -424,8 +458,8 @@ async def test_do_import_taiga_stories(caplog):
                     _TaigaUserStory.model_construct(
                         assigned_to="1user@tenzu.test",
                         assigned_users=[
-                            "1user@tenzu.test",
                             "2user@tenzu.test",
+                            "1user@tenzu.test",
                             project_importation.created_by.email,
                         ],
                         owner=project_importation.created_by.email,
@@ -442,6 +476,7 @@ async def test_do_import_taiga_stories(caplog):
                     ),
                 ]
             ),
+            {},
         )
 
     assert len(caplog.records) == 1
@@ -496,13 +531,411 @@ async def test_do_import_taiga_stories(caplog):
     assert len(fake_bulk_create_all.await_args.kwargs["attachments_to_create"]) == 0
     assert len(fake_bulk_create_all.await_args.kwargs["comments_to_create"]) == 0
     assert len(fake_bulk_create_all.await_args.kwargs["attachment_warnings"]) == 0
+    # pending data
+    assert (
+        len(fake_bulk_create_all.await_args.kwargs["pending_data"]["created_stories"])
+        == 1
+    )
+    assert (
+        len(fake_bulk_create_all.await_args.kwargs["pending_data"]["assigned_stories"])
+        == 4
+    )
+    assert (
+        len(
+            fake_bulk_create_all.await_args.kwargs["pending_data"][
+                "created_attachments"
+            ]
+        )
+        == 0
+    )
+    assert (
+        len(fake_bulk_create_all.await_args.kwargs["pending_data"]["created_comments"])
+        == 0
+    )
+    assert (
+        len(fake_bulk_create_all.await_args.kwargs["pending_data"]["deleted_comments"])
+        == 0
+    )
 
 
-async def test_do_import_taiga_stories_attachment_ok():
+async def test_do_import_taiga_stories_multibatches():
+    project_importation = f.build_project_importation()
+    workflows = [
+        f.build_workflow(
+            statuses=[f.build_workflow_status(), f.build_workflow_status()]
+        )
+    ]
+    now = aware_utcnow()
+    with (
+        patch(
+            "import_export.services.taiga.bulk_create_all", autospec=True
+        ) as fake_bulk_create_all,
+        patch(
+            "import_export.services.taiga.update_project_importation", autospec=True
+        ) as fake_update_project_importation,
+        patch.object(ContentType.objects, "get_for_model", return_value=ContentType()),
+        patch(
+            "import_export.services.taiga._IMPORTATION_BULK_SIZE",
+            new=1,
+        ),
+    ):
+        await do_import_taiga_stories(
+            project_importation,
+            workflows,
+            TaigaProjectImport.model_construct(
+                user_stories=[
+                    _TaigaUserStory.model_construct(
+                        assigned_to="1user@tenzu.test",
+                        assigned_users=["1user@tenzu.test", "2user@tenzu.test"],
+                        owner="1user@tenzu.test",
+                        subject="Test title1",
+                        description="",
+                        swimlane=None,
+                        status=workflows[0].statuses.all()[1].name,
+                        kanban_order=1,
+                        created_date=now,
+                        modified_date=None,
+                        version=1,
+                        attachments=[],
+                        history=[],
+                    ),
+                    _TaigaUserStory.model_construct(
+                        assigned_to="1user@tenzu.test",
+                        assigned_users=[
+                            "1user@tenzu.test",
+                            "2user@tenzu.test",
+                            project_importation.created_by.email,
+                        ],
+                        owner=project_importation.created_by.email,
+                        subject="Test title2",
+                        description="*text* \nIn **markdown**\n#Title\n- and\n- a\n- list\n",
+                        swimlane=None,
+                        status=workflows[0].statuses.all()[1].name,
+                        kanban_order=10,
+                        created_date=now,
+                        modified_date=None,
+                        version=3,
+                        attachments=[],
+                        history=[],
+                    ),
+                ]
+            ),
+            {},
+        )
+
+    assert fake_bulk_create_all.await_count == 3
+    fake_update_project_importation.assert_awaited()
+    assert (
+        fake_bulk_create_all.await_args.kwargs["project_importation"]
+        == project_importation
+    )
+    assert len(fake_bulk_create_all.await_args.kwargs["stories_to_create"]) == 0
+
+
+async def test_do_import_taiga_single_story():
+    project_importation = f.build_project_importation()
+    now = aware_utcnow()
+    attached_file = _TaigaFile.model_construct(
+        data=b"some initial text data", name="path/test_file.png"
+    )
+    attachments = [
+        _TaigaAttachment.model_construct(order=0, attached_file=None),
+        _TaigaAttachment.model_construct(
+            order=1,
+            owner=project_importation.created_by.email,
+            name="test_file1.png",
+            attached_file=attached_file,
+        ),
+        _TaigaAttachment.model_construct(
+            order=2,
+            owner="1user@tenzu.test",
+            name="test_file2.png",
+            attached_file=attached_file,
+        ),
+    ]
+    events = [
+        _TaigaHistory.model_construct(comment=""),
+        _TaigaHistory.model_construct(
+            user=("1user@tenzu.test", ""),
+            created_at=now,
+            comment="Test comment1",
+            delete_comment_date=None,
+            delete_comment_user=None,
+            edit_comment_date=now,
+        ),
+        _TaigaHistory.model_construct(
+            user=(project_importation.created_by.email, ""),
+            created_at=now,
+            comment="Test comment2",
+            delete_comment_date=now,
+            delete_comment_user=("2user@tenzu.test", ""),
+            edit_comment_date=None,
+        ),
+        _TaigaHistory.model_construct(
+            user=None,
+            created_at=now,
+            comment="Test comment3",
+            delete_comment_date=now,
+            delete_comment_user=None,
+            edit_comment_date=None,
+        ),
+    ]
+    stories_to_create = []
+    assignments_to_create = []
+    attachments_to_create = []
+    comments_to_create = []
+    attachment_warnings = []
+    pending_data = {
+        "assigned_stories": [],
+        "created_stories": [],
+        "created_attachments": [],
+        "created_comments": [],
+        "deleted_comments": [],
+    }
+    with (
+        patch.object(ContentType.objects, "get_for_model", return_value=ContentType()),
+    ):
+        await do_import_taiga_single_story(
+            taiga_story=_TaigaUserStory.model_construct(
+                assigned_to="1user@tenzu.test",
+                assigned_users=[
+                    "2user@tenzu.test",
+                    "1user@tenzu.test",
+                    project_importation.created_by.email,
+                ],
+                owner="1user@tenzu.test",
+                subject="Test title1",
+                description="",
+                swimlane=None,
+                status="Status name",
+                kanban_order=10,
+                created_date=now,
+                modified_date=None,
+                version=3,
+                attachments=attachments,
+                history=events,
+            ),
+            project_importation=project_importation,
+            converter=MagicMock(convert=dummy_convert),
+            workflow_id=NOT_EXISTING_UUID,
+            status_id=NOT_EXISTING_UUID,
+            stories_to_create=stories_to_create,
+            assignments_to_create=assignments_to_create,
+            attachments_to_create=attachments_to_create,
+            comments_to_create=comments_to_create,
+            attachment_warnings=attachment_warnings,
+            pending_data=pending_data,
+        )
+
+    assert len(stories_to_create) == 1
+    assert stories_to_create[0].title == "Test title1"
+    assert len(assignments_to_create) == 1
+    assert len(attachments_to_create) == 2
+    assert len(comments_to_create) == 3
+    assert len(attachment_warnings) == 0
+
+    # pending created_stories
+    assert len(pending_data["created_stories"]) == 1
+    assert pending_data["created_stories"][0]["user_email"] == "1user@tenzu.test"
+    assert isinstance(pending_data["created_stories"][0]["db_object"], Story)
+    assert pending_data["created_stories"][0]["db_object"].title == "Test title1"
+
+    # pending assigned_stories
+    assert len(pending_data["assigned_stories"]) == 2
+    assert {
+        assigned["user_email"] for assigned in pending_data["assigned_stories"]
+    } == {
+        "2user@tenzu.test",
+        "1user@tenzu.test",
+    }  # use set for comparison because order is not guaranteed
+    assert all(
+        isinstance(assigned["db_object"], Story)
+        for assigned in pending_data["assigned_stories"]
+    )
+    assert [
+        assigned["db_object"].title for assigned in pending_data["assigned_stories"]
+    ] == ["Test title1", "Test title1"]
+
+    # pending created_attachments
+    assert len(pending_data["created_attachments"]) == 1
+    assert pending_data["created_attachments"][0]["user_email"] == "1user@tenzu.test"
+    assert isinstance(pending_data["created_attachments"][0]["db_object"], Attachment)
+    assert pending_data["created_attachments"][0]["db_object"].name == "test_file2.png"
+
+    # pending created_comments
+    assert len(pending_data["created_comments"]) == 1
+    assert pending_data["created_comments"][0]["user_email"] == "1user@tenzu.test"
+    assert isinstance(pending_data["created_comments"][0]["db_object"], Comment)
+    assert pending_data["created_comments"][0]["db_object"].text == "[Test comment1]"
+
+    # pending deleted_comments
+    assert len(pending_data["deleted_comments"]) == 1
+    assert pending_data["deleted_comments"][0]["user_email"] == "2user@tenzu.test"
+    assert isinstance(pending_data["deleted_comments"][0]["db_object"], Comment)
+    assert pending_data["deleted_comments"][0]["db_object"].text == ""
+
+
+async def test_do_import_taiga_single_story_no_external_owner():
+    project_importation = f.build_project_importation()
+    now = aware_utcnow()
+    stories_to_create = []
+    assignments_to_create = []
+    attachments_to_create = []
+    comments_to_create = []
+    attachment_warnings = []
+    pending_data = {
+        "assigned_stories": [],
+        "created_stories": [],
+        "created_attachments": [],
+        "created_comments": [],
+        "deleted_comments": [],
+    }
+    story = _TaigaUserStory.model_construct(
+        assigned_to=None,
+        assigned_users=[],
+        owner=project_importation.created_by.email,
+        subject="Test title1",
+        description="",
+        swimlane=None,
+        status="Status name",
+        kanban_order=10,
+        created_date=now,
+        modified_date=None,
+        version=3,
+        attachments=[],
+        history=[],
+    )
+    await do_import_taiga_single_story(
+        taiga_story=story,
+        project_importation=project_importation,
+        converter=MagicMock(convert=dummy_convert),
+        workflow_id=NOT_EXISTING_UUID,
+        status_id=NOT_EXISTING_UUID,
+        stories_to_create=stories_to_create,
+        assignments_to_create=assignments_to_create,
+        attachments_to_create=attachments_to_create,
+        comments_to_create=comments_to_create,
+        attachment_warnings=attachment_warnings,
+        pending_data=pending_data,
+    )
+
+    assert len(stories_to_create) == 1
+    assert stories_to_create[0].title == "Test title1"
+    assert not any(
+        (
+            assignments_to_create,
+            attachments_to_create,
+            comments_to_create,
+            attachment_warnings,
+            pending_data["created_stories"],
+            pending_data["assigned_stories"],
+            pending_data["created_attachments"],
+            pending_data["created_comments"],
+            pending_data["deleted_comments"],
+        )
+    )
+
+    story.owner = None
+    stories_to_create = []
+    await do_import_taiga_single_story(
+        taiga_story=story,
+        project_importation=project_importation,
+        converter=MagicMock(convert=dummy_convert),
+        workflow_id=NOT_EXISTING_UUID,
+        status_id=NOT_EXISTING_UUID,
+        stories_to_create=stories_to_create,
+        assignments_to_create=assignments_to_create,
+        attachments_to_create=attachments_to_create,
+        comments_to_create=comments_to_create,
+        attachment_warnings=attachment_warnings,
+        pending_data=pending_data,
+    )
+
+    assert len(stories_to_create) == 1
+    assert stories_to_create[0].title == "Test title1"
+    assert not any(
+        (
+            assignments_to_create,
+            attachments_to_create,
+            comments_to_create,
+            attachment_warnings,
+            pending_data["created_stories"],
+            pending_data["assigned_stories"],
+            pending_data["created_attachments"],
+            pending_data["created_comments"],
+            pending_data["deleted_comments"],
+        )
+    )
+
+
+async def test_bulk_create_all(caplog):
+    project_importation = f.build_project_importation()
+    pending_invites_map = {
+        "1user@tenzu.test": ProjectImportationPendingInvitation(
+            email="1user@tenzu.test",
+            role_id=NOT_EXISTING_UUID,
+            deleted_comments_ids=[],
+            assigned_stories_ids=[],
+            created_comments_ids=[],
+            created_stories_ids=[],
+            created_attachments_ids=[],
+        )
+    }
+    with patch_db_transaction():
+        await bulk_create_all(
+            project_importation=project_importation,
+            stories_to_create=[],
+            assignments_to_create=[],
+            attachments_to_create=[],
+            comments_to_create=[],
+            attachment_warnings=[],
+            pending_invites_map=pending_invites_map,
+            pending_data={
+                "deleted_comments": [
+                    ProjectImportationPendingObject(
+                        user_email="1user@tenzu.test",
+                        db_object=Mock(id="deleted-comment1"),
+                    )
+                ],
+                "assigned_stories": [
+                    ProjectImportationPendingObject(
+                        user_email="1user@tenzu.test",
+                        db_object=Mock(id="assigned-story1"),
+                    ),
+                    ProjectImportationPendingObject(
+                        user_email="2user@tenzu.test",
+                        db_object=Mock(id="assigned-story2"),
+                    ),
+                    ProjectImportationPendingObject(
+                        user_email="1user@tenzu.test",
+                        db_object=Mock(id="assigned-story3"),
+                    ),
+                ],
+                "created_comments": [],
+                "created_stories": [],
+                "created_attachments": [],
+            },
+        )
+    assert len(caplog.records) == 1
+    assert "2user@tenzu.test" in caplog.records[0].message
+    assert len(pending_invites_map) == 1
+    assert pending_invites_map["1user@tenzu.test"]["deleted_comments_ids"] == [
+        "deleted-comment1"
+    ]
+    assert pending_invites_map["1user@tenzu.test"]["assigned_stories_ids"] == [
+        "assigned-story1",
+        "assigned-story3",
+    ]
+    assert not pending_invites_map["1user@tenzu.test"]["created_comments_ids"]
+    assert not pending_invites_map["1user@tenzu.test"]["created_stories_ids"]
+    assert not pending_invites_map["1user@tenzu.test"]["created_attachments_ids"]
+
+
+async def test_build_story_attachment_from_taiga_ok():
     project_importation = f.build_project_importation()
     story = f.build_story()
     warnings = []
-    attachment = _TaigaAttachment.model_construct(
+    taiga_attachment = _TaigaAttachment.model_construct(
         owner=project_importation.created_by.email,
         name="test_file.png",
         attached_file=_TaigaFile.model_construct(
@@ -510,25 +943,28 @@ async def test_do_import_taiga_stories_attachment_ok():
         ),
     )
 
-    bulk_attachment: BulkAttachment = build_story_attachment_from_taiga(
-        project_importation, story, attachment, warnings
-    )
-    assert story == bulk_attachment["content_object"]
-    assert project_importation.created_by == bulk_attachment["created_by"]
+    with (
+        patch.object(ContentType.objects, "get_for_model", return_value=ContentType()),
+    ):
+        attachment = build_story_attachment_from_taiga(
+            project_importation, story, taiga_attachment, warnings
+        )
+        assert story == attachment.content_object
+        assert project_importation.created_by == attachment.created_by
 
-    attachment.owner = "1user@tenzu.test"
+        taiga_attachment.owner = "1user@tenzu.test"
 
-    bulk_attachment: BulkAttachment = build_story_attachment_from_taiga(
-        project_importation, story, attachment, warnings
-    )
-    assert story == bulk_attachment["content_object"]
-    assert bulk_attachment["created_by"] is None
+        attachment = build_story_attachment_from_taiga(
+            project_importation, story, taiga_attachment, warnings
+        )
+        assert story == attachment.content_object
+        assert attachment.created_by is None
 
     assert not warnings
 
 
 @override_settings(**{"MAX_UPLOAD_FILE_SIZE": 0})
-async def test_do_import_taiga_stories_attachment_ko():
+async def test_build_story_attachment_from_taiga_ko():
     project_importation = f.build_project_importation()
     story = f.build_story()
     warnings = []
@@ -558,8 +994,8 @@ async def test_do_import_taiga_stories_attachment_ko():
     ]
 
 
-async def dummy_convert(_):
-    return ("", "", "[]")
+async def dummy_convert(input_data):
+    return input_data["id"], b"", f"[{input_data['content']}]"
 
 
 async def test_do_import_taiga_stories_comment_ok():
@@ -575,7 +1011,7 @@ async def test_do_import_taiga_stories_comment_ok():
         edit_comment_date=now,
     )
     with patch.object(ContentType.objects, "get_for_model", return_value=ContentType()):
-        comment = await build_story_comment_from_taiga(
+        comment, creator, deleter = await build_story_comment_from_taiga(
             MagicMock(convert=dummy_convert),
             project_importation,
             story,
@@ -584,7 +1020,7 @@ async def test_do_import_taiga_stories_comment_ok():
     assert all(
         getattr(comment, key) == value
         for key, value in dict(
-            text="[]",
+            text="[Test comment]",
             object_id=story.id,
             created_at=now,
             created_by_id=project_importation.created_by_id,
@@ -593,11 +1029,13 @@ async def test_do_import_taiga_stories_comment_ok():
             modified_at=now,
         ).items()
     )
+    assert creator == project_importation.created_by.email
+    assert deleter is None
 
 
 @pytest.mark.parametrize(
     "user",
-    [[], None, "not-existing"],
+    [[], None, ["not-existing", ""]],
 )
 async def test_do_import_taiga_stories_comment_ok_no_user(user):
     project_importation = f.build_project_importation()
@@ -608,11 +1046,11 @@ async def test_do_import_taiga_stories_comment_ok_no_user(user):
         created_at=now,
         comment="Test comment",
         delete_comment_date=None,
-        delete_comment_user=None,
+        delete_comment_user=user,  # ignored if delete_comment_date is None
         edit_comment_date=None,
     )
     with patch.object(ContentType.objects, "get_for_model", return_value=ContentType()):
-        comment = await build_story_comment_from_taiga(
+        comment, creator, deleter = await build_story_comment_from_taiga(
             MagicMock(convert=dummy_convert),
             project_importation,
             story,
@@ -621,7 +1059,7 @@ async def test_do_import_taiga_stories_comment_ok_no_user(user):
     assert all(
         getattr(comment, key) == value
         for key, value in dict(
-            text="[]",
+            text="[Test comment]",
             object_id=story.id,
             created_at=now,
             created_by_id=None,
@@ -630,6 +1068,11 @@ async def test_do_import_taiga_stories_comment_ok_no_user(user):
             modified_at=None,
         ).items()
     )
+    if user:
+        assert creator == user[0]
+    else:
+        assert creator is None
+    assert deleter is None
 
 
 async def test_do_import_taiga_stories_comment_ok_deleted():
@@ -645,7 +1088,7 @@ async def test_do_import_taiga_stories_comment_ok_deleted():
         edit_comment_date=None,
     )
     with patch.object(ContentType.objects, "get_for_model", return_value=ContentType()):
-        comment = await build_story_comment_from_taiga(
+        comment, creator, deleter = await build_story_comment_from_taiga(
             MagicMock(), project_importation, story, comment
         )
     assert all(
@@ -660,6 +1103,8 @@ async def test_do_import_taiga_stories_comment_ok_deleted():
             modified_at=None,
         ).items()
     )
+    assert creator is None
+    assert deleter == project_importation.created_by.email
 
 
 async def test_do_import_taiga_stories_comment_ko():
@@ -672,5 +1117,99 @@ async def test_do_import_taiga_stories_comment_ko():
         await build_story_comment_from_taiga(
             MagicMock(), project_importation, story, comment
         )
-        is None
+    )[0] is None
+
+
+async def test_do_import_taiga_users_empty():
+    project_importation = f.build_project_importation()
+    taiga_project = TaigaProjectImport.model_construct(
+        name="test",
+        description="",
+        created_date=aware_utcnow(),
+        is_kanban_activated=True,
+        roles=[],
+        swimlanes=[],
+        us_statuses=[],
     )
+    project_roles = [
+        Mock(is_owner=True, slug="owner", name="Owner", id="owner-id"),
+        Mock(is_owner=False, slug="admin", name="Admin", id="admin-id"),
+        Mock(
+            is_owner=False,
+            slug="readonly-member",
+            name="Readonly-member",
+            id="readonly-id",
+        ),
+    ]
+    pending_invites = await do_import_taiga_users(
+        project_importation=project_importation,
+        taiga_project=taiga_project,
+        roles=project_roles,
+        roles_old_to_new_name_mapping={},
+    )
+    assert not pending_invites
+    taiga_project.owner = project_importation.created_by.email
+    pending_invites = await do_import_taiga_users(
+        project_importation=project_importation,
+        taiga_project=taiga_project,
+        roles=project_roles,
+        roles_old_to_new_name_mapping={},
+    )
+    assert not pending_invites
+
+
+async def test_do_import_taiga_users_members():
+    project_importation = f.build_project_importation()
+    taiga_project = TaigaProjectImport.model_construct(
+        name="test",
+        description="",
+        created_date=aware_utcnow(),
+        is_kanban_activated=True,
+        roles=[],
+        swimlanes=[],
+        us_statuses=[],
+        owner="1user@tenzu.test",
+        memberships=[
+            Mock(user=None),
+            Mock(user="1user@tenzu.test"),
+            Mock(user=project_importation.created_by.email),
+            Mock(user="2user@tenzu.test", is_admin=True),
+            Mock(user="3user@tenzu.test", is_admin=False, role=None),
+            Mock(user="4user@tenzu.test", is_admin=False, role="Member"),
+            Mock(user="5user@tenzu.test", is_admin=False, role="Unknown"),
+        ],
+    )
+    project_roles = [
+        Mock(is_owner=True, slug="owner", id="owner-id"),
+        Mock(is_owner=False, slug="admin", id="admin-id"),
+        Mock(is_owner=False, slug="readonly-member", id="readonly-id"),
+        Mock(is_owner=False, slug="taiga-member", id="member-id"),
+    ]
+    for role_mock, name in zip(
+        project_roles, ("Owner", "Admin", "Readonly-member", "Taiga member")
+    ):
+        # we need this because name aregument is consumed by the Mock construction otherwise
+        # see https://docs.python.org/3/library/unittest.mock.html#mock-names-and-the-name-attribute
+        role_mock.name = name
+
+    pending_invites = await do_import_taiga_users(
+        project_importation=project_importation,
+        taiga_project=taiga_project,
+        roles=project_roles,
+        roles_old_to_new_name_mapping={"Member": "Taiga member"},
+    )
+    assert len(pending_invites) == 5
+    assert [invite["email"] for invite in pending_invites] == [
+        "1user@tenzu.test",
+        "2user@tenzu.test",
+        "3user@tenzu.test",
+        "4user@tenzu.test",
+        "5user@tenzu.test",
+    ]
+    assert [invite["role_id"] for invite in pending_invites] == [
+        "owner-id",
+        "admin-id",
+        "readonly-id",
+        "member-id",
+        "readonly-id",
+    ]

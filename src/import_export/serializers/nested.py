@@ -16,15 +16,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 from pathlib import Path
-from typing import TypedDict
 
 from base.serializers import UUIDB64, BaseSchema
-from import_export.models import ImportationError, ImportationStatus, ProjectImportation
-
-
-class ProjectImportationData(TypedDict, total=False):
-    error_code: ImportationError
-    progress_percentage: int
+from import_export.models import (
+    ImportationStatus,
+    ProjectImportation,
+    ProjectImportationData,
+)
 
 
 class ProjectImportationNestedSerializer(BaseSchema):

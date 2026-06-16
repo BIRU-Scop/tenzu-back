@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-import functools
+from operator import attrgetter
 from typing import Any
 from uuid import UUID
 
@@ -35,6 +35,7 @@ from commons.utils import (
 )
 from permissions.choices import ProjectPermissions
 from projects.memberships import repositories as memberships_repositories
+from projects.memberships.models import ProjectRole
 from projects.projects import events as projects_events
 from projects.projects import repositories as projects_repositories
 from projects.projects import tasks as projects_tasks
@@ -64,15 +65,17 @@ async def create_project(
     color: int | None,
     logo: UploadedFile | None = None,
 ) -> ProjectDetailSerializer:
-    project = await _create_project(
-        await _get_default_template(),
-        workspace=workspace,
-        name=name,
-        created_by=created_by,
-        description=description,
-        color=color,
-        logo_file=logo,
-    )
+    project: Project = (
+        await _create_project(
+            await _get_default_template(),
+            workspace=workspace,
+            name=name,
+            created_by=created_by,
+            description=description,
+            color=color,
+            logo_file=logo,
+        )
+    )[0]
     await transaction_on_commit_async(
         projects_events.emit_event_when_project_is_created
     )(project=project)
@@ -118,7 +121,7 @@ async def _create_project(
     color: int | None,
     logo_file: UploadedFile | None = None,
     **kwargs,
-) -> Project:
+) -> tuple[Project, list[ProjectRole]]:
     """
     Create project using provided template and set user cache property for role
     """
@@ -143,8 +146,8 @@ async def _create_project(
         template=template, project=project
     )
     try:
-        owner_role = [role for role in roles if role.is_owner][0]
-    except IndexError as e:
+        owner_role = next(filter(attrgetter("is_owner"), roles))
+    except StopIteration as e:
         raise Exception(
             "Default project template does not have a owner role. "
             "Try to load fixtures again and check if the error persist."
@@ -156,7 +159,7 @@ async def _create_project(
 
     project.user_is_invited = False
 
-    return project
+    return project, roles
 
 
 ##########################################################

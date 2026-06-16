@@ -17,9 +17,6 @@
 # You can contact BIRU at ask@biru.sh
 
 import logging
-import subprocess
-
-from django.conf import settings
 
 from stories.stories.models import Story
 from stories.stories.services.blocknote import (

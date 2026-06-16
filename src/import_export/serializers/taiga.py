@@ -101,7 +101,7 @@ _TaigaAnonPermission = Literal[
 ]
 
 _TaigaHistoryUser = (
-    tuple[str | None, str] | conlist(Any, max_length=0) | None
+    tuple[EmailStr | None, str] | conlist(Any, max_length=0) | None
 )  # tuple (email, name) usually, [] if field was empty and None if user was not found (deleted)
 
 
@@ -273,6 +273,11 @@ class _TaigaMembership(BaseModel):
     user_order: int
 
     model_config = ConfigDict(extra="allow")
+
+
+_UniqueTaigaMemberships = Annotated[
+    list[_TaigaMembership], AfterValidator(UniqueInListValidator("user"))
+]
 
 
 class _TaigaMilestone(BaseModel):
@@ -486,21 +491,39 @@ class _TaigaTimeline(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class FullTaigaProjectImport(BaseModel):
+class TaigaProjectImport(BaseModel):
     owner: EmailStr | None = None
-    watchers: list[EmailStr | None] = None
 
     name: str
-    slug: str
     description: str
     logo: _TaigaFile | None = None
     created_date: datetime
+    is_kanban_activated: bool
+
+    roles: _UniqueTaigaRoles = None
+    memberships: _UniqueTaigaMemberships = None
+    us_statuses: _UniqueTaigaUserStoryStatuses = None
+    swimlanes: _UniqueTaigaSwimlanes = None
+    user_stories: list[_TaigaUserStory] = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+class FullTaigaProjectImport(TaigaProjectImport):
+    # owner from TaigaProjectImport
+    watchers: list[EmailStr | None] = None
+
+    # name from TaigaProjectImport
+    slug: str
+    # description from TaigaProjectImport
+    # logo from TaigaProjectImport
+    # created_date from TaigaProjectImport
     modified_date: datetime | None = None
     total_milestones: int | None
     total_story_points: float | None
     is_epics_activated: bool
     is_backlog_activated: bool
-    is_kanban_activated: bool
+    # is_kanban_activated from TaigaProjectImport
     is_wiki_activated: bool
     is_issues_activated: bool
     videoconferences: str | None
@@ -542,11 +565,11 @@ class FullTaigaProjectImport(BaseModel):
     default_issue_type: str | None = None  # related name
     default_swimlane: str | None = None  # related name
 
-    roles: _UniqueTaigaRoles = None
-    memberships: list[_TaigaMembership] = None
+    # roles from TaigaProjectImport
+    # memberships from TaigaProjectImport
     points: list[_TaigaPoints] = None
     epic_statuses: list[_TaigaStatus] = None
-    us_statuses: _UniqueTaigaUserStoryStatuses = None
+    # us_statuses from TaigaProjectImport
     us_duedates: list[_TaigaDueDate] = None
     task_statuses: list[_TaigaStatus] = None
     task_duedates: list[_TaigaDueDate] = None
@@ -555,13 +578,13 @@ class FullTaigaProjectImport(BaseModel):
     issue_duedates: list[_TaigaDueDate] = None
     priorities: list[_TaigaPriority] = None
     severities: list[_TaigaSeverity] = None
-    swimlanes: _UniqueTaigaSwimlanes = None
+    # swimlanes from TaigaProjectImport
     epiccustomattributes: list[_TaigaCustomAttribute] = None
     userstorycustomattributes: list[_TaigaCustomAttribute] = None
     taskcustomattributes: list[_TaigaCustomAttribute] = None
     issuecustomattributes: list[_TaigaCustomAttribute] = None
     epics: list[_TaigaEpic] = None
-    user_stories: list[_TaigaUserStory] = None
+    # user_stories from TaigaProjectImport
     tasks: list[_TaigaTask] = None
     milestones: list[_TaigaMilestone] = None
     issues: list[_TaigaIssue] = None
@@ -578,21 +601,3 @@ class FullTaigaProjectImport(BaseModel):
         return keys that are not in this FullTaigaProjectImport serializer
         """
         return extra_fields.keys() - FullTaigaProjectImport.model_fields.keys()
-
-
-class TaigaProjectImport(BaseModel):
-    owner: EmailStr | None = None
-
-    name: str
-    description: str
-    logo: _TaigaFile | None = None
-    created_date: datetime
-    is_kanban_activated: bool
-
-    roles: _UniqueTaigaRoles = None
-    memberships: list[_TaigaMembership] = None
-    us_statuses: _UniqueTaigaUserStoryStatuses = None
-    swimlanes: _UniqueTaigaSwimlanes = None
-    user_stories: list[_TaigaUserStory] = None
-
-    model_config = ConfigDict(extra="allow")

@@ -68,10 +68,10 @@ async def test_create_project():
         fake_create_project.assert_awaited_once()
         fake_get_default_template.assert_awaited_once()
         fake_get_project_detail.assert_awaited_once_with(
-            project=fake_create_project.return_value, user=workspace.created_by
+            project=fake_create_project.return_value[0], user=workspace.created_by
         )
         fake_projects_events.emit_event_when_project_is_created.assert_awaited_once_with(
-            project=fake_create_project.return_value
+            project=fake_create_project.return_value[0]
         )
 
 
