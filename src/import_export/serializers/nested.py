@@ -16,6 +16,9 @@
 #
 # You can contact BIRU at ask@biru.sh
 from pathlib import Path
+from typing import TypedDict
+
+from pydantic import EmailStr
 
 from base.serializers import UUIDB64, BaseSchema
 from import_export.models import (
@@ -23,6 +26,12 @@ from import_export.models import (
     ProjectImportation,
     ProjectImportationData,
 )
+from projects.projects.serializers.nested import ProjectNestedSerializer
+
+
+class ProjectImportationPendingInvitationNested(TypedDict, total=True):
+    email: EmailStr
+    role_id: UUIDB64
 
 
 class ProjectImportationNestedSerializer(BaseSchema):
@@ -30,6 +39,8 @@ class ProjectImportationNestedSerializer(BaseSchema):
     status: ImportationStatus
     extra_data: ProjectImportationData
     source_name: str | None
+    project: ProjectNestedSerializer | None
+    pending_invites: list[ProjectImportationPendingInvitationNested]
 
     @staticmethod
     def resolve_source_name(

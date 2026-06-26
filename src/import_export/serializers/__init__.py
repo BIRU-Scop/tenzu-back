@@ -17,9 +17,16 @@
 # You can contact BIRU at ask@biru.sh
 from pydantic import ConfigDict
 
+from base.serializers import BaseSchema
 from import_export.serializers.nested import ProjectImportationNestedSerializer
 from import_export.serializers.taiga import TaigaProjectImport  # noqa
+from memberships.serializers import InvitationBaseSerializer
 
 
 class ProjectImportationSerializer(ProjectImportationNestedSerializer):
     pass
+
+
+class InvitedProjectImportationSerializer(BaseSchema):
+    invitations: list[InvitationBaseSerializer]
+    project_importation: ProjectImportationSerializer

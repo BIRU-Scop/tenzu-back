@@ -94,6 +94,7 @@ async def list_workspace_project_importations_for_user(
             created_by=user,
             workspace=workspace,
         )
+        .select_related("project")
         .exclude(status=ImportationStatus.SUCCESS)
         .distinct()
         .order_by("-created_at")

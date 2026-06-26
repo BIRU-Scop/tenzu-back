@@ -34,9 +34,13 @@ from import_export.models import (
     ProjectImportationType,
 )
 from import_export.serializers import (
+    InvitedProjectImportationSerializer,
     ProjectImportationSerializer,
 )
 from import_export.services import exceptions as ex
+from memberships.api.validators import InvitationsValidator
+from memberships.serializers import InvitationBaseSerializer
+from projects.invitations import api as projects_invitations_apis
 from projects.projects import events as projects_events
 from projects.projects import services as projects_services
 from users.models import User
@@ -132,14 +136,20 @@ async def update_project_importation(
     return updated_project_importation
 
 
-async def succeed_project_importation(project_importation: ProjectImportation):
-    await update_project_importation(
+async def succeed_project_importation(
+    project_importation: ProjectImportation,
+) -> ProjectImportation:
+    project_importation = await update_project_importation(
         project_importation,
         {"status": ImportationStatus.SUCCESS},
     )
+    project_importation.project.user_is_invited = (
+        False  # to prevent validation error in event serializer
+    )
     await transaction_on_commit_async(
         projects_events.emit_event_when_project_is_created
-    )(project=project_importation.project)
+    )(project=project_importation.project, creator=project_importation.created_by)
+    return project_importation
 
 
 ##########################################################
@@ -165,7 +175,7 @@ async def list_workspace_project_importations_for_user(
 @transaction_atomic_async
 async def delete_project_importation(project_importation: ProjectImportation) -> bool:
     if project_importation.status not in (ImportationStatus.FAILURE,):
-        raise ex.NotDeletableImportation()
+        raise ex.IncompatibleImportationStatus()
 
     if project_importation.project is not None:
         await projects_services.delete_project(
@@ -188,3 +198,34 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
         return True
 
     return False
+
+
+##########################################################
+# backport previous users
+##########################################################
+
+
+@transaction_atomic_async
+async def handle_project_importation_pending_invites(
+    project_importation: ProjectImportation,
+    invitations_form: InvitationsValidator,
+    request,
+) -> InvitedProjectImportationSerializer:
+    if project_importation.status not in (ImportationStatus.ACTION_NEEDED,):
+        raise ex.IncompatibleImportationStatus()
+
+    invitations: list[InvitationBaseSerializer] = []
+    if invitations_form.invitations:
+        invitations = (
+            await projects_invitations_apis.create_project_invitations(
+                request,
+                project_importation.project_id,
+                invitations_form,
+            )
+        ).invitations
+    project_importation = await succeed_project_importation(
+        project_importation,
+    )
+    return InvitedProjectImportationSerializer(
+        invitations=invitations, project_importation=project_importation
+    )

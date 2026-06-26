@@ -15,6 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from operator import attrgetter
 
 import pytest
 
@@ -259,15 +260,135 @@ async def test_delete_project_importation_400_bad_request_invalid_status(client)
     assert response.status_code == 400, response.data
 
 
-async def test_delete_project_importation_404_not_found_project_b64id(client):
+async def test_delete_project_importation_404_not_found_importation_b64id(client):
     user = await f.create_user()
     client.login(user)
     response = await client.delete(f"/projects/importations/{NOT_EXISTING_B64ID}")
     assert response.status_code == 404, response.data
 
 
-async def test_delete_project_importation_422_unprocessable_project_b64id(client):
+async def test_delete_project_importation_422_unprocessable_importation_b64id(client):
     user = await f.create_user()
     client.login(user)
     response = await client.delete(f"/projects/importations/{INVALID_B64ID}")
+    assert response.status_code == 422, response.data
+
+
+##########################################################
+# POST /projects/importations/<id>/invite
+##########################################################
+
+
+async def test_handle_project_importation_pending_invites_200_being_importation_creator(
+    client, project_template
+):
+    project = await f.create_project(project_template)
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.ACTION_NEEDED,
+        project=project,
+        created_by=project.created_by,
+    )
+    roles = list(project_importation.project.roles.all())
+    owner_role = next(filter(attrgetter("is_owner"), roles))
+    member_role = next(filter(lambda role: role.slug == "member", roles))
+    data = {
+        "invitations": [
+            {"email": "test@email.com", "role_id": owner_role.b64id},
+            {"email": "test2@email.com", "role_id": member_role.b64id},
+        ]
+    }
+
+    client.login(project_importation.created_by)
+    response = await client.post(
+        f"/projects/importations/{project_importation.b64id}/invite", json=data
+    )
+    assert response.status_code == 200, response.data
+    assert len(response.data["invitations"]) == 2
+    assert response.data["projectImportation"]["id"] == project_importation.b64id
+    assert response.data["projectImportation"]["status"] == ImportationStatus.SUCCESS
+
+
+@pytest.mark.django_db(transaction=True)
+async def test_handle_project_importation_pending_invites_empty_200_being_importation_creator(
+    client,
+):
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.ACTION_NEEDED,
+    )
+    data = {"invitations": []}
+
+    client.login(project_importation.created_by)
+    response = await client.post(
+        f"/projects/importations/{project_importation.b64id}/invite", json=data
+    )
+    assert response.status_code == 200, response.data
+    assert not response.data["invitations"]
+    assert response.data["projectImportation"]["id"] == project_importation.b64id
+    assert response.data["projectImportation"]["status"] == ImportationStatus.SUCCESS
+
+
+async def test_handle_project_importation_pending_invites_403_forbidden_not_creator(
+    client,
+):
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.ACTION_NEEDED, project=None
+    )
+    user = await f.create_user()
+    data = {"invitations": []}
+
+    client.login(user)
+    response = await client.post(
+        f"/projects/importations/{project_importation.b64id}/invite", json=data
+    )
+    assert response.status_code == 403, response.data
+
+
+async def test_handle_project_importation_pending_invites_400_bad_request_invalid_status(
+    client,
+):
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.SUCCESS, project=None
+    )
+    data = {"invitations": []}
+
+    client.login(project_importation.created_by)
+    response = await client.post(
+        f"/projects/importations/{project_importation.b64id}/invite", json=data
+    )
+    assert response.status_code == 400, response.data
+
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.ONGOING,
+        project=None,
+        created_by=project_importation.created_by,
+    )
+
+    client.login(project_importation.created_by)
+    response = await client.post(
+        f"/projects/importations/{project_importation.b64id}/invite", json=data
+    )
+    assert response.status_code == 400, response.data
+
+
+async def test_handle_project_importation_pending_invites_404_not_found_importation_b64id(
+    client,
+):
+    user = await f.create_user()
+    client.login(user)
+    data = {"invitations": []}
+    response = await client.post(
+        f"/projects/importations/{NOT_EXISTING_B64ID}/invite", json=data
+    )
+    assert response.status_code == 404, response.data
+
+
+async def test_handle_project_importation_pending_invites_422_unprocessable_importation_b64id(
+    client,
+):
+    user = await f.create_user()
+    client.login(user)
+    data = {"invitations": []}
+    response = await client.post(
+        f"/projects/importations/{INVALID_B64ID}/invite", json=data
+    )
     assert response.status_code == 422, response.data
