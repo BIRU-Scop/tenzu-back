@@ -27,6 +27,7 @@ from ninja import UploadedFile
 from pydantic import ValidationError
 
 from base.utils.images import ImageSizeFormat, get_thumbnail
+from commons.colors import generate_random_color
 from commons.utils import (
     async_cache,
     get_absolute_url,
@@ -130,6 +131,8 @@ async def _create_project(
         if template and template.workflows
         else ""
     )
+    if not color:
+        color = generate_random_color()
 
     project = await projects_repositories.create_project(
         workspace=workspace,
