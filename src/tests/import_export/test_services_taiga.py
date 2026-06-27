@@ -34,6 +34,7 @@ from import_export.models import (
     ProjectImportationPendingInvitation,
     ProjectImportationType,
 )
+from import_export.notifications import PROJECT_IMPORTATION_ACTION_NEEDED
 from import_export.serializers import TaigaProjectImport
 from import_export.serializers.taiga import (
     _TaigaAttachment,
@@ -95,7 +96,12 @@ async def test_do_import_project_no_kanban(tqmanager: TestTasksQueueManager, cap
         await ProjectRole.objects.acount() == 9
     )  # 3 mandatory from Tenzu, 6 from import
     assert not await Story.objects.aexists()
-    assert not await Notification.objects.aexists()
+    assert await Notification.objects.filter(
+        type=PROJECT_IMPORTATION_ACTION_NEEDED
+    ).aexists()
+    assert not await Notification.objects.exclude(
+        type=PROJECT_IMPORTATION_ACTION_NEEDED
+    ).aexists()
     assert not caplog.records
 
 
@@ -134,7 +140,12 @@ async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, capl
     assert await Story.objects.acount() == 6
     assert await Attachment.objects.acount() == 4
     assert await Comment.objects.acount() == 2
-    assert not await Notification.objects.aexists()
+    assert await Notification.objects.filter(
+        type=PROJECT_IMPORTATION_ACTION_NEEDED
+    ).aexists()
+    assert not await Notification.objects.exclude(
+        type=PROJECT_IMPORTATION_ACTION_NEEDED
+    ).aexists()
     assert not caplog.records
 
 
@@ -161,7 +172,7 @@ async def test_do_import_project_complete_with_warnings(
     assert tqmanager.succeeded_jobs and not tqmanager.failed_jobs
     assert await Story.objects.acount() == 6
     assert not await Attachment.objects.aexists()
-    assert await Notification.objects.acount() == 4
+    assert await Notification.objects.acount() == 5  # 4 warning + 1 action_needed
     assert not caplog.records
 
 

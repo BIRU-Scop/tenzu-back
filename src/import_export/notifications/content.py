@@ -28,6 +28,11 @@ class ProjectImportationFailNotificationContent(BaseSchema):
     project_importation: ProjectImportationNestedSerializer
 
 
+class ProjectImportationActionNeededNotificationContent(BaseSchema):
+    workspace: WorkspaceLinkNestedSerializer
+    project_importation: ProjectImportationNestedSerializer
+
+
 class ProjectImportationWarningFileNotificationContent(BaseSchema):
     project: ProjectLinkNestedSerializer
     project_importation: ProjectImportationNestedSerializer

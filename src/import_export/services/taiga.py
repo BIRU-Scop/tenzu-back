@@ -293,6 +293,9 @@ async def close_importation(
                 "status": ImportationStatus.ACTION_NEEDED,
             },
         )
+        await notifications.notify_when_project_importation_action_needed(
+            project_importation
+        )
     else:
         await succeed_project_importation(project_importation)
 
