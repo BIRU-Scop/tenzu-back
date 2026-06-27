@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
             name="pending_invites",
             field=models.JSONField(
                 blank=True,
-                default=list,
+                default=dict,
                 encoder=django.core.serializers.json.DjangoJSONEncoder,
             ),
         ),

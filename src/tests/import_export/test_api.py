@@ -56,6 +56,7 @@ async def test_launch_importation_200_ok_being_workspace_member(client):
     assert res["status"] == ImportationStatus.PENDING
     importation = await ProjectImportation.objects.aget()
     assert importation.workspace_id == workspace.id
+    assert res["pendingInvites"] == []
 
 
 async def test_launch_importation_404_not_found_workspace_error(client):

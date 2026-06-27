@@ -60,7 +60,6 @@ class ProjectImportationData(TypedDict, total=False):
 
 
 class ProjectImportationPendingInvitation(TypedDict, total=True):
-    email: EmailStr
     role_id: UUIDB64
     assigned_stories_ids: list[UUIDB64]
     created_stories_ids: list[UUIDB64]
@@ -85,10 +84,10 @@ class ProjectImportation(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMi
         max_length=500,
         upload_to=get_importation_source_file_path,
     )
-    pending_invites: list[ProjectImportationPendingInvitation] = JSONField(
+    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation] = JSONField(
         null=False,
         blank=True,
-        default=list,
+        default=dict,
         encoder=DjangoJSONEncoder,
     )
     extra_data: ProjectImportationData = JSONField(

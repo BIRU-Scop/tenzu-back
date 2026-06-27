@@ -40,7 +40,6 @@ from memberships.api.validators import InvitationsValidator
 from permissions import (
     check_permissions,
 )
-from projects.invitations.api import create_project_invitations
 from workspaces.workspaces.api import get_workspace_or_404
 
 import_export_router = Router()

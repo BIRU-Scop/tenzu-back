@@ -870,9 +870,8 @@ async def test_do_import_taiga_single_story_no_external_owner():
 
 async def test_bulk_create_all(caplog):
     project_importation = f.build_project_importation()
-    pending_invites_map = {
+    pending_invites = {
         "1user@tenzu.test": ProjectImportationPendingInvitation(
-            email="1user@tenzu.test",
             role_id=NOT_EXISTING_UUID,
             deleted_comments_ids=[],
             assigned_stories_ids=[],
@@ -889,7 +888,7 @@ async def test_bulk_create_all(caplog):
             attachments_to_create=[],
             comments_to_create=[],
             attachment_warnings=[],
-            pending_invites_map=pending_invites_map,
+            pending_invites=pending_invites,
             pending_data={
                 "deleted_comments": [
                     ProjectImportationPendingObject(
@@ -918,17 +917,17 @@ async def test_bulk_create_all(caplog):
         )
     assert len(caplog.records) == 1
     assert "2user@tenzu.test" in caplog.records[0].message
-    assert len(pending_invites_map) == 1
-    assert pending_invites_map["1user@tenzu.test"]["deleted_comments_ids"] == [
+    assert len(pending_invites) == 1
+    assert pending_invites["1user@tenzu.test"]["deleted_comments_ids"] == [
         "deleted-comment1"
     ]
-    assert pending_invites_map["1user@tenzu.test"]["assigned_stories_ids"] == [
+    assert pending_invites["1user@tenzu.test"]["assigned_stories_ids"] == [
         "assigned-story1",
         "assigned-story3",
     ]
-    assert not pending_invites_map["1user@tenzu.test"]["created_comments_ids"]
-    assert not pending_invites_map["1user@tenzu.test"]["created_stories_ids"]
-    assert not pending_invites_map["1user@tenzu.test"]["created_attachments_ids"]
+    assert not pending_invites["1user@tenzu.test"]["created_comments_ids"]
+    assert not pending_invites["1user@tenzu.test"]["created_stories_ids"]
+    assert not pending_invites["1user@tenzu.test"]["created_attachments_ids"]
 
 
 async def test_build_story_attachment_from_taiga_ok():
@@ -1188,7 +1187,7 @@ async def test_do_import_taiga_users_members():
     for role_mock, name in zip(
         project_roles, ("Owner", "Admin", "Readonly-member", "Taiga member")
     ):
-        # we need this because name aregument is consumed by the Mock construction otherwise
+        # we need this because name argument is consumed by the Mock construction otherwise
         # see https://docs.python.org/3/library/unittest.mock.html#mock-names-and-the-name-attribute
         role_mock.name = name
 
@@ -1199,14 +1198,14 @@ async def test_do_import_taiga_users_members():
         roles_old_to_new_name_mapping={"Member": "Taiga member"},
     )
     assert len(pending_invites) == 5
-    assert [invite["email"] for invite in pending_invites] == [
+    assert list(pending_invites.keys()) == [
         "1user@tenzu.test",
         "2user@tenzu.test",
         "3user@tenzu.test",
         "4user@tenzu.test",
         "5user@tenzu.test",
     ]
-    assert [invite["role_id"] for invite in pending_invites] == [
+    assert [invite["role_id"] for invite in pending_invites.values()] == [
         "owner-id",
         "admin-id",
         "readonly-id",

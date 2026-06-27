@@ -239,12 +239,11 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
                 "extra_data": {"progress_percentage": 2},
             },
         )
-        pending_invites: list[
-            ProjectImportationPendingInvitation
+        pending_invites: dict[
+            EmailStr, ProjectImportationPendingInvitation
         ] = await do_import_taiga_users(
             project_importation, taiga_project, roles, roles_old_to_new_mapping["name"]
         )
-        pending_invites_map = {invite["email"]: invite for invite in pending_invites}
 
         if not taiga_project.is_kanban_activated:
             await update_project_importation(
@@ -266,7 +265,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
         )
         workflows = await workflows_services.list_workflows(project_id=project.id)
         await do_import_taiga_stories(
-            project_importation, workflows, taiga_project, pending_invites_map
+            project_importation, workflows, taiga_project, pending_invites
         )
     except (RuntimeError, BlockNoteEmptyOutputError, DatabaseError) as e:
         # TODO those are the errors where a retry of the job should be attempted
@@ -303,7 +302,7 @@ async def do_import_taiga_users(
     taiga_project: TaigaProjectImport,
     roles: list[ProjectRole],
     roles_old_to_new_name_mapping: dict[str, str],
-) -> list[ProjectImportationPendingInvitation]:
+) -> dict[EmailStr, ProjectImportationPendingInvitation]:
     owner_role = next(filter(attrgetter("is_owner"), roles))
 
     def find_role(attribute: str, value: str) -> ProjectRole:
@@ -316,21 +315,18 @@ async def do_import_taiga_users(
         for old_name, new_name in roles_old_to_new_name_mapping.items()
     }
 
-    pending_invites: list[ProjectImportationPendingInvitation] = []
+    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation] = {}
     if (
         taiga_project.owner is not None
         and taiga_project.owner != project_importation.created_by.email
     ):
-        pending_invites.append(
-            ProjectImportationPendingInvitation(
-                email=taiga_project.owner,
-                role_id=owner_role.id,
-                assigned_stories_ids=[],
-                created_stories_ids=[],
-                created_attachments_ids=[],
-                created_comments_ids=[],
-                deleted_comments_ids=[],
-            )
+        pending_invites[taiga_project.owner] = ProjectImportationPendingInvitation(
+            role_id=owner_role.id,
+            assigned_stories_ids=[],
+            created_stories_ids=[],
+            created_attachments_ids=[],
+            created_comments_ids=[],
+            deleted_comments_ids=[],
         )
     for membership in taiga_project.memberships or []:
         if membership.user is None or membership.user in (
@@ -338,44 +334,19 @@ async def do_import_taiga_users(
             project_importation.created_by.email,
         ):
             continue
-        if membership.is_admin:
-            pending_invites.append(
-                ProjectImportationPendingInvitation(
-                    email=membership.user,
-                    role_id=admin_role.id,
-                    assigned_stories_ids=[],
-                    created_stories_ids=[],
-                    created_attachments_ids=[],
-                    created_comments_ids=[],
-                    deleted_comments_ids=[],
-                )
-            )
-        elif membership.role is None:
-            pending_invites.append(
-                ProjectImportationPendingInvitation(
-                    email=membership.user,
-                    role_id=readonlymember_role.id,
-                    assigned_stories_ids=[],
-                    created_stories_ids=[],
-                    created_attachments_ids=[],
-                    created_comments_ids=[],
-                    deleted_comments_ids=[],
-                )
-            )
-        else:
-            pending_invites.append(
-                ProjectImportationPendingInvitation(
-                    email=membership.user,
-                    role_id=taiga_roles_mapping.get(
-                        membership.role, readonlymember_role
-                    ).id,
-                    assigned_stories_ids=[],
-                    created_stories_ids=[],
-                    created_attachments_ids=[],
-                    created_comments_ids=[],
-                    deleted_comments_ids=[],
-                )
-            )
+        role_id = (
+            admin_role.id
+            if membership.is_admin
+            else taiga_roles_mapping.get(membership.role, readonlymember_role).id
+        )
+        pending_invites[membership.user] = ProjectImportationPendingInvitation(
+            role_id=role_id,
+            assigned_stories_ids=[],
+            created_stories_ids=[],
+            created_attachments_ids=[],
+            created_comments_ids=[],
+            deleted_comments_ids=[],
+        )
     return pending_invites
 
 
@@ -383,7 +354,7 @@ async def do_import_taiga_stories(
     project_importation: ProjectImportation,
     workflows: list[Workflow],
     taiga_project: TaigaProjectImport,
-    pending_invites_map: dict[str, ProjectImportationPendingInvitation],
+    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation],
 ):
     processed_stories = 0
     total_stories = len(taiga_project.user_stories)
@@ -454,7 +425,7 @@ async def do_import_taiga_stories(
                     attachments_to_create=attachments_to_create,
                     comments_to_create=comments_to_create,
                     attachment_warnings=attachment_warnings,
-                    pending_invites_map=pending_invites_map,
+                    pending_invites=pending_invites,
                     pending_data=pending_data,
                 )
                 for list_to_create in all_to_create:
@@ -470,7 +441,7 @@ async def do_import_taiga_stories(
                     project_importation,
                     {
                         "extra_data": {"progress_percentage": current_percentage},
-                        "pending_invites": list(pending_invites_map.values()),
+                        "pending_invites": pending_invites,
                     },
                 )
 
@@ -482,14 +453,14 @@ async def do_import_taiga_stories(
         attachments_to_create=attachments_to_create,
         comments_to_create=comments_to_create,
         attachment_warnings=attachment_warnings,
-        pending_invites_map=pending_invites_map,
+        pending_invites=pending_invites,
         pending_data=pending_data,
     )
     await update_project_importation(
         project_importation,
         {
             "extra_data": {"progress_percentage": 100},
-            "pending_invites": list(pending_invites_map.values()),
+            "pending_invites": pending_invites,
         },
     )
 
@@ -601,7 +572,7 @@ async def bulk_create_all(
     attachments_to_create: list[Attachment],
     comments_to_create: list[Comment],
     attachment_warnings: list[notifications.WarningFileTooBig],
-    pending_invites_map: dict[str, ProjectImportationPendingInvitation],
+    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation],
     pending_data: ProjectImportationPendingData,
 ):
     if stories_to_create:
@@ -629,7 +600,7 @@ async def bulk_create_all(
     for pending_type, pending_list in pending_data.items():
         for pending_object in pending_list:
             try:
-                pending_invite = pending_invites_map[pending_object["user_email"]]
+                pending_invite = pending_invites[pending_object["user_email"]]
             except KeyError:
                 logger.warning(
                     f"Project import {project_importation.id} for file '{Path(project_importation.source.name or '').name}': Can't find user {pending_object['user_email']} in pending_invites_map"

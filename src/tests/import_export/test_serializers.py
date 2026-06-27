@@ -17,11 +17,22 @@
 # You can contact BIRU at ask@biru.sh
 from collections import deque
 from pathlib import Path
+from unittest.mock import Mock
 
 from pydantic import BaseModel
 
-from import_export.serializers import TaigaProjectImport
+from import_export.models import (
+    ImportationStatus,
+    ProjectImportation,
+    ProjectImportationPendingInvitation,
+)
+from import_export.serializers import (
+    ProjectImportationNestedSerializer,
+    TaigaProjectImport,
+)
+from import_export.serializers.nested import ProjectImportationPendingInvitationNested
 from import_export.serializers.taiga import FullTaigaProjectImport
+from tests.utils.bad_params import NOT_EXISTING_UUID
 
 #######################################################
 # TaigaProjectImport
@@ -49,3 +60,93 @@ def test_full_taiga_project_serializer():
         for key, value in data:
             if isinstance(value, BaseModel):
                 q.append(value)
+
+
+#######################################################
+# ProjectImportationNestedSerializer
+#######################################################
+
+
+def test_source_name():
+    common_args = dict(
+        id=NOT_EXISTING_UUID,
+        status=ImportationStatus.SUCCESS,
+        extra_data={},
+        project=None,
+        pending_invites={},
+    )
+    mock_file = Mock()
+    # we need this because name argument is consumed by the Mock construction otherwise
+    # see https://docs.python.org/3/library/unittest.mock.html#mock-names-and-the-name-attribute
+    mock_file.name = ""
+    assert (
+        ProjectImportationNestedSerializer.model_validate(
+            ProjectImportation(**common_args, source=mock_file)
+        ).source_name
+        is None
+    )
+    mock_file.name = "/this/is/a/path/file.json"
+    serializer = ProjectImportationNestedSerializer.model_validate(
+        ProjectImportation(**common_args, source=mock_file)
+    )
+    assert serializer.source_name == "file.json"
+    assert (
+        ProjectImportationNestedSerializer.model_validate(serializer).source_name
+        == "file.json"
+    )
+
+
+def test_pending_invites():
+    mock_file = Mock()
+    # we need this because name argument is consumed by the Mock construction otherwise
+    # see https://docs.python.org/3/library/unittest.mock.html#mock-names-and-the-name-attribute
+    mock_file.name = "/this/is/a/path/file.json"
+    common_args = dict(
+        id=NOT_EXISTING_UUID,
+        status=ImportationStatus.SUCCESS,
+        extra_data={},
+        project=None,
+        source=mock_file,
+    )
+    assert (
+        ProjectImportationNestedSerializer.model_validate(
+            ProjectImportation(**common_args, pending_invites={})
+        ).pending_invites
+        == []
+    )
+
+    pending_invite = ProjectImportationPendingInvitation(
+        role_id=NOT_EXISTING_UUID,
+        assigned_stories_ids=[],
+        created_stories_ids=[],
+        created_attachments_ids=[],
+        created_comments_ids=[],
+        deleted_comments_ids=[],
+    )
+    serializer = ProjectImportationNestedSerializer.model_validate(
+        ProjectImportation(
+            **common_args,
+            pending_invites={
+                "test@test.com": pending_invite,
+                "test2@test.com": pending_invite,
+            },
+        )
+    )
+    assert serializer.pending_invites == [
+        ProjectImportationPendingInvitationNested(
+            email="test@test.com", role_id=NOT_EXISTING_UUID
+        ),
+        ProjectImportationPendingInvitationNested(
+            email="test2@test.com", role_id=NOT_EXISTING_UUID
+        ),
+    ]
+    assert ProjectImportationNestedSerializer.model_validate(
+        serializer
+    ).pending_invites == [
+        ProjectImportationPendingInvitationNested(
+            email="test@test.com", role_id=NOT_EXISTING_UUID
+        ),
+        ProjectImportationPendingInvitationNested(
+            email="test2@test.com", role_id=NOT_EXISTING_UUID
+        ),
+    ]

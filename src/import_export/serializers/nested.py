@@ -18,13 +18,14 @@
 from pathlib import Path
 from typing import TypedDict
 
-from pydantic import EmailStr
+from pydantic import EmailStr, field_validator
 
 from base.serializers import UUIDB64, BaseSchema
 from import_export.models import (
     ImportationStatus,
     ProjectImportation,
     ProjectImportationData,
+    ProjectImportationPendingInvitation,
 )
 from projects.projects.serializers.nested import ProjectNestedSerializer
 
@@ -40,7 +41,10 @@ class ProjectImportationNestedSerializer(BaseSchema):
     extra_data: ProjectImportationData
     source_name: str | None
     project: ProjectNestedSerializer | None
-    pending_invites: list[ProjectImportationPendingInvitationNested]
+    pending_invites: (
+        dict[EmailStr, ProjectImportationPendingInvitation]
+        | list[ProjectImportationPendingInvitationNested]
+    )
 
     @staticmethod
     def resolve_source_name(
@@ -51,3 +55,20 @@ class ProjectImportationNestedSerializer(BaseSchema):
             # This happens when serializer is called on already serialized object
             return source_name
         return Path(obj.source.name).name if obj.source.name else None
+
+    @field_validator("pending_invites", mode="after")
+    @classmethod
+    def to_list(
+        cls,
+        value: dict[EmailStr, ProjectImportationPendingInvitation]
+        | list[ProjectImportationPendingInvitationNested],
+    ) -> list[ProjectImportationPendingInvitationNested]:
+        if isinstance(value, list):
+            # This happens when serializer is called on already serialized object
+            return value
+        return [
+            ProjectImportationPendingInvitationNested(
+                email=email, role_id=pending_invitation["role_id"]
+            )
+            for email, pending_invitation in value.items()
+        ]
