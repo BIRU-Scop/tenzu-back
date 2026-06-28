@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -25,7 +25,7 @@ from permissions import choices
 from projects.projects import repositories as projects_repositories
 
 from ..utils import set_prefetched_qs_cache
-from .base import Factory, factory
+from .base import Factory, OptionalRelatedFactory, factory
 
 # PROJECT ROLE
 
@@ -110,6 +110,12 @@ class ProjectFactory(Factory):
     workspace = factory.SubFactory(
         "tests.utils.factories.WorkspaceFactory",
         created_by=factory.SelfAttribute("..created_by"),
+    )
+    importation = OptionalRelatedFactory(
+        "tests.utils.factories.ProjectImportationFactory",
+        factory_related_name="project",
+        created_by=factory.SelfAttribute("..created_by"),
+        workspace=factory.SelfAttribute("..workspace"),
     )
 
     class Meta:
