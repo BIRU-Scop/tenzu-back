@@ -34,6 +34,7 @@ from commons.utils import (
     transaction_atomic_async,
     transaction_on_commit_async,
 )
+from import_export.models import ProjectImportation
 from permissions.choices import ProjectPermissions
 from projects.memberships import repositories as memberships_repositories
 from projects.memberships.models import ProjectRole
@@ -80,7 +81,7 @@ async def create_project(
     await transaction_on_commit_async(
         projects_events.emit_event_when_project_is_created
     )(project=project)
-    return await get_project_detail(project=project, user=created_by)
+    return await get_project_detail(project=project, user=created_by, importation=None)
 
 
 @async_cache
@@ -183,15 +184,20 @@ async def list_workspace_projects_for_user(
 ##########################################################
 
 
-async def get_project(project_id: UUID, get_workspace=False) -> Project:
+async def get_project(
+    project_id: UUID, get_workspace=False, get_importation=False
+) -> Project:
+    select_related = (["workspace"] if get_workspace else []) + (
+        ["importation"] if get_importation else []
+    )
     return await projects_repositories.get_project(
         project_id=project_id,
-        select_related=["workspace"] if get_workspace else [None],
+        select_related=select_related or [None],
     )
 
 
 async def get_project_detail(
-    project: Project, user: AnyUser
+    project: Project, user: AnyUser, importation: ProjectImportation | None = None
 ) -> ProjectDetailSerializer:
     if (
         user.project_role is not None
@@ -207,6 +213,9 @@ async def get_project_detail(
         ]
     else:
         workflows = []
+    # Only serialise importation for creator of importation
+    if importation is not None and importation.created_by_id != user.id:
+        importation = None
 
     return ProjectDetailSerializer(
         id=project.id,
@@ -221,6 +230,7 @@ async def get_project_detail(
         workflows=workflows,
         user_role=user.project_role,
         user_is_invited=user.is_invited or False,
+        importation=importation,
     )
 
 
@@ -233,7 +243,11 @@ async def update_project(
     project: Project, updated_by: User, values: dict[str, Any] = {}
 ) -> ProjectDetailSerializer:
     updated_project = await _update_project(project=project, values=values)
-    project_detail = await get_project_detail(project=updated_project, user=updated_by)
+    project_detail = await get_project_detail(
+        project=updated_project,
+        user=updated_by,
+        importation=getattr(project, "importation", None),
+    )
     await projects_events.emit_event_when_project_is_updated(
         project_detail=project_detail, updated_by=updated_by
     )

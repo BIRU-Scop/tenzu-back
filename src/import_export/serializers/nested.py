@@ -15,7 +15,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from pathlib import Path
 from typing import TypedDict
 
 from pydantic import EmailStr, field_validator
@@ -23,11 +22,8 @@ from pydantic import EmailStr, field_validator
 from base.serializers import UUIDB64, BaseSchema
 from import_export.models import (
     ImportationStatus,
-    ProjectImportation,
-    ProjectImportationData,
     ProjectImportationPendingInvitation,
 )
-from projects.projects.serializers.nested import ProjectNestedSerializer
 
 
 class ProjectImportationPendingInvitationNested(TypedDict, total=True):
@@ -38,23 +34,10 @@ class ProjectImportationPendingInvitationNested(TypedDict, total=True):
 class ProjectImportationNestedSerializer(BaseSchema):
     id: UUIDB64
     status: ImportationStatus
-    extra_data: ProjectImportationData
-    source_name: str | None
-    project: ProjectNestedSerializer | None
     pending_invites: (
         dict[EmailStr, ProjectImportationPendingInvitation]
         | list[ProjectImportationPendingInvitationNested]
     )
-
-    @staticmethod
-    def resolve_source_name(
-        obj: "ProjectImportation | ProjectImportationNestedSerializer",
-    ) -> str | None:
-        source_name = getattr(obj, "source_name", None)
-        if source_name is not None:
-            # This happens when serializer is called on already serialized object
-            return source_name
-        return Path(obj.source.name).name if obj.source.name else None
 
     @field_validator("pending_invites", mode="after")
     @classmethod

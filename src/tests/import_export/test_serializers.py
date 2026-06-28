@@ -28,6 +28,7 @@ from import_export.models import (
 )
 from import_export.serializers import (
     ProjectImportationNestedSerializer,
+    ProjectImportationSerializer,
     TaigaProjectImport,
 )
 from import_export.serializers.nested import ProjectImportationPendingInvitationNested
@@ -63,7 +64,7 @@ def test_full_taiga_project_serializer():
 
 
 #######################################################
-# ProjectImportationNestedSerializer
+# ProjectImportationNestedSerializer & ProjectImportationSerializer
 #######################################################
 
 
@@ -80,33 +81,28 @@ def test_source_name():
     # see https://docs.python.org/3/library/unittest.mock.html#mock-names-and-the-name-attribute
     mock_file.name = ""
     assert (
-        ProjectImportationNestedSerializer.model_validate(
+        ProjectImportationSerializer.model_validate(
             ProjectImportation(**common_args, source=mock_file)
         ).source_name
         is None
     )
     mock_file.name = "/this/is/a/path/file.json"
-    serializer = ProjectImportationNestedSerializer.model_validate(
+    serializer = ProjectImportationSerializer.model_validate(
         ProjectImportation(**common_args, source=mock_file)
     )
     assert serializer.source_name == "file.json"
     assert (
-        ProjectImportationNestedSerializer.model_validate(serializer).source_name
+        ProjectImportationSerializer.model_validate(serializer).source_name
         == "file.json"
     )
 
 
 def test_pending_invites():
-    mock_file = Mock()
-    # we need this because name argument is consumed by the Mock construction otherwise
-    # see https://docs.python.org/3/library/unittest.mock.html#mock-names-and-the-name-attribute
-    mock_file.name = "/this/is/a/path/file.json"
     common_args = dict(
         id=NOT_EXISTING_UUID,
         status=ImportationStatus.SUCCESS,
         extra_data={},
         project=None,
-        source=mock_file,
     )
     assert (
         ProjectImportationNestedSerializer.model_validate(

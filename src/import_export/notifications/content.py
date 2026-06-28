@@ -18,23 +18,23 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.serializers import BaseSchema
-from import_export.serializers import ProjectImportationNestedSerializer
+from import_export.serializers import ProjectImportationSerializer
 from projects.projects.serializers.nested import ProjectLinkNestedSerializer
 from workspaces.workspaces.serializers.nested import WorkspaceLinkNestedSerializer
 
 
 class ProjectImportationFailNotificationContent(BaseSchema):
     workspace: WorkspaceLinkNestedSerializer
-    project_importation: ProjectImportationNestedSerializer
+    project_importation: ProjectImportationSerializer
 
 
 class ProjectImportationActionNeededNotificationContent(BaseSchema):
     workspace: WorkspaceLinkNestedSerializer
-    project_importation: ProjectImportationNestedSerializer
+    project_importation: ProjectImportationSerializer
 
 
 class ProjectImportationWarningFileNotificationContent(BaseSchema):
     project: ProjectLinkNestedSerializer
-    project_importation: ProjectImportationNestedSerializer
+    project_importation: ProjectImportationSerializer
     file_name: str
     file_size: int
