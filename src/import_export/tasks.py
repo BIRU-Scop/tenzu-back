@@ -22,6 +22,7 @@ import logging
 from procrastinate.contrib.django import app
 
 from base.utils.uuid import decode_b64str_to_uuid
+from import_export.models import ProjectImportationPendingInvitation
 from import_export.services.taiga import do_import_taiga_project
 
 logger = logging.getLogger(__name__)
@@ -35,3 +36,14 @@ async def import_taiga_project(project_importation_id: str) -> None:
         project_importation_id=decode_b64str_to_uuid(project_importation_id)
     )
     await do_import_taiga_project(importation)
+
+
+@app.task()
+async def sync_importation_pending_objects(
+    user_id: str, pending_invites: ProjectImportationPendingInvitation
+) -> None:
+    from import_export import repositories as import_export_repositories
+
+    await import_export_repositories.sync_pending_objects(
+        user_id=decode_b64str_to_uuid(user_id), pending_invites=pending_invites
+    )

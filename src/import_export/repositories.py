@@ -130,7 +130,7 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
 
 @transaction_atomic_async
 async def sync_pending_objects(
-    user: User, pending_invites: ProjectImportationPendingInvitation
+    user_id: UUID, pending_invites: ProjectImportationPendingInvitation
 ):
     if pending_invites["assigned_stories_ids"]:
         # we need to sanitise the ids list (in case of object that were deleted in the meantime, to prevent db failure of abulk_create
@@ -139,7 +139,7 @@ async def sync_pending_objects(
         ).values_list("id", flat=True)
         await StoryAssignment.objects.abulk_create(
             [
-                StoryAssignment(story_id=story_id, user=user)
+                StoryAssignment(story_id=story_id, user_id=user_id)
                 async for story_id in existing_stories_ids
             ],
             ignore_conflicts=True,
@@ -147,16 +147,16 @@ async def sync_pending_objects(
     if pending_invites["created_stories_ids"]:
         await Story.objects.filter(
             id__in=pending_invites["created_stories_ids"]
-        ).aupdate(created_by=user)
+        ).aupdate(created_by_id=user_id)
     if pending_invites["created_attachments_ids"]:
         await Attachment.objects.filter(
             id__in=pending_invites["created_attachments_ids"]
-        ).aupdate(created_by=user)
+        ).aupdate(created_by_id=user_id)
     if pending_invites["created_comments_ids"]:
         await Comment.objects.filter(
             id__in=pending_invites["created_comments_ids"]
-        ).aupdate(created_by=user)
+        ).aupdate(created_by_id=user_id)
     if pending_invites["deleted_comments_ids"]:
         await Comment.objects.filter(
             id__in=pending_invites["deleted_comments_ids"]
-        ).aupdate(deleted_by=user)
+        ).aupdate(deleted_by_id=user_id)
