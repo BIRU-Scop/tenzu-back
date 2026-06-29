@@ -40,8 +40,11 @@ from import_export.serializers.taiga import (
     _TaigaAttachment,
     _TaigaFile,
     _TaigaHistory,
+    _TaigaRole,
     _TaigaSwimlane,
+    _TaigaSwimlaneUserStoryStatus,
     _TaigaUserStory,
+    _TaigaUserStoryStatus,
 )
 from import_export.services.taiga import (
     ProjectImportationPendingObject,
@@ -54,6 +57,7 @@ from import_export.services.taiga import (
     do_import_taiga_users,
     ensure_roles_unique_attributes,
     get_template_from_taiga_project,
+    sync_project_ids_to_taiga_import,
 )
 from ninja_jwt.utils import aware_utcnow
 from notifications.models import Notification
@@ -338,7 +342,7 @@ async def test_get_template_from_taiga_project():
             created_date=aware_utcnow(),
             is_kanban_activated=True,
             roles=[
-                dict(
+                _TaigaRole(
                     name="Owner",
                     slug="owner",
                     order=10,
@@ -351,7 +355,7 @@ async def test_get_template_from_taiga_project():
                 _TaigaSwimlane(name="test2", order=2),
             ],
             us_statuses=[
-                dict(
+                _TaigaUserStoryStatus(
                     name="Now",
                     slug="now",
                     order=1,
@@ -360,7 +364,7 @@ async def test_get_template_from_taiga_project():
                     is_archived=False,
                     wip_limit=None,
                 ),
-                dict(
+                _TaigaUserStoryStatus(
                     name="Later",
                     slug="later",
                     order=2,
@@ -369,7 +373,7 @@ async def test_get_template_from_taiga_project():
                     is_archived=False,
                     wip_limit=None,
                 ),
-                dict(
+                _TaigaUserStoryStatus(
                     name="Never",
                     slug="never",
                     order=3,
@@ -426,6 +430,92 @@ async def test_get_template_from_taiga_project():
             "slug": {"owner": "taiga-owner1"},
             "name": {"Owner": "Taiga Owner1"},
         }
+
+
+async def test_sync_project_ids_to_taiga_import():
+    statuses = [f.build_workflow_status(), f.build_workflow_status()]
+    other_statuses = [
+        f.build_workflow_status(name=statuses[0].name),
+        f.build_workflow_status(name=statuses[1].name),
+    ]
+    workflows = [
+        f.build_workflow(statuses=statuses),
+        f.build_workflow(statuses=other_statuses),
+    ]
+    roles = [
+        f.build_project_role(),
+        f.build_project_role(name="Taiga Owner1", slug="taiga-owner1"),
+    ]
+    old_to_new_slug_mapping = {
+        "owner": "taiga-owner1",
+    }
+    taiga_project = FullTaigaProjectImport.model_construct(
+        name="test",
+        description="",
+        created_date=aware_utcnow(),
+        is_kanban_activated=True,
+        roles=[
+            _TaigaRole(
+                name="Owner",
+                slug="owner",
+                order=10,
+                computable=False,
+                permissions=["view_project", "modify_us"],
+            )
+        ],
+        swimlanes=[
+            _TaigaSwimlane(name=workflows[1].name, order=2),
+            _TaigaSwimlane(
+                name=workflows[0].name,
+                order=1,
+                statuses=[
+                    _TaigaSwimlaneUserStoryStatus(
+                        wip_limit=None, status=statuses[0].name
+                    ),
+                    _TaigaSwimlaneUserStoryStatus(wip_limit=2, status=statuses[1].name),
+                ],
+            ),
+        ],
+        us_statuses=[
+            _TaigaUserStoryStatus(
+                name=statuses[0].name,
+                slug="",
+                order=1,
+                is_closed=False,
+                color="#FFFFFF",
+                is_archived=False,
+                wip_limit=None,
+            ),
+            _TaigaUserStoryStatus(
+                name=statuses[1].name,
+                slug="",
+                order=2,
+                is_closed=False,
+                color="#FFFFFF",
+                is_archived=False,
+                wip_limit=None,
+            ),
+        ],
+    )
+
+    await sync_project_ids_to_taiga_import(
+        taiga_project, workflows, roles, old_to_new_slug_mapping
+    )
+
+    assert [role.tenzu_id for role in taiga_project.roles] == [roles[1].id]
+    assert [swimlane.tenzu_id for swimlane in taiga_project.swimlanes] == [
+        workflows[1].id,
+        workflows[0].id,
+    ]
+    assert taiga_project.swimlanes[0].statuses is None
+    assert [status.tenzu_id for status in taiga_project.swimlanes[1].statuses] == [
+        statuses[0].id,
+        statuses[1].id,
+    ]
+    assert [status.tenzu_ids for status in taiga_project.us_statuses] == [
+        [statuses[0].id, other_statuses[0].id],
+        [statuses[1].id, other_statuses[1].id],
+    ]
 
 
 async def test_do_import_taiga_stories(caplog):

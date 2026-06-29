@@ -24,6 +24,7 @@ import enum
 from base64 import b64decode
 from datetime import datetime
 from typing import Annotated, Any, Iterable, Literal
+from uuid import UUID
 
 from pydantic import (
     AfterValidator,
@@ -167,6 +168,7 @@ class _TaigaStatus(BaseModel):
 class _TaigaUserStoryStatus(_TaigaStatus):
     is_archived: bool
     wip_limit: int | None
+    tenzu_ids: list[UUID] | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -215,6 +217,7 @@ class _TaigaIssueType(BaseModel):
 class _TaigaSwimlaneUserStoryStatus(BaseModel):
     wip_limit: int | None
     status: str  # related name
+    tenzu_id: UUID | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -223,6 +226,7 @@ class _TaigaSwimlane(BaseModel):
     name: str
     order: int
     statuses: list[_TaigaSwimlaneUserStoryStatus] = None
+    tenzu_id: UUID | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -238,6 +242,7 @@ class _TaigaRole(BaseModel):
     order: int
     computable: bool
     permissions: list[_TaigaMemberPermission] | None = None
+    tenzu_id: UUID | None = None
 
     model_config = ConfigDict(extra="allow")
 

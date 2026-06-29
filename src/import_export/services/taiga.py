@@ -156,9 +156,11 @@ async def get_template_from_taiga_project(
         role["is_owner"] = False
         role["permissions"] = convert_to_tenzu_permissions(role["permissions"])
         del role["computable"]
+        del role["tenzu_id"]
     for swimlane in serialized_project["swimlanes"]:
         swimlane["slug"] = slugify(swimlane["name"])
         del swimlane["statuses"]
+        del swimlane["tenzu_id"]
     for status, colour in zip(
         serialized_project["us_statuses"], ordered_colour_generator()
     ):
@@ -168,6 +170,7 @@ async def get_template_from_taiga_project(
         del status["is_archived"]
         del status["is_closed"]
         del status["slug"]
+        del status["tenzu_ids"]
 
     roles_old_to_new_mapping = ensure_roles_unique_attributes(
         default_roles, serialized_project["roles"]
@@ -179,6 +182,32 @@ async def get_template_from_taiga_project(
         workflow_statuses=serialized_project["us_statuses"],
     )
     return template, roles_old_to_new_mapping
+
+
+async def sync_project_ids_to_taiga_import(
+    taiga_project: FullTaigaProjectImport,
+    workflows: list[Workflow],
+    roles: list[ProjectRole],
+    roles_old_to_new_slug_mapping: dict[str, str],
+):
+    # assign tenzu ids to source objects from taiga project importation
+    for role in taiga_project.roles or []:
+        slug = roles_old_to_new_slug_mapping[role.slug]
+        tenzu_role = next(filter(lambda r: r.slug == slug, roles))
+        role.tenzu_id = tenzu_role.id
+    for swimlane in taiga_project.swimlanes or []:
+        tenzu_workflow = next(filter(lambda w: w.name == swimlane.name, workflows))
+        swimlane.tenzu_id = tenzu_workflow.id
+        statuses = list(tenzu_workflow.statuses.all())
+        for status in swimlane.statuses or []:
+            tenzu_status = next(filter(lambda s: s.name == status.status, statuses))
+            status.tenzu_id = tenzu_status.id
+    for status in taiga_project.us_statuses or []:
+        tenzu_statuses_ids = [
+            next(filter(lambda s: s.name == status.name, w.statuses.all())).id
+            for w in workflows
+        ]
+        status.tenzu_ids = tenzu_statuses_ids
 
 
 async def do_import_taiga_project(project_importation: ProjectImportation):
@@ -230,6 +259,10 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             else None,
             created_at=taiga_project.created_date,
         )
+        workflows = await workflows_services.list_workflows(project_id=project.id)
+        await sync_project_ids_to_taiga_import(
+            taiga_project, workflows, roles, roles_old_to_new_mapping["slug"]
+        )
         # send small progress percentage to indicate creation of statuses, workflow and roles
         await update_project_importation(
             project_importation,
@@ -262,7 +295,6 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
                 "extra_data": {"progress_percentage": 5},
             },
         )
-        workflows = await workflows_services.list_workflows(project_id=project.id)
         await do_import_taiga_stories(
             project_importation, workflows, taiga_project, pending_invites
         )
