@@ -21,13 +21,18 @@ from uuid import UUID
 
 from django.core.files import File
 
+from attachments.models import Attachment
+from comments.models import Comment
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from import_export.models import (
     ImportationStatus,
     ProjectImportation,
+    ProjectImportationPendingInvitation,
     ProjectImportationType,
 )
 from ninja_jwt.utils import aware_utcnow
+from stories.assignments.models import StoryAssignment
+from stories.stories.models import Story
 from users.models import User
 from workspaces.workspaces.models import Workspace
 
@@ -116,3 +121,42 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
     ).adelete()
     await transaction_on_commit_async(project_importation.source.delete)(save=False)
     return count
+
+
+##########################################################
+# backport previous users
+##########################################################
+
+
+@transaction_atomic_async
+async def sync_pending_objects(
+    user: User, pending_invites: ProjectImportationPendingInvitation
+):
+    if pending_invites["assigned_stories_ids"]:
+        # we need to sanitise the ids list (in case of object that were deleted in the meantime, to prevent db failure of abulk_create
+        existing_stories_ids = Story.objects.filter(
+            id__in=pending_invites["assigned_stories_ids"]
+        ).values_list("id", flat=True)
+        await StoryAssignment.objects.abulk_create(
+            [
+                StoryAssignment(story_id=story_id, user=user)
+                async for story_id in existing_stories_ids
+            ],
+            ignore_conflicts=True,
+        )
+    if pending_invites["created_stories_ids"]:
+        await Story.objects.filter(
+            id__in=pending_invites["created_stories_ids"]
+        ).aupdate(created_by=user)
+    if pending_invites["created_attachments_ids"]:
+        await Attachment.objects.filter(
+            id__in=pending_invites["created_attachments_ids"]
+        ).aupdate(created_by=user)
+    if pending_invites["created_comments_ids"]:
+        await Comment.objects.filter(
+            id__in=pending_invites["created_comments_ids"]
+        ).aupdate(created_by=user)
+    if pending_invites["deleted_comments_ids"]:
+        await Comment.objects.filter(
+            id__in=pending_invites["deleted_comments_ids"]
+        ).aupdate(deleted_by=user)

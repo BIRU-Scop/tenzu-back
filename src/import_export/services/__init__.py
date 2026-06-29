@@ -40,7 +40,6 @@ from import_export.serializers import (
 from import_export.services import exceptions as ex
 from memberships.api.validators import InvitationsValidator
 from memberships.serializers import InvitationBaseSerializer
-from projects.invitations import api as projects_invitations_apis
 from projects.projects import events as projects_events
 from projects.projects import services as projects_services
 from users.models import User
@@ -211,6 +210,8 @@ async def handle_project_importation_pending_invites(
     invitations_form: InvitationsValidator,
     request,
 ) -> InvitedProjectImportationSerializer:
+    from projects.invitations import api as projects_invitations_apis
+
     if project_importation.status not in (ImportationStatus.ACTION_NEEDED,):
         raise ex.IncompatibleImportationStatus()
 

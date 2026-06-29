@@ -25,6 +25,7 @@ from django.conf import settings
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from emails.emails import Emails
 from emails.tasks import send_email
+from import_export import repositories as import_export_repositories
 from memberships import services as memberships_services
 from memberships.choices import InvitationStatus
 from memberships.repositories import (
@@ -223,6 +224,9 @@ async def accept_project_invitation(invitation: ProjectInvitation) -> ProjectInv
 
     membership = await memberships_repositories.create_project_membership(
         project=invitation.project, role=invitation.role, user=invitation.user
+    )
+    await import_export_repositories.sync_pending_objects(
+        user=invitation.user, pending_invites=invitation.pending_related_data
     )
     await transaction_on_commit_async(
         invitations_events.emit_event_when_project_invitation_is_accepted
