@@ -225,9 +225,11 @@ async def accept_project_invitation(invitation: ProjectInvitation) -> ProjectInv
     membership = await memberships_repositories.create_project_membership(
         project=invitation.project, role=invitation.role, user=invitation.user
     )
-    await sync_importation_pending_objects.defer_async(
-        user_id=invitation.user.b64id, pending_invites=invitation.pending_related_data
-    )
+    if invitation.pending_related_data:
+        await sync_importation_pending_objects.defer_async(
+            user_id=invitation.user.b64id,
+            pending_invites=invitation.pending_related_data,
+        )
     await transaction_on_commit_async(
         invitations_events.emit_event_when_project_invitation_is_accepted
     )(
