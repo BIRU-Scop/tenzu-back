@@ -257,7 +257,7 @@ async def test_handle_project_importation_pending_invites_fail():
 
     with (
         patch(
-            "import_export.services.projects_invitations_apis", autospec=True
+            "projects.invitations.api", autospec=True
         ) as fake_projects_invitations_apis,
         patch(
             "import_export.services.import_export_repositories", autospec=True
