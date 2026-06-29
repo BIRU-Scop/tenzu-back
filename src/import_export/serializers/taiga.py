@@ -491,39 +491,21 @@ class _TaigaTimeline(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class TaigaProjectImport(BaseModel):
+class FullTaigaProjectImport(BaseModel):
     owner: EmailStr | None = None
+    watchers: list[EmailStr | None] = None
 
     name: str
+    slug: str
     description: str
     logo: _TaigaFile | None = None
     created_date: datetime
-    is_kanban_activated: bool
-
-    roles: _UniqueTaigaRoles = None
-    memberships: _UniqueTaigaMemberships = None
-    us_statuses: _UniqueTaigaUserStoryStatuses = None
-    swimlanes: _UniqueTaigaSwimlanes = None
-    user_stories: list[_TaigaUserStory] = None
-
-    model_config = ConfigDict(extra="allow")
-
-
-class FullTaigaProjectImport(TaigaProjectImport):
-    # owner from TaigaProjectImport
-    watchers: list[EmailStr | None] = None
-
-    # name from TaigaProjectImport
-    slug: str
-    # description from TaigaProjectImport
-    # logo from TaigaProjectImport
-    # created_date from TaigaProjectImport
     modified_date: datetime | None = None
     total_milestones: int | None
     total_story_points: float | None
     is_epics_activated: bool
     is_backlog_activated: bool
-    # is_kanban_activated from TaigaProjectImport
+    is_kanban_activated: bool
     is_wiki_activated: bool
     is_issues_activated: bool
     videoconferences: str | None
@@ -565,11 +547,11 @@ class FullTaigaProjectImport(TaigaProjectImport):
     default_issue_type: str | None = None  # related name
     default_swimlane: str | None = None  # related name
 
-    # roles from TaigaProjectImport
-    # memberships from TaigaProjectImport
+    roles: _UniqueTaigaRoles = None
+    memberships: _UniqueTaigaMemberships = None
     points: list[_TaigaPoints] = None
     epic_statuses: list[_TaigaStatus] = None
-    # us_statuses from TaigaProjectImport
+    us_statuses: _UniqueTaigaUserStoryStatuses = None
     us_duedates: list[_TaigaDueDate] = None
     task_statuses: list[_TaigaStatus] = None
     task_duedates: list[_TaigaDueDate] = None
@@ -578,13 +560,13 @@ class FullTaigaProjectImport(TaigaProjectImport):
     issue_duedates: list[_TaigaDueDate] = None
     priorities: list[_TaigaPriority] = None
     severities: list[_TaigaSeverity] = None
-    # swimlanes from TaigaProjectImport
+    swimlanes: _UniqueTaigaSwimlanes = None
     epiccustomattributes: list[_TaigaCustomAttribute] = None
     userstorycustomattributes: list[_TaigaCustomAttribute] = None
     taskcustomattributes: list[_TaigaCustomAttribute] = None
     issuecustomattributes: list[_TaigaCustomAttribute] = None
     epics: list[_TaigaEpic] = None
-    # user_stories from TaigaProjectImport
+    user_stories: list[_TaigaUserStory] = None
     tasks: list[_TaigaTask] = None
     milestones: list[_TaigaMilestone] = None
     issues: list[_TaigaIssue] = None
@@ -594,10 +576,8 @@ class FullTaigaProjectImport(TaigaProjectImport):
 
     model_config = ConfigDict(extra="allow")
 
-    @staticmethod
-    def filter_unknown_fields(extra_fields: dict[str, Any]) -> Iterable[str]:
+    def get_unknown_fields(self) -> Iterable[str]:
         """
-        Given a __pydantic_extra__ value from a serializer that is a subset of this one,
-        return keys that are not in this FullTaigaProjectImport serializer
+        Return received keys that are not part of this serializer
         """
-        return extra_fields.keys() - FullTaigaProjectImport.model_fields.keys()
+        return self.__pydantic_extra__.values() if self.__pydantic_extra__ else ()

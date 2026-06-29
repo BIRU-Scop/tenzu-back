@@ -17,7 +17,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from import_export.models import ImportationStatus, ProjectImportation
-from import_export.serializers import TaigaProjectImport
+from import_export.serializers import FullTaigaProjectImport
 from import_export.services.taiga import (
     do_import_taiga_users,
     get_template_from_taiga_project,
@@ -45,7 +45,9 @@ async def fill_pending_invites_for_importations_in_batches(
             print(f"Progress: {processed_count}/{total}")
 
         with project_importation.source.open() as source_file:
-            taiga_project = TaigaProjectImport.model_validate_json(source_file.read())
+            taiga_project = FullTaigaProjectImport.model_validate_json(
+                source_file.read()
+            )
         template, roles_old_to_new_mapping = await get_template_from_taiga_project(
             taiga_project
         )

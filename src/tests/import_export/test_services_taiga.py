@@ -35,11 +35,12 @@ from import_export.models import (
     ProjectImportationType,
 )
 from import_export.notifications import PROJECT_IMPORTATION_ACTION_NEEDED
-from import_export.serializers import TaigaProjectImport
+from import_export.serializers import FullTaigaProjectImport
 from import_export.serializers.taiga import (
     _TaigaAttachment,
     _TaigaFile,
     _TaigaHistory,
+    _TaigaSwimlane,
     _TaigaUserStory,
 )
 from import_export.services.taiga import (
@@ -310,7 +311,7 @@ async def test_get_template_from_taiga_project():
         fake_get_default_template.return_value = ProjectTemplateModel.model_validate(
             project_template, from_attributes=True
         )
-        taiga_project = TaigaProjectImport(
+        taiga_project = FullTaigaProjectImport.model_construct(
             name="test",
             description="",
             created_date=aware_utcnow(),
@@ -331,7 +332,7 @@ async def test_get_template_from_taiga_project():
         assert roles_old_to_new_mapping == {"slug": {}, "name": {}}
 
         # noinspection PyTypeChecker
-        taiga_project = TaigaProjectImport(
+        taiga_project = FullTaigaProjectImport.model_construct(
             name="test",
             description="",
             created_date=aware_utcnow(),
@@ -345,7 +346,10 @@ async def test_get_template_from_taiga_project():
                     permissions=["view_project", "modify_us"],
                 )
             ],
-            swimlanes=[dict(name="test", order=1), dict(name="test2", order=2)],
+            swimlanes=[
+                _TaigaSwimlane(name="test", order=1),
+                _TaigaSwimlane(name="test2", order=2),
+            ],
             us_statuses=[
                 dict(
                     name="Now",
@@ -446,7 +450,7 @@ async def test_do_import_taiga_stories(caplog):
         await do_import_taiga_stories(
             project_importation,
             workflows,
-            TaigaProjectImport.model_construct(
+            FullTaigaProjectImport.model_construct(
                 user_stories=[
                     _TaigaUserStory.model_construct(
                         status=None, ref=1, subject="Test invalid"
@@ -593,7 +597,7 @@ async def test_do_import_taiga_stories_multibatches():
         await do_import_taiga_stories(
             project_importation,
             workflows,
-            TaigaProjectImport.model_construct(
+            FullTaigaProjectImport.model_construct(
                 user_stories=[
                     _TaigaUserStory.model_construct(
                         assigned_to="1user@tenzu.test",
@@ -1132,7 +1136,7 @@ async def test_do_import_taiga_stories_comment_ko():
 
 async def test_do_import_taiga_users_empty():
     project_importation = f.build_project_importation()
-    taiga_project = TaigaProjectImport.model_construct(
+    taiga_project = FullTaigaProjectImport.model_construct(
         name="test",
         description="",
         created_date=aware_utcnow(),
@@ -1170,7 +1174,7 @@ async def test_do_import_taiga_users_empty():
 
 async def test_do_import_taiga_users_members():
     project_importation = f.build_project_importation()
-    taiga_project = TaigaProjectImport.model_construct(
+    taiga_project = FullTaigaProjectImport.model_construct(
         name="test",
         description="",
         created_date=aware_utcnow(),

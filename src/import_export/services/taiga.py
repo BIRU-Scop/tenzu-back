@@ -47,10 +47,9 @@ from import_export.models import (
     ProjectImportationPendingInvitation,
 )
 from import_export.serializers import (
-    TaigaProjectImport,
+    FullTaigaProjectImport,
 )
 from import_export.serializers.taiga import (
-    FullTaigaProjectImport,
     _TaigaAttachment,
     _TaigaHistory,
     _TaigaMemberPermission,
@@ -144,7 +143,7 @@ def ensure_roles_unique_attributes(
 
 
 async def get_template_from_taiga_project(
-    taiga_project: TaigaProjectImport,
+    taiga_project: FullTaigaProjectImport,
 ) -> tuple[ProjectTemplateModel, dict[str, dict[str, str]]]:
     default_template = await projects_services._get_default_template()
     default_roles = [role for role in default_template.roles if not role["editable"]]
@@ -185,7 +184,9 @@ async def get_template_from_taiga_project(
 async def do_import_taiga_project(project_importation: ProjectImportation):
     with project_importation.source.open() as source_file:
         try:
-            taiga_project = TaigaProjectImport.model_validate_json(source_file.read())
+            taiga_project = FullTaigaProjectImport.model_validate_json(
+                source_file.read()
+            )
         except ValidationError as e:
             await update_project_importation(
                 project_importation,
@@ -203,9 +204,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             return
 
     try:
-        extra_fields = FullTaigaProjectImport.filter_unknown_fields(
-            taiga_project.__pydantic_extra__
-        )
+        extra_fields = taiga_project.get_unknown_fields()
         if extra_fields:
             logger.warning(
                 f"Project import {project_importation.id} for file '{Path(project_importation.source.name or '').name}' contains extra data: {extra_fields}"
@@ -302,7 +301,7 @@ async def close_importation(
 
 async def do_import_taiga_users(
     project_importation: ProjectImportation,
-    taiga_project: TaigaProjectImport,
+    taiga_project: FullTaigaProjectImport,
     roles: list[ProjectRole],
     roles_old_to_new_name_mapping: dict[str, str],
 ) -> dict[EmailStr, ProjectImportationPendingInvitation]:
@@ -356,7 +355,7 @@ async def do_import_taiga_users(
 async def do_import_taiga_stories(
     project_importation: ProjectImportation,
     workflows: list[Workflow],
-    taiga_project: TaigaProjectImport,
+    taiga_project: FullTaigaProjectImport,
     pending_invites: dict[EmailStr, ProjectImportationPendingInvitation],
 ):
     processed_stories = 0

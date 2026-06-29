@@ -23,7 +23,7 @@ from import_export.models import (
     ProjectImportationData,
 )
 from import_export.serializers.nested import ProjectImportationNestedSerializer
-from import_export.serializers.taiga import TaigaProjectImport  # noqa
+from import_export.serializers.taiga import FullTaigaProjectImport  # noqa
 from memberships.serializers import InvitationBaseSerializer
 from projects.projects.serializers.nested import ProjectNestedSerializer
 
