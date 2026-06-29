@@ -97,6 +97,7 @@ async def test_internal_create_project():
             member_role,
             owner_role,
         ]
+        services._get_default_template.cache_clear()
 
         await services.create_project(
             workspace=workspace,

@@ -105,7 +105,7 @@ class Project(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
 
 
 class ProjectTemplate(BaseDBModel):
-    # WARNING: see not about _get_default_template's cache if you ever need to modify this
+    # WARNING: see nots about _get_default_template's cache if you ever need to modify this
     name = models.CharField(
         max_length=250, null=False, blank=False, verbose_name="name"
     )

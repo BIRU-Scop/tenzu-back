@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,7 +18,6 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.db import admin
-from projects.projects.models import Project
 from workflows.models import Workflow, WorkflowStatus
 
 
