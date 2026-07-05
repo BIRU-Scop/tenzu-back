@@ -285,7 +285,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
                     "extra_data": {"progress_percentage": 100},
                 },
             )
-            await close_importation(project_importation)
+            await close_importation(project_importation, taiga_project)
             return
         # send small progress percentage to indicate creation of pending invitations
         await update_project_importation(
@@ -311,11 +311,11 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
         )
         await notifications.notify_when_project_importation_fail(project_importation)
         raise e
-    await close_importation(project_importation)
+    await close_importation(project_importation, taiga_project)
 
 
 async def close_importation(
-    project_importation: ProjectImportation,
+    project_importation: ProjectImportation, taiga_project: FullTaigaProjectImport
 ):
     if project_importation.pending_invites:
         await update_project_importation(
@@ -329,6 +329,17 @@ async def close_importation(
         )
     else:
         await succeed_project_importation(project_importation)
+
+    # file instance is cached and the mode can't be changed afterwards for some storage (S3Storage) so we clear it
+    del project_importation.source.file
+    with project_importation.source.open(mode="w") as source_file:
+        # we overwrite the file in order to keep a trace of the associated tenzu IDs
+        # so we can operate on this importation file later on when we support new properties
+        source_file.write(
+            taiga_project.model_dump_json(
+                exclude_unset=True, round_trip=True, warnings="error"
+            )
+        )
 
 
 async def do_import_taiga_users(

@@ -17,9 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 from enum import Enum
-from typing import Annotated
-
-from pydantic import AfterValidator
 
 from base.serializers import BaseSchema
 from base.utils.enum import OrderedEnum

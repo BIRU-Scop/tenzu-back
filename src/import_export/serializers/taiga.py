@@ -21,7 +21,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 import enum
-from base64 import b64decode
+import functools
+from base64 import b64decode, b64encode
 from datetime import datetime
 from typing import Annotated, Any, Iterable, Literal
 from uuid import UUID
@@ -31,11 +32,13 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     EmailStr,
+    GetPydanticSchema,
     NonNegativeInt,
     PlainSerializer,
     conlist,
     field_validator,
 )
+from pydantic_core import core_schema
 
 from base.db.models import BaseDBModel
 from commons.validators import UniqueInListValidator
@@ -47,22 +50,27 @@ def db_model_to_id(v: Any) -> Any:
     return v
 
 
-TenzuId = Annotated[
-    UUID | BaseDBModel,
-    PlainSerializer(db_model_to_id),
+TenzuId = (
+    UUID
+    | Annotated[
+        BaseDBModel,
+        GetPydanticSchema(lambda _s, h: h(core_schema.is_instance_schema(BaseDBModel))),
+        PlainSerializer(db_model_to_id),
+    ]
+)
+
+_FileData = Annotated[
+    str,
+    AfterValidator(functools.partial(b64decode, validate=True)),
+    PlainSerializer(b64encode),
 ]
 
 
 class _TaigaFile(BaseModel):
-    data: str  # base64 encoded binary file
+    data: _FileData  # base64 encoded binary file
     name: str
 
     model_config = ConfigDict(extra="allow")
-
-    @field_validator("data", mode="after")
-    @classmethod
-    def decode(cls, value: str) -> bytes:
-        return b64decode(value, validate=True)
 
 
 _TaigaCustomAttributesValue = str | int | bool
