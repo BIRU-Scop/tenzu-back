@@ -32,11 +32,25 @@ from pydantic import (
     ConfigDict,
     EmailStr,
     NonNegativeInt,
+    PlainSerializer,
     conlist,
     field_validator,
 )
 
+from base.db.models import BaseDBModel
 from commons.validators import UniqueInListValidator
+
+
+def db_model_to_id(v: Any) -> Any:
+    if isinstance(v, BaseDBModel):
+        return v.id
+    return v
+
+
+TenzuId = Annotated[
+    UUID | BaseDBModel,
+    PlainSerializer(db_model_to_id),
+]
 
 
 class _TaigaFile(BaseModel):
@@ -113,6 +127,8 @@ class _TaigaHistoryType(enum.IntEnum):
 
 
 class _TaigaHistory(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     user: _TaigaHistoryUser
     created_at: datetime
     type: Literal[_TaigaHistoryType.change, _TaigaHistoryType.create]
@@ -133,6 +149,8 @@ class _TaigaHistory(BaseModel):
 
 
 class _TaigaAttachment(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     owner: EmailStr | None
     created_date: datetime
     modified_date: datetime
@@ -166,9 +184,10 @@ class _TaigaStatus(BaseModel):
 
 
 class _TaigaUserStoryStatus(_TaigaStatus):
+    tenzu_ids: list[TenzuId] | None = None
+
     is_archived: bool
     wip_limit: int | None
-    tenzu_ids: list[UUID] | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -215,18 +234,20 @@ class _TaigaIssueType(BaseModel):
 
 
 class _TaigaSwimlaneUserStoryStatus(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     wip_limit: int | None
     status: str  # related name
-    tenzu_id: UUID | None = None
 
     model_config = ConfigDict(extra="allow")
 
 
 class _TaigaSwimlane(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     name: str
     order: int
     statuses: list[_TaigaSwimlaneUserStoryStatus] = None
-    tenzu_id: UUID | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -237,12 +258,13 @@ _UniqueTaigaSwimlanes = Annotated[
 
 
 class _TaigaRole(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     name: str
     slug: str
     order: int
     computable: bool
     permissions: list[_TaigaMemberPermission] | None = None
-    tenzu_id: UUID | None = None
 
     model_config = ConfigDict(extra="allow")
 
@@ -382,6 +404,8 @@ class _TaigaRolePoints(BaseModel):
 
 
 class _TaigaUserStory(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     watchers: list[EmailStr | None] = None
     owner: EmailStr | None = None
     assigned_to: EmailStr | None = None

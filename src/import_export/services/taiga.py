@@ -543,6 +543,7 @@ async def do_import_taiga_single_story(
         description_updated_at=taiga_story.modified_date,
         version=taiga_story.version,
     )
+    taiga_story.tenzu_id = story
     if taiga_story.owner is not None and story.created_by is None:
         pending_data["created_stories"].append(
             ProjectImportationPendingObject(
@@ -649,27 +650,27 @@ async def bulk_create_all(
 def build_story_attachment_from_taiga(
     project_importation: ProjectImportation,
     story: Story,
-    attachment: _TaigaAttachment,
+    taiga_attachment: _TaigaAttachment,
     attachment_warnings: list[notifications.WarningFileTooBig],
 ) -> Attachment | None:
-    if attachment.attached_file is None:
+    if taiga_attachment.attached_file is None:
         return None
     user = (
         project_importation.created_by
-        if project_importation.created_by.email == attachment.owner
+        if project_importation.created_by.email == taiga_attachment.owner
         else None
     )
     file = SimpleUploadedFile(
-        name=attachment.name,
-        content=attachment.attached_file.data,
-        content_type=mimetypes.guess_file_type(attachment.attached_file.name)[0]
+        name=taiga_attachment.name,
+        content=taiga_attachment.attached_file.data,
+        content_type=mimetypes.guess_file_type(taiga_attachment.attached_file.name)[0]
         or "application/octet-stream",
     )
     if file.size > settings.MAX_UPLOAD_FILE_SIZE:
         attachment_warnings.append({"file_name": file.name, "file_size": file.size})
         return None
 
-    return Attachment(
+    attachment = Attachment(
         storaged_object=StoragedObject(file=file),
         name=file.name or "unknown",
         size=file.size,
@@ -677,6 +678,8 @@ def build_story_attachment_from_taiga(
         content_object=story,
         created_by=user,
     )
+    taiga_attachment.tenzu_id = attachment
+    return attachment
 
 
 async def build_story_comment_from_taiga(
@@ -709,16 +712,18 @@ async def build_story_comment_from_taiga(
         _, _, block_data = await converter.convert(
             {"id": "0", "content": event.comment}
         )
+    comment = Comment(
+        content_object=story,
+        text=block_data,
+        created_at=event.created_at,
+        created_by=user,
+        deleted_at=event.delete_comment_date,
+        deleted_by=delete_comment_user,
+        modified_at=event.edit_comment_date,
+    )
+    event.tenzu_id = comment
     return (
-        Comment(
-            content_object=story,
-            text=block_data,
-            created_at=event.created_at,
-            created_by=user,
-            deleted_at=event.delete_comment_date,
-            deleted_by=delete_comment_user,
-            modified_at=event.edit_comment_date,
-        ),
+        comment,
         creator_email,
         deleter_email,
     )
