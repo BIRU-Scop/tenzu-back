@@ -17,12 +17,16 @@
 # You can contact BIRU at ask@biru.sh
 
 import functools
+from typing import TypedDict
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import JSONField, TextChoices
+from pydantic import EmailStr
 
 from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
+from base.serializers import UUIDB64
 from base.utils.files import get_obfuscated_file_path
 
 
@@ -50,6 +54,20 @@ get_importation_source_file_path = functools.partial(
 )
 
 
+class ProjectImportationData(TypedDict, total=False):
+    error_code: ImportationError
+    progress_percentage: int
+
+
+class ProjectImportationPendingInvitation(TypedDict, total=True):
+    role_id: UUIDB64
+    assigned_stories_ids: list[UUIDB64]
+    created_stories_ids: list[UUIDB64]
+    created_attachments_ids: list[UUIDB64]
+    created_comments_ids: list[UUIDB64]
+    deleted_comments_ids: list[UUIDB64]
+
+
 class ProjectImportation(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
     origin_type = models.CharField(
         max_length=2,
@@ -66,7 +84,18 @@ class ProjectImportation(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMi
         max_length=500,
         upload_to=get_importation_source_file_path,
     )
-    extra_data = JSONField(null=False, blank=True, default=dict)
+    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation] = JSONField(
+        null=False,
+        blank=True,
+        default=dict,
+        encoder=DjangoJSONEncoder,
+    )
+    extra_data: ProjectImportationData = JSONField(
+        null=False,
+        blank=True,
+        default=dict,
+        encoder=DjangoJSONEncoder,
+    )
     project = models.OneToOneField(
         "projects.Project",
         null=True,

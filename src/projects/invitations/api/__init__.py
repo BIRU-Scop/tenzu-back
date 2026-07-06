@@ -76,7 +76,9 @@ async def create_project_invitations(
     role they'll take in the project). In case of receiving several invitations for the same user, just the first
     role will be considered.
     """
-    project = await get_project_or_404(project_id=project_id, get_workspace=True)
+    project = await get_project_or_404(
+        project_id=project_id, get_workspace=True, get_importation=True
+    )
     await check_permissions(
         permissions=ProjectInvitationPermissionsCheck.CREATE.value,
         user=request.user,

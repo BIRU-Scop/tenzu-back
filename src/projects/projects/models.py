@@ -28,7 +28,7 @@ from base.db.models import BaseDBModel, LowerSlugField
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from base.utils.files import get_obfuscated_file_path
 from base.utils.slug import slugify_uniquely
-from commons.colors import NUM_COLORS
+from commons.colors import NUM_COLORS, generate_random_color
 from projects import references
 
 if TYPE_CHECKING:
@@ -47,7 +47,7 @@ class Project(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
     color = models.IntegerField(
         null=False,
         blank=True,
-        default=1,
+        default=generate_random_color,
         verbose_name="color",
         validators=[MaxValueValidator(NUM_COLORS)],
     )

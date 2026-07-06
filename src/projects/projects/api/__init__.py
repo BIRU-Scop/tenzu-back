@@ -162,12 +162,14 @@ async def get_project(request, project_id: Path[B64UUID]) -> ProjectDetailSerial
     Get project detail by id.
     """
 
-    project = await get_project_or_404(project_id)
+    project = await get_project_or_404(project_id, get_importation=True)
     await check_permissions(
         permissions=ProjectPermissionsCheck.VIEW.value, user=request.user, obj=project
     )
     return await projects_services.get_project_detail(
-        project=project, user=request.user
+        project=project,
+        user=request.user,
+        importation=getattr(project, "importation", None),
     )
 
 
@@ -245,7 +247,7 @@ async def update_project(
     """
     Update project
     """
-    project = await get_project_or_404(project_id)
+    project = await get_project_or_404(project_id, get_importation=True)
     await check_permissions(
         permissions=ProjectPermissionsCheck.MODIFY.value, user=request.user, obj=project
     )
@@ -298,10 +300,14 @@ async def delete_project(
 ##########################################################
 
 
-async def get_project_or_404(project_id: UUID, get_workspace=False) -> Project:
+async def get_project_or_404(
+    project_id: UUID, get_workspace=False, get_importation=False
+) -> Project:
     try:
         project = await projects_services.get_project(
-            project_id=project_id, get_workspace=get_workspace
+            project_id=project_id,
+            get_workspace=get_workspace,
+            get_importation=get_importation,
         )
     except Project.DoesNotExist as e:
         raise ex.NotFoundError("Project does not exist") from e

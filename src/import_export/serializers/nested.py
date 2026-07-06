@@ -15,30 +15,43 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from pathlib import Path
 from typing import TypedDict
 
+from pydantic import EmailStr, field_validator
+
 from base.serializers import UUIDB64, BaseSchema
-from import_export.models import ImportationError, ImportationStatus, ProjectImportation
+from import_export.models import (
+    ImportationStatus,
+    ProjectImportationPendingInvitation,
+)
 
 
-class ProjectImportationData(TypedDict, total=False):
-    error_code: ImportationError
-    progress_percentage: int
+class ProjectImportationPendingInvitationNested(TypedDict, total=True):
+    email: EmailStr
+    role_id: UUIDB64
 
 
 class ProjectImportationNestedSerializer(BaseSchema):
     id: UUIDB64
     status: ImportationStatus
-    extra_data: ProjectImportationData
-    source_name: str | None
+    pending_invites: (
+        dict[EmailStr, ProjectImportationPendingInvitation]
+        | list[ProjectImportationPendingInvitationNested]
+    )
 
-    @staticmethod
-    def resolve_source_name(
-        obj: "ProjectImportation | ProjectImportationNestedSerializer",
-    ) -> str | None:
-        source_name = getattr(obj, "source_name", None)
-        if source_name is not None:
+    @field_validator("pending_invites", mode="after")
+    @classmethod
+    def to_list(
+        cls,
+        value: dict[EmailStr, ProjectImportationPendingInvitation]
+        | list[ProjectImportationPendingInvitationNested],
+    ) -> list[ProjectImportationPendingInvitationNested]:
+        if isinstance(value, list):
             # This happens when serializer is called on already serialized object
-            return source_name
-        return Path(obj.source.name).name if obj.source.name else None
+            return value
+        return [
+            ProjectImportationPendingInvitationNested(
+                email=email, role_id=pending_invitation["role_id"]
+            )
+            for email, pending_invitation in value.items()
+        ]
