@@ -25,6 +25,7 @@ Django[argon2]
 psycopg[c]
 easy-thumbnails[svg] # Images and thumbnails
 django-nonrelated-inlines # admin
+martor # markdown editor widget for the admin
 django-cors-headers
 
 # Task Queue Module

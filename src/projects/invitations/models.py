@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,8 +18,11 @@
 # You can contact BIRU at ask@biru.sh
 from uuid import UUID
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
+from django.db.models import JSONField
 
+from import_export.models import ProjectImportationPendingInvitation
 from memberships.models import Invitation
 from projects.projects.models import Project
 
@@ -27,3 +30,10 @@ from projects.projects.models import Project
 class ProjectInvitation(Invitation, reference_model=Project):
     project: models.ForeignKey
     project_id: UUID
+
+    pending_related_data: ProjectImportationPendingInvitation = JSONField(
+        null=False,
+        blank=True,
+        default=dict,
+        encoder=DjangoJSONEncoder,
+    )

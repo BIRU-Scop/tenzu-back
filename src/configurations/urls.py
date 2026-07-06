@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -33,30 +33,29 @@ Including another URLconf
 """
 
 from django.conf import settings
+from django.contrib import admin
 from django.urls import include, path
 from django.urls.resolvers import URLPattern, URLResolver
 
 from .api import api
+from .utils import restrict_admin_registry
+
+if not settings.DEBUG:
+    admin.autodiscover()
+    restrict_admin_registry(admin.site, settings.ADMIN_PROD_VISIBLE_MODELS)
 
 urlpatterns: list[URLPattern | URLResolver] = []
 
 urlpatterns += [
     path(f"api/{settings.API_VERSION}/", api.urls),
     path("_allauth/accounts/", include("allauth.urls")),
+    path("admin/", admin.site.urls),
+    path("martor/", include("martor.urls")),
 ]
 
 
 if settings.DEBUG:
     from django.conf.urls.static import static
-    from django.contrib import admin
-
-    ##############################################
-    # Admin panel
-    ##############################################
-
-    urlpatterns += [
-        path("admin/", admin.site.urls),
-    ]
 
     ##############################################
     # Media files

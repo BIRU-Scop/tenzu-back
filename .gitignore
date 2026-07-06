@@ -354,5 +354,16 @@ tenzu-back-portal/
 src/*-report.xml
 
 #AI
+.junie/
+.claude/
+.agents/
+.ai/
 AGENTS.md
-.junie/*
+CLAUDE.md
+GEMINI.md
+.gemini/
+.cursor/
+.github/instructions/
+.windsurf/
+skills-lock.json
+

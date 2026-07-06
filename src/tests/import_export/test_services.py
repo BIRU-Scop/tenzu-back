@@ -16,7 +16,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.core.exceptions import SuspiciousFileOperation
@@ -28,7 +28,7 @@ from import_export.models import (
     ProjectImportationType,
 )
 from import_export.serializers import ProjectImportationSerializer
-from import_export.services.exceptions import NotDeletableImportation
+from import_export.services.exceptions import IncompatibleImportationStatus
 from tests.utils import factories as f
 from tests.utils.utils import patch_db_transaction
 
@@ -181,15 +181,15 @@ async def test_delete_project_fail():
             "import_export.services.import_export_events", autospec=True
         ) as fake_import_export_events,
         patch_db_transaction(),
-        pytest.raises(NotDeletableImportation),
+        pytest.raises(IncompatibleImportationStatus),
     ):
         await services.delete_project_importation(
             project_importation=project_importation
         )
 
-        fake_import_export_events.emit_event_when_project_importation_is_deleted.assert_not_awaited()
-        fake_projects_services.delete_project.assert_not_awaited()
-        fake_import_export_repositories.delete_project_importation.assert_not_awaited()
+    fake_projects_services.delete_project.assert_not_awaited()
+    fake_import_export_repositories.delete_project_importation.assert_not_awaited()
+    fake_import_export_events.emit_event_when_project_importation_is_deleted.assert_not_awaited()
 
 
 async def test_delete_project_ok():
@@ -245,3 +245,37 @@ async def test_delete_project_ok():
             project_importation_id=project_importation.id,
             importation_owner=project_importation.created_by,
         )
+
+
+##########################################################
+# handle_project_importation_pending_invites
+##########################################################
+
+
+async def test_handle_project_importation_pending_invites_fail():
+    project_importation = f.build_project_importation(status=ImportationStatus.PENDING)
+
+    with (
+        patch(
+            "projects.invitations.api", autospec=True
+        ) as fake_projects_invitations_apis,
+        patch(
+            "import_export.services.import_export_repositories", autospec=True
+        ) as fake_import_export_repositories,
+        patch(
+            "import_export.services.import_export_events", autospec=True
+        ) as fake_import_export_events,
+        patch(
+            "import_export.services.projects_events", autospec=True
+        ) as fake_projects_events,
+        patch_db_transaction(),
+        pytest.raises(IncompatibleImportationStatus),
+    ):
+        await services.handle_project_importation_pending_invites(
+            project_importation, Mock(), Mock()
+        )
+
+    fake_projects_invitations_apis.create_project_invitations.assert_not_awaited()
+    fake_import_export_repositories.update_project_importation.assert_not_awaited()
+    fake_import_export_events.emit_event_when_project_importation_is_updated.assert_not_awaited()
+    fake_projects_events.emit_event_when_project_is_created.assert_not_awaited()

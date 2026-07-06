@@ -15,11 +15,35 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from pydantic import ConfigDict
+from pathlib import Path
 
+from base.serializers import BaseSchema
+from import_export.models import (
+    ProjectImportation,
+    ProjectImportationData,
+)
 from import_export.serializers.nested import ProjectImportationNestedSerializer
-from import_export.serializers.taiga import TaigaProjectImport  # noqa
+from import_export.serializers.taiga import FullTaigaProjectImport  # noqa
+from memberships.serializers import InvitationBaseSerializer
+from projects.projects.serializers.nested import ProjectNestedSerializer
 
 
 class ProjectImportationSerializer(ProjectImportationNestedSerializer):
-    pass
+    extra_data: ProjectImportationData
+    source_name: str | None
+    project: ProjectNestedSerializer | None
+
+    @staticmethod
+    def resolve_source_name(
+        obj: "ProjectImportation | ProjectImportationSerializer",
+    ) -> str | None:
+        source_name = getattr(obj, "source_name", None)
+        if source_name is not None:
+            # This happens when serializer is called on already serialized object
+            return source_name
+        return Path(obj.source.name).name if obj.source.name else None
+
+
+class InvitedProjectImportationSerializer(BaseSchema):
+    invitations: list[InvitationBaseSerializer]
+    project_importation: ProjectImportationSerializer

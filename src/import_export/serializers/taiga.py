@@ -21,33 +21,56 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 import enum
-from base64 import b64decode
+import functools
+from base64 import b64decode, b64encode
 from datetime import datetime
 from typing import Annotated, Any, Iterable, Literal
+from uuid import UUID
 
 from pydantic import (
     AfterValidator,
     BaseModel,
     ConfigDict,
     EmailStr,
+    GetPydanticSchema,
     NonNegativeInt,
+    PlainSerializer,
     conlist,
     field_validator,
 )
+from pydantic_core import core_schema
 
+from base.db.models import BaseDBModel
 from commons.validators import UniqueInListValidator
 
 
+def db_model_to_id(v: Any) -> Any:
+    if isinstance(v, BaseDBModel):
+        return v.id
+    return v
+
+
+TenzuId = (
+    UUID
+    | Annotated[
+        BaseDBModel,
+        GetPydanticSchema(lambda _s, h: h(core_schema.is_instance_schema(BaseDBModel))),
+        PlainSerializer(db_model_to_id),
+    ]
+)
+
+_FileData = Annotated[
+    str,
+    AfterValidator(functools.partial(b64decode, validate=True)),
+    PlainSerializer(b64encode),
+]
+
+
 class _TaigaFile(BaseModel):
-    data: str  # base64 encoded binary file
+    data: _FileData  # base64 encoded binary file
     name: str
 
     model_config = ConfigDict(extra="allow")
-
-    @field_validator("data", mode="after")
-    @classmethod
-    def decode(cls, value: str) -> bytes:
-        return b64decode(value, validate=True)
 
 
 _TaigaCustomAttributesValue = str | int | bool
@@ -101,7 +124,7 @@ _TaigaAnonPermission = Literal[
 ]
 
 _TaigaHistoryUser = (
-    tuple[str | None, str] | conlist(Any, max_length=0) | None
+    tuple[EmailStr | None, str] | conlist(Any, max_length=0) | None
 )  # tuple (email, name) usually, [] if field was empty and None if user was not found (deleted)
 
 
@@ -112,6 +135,8 @@ class _TaigaHistoryType(enum.IntEnum):
 
 
 class _TaigaHistory(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     user: _TaigaHistoryUser
     created_at: datetime
     type: Literal[_TaigaHistoryType.change, _TaigaHistoryType.create]
@@ -132,6 +157,8 @@ class _TaigaHistory(BaseModel):
 
 
 class _TaigaAttachment(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     owner: EmailStr | None
     created_date: datetime
     modified_date: datetime
@@ -165,6 +192,8 @@ class _TaigaStatus(BaseModel):
 
 
 class _TaigaUserStoryStatus(_TaigaStatus):
+    tenzu_ids: list[TenzuId] | None = None
+
     is_archived: bool
     wip_limit: int | None
 
@@ -213,6 +242,8 @@ class _TaigaIssueType(BaseModel):
 
 
 class _TaigaSwimlaneUserStoryStatus(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     wip_limit: int | None
     status: str  # related name
 
@@ -220,6 +251,8 @@ class _TaigaSwimlaneUserStoryStatus(BaseModel):
 
 
 class _TaigaSwimlane(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     name: str
     order: int
     statuses: list[_TaigaSwimlaneUserStoryStatus] = None
@@ -233,6 +266,8 @@ _UniqueTaigaSwimlanes = Annotated[
 
 
 class _TaigaRole(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     name: str
     slug: str
     order: int
@@ -273,6 +308,11 @@ class _TaigaMembership(BaseModel):
     user_order: int
 
     model_config = ConfigDict(extra="allow")
+
+
+_UniqueTaigaMemberships = Annotated[
+    list[_TaigaMembership], AfterValidator(UniqueInListValidator("user"))
+]
 
 
 class _TaigaMilestone(BaseModel):
@@ -372,6 +412,8 @@ class _TaigaRolePoints(BaseModel):
 
 
 class _TaigaUserStory(BaseModel):
+    tenzu_id: TenzuId | None = None
+
     watchers: list[EmailStr | None] = None
     owner: EmailStr | None = None
     assigned_to: EmailStr | None = None
@@ -543,7 +585,7 @@ class FullTaigaProjectImport(BaseModel):
     default_swimlane: str | None = None  # related name
 
     roles: _UniqueTaigaRoles = None
-    memberships: list[_TaigaMembership] = None
+    memberships: _UniqueTaigaMemberships = None
     points: list[_TaigaPoints] = None
     epic_statuses: list[_TaigaStatus] = None
     us_statuses: _UniqueTaigaUserStoryStatuses = None
@@ -571,28 +613,8 @@ class FullTaigaProjectImport(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    @staticmethod
-    def filter_unknown_fields(extra_fields: dict[str, Any]) -> Iterable[str]:
+    def get_unknown_fields(self) -> Iterable[str]:
         """
-        Given a __pydantic_extra__ value from a serializer that is a subset of this one,
-        return keys that are not in this FullTaigaProjectImport serializer
+        Return received keys that are not part of this serializer
         """
-        return extra_fields.keys() - FullTaigaProjectImport.model_fields.keys()
-
-
-class TaigaProjectImport(BaseModel):
-    owner: EmailStr | None = None
-
-    name: str
-    description: str
-    logo: _TaigaFile | None = None
-    created_date: datetime
-    is_kanban_activated: bool
-
-    roles: _UniqueTaigaRoles = None
-    memberships: list[_TaigaMembership] = None
-    us_statuses: _UniqueTaigaUserStoryStatuses = None
-    swimlanes: _UniqueTaigaSwimlanes = None
-    user_stories: list[_TaigaUserStory] = None
-
-    model_config = ConfigDict(extra="allow")
+        return self.__pydantic_extra__.values() if self.__pydantic_extra__ else ()

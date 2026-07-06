@@ -19,5 +19,5 @@
 from base.services.exceptions import TenzuServiceException
 
 
-class NotDeletableImportation(TenzuServiceException):
+class IncompatibleImportationStatus(TenzuServiceException):
     pass

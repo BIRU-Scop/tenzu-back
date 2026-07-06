@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -294,6 +294,7 @@ async def test_create_project_invitations_non_existing_role(tqmanager):
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role]
 
@@ -325,6 +326,7 @@ async def test_create_project_invitations_already_member(tqmanager):
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role]
         fake_memberships_repositories.list_members.return_value = [user]
@@ -366,6 +368,7 @@ async def test_create_project_invitations_with_pending_invitations(tqmanager):
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role2]
         fake_memberships_repositories.get_invitation.return_value = invitation
@@ -379,6 +382,78 @@ async def test_create_project_invitations_with_pending_invitations(tqmanager):
         fake_memberships_repositories.bulk_update_invitations.assert_awaited_once()
 
         assert len(tqmanager.pending_jobs) == 1
+        fake_invitations_events.emit_event_when_project_invitations_are_created.assert_awaited_once()
+
+
+async def test_create_project_invitations_with_importation_data(tqmanager):
+    user1 = f.build_user()
+    user2 = f.build_user(email="user-test@email.com")
+    project = f.build_project(
+        importation__pending_invites={
+            "test@email.com": {"dummy_data": 0},
+            "other@email.com": {"dummy_data": 1},
+        }
+    )
+    role1 = f.build_project_role(project=project, slug="owner", is_owner=True)
+    role2 = f.build_project_role(project=project, slug="member")
+    user1.project_role = role1
+
+    invitations = [
+        {"email": user2.email, "role_id": role1.id},
+        {"email": "test@email.com", "role_id": role2.id},
+    ]
+
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "memberships.services.users_services", autospec=True
+        ) as fake_users_services,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        patch(
+            "memberships.services.import_export_services", autospec=True
+        ) as fake_import_export_services,
+        patch_db_transaction(),
+    ):
+        fake_memberships_repositories.list_roles.return_value = [role1, role2]
+        fake_users_services.list_users_emails_as_dict.return_value = {
+            user2.email: user2
+        }
+        fake_users_services.list_users_usernames_as_dict.return_value = {}
+        fake_memberships_repositories.get_invitation.side_effect = (
+            ProjectInvitation.DoesNotExist
+        )
+
+        await services.create_project_invitations(
+            project=project, invitations=invitations, invited_by=user1
+        )
+
+        fake_memberships_repositories.list_roles.assert_awaited_once_with(
+            ProjectRole,
+            filters={"project_id": project.id, "id__in": {role1.id, role2.id}},
+        )
+        fake_users_services.list_users_emails_as_dict.assert_awaited_once()
+        fake_users_services.list_users_usernames_as_dict.assert_not_awaited()
+        fake_memberships_repositories.create_invitations.assert_awaited_once()
+        assert (
+            fake_memberships_repositories.create_invitations.await_args.kwargs["objs"][
+                0
+            ].pending_related_data
+            == {}
+        )
+        assert fake_memberships_repositories.create_invitations.await_args.kwargs[
+            "objs"
+        ][1].pending_related_data == {"dummy_data": 0}
+
+        fake_import_export_services.update_project_importation.assert_awaited_once_with(
+            project.importation,
+            {"pending_invites": {"other@email.com": {"dummy_data": 1}}},
+        )
+
+        assert len(tqmanager.pending_jobs) == 2
         fake_invitations_events.emit_event_when_project_invitations_are_created.assert_awaited_once()
 
 
@@ -406,6 +481,7 @@ async def test_create_project_invitations_with_pending_invitations_time_spam(tqm
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
         override_settings(**{"INVITATION_RESEND_TIME": 10}),
     ):
         fake_memberships_repositories.list_roles.return_value = [role2]
@@ -445,6 +521,7 @@ async def test_create_project_invitations_with_accepted_invitations():
         patch(
             "memberships.services.users_services", autospec=True
         ) as fake_users_services,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationAlreadyAcceptedError),
     ):
         fake_memberships_repositories.list_roles.return_value = [role2]
@@ -485,6 +562,7 @@ async def test_create_project_invitations_with_revoked_invitations(tqmanager):
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role2]
         fake_memberships_repositories.get_invitation.return_value = invitation
@@ -526,6 +604,7 @@ async def test_create_project_invitations_with_revoked_invitations_time_spam(tqm
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
         override_settings(**{"INVITATION_RESEND_TIME": 10}),
     ):
         fake_memberships_repositories.list_roles.return_value = [role2]
@@ -566,6 +645,7 @@ async def test_create_project_invitations_by_emails(tqmanager):
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role1, role2]
         fake_users_services.list_users_emails_as_dict.return_value = {
@@ -616,6 +696,7 @@ async def test_create_project_invitations_by_usernames(tqmanager):
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role1, role2]
         fake_users_services.list_users_emails_as_dict.return_value = {}
@@ -673,6 +754,7 @@ async def test_create_project_invitations_duplicated_email_username(tqmanager):
         patch(
             "projects.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role1, role2]
         fake_users_services.list_users_emails_as_dict.return_value = {
@@ -723,6 +805,7 @@ async def test_create_project_invitations_invalid_username(tqmanager):
         patch(
             "memberships.services.users_services", autospec=True
         ) as fake_users_services,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationNonExistingUsernameError),
     ):
         fake_memberships_repositories.list_roles.return_value = [role]
@@ -758,6 +841,7 @@ async def test_create_project_invitations_owner_no_permission(tqmanager):
         patch(
             "memberships.services.users_services", autospec=True
         ) as fake_users_services,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [
             member_role,
@@ -792,7 +876,9 @@ async def test_create_project_invitations_owner_no_permission(tqmanager):
 #######################################################
 
 
-async def test_accept_project_invitation_existing_workspace_membership() -> None:
+async def test_accept_project_invitation_existing_workspace_membership(
+    tqmanager,
+) -> None:
     user = f.build_user()
     project = f.build_project()
     role = f.build_project_role(project=project)
@@ -849,9 +935,12 @@ async def test_accept_project_invitation_existing_workspace_membership() -> None
         fake_invitations_repositories.get_invitation.assert_not_awaited()
         fake_workspaces_invitations_services.accept_workspace_invitation.assert_not_awaited()
         fake_workspaces_memberships_services.create_default_workspace_membership.assert_not_awaited()
+        assert not tqmanager.pending_jobs
 
 
-async def test_accept_project_invitation_existing_workspace_invitation() -> None:
+async def test_accept_project_invitation_existing_workspace_invitation(
+    tqmanager,
+) -> None:
     user = f.build_user()
     project = f.build_project()
     role = f.build_project_role(project=project)
@@ -923,11 +1012,12 @@ async def test_accept_project_invitation_existing_workspace_invitation() -> None
             ws_invitation
         )
         fake_workspaces_memberships_services.create_default_workspace_membership.assert_not_awaited()
+        assert not tqmanager.pending_jobs
 
 
-async def test_accept_project_invitation_no_workspace_membership_nor_invitation() -> (
-    None
-):
+async def test_accept_project_invitation_no_workspace_membership_nor_invitation(
+    tqmanager,
+) -> None:
     user = f.build_user()
     project = f.build_project()
     role = f.build_project_role(project=project)
@@ -996,6 +1086,63 @@ async def test_accept_project_invitation_no_workspace_membership_nor_invitation(
         fake_workspaces_invitations_services.accept_workspace_invitation.assert_not_awaited()
         fake_workspaces_memberships_services.create_default_workspace_membership.assert_awaited_once_with(
             project.workspace_id, user
+        )
+        assert not tqmanager.pending_jobs
+
+
+async def test_accept_project_invitation_pending_importation_data(tqmanager) -> None:
+    user = f.build_user()
+    project = f.build_project()
+    role = f.build_project_role(project=project)
+    invitation = f.build_project_invitation(
+        project=project,
+        role=role,
+        user=user,
+        email=user.email,
+        pending_related_data={"dummy_data": 0},
+    )
+
+    with (
+        patch(
+            "memberships.services.memberships_repositories", autospec=True
+        ) as fake_memberships_repositories,
+        patch(
+            "projects.invitations.services.memberships_repositories", autospec=True
+        ) as fake_pj_memberships_repo,
+        patch(
+            "projects.invitations.services.invitations_events", autospec=True
+        ) as fake_invitations_events,
+        patch(
+            "projects.invitations.services.invitations_repositories", autospec=True
+        ) as fake_invitations_repositories,
+        patch(
+            "projects.invitations.services.workspaces_invitations_services",
+            autospec=True,
+        ) as fake_workspaces_invitations_services,
+        patch(
+            "projects.invitations.services.workspaces_memberships_services",
+            autospec=True,
+        ) as fake_workspaces_memberships_services,
+        patch_db_transaction(),
+    ):
+        fake_pj_memberships_repo.exists_membership.return_value = False
+        fake_memberships_repositories.update_invitation.return_value = invitation
+        fake_invitations_repositories.get_invitation.side_effect = (
+            WorkspaceInvitation.DoesNotExist
+        )
+        await services.accept_project_invitation(invitation=invitation)
+
+    assert len(tqmanager.pending_jobs) == 1
+
+    with (
+        patch(
+            "import_export.repositories", autospec=True
+        ) as fake_import_export_repositories,
+    ):
+        await tqmanager.run_async()
+        assert tqmanager.succeeded_jobs and not tqmanager.failed_jobs
+        fake_import_export_repositories.sync_pending_objects.assert_awaited_once_with(
+            user_id=user.id, pending_invites={"dummy_data": 0}
         )
 
 

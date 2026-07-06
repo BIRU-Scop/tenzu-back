@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -56,6 +56,7 @@ async def test_create_workspace_invitations_already_member(tqmanager):
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repo.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {user.email: user}
@@ -96,6 +97,7 @@ async def test_create_workspace_invitations_with_pending_invitations_time_spam(
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
         override_settings(**{"INVITATION_RESEND_TIME": 10}),
     ):
         fake_memberships_repositories.get_invitation.return_value = invitation
@@ -139,6 +141,7 @@ async def test_create_workspace_invitations_with_pending_invitations(tqmanager):
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
         override_settings(**{"INVITATION_RESEND_TIME": 10}),
     ):
         fake_memberships_repositories.get_invitation.return_value = invitation
@@ -179,6 +182,7 @@ async def test_create_workspace_invitations_by_emails(tqmanager):
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {
@@ -223,6 +227,7 @@ async def test_create_workspace_invitations_by_usernames(tqmanager):
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {}
@@ -274,6 +279,7 @@ async def test_create_workspace_invitations_duplicated_email_username(tqmanager)
         patch(
             "workspaces.invitations.services.invitations_events", autospec=True
         ) as fake_invitations_events,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [role]
         fake_users_services.list_users_emails_as_dict.return_value = {
@@ -320,6 +326,7 @@ async def test_create_workspace_invitations_invalid_username(tqmanager):
         patch(
             "memberships.services.memberships_repositories.list_roles"
         ) as fake_list_roles,
+        patch_db_transaction(),
         pytest.raises(ex.InvitationNonExistingUsernameError),
     ):
         fake_list_roles.return_value = [role]
@@ -357,6 +364,7 @@ async def test_create_workspace_invitations_owner_no_permission(tqmanager):
         patch(
             "memberships.services.users_services", autospec=True
         ) as fake_users_services,
+        patch_db_transaction(),
     ):
         fake_memberships_repositories.list_roles.return_value = [
             member_role,

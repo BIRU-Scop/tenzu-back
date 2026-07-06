@@ -21,6 +21,7 @@
 import functools
 import uuid
 
+import django.core.serializers.json
 import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
@@ -96,7 +97,14 @@ class Migration(migrations.Migration):
                         ),
                     ),
                 ),
-                ("extra_data", models.JSONField(blank=True, default=dict)),
+                (
+                    "extra_data",
+                    models.JSONField(
+                        blank=True,
+                        default=dict,
+                        encoder=django.core.serializers.json.DjangoJSONEncoder,
+                    ),
+                ),
                 (
                     "created_by",
                     models.ForeignKey(

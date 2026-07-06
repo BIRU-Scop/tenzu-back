@@ -253,15 +253,17 @@ async def create_project(
             if fake.boolean(chance_of_getting_true=constants.PROB_PROJECT_WITH_LOGO)
             else None
         )
-        return await projects_services._create_project(
-            template=template,
-            name=name,
-            description=description,
-            color=fake.random_int(min=1, max=NUM_COLORS),
-            created_by=created_by,
-            workspace=workspace,
-            logo_file=logo_file,
-        )
+        return (
+            await projects_services._create_project(
+                template=template,
+                name=name,
+                description=description,
+                color=fake.random_int(min=1, max=NUM_COLORS),
+                created_by=created_by,
+                workspace=workspace,
+                logo_file=logo_file,
+            )
+        )[0]
 
 
 async def create_project_memberships(project: Project, users: list[User]) -> None:

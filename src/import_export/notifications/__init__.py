@@ -20,12 +20,14 @@ from typing import TypedDict
 
 from import_export.models import ProjectImportation
 from import_export.notifications.content import (
+    ProjectImportationActionNeededNotificationContent,
     ProjectImportationFailNotificationContent,
     ProjectImportationWarningFileNotificationContent,
 )
 from notifications import services as notifications_services
 
 PROJECT_IMPORTATION_FAILURE = "project_importation.fail"
+PROJECT_IMPORTATION_ACTION_NEEDED = "project_importation.action_needed"
 PROJECT_IMPORTATION_WARNING_FILE_TOO_BIG = "project_importation.warning.file_too_big"
 
 
@@ -43,6 +45,22 @@ async def notify_when_project_importation_fail(
         notified_user_ids=[project_importation.created_by_id],
         content_list=[
             ProjectImportationFailNotificationContent(
+                workspace=project_importation.workspace,
+                project_importation=project_importation,
+            )
+        ],
+    )
+
+
+async def notify_when_project_importation_action_needed(
+    project_importation: ProjectImportation,
+) -> None:
+    await notifications_services.notify_users(
+        notification_type=PROJECT_IMPORTATION_ACTION_NEEDED,
+        emitted_by=None,
+        notified_user_ids=[project_importation.created_by_id],
+        content_list=[
+            ProjectImportationActionNeededNotificationContent(
                 workspace=project_importation.workspace,
                 project_importation=project_importation,
             )

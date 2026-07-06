@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from import_export.serializers.nested import ProjectImportationNestedSerializer
 from memberships.serializers import RoleSerializer
 from projects.projects.serializers.mixins import ProjectLogoBaseSerializer  # noqa
 from projects.projects.serializers.nested import ProjectNestedSerializer
@@ -29,5 +29,6 @@ class ProjectSummarySerializer(ProjectNestedSerializer):
 
 class ProjectDetailSerializer(ProjectSummarySerializer):
     workflows: list[WorkflowNestedSerializer]
+    importation: ProjectImportationNestedSerializer | None
 
     user_role: RoleSerializer | None

@@ -27,3 +27,4 @@ class ProjectImportationPermissionsCheck(Enum):
     VIEW = WorkspacePermissionsCheck.VIEW.value
     DELETE = IsAuthenticated() & IsRelatedToTheUser("created_by")
     CREATE = ProjectPermissionsCheck.CREATE.value
+    ACT = IsAuthenticated() & IsRelatedToTheUser("created_by")

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -33,13 +33,15 @@ DELETE_PROJECT = "projects.delete"
 UPDATE_PROJECT = "projects.update"
 
 
-async def emit_event_when_project_is_created(project: Project) -> None:
+async def emit_event_when_project_is_created(
+    project: Project, creator: User | None = None
+) -> None:
     """
     This event is emitted whenever a project is created
     """
     # for the creator on homepage or workspace detail
     await events_manager.publish_on_user_channel(
-        user=project.created_by,
+        user=creator or project.created_by,
         type=CREATE_PROJECT,
         content=CreateProjectContent(
             project=project,

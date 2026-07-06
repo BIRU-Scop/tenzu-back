@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -23,6 +23,9 @@ from uuid import UUID
 from django.conf import settings
 
 from base.utils import emails
+from commons.utils import transaction_atomic_async
+from import_export import services as import_export_services
+from import_export.models import ProjectImportation
 from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus
 from memberships.models import Invitation, Membership, Role
@@ -90,6 +93,7 @@ async def is_membership_the_only_owner(membership: TM) -> bool:
 ##########################################################
 
 
+@transaction_atomic_async
 async def create_invitations(
     reference_object: Project | Workspace,
     invitations: list[dict[str, str | UUID]],
@@ -170,6 +174,12 @@ async def create_invitations(
     created_owner_invitations = []
     changed_role_owner_invitations = []
     already_accepted_invitations = []
+    project_importation: ProjectImportation | None = getattr(
+        reference_object, "importation", None
+    )
+    pending_invites = (
+        project_importation.pending_invites if project_importation is not None else {}
+    )
 
     for key, role_id in zip(emails + usernames, emails_roles + usernames_roles):
         #                                 key  |  role_id
@@ -199,12 +209,17 @@ async def create_invitations(
                 ],
             )
         except reference_object.invitations.model.DoesNotExist:
+            extra_fields_data = {reference_object._meta.model_name: reference_object}
+            if pending_invites:
+                extra_fields_data["pending_related_data"] = pending_invites.pop(
+                    email, {}
+                )
             new_invitation = reference_object.invitations.model(
                 user=user,
                 role=role,
                 email=email,
                 invited_by=invited_by,
-                **{reference_object._meta.model_name: reference_object},
+                **extra_fields_data,
             )
             invitations_to_create[email] = new_invitation
             invitations_to_send[email] = new_invitation
@@ -274,6 +289,11 @@ async def create_invitations(
     if len(invitations_to_create) > 0 or len(invitations_to_update) > 0:
         invitations_to_publish = list(
             (invitations_to_create | invitations_to_update).values()
+        )
+
+    if project_importation is not None:
+        await import_export_services.update_project_importation(
+            project_importation, {"pending_invites": pending_invites}
         )
 
     return list(invitations_to_send.values()), invitations_to_publish, already_members

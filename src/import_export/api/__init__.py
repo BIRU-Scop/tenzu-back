@@ -33,8 +33,10 @@ from import_export.api.validators import ImportationFileField, ImportProjectVali
 from import_export.models import ProjectImportation
 from import_export.permissions import ProjectImportationPermissionsCheck
 from import_export.serializers import (
+    InvitedProjectImportationSerializer,
     ProjectImportationSerializer,
 )
+from memberships.api.validators import InvitationsValidator
 from permissions import (
     check_permissions,
 )
@@ -157,6 +159,44 @@ async def delete_project_importation(
         project_importation=project_importation
     )
     return Status(204, None)
+
+
+##########################################################
+# actions
+##########################################################
+
+
+@import_export_router.post(
+    "/projects/importations/{project_importation_id}/invite",
+    url_name="importations.projects.invite",
+    summary="Handle the project importation pending invites",
+    response={
+        200: InvitedProjectImportationSerializer,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        422: ERROR_RESPONSE_422,
+    },
+    by_alias=True,
+)
+async def handle_project_importation_pending_invites(
+    request,
+    project_importation_id: Path[B64UUID],
+    form: InvitationsValidator,
+) -> InvitedProjectImportationSerializer:
+    """
+    Handle the pending invites of an importation and remove the action_needed flag from it.
+    Invitation list can be filled or empty (ignore action)
+    """
+    project_importation = await get_project_importation_or_404(project_importation_id)
+    await check_permissions(
+        permissions=ProjectImportationPermissionsCheck.ACT.value,
+        user=request.user,
+        obj=project_importation,
+    )
+    return await import_export_services.handle_project_importation_pending_invites(
+        project_importation=project_importation, invitations_form=form, request=request
+    )
 
 
 ##########################################################
