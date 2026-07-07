@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024-2026 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +16,14 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from tests.utils.logging import correlation_id  # noqa
-from tests.utils.testclient import client, sync_client, ssr_client  # noqa
-from tests.utils.taskqueue import in_memory_app, tqmanager  # noqa
-from tests.projects.projects.fixtures import project_template  # noqa
-from tests.feeds.fixtures import empty_feed_items  # noqa
+import pytest
+
+from feeds.models import FeedItem
+
+
+@pytest.fixture
+def empty_feed_items(db):
+    """
+    delete all feed items that might have been created by release migrations
+    """
+    return FeedItem.objects.all().delete()

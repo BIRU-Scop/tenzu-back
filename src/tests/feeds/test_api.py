@@ -33,7 +33,7 @@ pytestmark = pytest.mark.django_db
 ##########################################################
 
 
-async def test_list_feeds_200_with_read_flags(client):
+async def test_list_feeds_200_with_read_flags(client, empty_feed_items):
     now = aware_utcnow()
     user = await f.create_user()
     read_item = await f.create_feed_item(
@@ -61,7 +61,7 @@ async def test_list_feeds_200_with_read_flags(client):
     assert read_at_by_id[unread_item.b64id] is None
 
 
-async def test_list_feeds_empty_returns_200_empty_list(client):
+async def test_list_feeds_empty_returns_200_empty_list(client, empty_feed_items):
     user = await f.create_user()
 
     client.login(user)

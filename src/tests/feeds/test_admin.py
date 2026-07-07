@@ -37,7 +37,7 @@ pytestmark = pytest.mark.django_db
 ##########################################################
 
 
-def test_get_queryset_annotates_status_and_orders_it(rf):
+def test_get_queryset_annotates_status_and_orders_it(rf, empty_feed_items):
     now = aware_utcnow()
     f.FeedItemFactory.create(
         type=FeedItemType.CALL_TO_ACTION,
@@ -68,7 +68,7 @@ def test_get_queryset_annotates_status_and_orders_it(rf):
     assert model_admin.status(items[1]) == FeedItemStatus.ACTIVE.label
 
 
-def test_save_model_sets_created_by_to_session_user(rf):
+def test_save_model_sets_created_by_to_session_user(rf, empty_feed_items):
     user = f.UserFactory.create(is_superuser=True)
     request = rf.post("/admin/feeds/feeditem/add/")
     request.user = user
@@ -140,7 +140,7 @@ def test_form_rejects_expiration_before_publication():
     assert "expiration_date" in form.errors
 
 
-def test_form_rejects_second_active_release_naming_existing():
+def test_form_rejects_second_active_release_naming_existing(empty_feed_items):
     f.FeedItemFactory.create(
         type=FeedItemType.RELEASE,
         title="Current release",

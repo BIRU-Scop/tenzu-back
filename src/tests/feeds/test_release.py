@@ -38,7 +38,7 @@ from tests.utils import factories as f
 
 
 @pytest.mark.django_db
-def test_apply_release_creates_new_and_closes_previous():
+def test_apply_release_creates_new_and_closes_previous(empty_feed_items):
     now = aware_utcnow()
     previous = f.FeedItemFactory.create(
         type=FeedItemType.RELEASE,
@@ -73,7 +73,11 @@ def test_build_migration_source_is_valid_and_roundtrips_adversarial_content():
     # Tricky content: triple-quotes, backslashes, braces, newlines.
     content = "Tricky \"\"\" ''' \\ {not_a_field} content\nsecond line"
     source = build_migration_source(
-        title="My Release", content=content, dependency="0001_initial"
+        title="My Release",
+        content=content,
+        dependency="0001_initial",
+        action_title="",
+        action_url="",
     )
 
     # Syntactically valid.
