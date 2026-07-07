@@ -24,7 +24,13 @@ from feeds.models import FeedItem, FeedItemType
 
 
 def apply_release(
-    FeedItemModel: type[FeedItem], *, title: str, content: str, now: datetime
+    FeedItemModel: type[FeedItem],
+    *,
+    title: str,
+    content: str,
+    now: datetime,
+    action_title: str = "",
+    action_url: str = "",
 ) -> FeedItem:
     previous = FeedItemModel.objects.filter(
         type=FeedItemType.RELEASE, active_period__upper_inf=True
@@ -40,4 +46,6 @@ def apply_release(
         content=content,
         type=FeedItemType.RELEASE,
         active_period=DateTimeTZRange(now, None, bounds="[)"),
+        action_title=action_title,
+        action_url=action_url,
     )
