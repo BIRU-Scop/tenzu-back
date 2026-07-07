@@ -34,13 +34,15 @@ from feeds.migrations._data import apply_release
 
 TITLE = {title!r}
 CONTENT = {content!r}
+ACTION_TITLE = {action_title!r}
+ACTION_URL = {action_url!r}
 
 
 def forwards(apps, schema_editor):
-    # publication_date = the migration's apply time (per instance); also closes
+    # now = the migration's apply time (per instance); also closes
     # the previous active release.
     FeedItem = apps.get_model("feeds", "FeedItem")
-    apply_release(FeedItem, title=TITLE, content=CONTENT, now=timezone.now())
+    apply_release(FeedItem, title=TITLE, content=CONTENT, now=timezone.now(), action_title=ACTION_TITLE, action_url=ACTION_URL)
 
 
 class Migration(migrations.Migration):
@@ -49,8 +51,16 @@ class Migration(migrations.Migration):
 """
 
 
-def build_migration_source(*, title: str, content: str, dependency: str) -> str:
-    return _MIGRATION_BODY.format(title=title, content=content, dependency=dependency)
+def build_migration_source(
+    *, title: str, content: str, action_title: str, action_url: str, dependency: str
+) -> str:
+    return _MIGRATION_BODY.format(
+        title=title,
+        content=content,
+        action_title=action_title,
+        action_url=action_url,
+        dependency=dependency,
+    )
 
 
 def next_migration_name(leaf_name: str, title: str) -> str:
@@ -77,6 +87,16 @@ class Command(BaseCommand):
             required=True,
             help="Release title (max 50 characters).",
         )
+        parser.add_argument(
+            "--action_title",
+            default="",
+            help="Title for the optional CTA (max 30 characters).",
+        )
+        parser.add_argument(
+            "--action_url",
+            default="",
+            help="URL of the action.",
+        )
 
     def handle(self, *args, **options):
         title: str = options["title"]
@@ -102,7 +122,11 @@ class Command(BaseCommand):
 
         name = next_migration_name(leaf_name, title)
         source = build_migration_source(
-            title=title, content=content, dependency=leaf_name
+            title=title,
+            content=content,
+            action_title=options["action_title"],
+            action_url=options["action_url"],
+            dependency=leaf_name,
         )
 
         migrations_dir = Path(apps.get_app_config("feeds").path) / "migrations"

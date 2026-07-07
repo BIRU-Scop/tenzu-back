@@ -70,14 +70,14 @@ def test_is_active_expired():
 ##########################################################
 
 
-def test_only_one_release_without_expiration():
+def test_only_one_release_without_expiration(empty_feed_items):
     f.FeedItemFactory.create(type=FeedItemType.RELEASE, expiration_date=None)
 
     with pytest.raises(IntegrityError):
         f.FeedItemFactory.create(type=FeedItemType.RELEASE, expiration_date=None)
 
 
-def test_closed_release_allows_a_new_active_one():
+def test_closed_release_allows_a_new_active_one(empty_feed_items):
     now = aware_utcnow()
     f.FeedItemFactory.create(
         type=FeedItemType.RELEASE,
