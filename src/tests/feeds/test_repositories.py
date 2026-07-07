@@ -33,7 +33,7 @@ pytestmark = pytest.mark.django_db
 ##########################################################
 
 
-async def test_list_active_returns_only_active_with_read_at():
+async def test_list_active_returns_only_active_with_read_at(empty_feed_items):
     now = aware_utcnow()
     user = await f.create_user()
     other = await f.create_user()
@@ -74,7 +74,7 @@ async def test_list_active_returns_only_active_with_read_at():
     assert all(item.read_at is None for item in items_other)
 
 
-async def test_list_active_orders_maintenance_first_then_recent():
+async def test_list_active_orders_maintenance_first_then_recent(empty_feed_items):
     now = aware_utcnow()
     user = await f.create_user()
     maintenance = await f.create_feed_item(
