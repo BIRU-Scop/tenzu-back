@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 @app.periodic(cron=settings.STORAGE.CLEAN_DELETED_STORAGE_OBJECTS_CRON)  # type: ignore
 @app.task
-async def clean_deleted_storaged_objects(timestamp: int) -> int:
-    total_deleted = await storage_services.clean_deleted_storaged_objects(
+def clean_deleted_storaged_objects(timestamp: int) -> int:
+    total_deleted = storage_services.clean_deleted_storaged_objects(
         before=aware_utcnow()
         - timedelta(days=settings.STORAGE.DAYS_TO_STORE_DELETED_STORAGED_OBJECTS)
     )
