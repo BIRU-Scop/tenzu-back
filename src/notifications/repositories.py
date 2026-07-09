@@ -123,9 +123,9 @@ async def mark_notifications_as_read(
 ##########################################################
 
 
-async def delete_notifications(filters: NotificationFilters = {}) -> int:
+def delete_notifications(filters: NotificationFilters = {}) -> int:
     qs = Notification.objects.all().filter(**filters)
-    count, _ = await qs.adelete()
+    count, _ = qs.delete()
     return count
 
 
