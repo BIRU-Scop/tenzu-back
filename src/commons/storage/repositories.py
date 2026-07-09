@@ -18,14 +18,15 @@
 # You can contact BIRU at ask@biru.sh
 
 from datetime import datetime
+from functools import partial
 from typing import TypedDict
 from uuid import UUID
 
 from django.core.files import File
+from django.db import transaction
 from django.db.models.deletion import RestrictedError
 
 from commons.storage.models import StoragedObject
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from ninja_jwt.utils import aware_utcnow
 
 ##########################################################
@@ -60,11 +61,11 @@ async def bulk_create_storaged_objects(
 ##########################################################
 
 
-async def list_storaged_objects(
+def list_storaged_objects(
     filters: StoragedObjectFilters = {},
 ) -> list[StoragedObject]:
     qs = StoragedObject.objects.all().filter(**filters)
-    return [so async for so in qs]
+    return list(qs)
 
 
 ##########################################################
@@ -72,19 +73,20 @@ async def list_storaged_objects(
 ########################################################
 
 
-@transaction_atomic_async
-async def delete_storaged_object(
+@transaction.atomic
+def delete_storaged_object(
     storaged_object: StoragedObject,
 ) -> bool:
     try:
-        await transaction_atomic_async(storaged_object.adelete)()
+        with transaction.atomic():
+            storaged_object.delete()
     except RestrictedError:
         # This happens when you try to delete a StoragedObject that is being used by someone
         # (using ForeignKey with on_delete=PROTECT).
         # TODO: log this
         return False
     else:
-        await transaction_on_commit_async(storaged_object.file.delete)(save=False)
+        transaction.on_commit(partial(storaged_object.file.delete, save=False))
         return True
 
 

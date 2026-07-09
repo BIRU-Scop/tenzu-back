@@ -501,12 +501,12 @@ async def test_change_password_and_check_password():
 ##########################################################
 
 
-async def test_clean_expired_users():
-    total_users = await User.objects.acount()
-    await f.create_user(is_active=False)  # without token - it'll be cleaned
-    user = await f.create_user(is_active=False)  # with token - it won't be cleaned
-    await sync_to_async(VerifyUserToken.for_user)(user)
+def test_clean_expired_users():
+    total_users = User.objects.count()
+    f.UserFactory.create(is_active=False)  # without token - it'll be cleaned
+    user = f.UserFactory.create(is_active=False)  # with token - it won't be cleaned
+    VerifyUserToken.for_user(user)
 
-    assert await User.objects.acount() == total_users + 2
-    await users_repositories.clean_expired_users()
-    assert await User.objects.acount() == total_users + 1
+    assert User.objects.count() == total_users + 2
+    users_repositories.clean_expired_users()
+    assert User.objects.count() == total_users + 1

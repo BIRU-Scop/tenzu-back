@@ -552,8 +552,8 @@ async def reset_password(token: str, password: str) -> User:
 #####################################################################
 
 
-async def clean_expired_users() -> None:
-    await users_repositories.clean_expired_users()
+def clean_expired_users() -> None:
+    users_repositories.clean_expired_users()
 
 
 async def _accept_invitations_from_token(

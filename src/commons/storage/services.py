@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,15 +22,13 @@ from datetime import datetime
 from commons.storage import repositories as storage_repositories
 
 
-async def clean_deleted_storaged_objects(before: datetime) -> int:
-    storaged_objects = await storage_repositories.list_storaged_objects(
+def clean_deleted_storaged_objects(before: datetime) -> int:
+    storaged_objects = storage_repositories.list_storaged_objects(
         filters={"deleted_at__lt": before}
     )
     deleted = 0
     for storaged_object in storaged_objects:
-        if await storage_repositories.delete_storaged_object(
-            storaged_object=storaged_object
-        ):
+        if storage_repositories.delete_storaged_object(storaged_object=storaged_object):
             deleted += 1
 
     return deleted

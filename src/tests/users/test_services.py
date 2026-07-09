@@ -1369,7 +1369,7 @@ async def test_reset_password_ok_without_user():
 ##########################################################
 
 
-async def test_clean_expired_users():
+def test_clean_expired_users():
     with patch("users.services.users_repositories", autospec=True) as fake_users_repo:
-        await services.clean_expired_users()
-        fake_users_repo.clean_expired_users.assert_awaited_once()
+        services.clean_expired_users()
+        fake_users_repo.clean_expired_users.assert_called_once()
