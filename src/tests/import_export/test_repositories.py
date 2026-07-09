@@ -177,7 +177,7 @@ async def test_delete_project_importation():
         deleted = await repositories.delete_project_importation(
             project_importation=project_importation
         )
-    assert deleted == 1
+    assert deleted
     assert not Path(source_path).exists()
 
 

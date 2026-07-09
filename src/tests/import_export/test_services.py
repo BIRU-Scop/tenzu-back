@@ -241,9 +241,7 @@ async def test_delete_project_ok():
         fake_projects_services.delete_project.assert_awaited_with(
             project_importation.project, deleted_by=project_importation.created_by
         )
-        fake_import_export_repositories.delete_project_importation.assert_awaited_with(
-            project_importation=project_importation
-        )
+        fake_import_export_repositories.delete_project_importation.assert_not_awaited()
         fake_import_export_events.emit_event_when_project_importation_is_deleted.assert_awaited_once_with(
             workspace_id=project_importation.workspace_id,
             project_importation_id=project_importation.id,

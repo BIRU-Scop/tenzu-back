@@ -185,15 +185,18 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
             project_importation=project_importation
         )
 
+    deleted = False
     if project_importation.project is not None:
-        await projects_services.delete_project(
+        deleted = await projects_services.delete_project(
             project_importation.project, deleted_by=project_importation.created_by
         )
-    deleted = await import_export_repositories.delete_project_importation(
-        project_importation=project_importation
-    )
+    if not deleted:
+        # If the project was deleted, we don't need to delete associated importation since its on_delete is set to cascade
+        deleted = await import_export_repositories.delete_project_importation(
+            project_importation=project_importation
+        )
 
-    if deleted > 0:
+    if deleted:
         # Emit event
         await transaction_on_commit_async(
             import_export_events.emit_event_when_project_importation_is_deleted
