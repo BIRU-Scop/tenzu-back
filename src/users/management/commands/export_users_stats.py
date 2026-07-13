@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -74,7 +74,7 @@ class Command(BaseCommand):
         file_path: Path = options["file_path"]
         qs = self.exclude_demo_test_data(User.objects.all().order_by("date_joined"))
 
-        # force overrite of old file no matter the storage class
+        # force overwrite of old file no matter the storage class
         if isinstance(default_storage, S3Storage):
             storage_options["file_overwrite"] = True
         elif isinstance(default_storage, FileSystemStorage):

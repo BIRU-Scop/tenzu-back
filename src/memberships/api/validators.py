@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 
-from typing import List, Self
+from typing import Self
 
 from pydantic import (
     EmailStr,
@@ -64,7 +64,7 @@ class _InvitationValidator(BaseValidatorSchema):
 
 class InvitationsValidator(BaseValidatorSchema):
     # Max items 50 and duplicated items not allowed
-    invitations: Annotated[List[_InvitationValidator], Field(max_length=50)]
+    invitations: Annotated[list[_InvitationValidator], Field(max_length=50)]
 
 
 class UpdateInvitationValidator(BaseValidatorSchema):

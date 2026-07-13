@@ -23,7 +23,6 @@ from django.contrib.contenttypes.models import ContentType
 
 from attachments import repositories
 from attachments.models import Attachment
-from attachments.repositories import BulkAttachment
 from base.db.models import get_contenttype_for_model
 from commons.storage.models import StoragedObject
 from stories.stories.models import Story
@@ -66,12 +65,16 @@ async def test_bulk_create_attachment(project_template):
     )  # fill cache for later generic relation queries
 
     bulk_attachments = [
-        BulkAttachment(
-            file=file,
-            created_by=user,
+        Attachment(
+            storaged_object=StoragedObject(file=file),
+            name=file.name or "unknown",
+            size=file.size,
+            content_type=file.content_type,
             content_object=story,
+            created_by=user,
         )
-    ] * 2
+        for _ in range(2)
+    ]
     await repositories.bulk_create_attachments(bulk_attachments)
 
     attachments = [attachment async for attachment in Attachment.objects.all()]

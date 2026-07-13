@@ -17,8 +17,10 @@
 #
 # You can contact BIRU at ask@biru.sh
 from operator import attrgetter
+from unittest.mock import patch
 
 import pytest
+from django.conf import settings
 
 from memberships.choices import InvitationStatus
 from permissions.choices import ProjectPermissions
@@ -84,6 +86,25 @@ async def test_create_project_invitations_user_wrong_email_format(
     user = await f.create_user()
     client.login(user)
     response = await client.post(f"/projects/{project.b64id}/invitations", json=data)
+    assert response.status_code == 422, response.data
+
+
+async def test_create_project_invitations_user_invalid_domain(client, project_template):
+    project = await f.create_project(project_template)
+    roles = list(project.roles.all())
+    member_role = next(filter(lambda role: role.slug == "member", roles))
+    data = {
+        "invitations": [
+            {"email": "test@allowed.coml", "role_id": member_role.b64id},
+            {"email": "test@email.com", "role_id": member_role.b64id},
+        ]
+    }
+    user = await f.create_user()
+    client.login(user)
+    with patch.object(settings.ACCOUNT, "USER_EMAIL_ALLOWED_DOMAINS", ["allowed.com"]):
+        response = await client.post(
+            f"/projects/{project.b64id}/invitations", json=data
+        )
     assert response.status_code == 422, response.data
 
 

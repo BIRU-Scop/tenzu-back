@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -26,7 +26,7 @@ from users import tasks
 ##########################################################
 
 
-async def test_clean_expired_users():
+def test_clean_expired_users():
     with patch("users.tasks.users_services", autospec=True) as fake_users_services:
-        await tasks.clean_expired_users(0)
-        fake_users_services.clean_expired_users.assert_awaited_once()
+        tasks.clean_expired_users(0)
+        fake_users_services.clean_expired_users.assert_called_once()

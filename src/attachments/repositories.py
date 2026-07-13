@@ -53,12 +53,6 @@ AttachmentPrefetchRelated = list[
 ]
 
 
-class BulkAttachment(TypedDict):
-    file: UploadedFile
-    created_by: User | None
-    content_object: Model
-
-
 ##########################################################
 # create attachment
 ##########################################################
@@ -82,19 +76,8 @@ async def create_attachment(
 
 
 async def bulk_create_attachments(
-    bulk_attachments: list[BulkAttachment],
+    attachments: list[Attachment],
 ) -> list[Attachment]:
-    attachments = [
-        Attachment(
-            storaged_object=StoragedObject(file=attachment["file"]),
-            name=attachment["file"].name or "unknown",
-            size=get_size(attachment["file"].file),
-            content_type=attachment["file"].content_type or "application/octet-stream",
-            content_object=attachment["content_object"],
-            created_by=attachment["created_by"],
-        )
-        for attachment in bulk_attachments
-    ]
     storaged_objects = [attachment.storaged_object for attachment in attachments]
     # done first in order to populate ids of storaged_objects, only work on compatible database like postgres
     await storage_repositories.bulk_create_storaged_objects(storaged_objects)

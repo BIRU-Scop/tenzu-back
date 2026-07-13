@@ -115,9 +115,9 @@ def _make_ws_query(
         qs = qs.prefetch_related(
             Prefetch(
                 "project_importations",
-                queryset=ProjectImportation.objects.filter(created_by=user).exclude(
-                    status=ImportationStatus.SUCCESS
-                ),
+                queryset=ProjectImportation.objects.filter(created_by=user)
+                .exclude(status=ImportationStatus.SUCCESS)
+                .select_related("project"),
                 to_attr="user_imported_projects",
             ),
         )

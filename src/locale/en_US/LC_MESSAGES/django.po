@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 19:24+0000\n"
+"POT-Creation-Date: 2026-06-25 13:17+0000\n"
 "PO-Revision-Date: 2022-08-24 17:03+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: en_US <LL@li.org>\n"
@@ -245,16 +245,146 @@ msgid_plural "datetime.lifetime.days %(count)d"
 msgstr[0] "%(count)d day"
 msgstr[1] "%(count)d days"
 
-#: emails/templatetags/email_extra.py:123
+#: emails/templatetags/email_extra.py:124
 #, python-format
 msgid "datetime.lifetime.hour %(count)d"
 msgid_plural "datetime.lifetime.hours %(count)d"
 msgstr[0] "%(count)d hour"
 msgstr[1] "%(count)d hours"
 
-#: emails/templatetags/email_extra.py:130
+#: emails/templatetags/email_extra.py:131
 #, python-format
 msgid "datetime.lifetime.minute %(count)d"
 msgid_plural "datetime.lifetime.minutes %(count)d"
 msgstr[0] "%(count)d minute"
 msgstr[1] "%(count)d minutes"
+
+#: feeds/admin.py:70
+msgid "publication date"
+msgstr "publication date"
+
+#: feeds/admin.py:73
+msgid "expiration date"
+msgstr "expiration date"
+
+#: feeds/admin.py:98
+#, python-format
+msgid "Timezone: %(tz)s (stored in UTC)."
+msgstr "Timezone: %(tz)s (stored in UTC)."
+
+#: feeds/admin.py:112 feeds/admin.py:114
+msgid "Required for a call-to-action."
+msgstr "Required for a call-to-action."
+
+#: feeds/admin.py:118
+msgid "Required when an action title is set."
+msgstr "Required when an action title is set."
+
+#: feeds/admin.py:124
+msgid "The end date cannot be earlier than the publication date."
+msgstr "The end date cannot be earlier than the publication date."
+
+#: feeds/admin.py:161
+#, python-format
+msgid "This %(item_type)s overlaps “%(title)s” (from %(start)s to %(end)s)."
+msgstr "This %(item_type)s overlaps “%(title)s” (from %(start)s to %(end)s)."
+
+#: feeds/admin.py:184 feeds/admin.py:226
+msgid "status"
+msgstr "status"
+
+#: feeds/admin.py:219
+msgid "Action (call-to-action)"
+msgstr "Action (call-to-action)"
+
+#: feeds/admin.py:222
+msgid "Scheduling"
+msgstr "Scheduling"
+
+#: feeds/admin.py:223
+msgid "Metadata"
+msgstr "Metadata"
+
+#: feeds/models.py:39
+msgid "Maintenance"
+msgstr "Maintenance"
+
+#: feeds/models.py:40
+msgid "Release"
+msgstr "Release"
+
+#: feeds/models.py:41
+msgid "Call to action"
+msgstr "Call to action"
+
+#: feeds/models.py:47
+msgid "Scheduled"
+msgstr "Scheduled"
+
+#: feeds/models.py:48
+msgid "Active"
+msgstr "Active"
+
+#: feeds/models.py:49
+msgid "Expired"
+msgstr "Expired"
+
+#: feeds/models.py:57
+msgid "title"
+msgstr "title"
+
+#: feeds/models.py:62
+msgid "content"
+msgstr "content"
+
+#: feeds/models.py:63
+msgid "Markdown content."
+msgstr "Markdown content."
+
+#: feeds/models.py:70
+msgid "type"
+msgstr "type"
+
+#: feeds/models.py:77
+msgid "action title"
+msgstr "action title"
+
+#: feeds/models.py:83
+msgid "action url"
+msgstr "action url"
+
+#: feeds/models.py:92
+msgid "active period"
+msgstr "active period"
+
+#: feeds/models.py:98
+msgid "read by"
+msgstr "read by"
+
+#: feeds/models.py:102 feeds/models.py:181
+msgid "feed item"
+msgstr "feed item"
+
+#: feeds/models.py:103
+msgid "feed items"
+msgstr "feed items"
+
+#: feeds/models.py:189
+msgid "user"
+msgstr "user"
+
+#: feeds/models.py:195
+msgid "read at"
+msgstr "read at"
+
+#: feeds/models.py:199
+msgid "feed item read status"
+msgstr "feed item read status"
+
+#: feeds/models.py:200
+msgid "feed item read statuses"
+msgstr "feed item read statuses"
+
+#: import_export/services/__init__.py:70
+msgid "Suspicious file, try to shorten the file name"
+msgstr "Suspicious file, try to shorten the file name"

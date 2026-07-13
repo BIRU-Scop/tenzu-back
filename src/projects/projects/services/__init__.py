@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-import functools
+from operator import attrgetter
 from typing import Any
 from uuid import UUID
 
@@ -27,14 +27,17 @@ from ninja import UploadedFile
 from pydantic import ValidationError
 
 from base.utils.images import ImageSizeFormat, get_thumbnail
+from commons.colors import generate_random_color
 from commons.utils import (
     async_cache,
     get_absolute_url,
     transaction_atomic_async,
     transaction_on_commit_async,
 )
+from import_export.models import ProjectImportation
 from permissions.choices import ProjectPermissions
 from projects.memberships import repositories as memberships_repositories
+from projects.memberships.models import ProjectRole
 from projects.projects import events as projects_events
 from projects.projects import repositories as projects_repositories
 from projects.projects import tasks as projects_tasks
@@ -64,19 +67,21 @@ async def create_project(
     color: int | None,
     logo: UploadedFile | None = None,
 ) -> ProjectDetailSerializer:
-    project = await _create_project(
-        await _get_default_template(),
-        workspace=workspace,
-        name=name,
-        created_by=created_by,
-        description=description,
-        color=color,
-        logo_file=logo,
-    )
+    project: Project = (
+        await _create_project(
+            await _get_default_template(),
+            workspace=workspace,
+            name=name,
+            created_by=created_by,
+            description=description,
+            color=color,
+            logo_file=logo,
+        )
+    )[0]
     await transaction_on_commit_async(
         projects_events.emit_event_when_project_is_created
     )(project=project)
-    return await get_project_detail(project=project, user=created_by)
+    return await get_project_detail(project=project, user=created_by, importation=None)
 
 
 @async_cache
@@ -118,7 +123,7 @@ async def _create_project(
     color: int | None,
     logo_file: UploadedFile | None = None,
     **kwargs,
-) -> Project:
+) -> tuple[Project, list[ProjectRole]]:
     """
     Create project using provided template and set user cache property for role
     """
@@ -127,6 +132,8 @@ async def _create_project(
         if template and template.workflows
         else ""
     )
+    if not color:
+        color = generate_random_color()
 
     project = await projects_repositories.create_project(
         workspace=workspace,
@@ -143,8 +150,8 @@ async def _create_project(
         template=template, project=project
     )
     try:
-        owner_role = [role for role in roles if role.is_owner][0]
-    except IndexError as e:
+        owner_role = next(filter(attrgetter("is_owner"), roles))
+    except StopIteration as e:
         raise Exception(
             "Default project template does not have a owner role. "
             "Try to load fixtures again and check if the error persist."
@@ -156,7 +163,7 @@ async def _create_project(
 
     project.user_is_invited = False
 
-    return project
+    return project, roles
 
 
 ##########################################################
@@ -177,15 +184,20 @@ async def list_workspace_projects_for_user(
 ##########################################################
 
 
-async def get_project(project_id: UUID, get_workspace=False) -> Project:
+async def get_project(
+    project_id: UUID, get_workspace=False, get_importation=False
+) -> Project:
+    select_related = (["workspace"] if get_workspace else []) + (
+        ["importation"] if get_importation else []
+    )
     return await projects_repositories.get_project(
         project_id=project_id,
-        select_related=["workspace"] if get_workspace else [None],
+        select_related=select_related or [None],
     )
 
 
 async def get_project_detail(
-    project: Project, user: AnyUser
+    project: Project, user: AnyUser, importation: ProjectImportation | None = None
 ) -> ProjectDetailSerializer:
     if (
         user.project_role is not None
@@ -201,6 +213,9 @@ async def get_project_detail(
         ]
     else:
         workflows = []
+    # Only serialise importation for creator of importation
+    if importation is not None and importation.created_by_id != user.id:
+        importation = None
 
     return ProjectDetailSerializer(
         id=project.id,
@@ -215,6 +230,7 @@ async def get_project_detail(
         workflows=workflows,
         user_role=user.project_role,
         user_is_invited=user.is_invited or False,
+        importation=importation,
     )
 
 
@@ -227,7 +243,11 @@ async def update_project(
     project: Project, updated_by: User, values: dict[str, Any] = {}
 ) -> ProjectDetailSerializer:
     updated_project = await _update_project(project=project, values=values)
-    project_detail = await get_project_detail(project=updated_project, user=updated_by)
+    project_detail = await get_project_detail(
+        project=updated_project,
+        user=updated_by,
+        importation=getattr(project, "importation", None),
+    )
     await projects_events.emit_event_when_project_is_updated(
         project_detail=project_detail, updated_by=updated_by
     )

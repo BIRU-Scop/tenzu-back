@@ -21,11 +21,13 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from import_export.models import ImportationStatus
 from permissions.choices import ProjectPermissions
 from projects.projects import services
 from projects.projects.models import ProjectTemplate
 from projects.projects.repositories import ProjectTemplateModel
 from tests.utils import factories as f
+from tests.utils.bad_params import NOT_EXISTING_UUID
 from tests.utils.utils import patch_db_transaction
 
 
@@ -68,10 +70,12 @@ async def test_create_project():
         fake_create_project.assert_awaited_once()
         fake_get_default_template.assert_awaited_once()
         fake_get_project_detail.assert_awaited_once_with(
-            project=fake_create_project.return_value, user=workspace.created_by
+            project=fake_create_project.return_value[0],
+            user=workspace.created_by,
+            importation=None,
         )
         fake_projects_events.emit_event_when_project_is_created.assert_awaited_once_with(
-            project=fake_create_project.return_value
+            project=fake_create_project.return_value[0]
         )
 
 
@@ -97,6 +101,7 @@ async def test_internal_create_project():
             member_role,
             owner_role,
         ]
+        services._get_default_template.cache_clear()
 
         await services.create_project(
             workspace=workspace,
@@ -257,8 +262,50 @@ async def test_list_workspace_projects_for_a_ws_member():
 
 
 ##########################################################
-# get_project_detail
+# get_project
 ##########################################################
+
+
+async def test_get_project():
+    with (
+        patch(
+            "projects.projects.services.projects_repositories", autospec=True
+        ) as fake_projects_repositories,
+    ):
+        await services.get_project(
+            NOT_EXISTING_UUID, get_workspace=False, get_importation=False
+        )
+        fake_projects_repositories.get_project.assert_awaited_once_with(
+            project_id=NOT_EXISTING_UUID,
+            select_related=[None],
+        )
+        fake_projects_repositories.get_project.reset_mock()
+
+        await services.get_project(
+            NOT_EXISTING_UUID, get_workspace=True, get_importation=False
+        )
+        fake_projects_repositories.get_project.assert_awaited_once_with(
+            project_id=NOT_EXISTING_UUID,
+            select_related=["workspace"],
+        )
+        fake_projects_repositories.get_project.reset_mock()
+
+        await services.get_project(
+            NOT_EXISTING_UUID, get_workspace=False, get_importation=True
+        )
+        fake_projects_repositories.get_project.assert_awaited_once_with(
+            project_id=NOT_EXISTING_UUID,
+            select_related=["importation"],
+        )
+        fake_projects_repositories.get_project.reset_mock()
+
+        await services.get_project(
+            NOT_EXISTING_UUID, get_workspace=True, get_importation=True
+        )
+        fake_projects_repositories.get_project.assert_awaited_once_with(
+            project_id=NOT_EXISTING_UUID,
+            select_related=["workspace", "importation"],
+        )
 
 
 async def test_get_project_detail():
@@ -280,6 +327,7 @@ async def test_get_project_detail():
         assert fake_ProjectDetailSerializer.call_args.kwargs["workflows"] == []
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_role"] is None
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_is_invited"] is False
+        assert fake_ProjectDetailSerializer.call_args.kwargs["importation"] is None
 
         # with membership's role empty permissions
         project.created_by.project_role = role
@@ -289,6 +337,7 @@ async def test_get_project_detail():
         assert fake_ProjectDetailSerializer.call_args.kwargs["workflows"] == []
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_role"] == role
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_is_invited"] is False
+        assert fake_ProjectDetailSerializer.call_args.kwargs["importation"] is None
 
         # with membership's role ok permissions
         role = f.build_project_role(
@@ -310,6 +359,37 @@ async def test_get_project_detail():
         assert fake_ProjectDetailSerializer.call_args.kwargs["workflows"] == [workflow]
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_role"] == role
         assert fake_ProjectDetailSerializer.call_args.kwargs["user_is_invited"] is True
+        assert fake_ProjectDetailSerializer.call_args.kwargs["importation"] is None
+
+
+async def test_get_project_detail_importation():
+    with (
+        patch(
+            "projects.projects.services.ProjectDetailSerializer", autospec=True
+        ) as fake_ProjectDetailSerializer,
+    ):
+        project = f.build_project()
+        await services.get_project_detail(
+            project=project,
+            user=project.created_by,
+            importation=getattr(project, "importation", None),
+        )
+        assert fake_ProjectDetailSerializer.call_args.kwargs["importation"] is None
+
+        project = f.build_project(importation__status=ImportationStatus.ACTION_NEEDED)
+        await services.get_project_detail(
+            project=project, user=project.created_by, importation=project.importation
+        )
+        assert fake_ProjectDetailSerializer.call_args.kwargs["importation"]
+        assert (
+            fake_ProjectDetailSerializer.call_args.kwargs["importation"].status
+            == ImportationStatus.ACTION_NEEDED
+        )
+
+        await services.get_project_detail(
+            project=project, user=f.build_user(), importation=project.importation
+        )
+        assert fake_ProjectDetailSerializer.call_args.kwargs["importation"] is None
 
 
 ##########################################################
@@ -319,7 +399,7 @@ async def test_get_project_detail():
 
 async def test_update_project_ok(tqmanager):
     user = f.build_user()
-    project = f.build_project()
+    project = f.build_project(importation__status=ImportationStatus.ACTION_NEEDED)
     values = {"name": "new name", "description": ""}
 
     with (
@@ -340,7 +420,7 @@ async def test_update_project_ok(tqmanager):
         fake_updated_project = fake_pj_repo.update_project.return_value
         assert len(tqmanager.pending_jobs) == 0
         fake_get_project_detail.assert_awaited_once_with(
-            project=fake_updated_project, user=user
+            project=fake_updated_project, user=user, importation=project.importation
         )
         fake_updated_project_detail = fake_get_project_detail.return_value
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
@@ -373,7 +453,7 @@ async def test_update_project_ok_with_new_logo(tqmanager):
         fake_updated_project = fake_pj_repo.update_project.return_value
         assert len(tqmanager.pending_jobs) == 0
         fake_get_project_detail.assert_awaited_once_with(
-            project=fake_updated_project, user=user
+            project=fake_updated_project, user=user, importation=None
         )
         fake_updated_project_detail = fake_get_project_detail.return_value
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(
@@ -411,7 +491,7 @@ async def test_update_project_ok_with_logo_replacement(tqmanager):
         assert "file_name" in job["args"]
         assert job["args"]["file_name"] == logo.name
         fake_get_project_detail.assert_awaited_once_with(
-            project=fake_updated_project, user=user
+            project=fake_updated_project, user=user, importation=None
         )
         fake_updated_project_detail = fake_get_project_detail.return_value
         fake_projects_events.emit_event_when_project_is_updated.assert_awaited_once_with(

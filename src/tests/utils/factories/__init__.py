@@ -19,6 +19,13 @@
 
 from .attachments import AttachmentFactory, build_attachment, create_attachment  # noqa
 from .comments import CommentFactory, build_comment, create_comment  # noqa
+from .feeds import (  # noqa
+    FeedItemFactory,
+    FeedItemReadStatusFactory,
+    build_feed_item,
+    create_feed_item,
+    create_feed_item_read_status,
+)
 from .files import (  # noqa
     build_binary_file,
     build_binary_fileio,

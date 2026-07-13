@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -25,6 +25,7 @@ from django.http.request import HttpRequest
 
 from base.db import admin
 from base.db.admin import forms
+from commons.admin import ReadOnlyAdmin, ReadOnlyTabularInline
 from projects.invitations.models import ProjectInvitation
 from projects.memberships.models import ProjectMembership
 from system.services import get_available_languages_info
@@ -34,7 +35,7 @@ from workspaces.memberships.models import WorkspaceMembership
 admin.site.unregister(Group)
 
 
-class ProjectInvitationInline(admin.TabularInline):
+class ProjectInvitationInline(ReadOnlyTabularInline):
     model = ProjectInvitation
     fk_name = "user"
     fields = (
@@ -46,14 +47,13 @@ class ProjectInvitationInline(admin.TabularInline):
         "status",
         "num_emails_sent",
     )
-    readonly_fields = ("project", "role", "user", "email", "invited_by")
     extra = 0
 
     def has_add_permission(self, request: HttpRequest, obj: Any = None) -> bool:
         return False
 
 
-class ProjectMembershipsInline(admin.TabularInline):
+class ProjectMembershipsInline(ReadOnlyTabularInline):
     model = ProjectMembership
     fields = ("project", "role")
     extra = 0
@@ -62,7 +62,7 @@ class ProjectMembershipsInline(admin.TabularInline):
         return False
 
 
-class WorkspaceMembershipsInline(admin.TabularInline):
+class WorkspaceMembershipsInline(ReadOnlyTabularInline):
     model = WorkspaceMembership
     fields = ("workspace",)
     extra = 0
@@ -72,7 +72,7 @@ class WorkspaceMembershipsInline(admin.TabularInline):
 
 
 @admin.register(User)
-class UserAdmin(DjangoUserAdmin):
+class UserAdmin(DjangoUserAdmin, ReadOnlyAdmin):
     fieldsets = (
         (None, {"fields": ("id", "username", "password")}),
         (
@@ -93,7 +93,6 @@ class UserAdmin(DjangoUserAdmin):
             {"fields": (("date_joined", "date_verification"), "last_login")},
         ),
     )
-    readonly_fields = ("id", "date_joined", "date_verification", "last_login")
     # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
     # overrides get_fieldsets to use this attribute when creating a user.
     add_fieldsets = (

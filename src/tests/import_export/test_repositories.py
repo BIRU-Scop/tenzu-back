@@ -19,12 +19,17 @@ from pathlib import Path
 
 import pytest
 
+from attachments.models import Attachment
+from comments.models import Comment
 from import_export import repositories
 from import_export.models import (
     ImportationStatus,
     ProjectImportation,
     ProjectImportationType,
 )
+from ninja_jwt.utils import aware_utcnow
+from stories.assignments.models import StoryAssignment
+from stories.stories.models import Story
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_UUID
 from tests.utils.utils import async_django_capture_on_commit_callbacks
@@ -170,3 +175,109 @@ async def test_delete_project_importation():
         )
     assert deleted == 1
     assert not Path(source_path).exists()
+
+
+##########################################################
+# backport previous users
+##########################################################
+
+
+async def test_sync_pending_objects():
+    now = aware_utcnow()
+    user = await f.create_user()
+
+    story = await f.create_story()
+    already_done_story = await f.create_story(created_by=user)
+
+    other_assignment = await f.create_story_assignment()
+    already_done_assignment = await f.create_story_assignment(user=user)
+
+    attachment = await f.create_attachment(
+        content_object=story,
+    )
+    already_done_attachment = await f.create_attachment(
+        content_object=story, created_by=user
+    )
+
+    comment = await f.create_comment(
+        content_object=story,
+    )
+    already_done_comment = await f.create_comment(content_object=story, created_by=user)
+
+    deleted_comment = await f.create_comment(content_object=story, deleted_at=now)
+    already_done_deleted_comment = await f.create_comment(
+        content_object=story, deleted_at=now, deleted_by=user
+    )
+    wrong_state_deleted_comment = await f.create_comment(
+        content_object=story, deleted_by=user
+    )
+
+    await repositories.sync_pending_objects(
+        user_id=user.id,
+        pending_invites={
+            "role_id": NOT_EXISTING_UUID,
+            "created_stories_ids": [story.id, already_done_story.id, NOT_EXISTING_UUID],
+            "assigned_stories_ids": [
+                story.id,
+                other_assignment.story_id,
+                already_done_assignment.story_id,
+                NOT_EXISTING_UUID,
+            ],
+            "created_attachments_ids": [
+                attachment.id,
+                already_done_attachment.id,
+                NOT_EXISTING_UUID,
+            ],
+            "created_comments_ids": [
+                comment.id,
+                already_done_comment.id,
+                NOT_EXISTING_UUID,
+            ],
+            "deleted_comments_ids": [
+                deleted_comment.id,
+                already_done_deleted_comment.id,
+                wrong_state_deleted_comment.id,
+                NOT_EXISTING_UUID,
+            ],
+        },
+    )
+    assert (
+        await Story.objects.filter(
+            id__in=[story.id, already_done_story.id], created_by=user
+        ).acount()
+        == 2
+    )
+    assert (
+        await StoryAssignment.objects.filter(
+            story_id__in=[
+                story.id,
+                other_assignment.story_id,
+                already_done_assignment.story_id,
+            ],
+            user=user,
+        ).acount()
+        == 3
+    )
+    assert (
+        await Attachment.objects.filter(
+            id__in=[attachment.id, already_done_attachment.id], created_by=user
+        ).acount()
+        == 2
+    )
+    assert (
+        await Comment.objects.filter(
+            id__in=[comment.id, already_done_comment.id], created_by=user
+        ).acount()
+        == 2
+    )
+    assert (
+        await Comment.objects.filter(
+            id__in=[
+                deleted_comment.id,
+                already_done_deleted_comment.id,
+                wrong_state_deleted_comment.id,
+            ],
+            deleted_by=user,
+        ).acount()
+        == 3
+    )

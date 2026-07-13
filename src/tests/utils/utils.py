@@ -95,3 +95,11 @@ def set_prefetched_qs_cache(model_object: Model, related_values: dict[str, list]
         qs._result_cache = value
         qs._prefetch_done = True
         model_object._prefetched_objects_cache[field] = qs
+
+
+def add_to_selected_instance_cache(model_object: Model, related_values: dict[str, Any]):
+    """
+    this is useful to hack prefetched cache of model object and prevent additional dbqueries
+    """
+    for field, value in related_values.items():
+        model_object._state.fields_cache[field] = value

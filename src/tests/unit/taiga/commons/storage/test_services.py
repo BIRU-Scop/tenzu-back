@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -25,7 +25,7 @@ from ninja_jwt.utils import aware_utcnow
 from tests.utils import factories as f
 
 
-async def test_clean_deleted_storaged_objects():
+def test_clean_deleted_storaged_objects():
     storaged_objects = [
         f.build_storaged_object(),
         f.build_storaged_object(),
@@ -38,9 +38,7 @@ async def test_clean_deleted_storaged_objects():
         fake_storage_repositories.list_storaged_objects.return_value = storaged_objects
         fake_storage_repositories.delete_storaged_object.return_value = True
 
-        assert (
-            await services.clean_deleted_storaged_objects(before=before_datetime) == 2
-        )
+        assert services.clean_deleted_storaged_objects(before=before_datetime) == 2
 
         fake_storage_repositories.list_storaged_objects.assert_awaited_once_with(
             filters={"deleted_at__lt": before_datetime}
