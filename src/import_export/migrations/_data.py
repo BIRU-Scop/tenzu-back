@@ -31,6 +31,7 @@ async def fill_pending_invites_for_importations_in_batches(
 
     importations_to_process = (
         ProjectImportationClass.objects.exclude(status=ImportationStatus.FAILURE)
+        .filter(project__isnull=False)
         .select_related("created_by")
         .prefetch_related("project__roles")
     )
