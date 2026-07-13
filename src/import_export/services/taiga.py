@@ -374,7 +374,7 @@ async def do_import_taiga_users(
             deleted_comments_ids=[],
         )
     for membership in taiga_project.memberships or []:
-        if membership.user is None or membership.user in (
+        if not membership.email or membership.email in (
             taiga_project.owner,
             project_importation.created_by.email,
         ):
@@ -384,7 +384,7 @@ async def do_import_taiga_users(
             if membership.is_admin
             else taiga_roles_mapping.get(membership.role, readonlymember_role).id
         )
-        pending_invites[membership.user] = ProjectImportationPendingInvitation(
+        pending_invites[membership.email] = ProjectImportationPendingInvitation(
             role_id=role_id,
             assigned_stories_ids=[],
             created_stories_ids=[],
