@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 @app.periodic(cron=settings.NOTIFICATIONS.CLEAN_READ_NOTIFICATIONS_CRON)  # type: ignore
 @app.task
-async def clean_read_notifications(timestamp: int) -> int:
-    total_deleted = await notifications_services.clean_read_notifications(
+def clean_read_notifications(timestamp: int) -> int:
+    total_deleted = notifications_services.clean_read_notifications(
         before=aware_utcnow()
         - timedelta(minutes=settings.NOTIFICATIONS.MINUTES_TO_STORE_READ_NOTIFICATIONS)
     )

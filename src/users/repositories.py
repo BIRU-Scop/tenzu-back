@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -447,14 +447,14 @@ def update_last_login(user: User) -> None:
     django_update_last_login(User, user)
 
 
-async def clean_expired_users() -> None:
+def clean_expired_users() -> None:
     # delete all users that are not currently active (is_active=False)
     # and have never verified the account (date_verification=None)
     # and don't have an outstanding token associated (exclude)
-    await (
+    (
         User.objects.filter(is_active=False, date_verification=None)
         .exclude(id__in=OutstandingToken.objects.values_list("user_id"))
-        .adelete()
+        .delete()
     )
 
 

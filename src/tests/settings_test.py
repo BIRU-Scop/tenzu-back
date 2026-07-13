@@ -61,3 +61,7 @@ STORAGES = {
 
 REQUIRED_TERMS = True
 MAX_UPLOAD_FILE_SIZE = 1 * 1024  # 1 KB
+
+PROCRASTINATE_PERIODIC_DEFAULTS = {
+    "max_delay": -1
+}  # prevent any periodic tasks from running in tests

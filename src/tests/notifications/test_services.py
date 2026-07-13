@@ -186,7 +186,7 @@ async def test_mark_user_notifications_as_read_with_many():
 #####################################################################
 
 
-async def test_clean_read_notifications():
+def test_clean_read_notifications():
     now = aware_utcnow()
 
     with (
@@ -196,7 +196,7 @@ async def test_clean_read_notifications():
     ):
         fake_notifications_repository.delete_notifications.return_value = 1
 
-        assert await services.clean_read_notifications(before=now) == 1
+        assert services.clean_read_notifications(before=now) == 1
 
         fake_notifications_repository.delete_notifications.assert_called_once_with(
             filters={

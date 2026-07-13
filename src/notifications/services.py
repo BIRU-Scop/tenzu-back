@@ -90,7 +90,7 @@ async def count_user_notifications(user: User) -> dict[str, int]:
     return {**count, "total": count["read"] + count["unread"]}
 
 
-async def clean_read_notifications(before: datetime) -> int:
-    return await notifications_repositories.delete_notifications(
+def clean_read_notifications(before: datetime) -> int:
+    return notifications_repositories.delete_notifications(
         filters={"read_at__isnull": False, "read_at__lt": before}
     )

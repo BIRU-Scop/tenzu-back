@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -25,5 +25,5 @@ from users import services as users_services
 
 @app.periodic(cron=settings.CLEAN_EXPIRED_USERS_CRON)  # type: ignore
 @app.task
-async def clean_expired_users(timestamp: int) -> None:
-    await users_services.clean_expired_users()
+def clean_expired_users(timestamp: int) -> None:
+    users_services.clean_expired_users()

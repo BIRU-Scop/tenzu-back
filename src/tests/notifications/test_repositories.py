@@ -20,6 +20,7 @@
 from datetime import timedelta
 
 import pytest
+from asgiref.sync import async_to_sync
 
 from ninja_jwt.utils import aware_utcnow
 from notifications import repositories
@@ -146,45 +147,45 @@ async def test_mark_notifications_as_read():
 ##########################################################
 
 
-async def test_delete_notifications():
-    user1 = await f.create_user()
-    user2 = await f.create_user()
-    user3 = await f.create_user()
+def test_delete_notifications():
+    user1 = f.UserFactory.create()
+    user2 = f.UserFactory.create()
+    user3 = f.UserFactory.create()
 
     now = aware_utcnow()
 
-    await f.create_notification(owner=user1, created_by=user3)
-    await f.create_notification(
+    f.NotificationFactory.create(owner=user1, created_by=user3)
+    f.NotificationFactory.create(
         owner=user1, created_by=user3, read_at=now - timedelta(minutes=1)
     )
-    await f.create_notification(
+    f.NotificationFactory.create(
         owner=user1, created_by=user3, read_at=now - timedelta(minutes=2)
     )
 
-    await f.create_notification(owner=user2, created_by=user3)
-    await f.create_notification(
+    f.NotificationFactory.create(owner=user2, created_by=user3)
+    f.NotificationFactory.create(
         owner=user2, created_by=user3, read_at=now - timedelta(minutes=1)
     )
 
-    await repositories.delete_notifications(
+    repositories.delete_notifications(
         filters={"read_at__lt": now - timedelta(minutes=1)}
     )
 
-    assert 4 == await Notification.objects.acount()
-    count = await repositories.count_notifications(filters={"owner": user1})
+    assert 4 == Notification.objects.count()
+    count = async_to_sync(repositories.count_notifications)(filters={"owner": user1})
     assert count["read"] == 1
     assert count["unread"] == 1
-    count = await repositories.count_notifications(filters={"owner": user2})
+    count = async_to_sync(repositories.count_notifications)(filters={"owner": user2})
     assert count["read"] == 1
     assert count["unread"] == 1
 
-    await repositories.delete_notifications(filters={"read_at__lt": now})
+    repositories.delete_notifications(filters={"read_at__lt": now})
 
-    assert 2 == await Notification.objects.acount()
-    count = await repositories.count_notifications(filters={"owner": user1})
+    assert 2 == Notification.objects.count()
+    count = async_to_sync(repositories.count_notifications)(filters={"owner": user1})
     assert count["read"] == 0
     assert count["unread"] == 1
-    count = await repositories.count_notifications(filters={"owner": user2})
+    count = async_to_sync(repositories.count_notifications)(filters={"owner": user2})
     assert count["read"] == 0
     assert count["unread"] == 1
 
