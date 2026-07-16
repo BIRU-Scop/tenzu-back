@@ -199,9 +199,9 @@ async def test_list_project_importations_422_unprocessable_workspace_b64id(clien
 async def test_delete_project_importation_204_no_content_being_importation_creator(
     client,
 ):
-    # without project
+    # pending without project
     project_importation = await f.create_project_importation(
-        status=ImportationStatus.FAILURE, project=None
+        status=ImportationStatus.PENDING, project=None
     )
 
     client.login(project_importation.created_by)
@@ -210,7 +210,7 @@ async def test_delete_project_importation_204_no_content_being_importation_creat
     )
     assert response.status_code == 204, response.data
 
-    # with project
+    # failure with project
     project_importation = await f.create_project_importation(
         status=ImportationStatus.FAILURE,
     )

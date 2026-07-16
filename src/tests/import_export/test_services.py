@@ -206,7 +206,7 @@ async def test_delete_project_ok():
         patch_db_transaction(),
     ):
         fake_import_export_repositories.delete_project_importation.return_value = 1
-        # without project
+        # failure without project
         project_importation = f.build_project_importation(
             status=ImportationStatus.FAILURE, project=None
         )
@@ -214,6 +214,7 @@ async def test_delete_project_ok():
             project_importation=project_importation
         )
 
+        fake_import_export_repositories.cancel_project_importation.assert_not_awaited()
         fake_projects_services.delete_project.assert_not_awaited()
         fake_import_export_repositories.delete_project_importation.assert_awaited_once_with(
             project_importation=project_importation
@@ -224,22 +225,23 @@ async def test_delete_project_ok():
             importation_owner=project_importation.created_by,
         )
 
-        # with project
+        # ongoing with project
         fake_import_export_repositories.delete_project_importation.reset_mock()
         fake_import_export_events.emit_event_when_project_importation_is_deleted.reset_mock()
         project_importation = f.build_project_importation(
-            status=ImportationStatus.FAILURE, created_by=project_importation.created_by
+            status=ImportationStatus.ONGOING, created_by=project_importation.created_by
         )
         await services.delete_project_importation(
             project_importation=project_importation
         )
 
+        fake_import_export_repositories.cancel_project_importation.assert_awaited_once_with(
+            project_importation=project_importation
+        )
         fake_projects_services.delete_project.assert_awaited_with(
             project_importation.project, deleted_by=project_importation.created_by
         )
-        fake_import_export_repositories.delete_project_importation.assert_awaited_with(
-            project_importation=project_importation
-        )
+        fake_import_export_repositories.delete_project_importation.assert_not_awaited()
         fake_import_export_events.emit_event_when_project_importation_is_deleted.assert_awaited_once_with(
             workspace_id=project_importation.workspace_id,
             project_importation_id=project_importation.id,
