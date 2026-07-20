@@ -15,7 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from pydantic import EmailStr, field_validator
 
@@ -34,24 +34,32 @@ class ProjectImportationPendingInvitationNested(TypedDict, total=True):
 class ProjectImportationNestedSerializer(BaseSchema):
     id: UUIDB64
     status: ImportationStatus
-    pending_invites: (
-        dict[EmailStr, ProjectImportationPendingInvitation]
-        | list[ProjectImportationPendingInvitationNested]
-    )
+    pending_invites: list[ProjectImportationPendingInvitationNested]
 
-    @field_validator("pending_invites", mode="after")
+    @field_validator(
+        "pending_invites",
+        mode="before",
+        json_schema_input_type=dict[EmailStr, ProjectImportationPendingInvitation]
+        | list[ProjectImportationPendingInvitationNested],
+    )
     @classmethod
     def to_list(
         cls,
-        value: dict[EmailStr, ProjectImportationPendingInvitation]
-        | list[ProjectImportationPendingInvitationNested],
+        value: Any,
     ) -> list[ProjectImportationPendingInvitationNested]:
         if isinstance(value, list):
             # This happens when serializer is called on already serialized object
             return value
-        return [
-            ProjectImportationPendingInvitationNested(
-                email=email, role_id=pending_invitation["role_id"]
-            )
-            for email, pending_invitation in value.items()
-        ]
+        if isinstance(value, dict):
+            try:
+                return [
+                    ProjectImportationPendingInvitationNested(
+                        email=email, role_id=pending_invitation["role_id"]
+                    )
+                    for email, pending_invitation in value.items()
+                ]
+            except KeyError:
+                pass
+        raise ValueError(
+            "'pending_invites' should be a dict of {email -> pending invitations}"
+        )
