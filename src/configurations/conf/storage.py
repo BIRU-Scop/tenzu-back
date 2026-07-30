@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,7 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 from enum import StrEnum
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, PositiveInt, model_validator
 from typing_extensions import Self
 
 
@@ -53,6 +53,11 @@ class StorageSettings(BaseModel):
     STATIC_BACKEND_CLASS: StaticStorageBackends = (
         StaticStorageBackends.CompressedManifestWhitenoiseStorage
     )
+
+    IMPORTATION_MAX_UPLOAD_FILE_SIZE: PositiveInt | None = (
+        20 * 1024 * 1024 * 1024
+    )  # 20 GB
+    TUS_UPLOAD_EXPIRATION: PositiveInt | None = 48  # 48h
 
     @model_validator(mode="after")
     def validate_storage_backend(self) -> Self:
