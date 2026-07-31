@@ -27,6 +27,7 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from commons.storage import services as storage_services
 from commons.validators import B64UUID
 from import_export import services as import_export_services
 from import_export.api.validators import ImportationFileField, ImportProjectValidator
@@ -55,7 +56,7 @@ import_export_router = Router()
     url_name="importation.projects.create",
     summary="Create and launch a project importation",
     response={
-        200: BaseDataSchema[ProjectImportationSerializer],
+        200: BaseDataSchema[None],
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -69,9 +70,11 @@ async def launch_project_importation(
     workspace_id: Path[B64UUID],
     form: Form[ImportProjectValidator],
     source: File[ImportationFileField],
-) -> ProjectImportationSerializer:
+) -> None:
     """
     Launch an importation for a project in a given workspace.
+    A resumable upload protocol is used in order to permit big files
+    The importation will only be created once the upload has been completed
     """
     workspace = await get_workspace_or_404(workspace_id=workspace_id)
 
@@ -80,11 +83,16 @@ async def launch_project_importation(
         user=request.user,
         obj=workspace,
     )
-    return await import_export_services.import_project(
+    return await storage_services.create_tus_upload(
         user=request.user,
-        workspace=workspace,
-        origin_type=form.origin_type,
+        file_name=source.name or "",
         source=source,
+        completion_hook="import_export.services.import_project",
+        completion_hook_parameters=dict(
+            user_id=request.user.id,
+            workspace_id=workspace_id,
+            origin_type=form.origin_type,
+        ),
     )
 
 

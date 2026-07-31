@@ -55,16 +55,16 @@ logger = logging.getLogger(__name__)
 
 @transaction_atomic_async()
 async def import_project(
-    user: User,
-    workspace: Workspace,
+    user_id: UUID,
+    workspace_id: UUID,
     origin_type: ProjectImportationType,
     source: UploadedFile,
 ) -> ProjectImportationSerializer:
     try:
         project_importation = (
             await import_export_repositories.create_project_importation(
-                user=user,
-                workspace=workspace,
+                user_id=user_id,
+                workspace_id=workspace_id,
                 origin_type=origin_type,
                 source_file=source,
             )

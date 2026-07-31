@@ -23,11 +23,15 @@ from typing import TypedDict
 from uuid import UUID
 
 from django.core.files import File
+from django.core.files.storage import FileSystemStorage
+from django.core.files.utils import validate_file_name
 from django.db import transaction
 from django.db.models.deletion import RestrictedError
+from storages.backends.s3 import S3Storage
 
-from commons.storage.models import StoragedObject
+from commons.storage.models import S3PendingUploadData, StoragedObject, TusUpload
 from ninja_jwt.utils import aware_utcnow
+from users.models import User
 
 ##########################################################
 # filters and querysets
@@ -95,3 +99,56 @@ def mark_storaged_object_as_deleted(
 ) -> None:
     storaged_object.deleted_at = aware_utcnow()
     storaged_object.save(update_fields=["deleted_at"])
+
+
+##########################################################
+# create tus upload
+##########################################################
+
+
+async def create_tus_upload(
+    user: User,
+    file_name: str,
+    file: File | None,
+    completion_hook: str,
+    **completion_hook_parameters,
+) -> TusUpload:
+    file_field = TusUpload._meta.get_field("file")
+    storage = file_field.storage
+    s3_pending_upload_data = {}
+
+    if isinstance(storage, S3Storage):
+        name = file_field.generate_filename(None, file_name)
+        validate_file_name(name, allow_relative_path=True)
+        # Potentially find a different name depending on storage constraints.
+        name = storage.get_available_name(name, max_length=file_field.max_length)
+        # Validate the (potentially) new name.
+        validate_file_name(name, allow_relative_path=True)
+
+        name = name[len(storage.location) :].lstrip("/")
+
+        obj = storage.bucket.Object(name)
+        multipart_upload = obj.initiate_multipart_upload(
+            **storage._get_write_parameters(
+                obj.key
+            )  # TODO pass contenttype as argument
+        )
+        # list(storage.bucket.multipart_uploads.filter(UploadIdMarker=multipart_upload.id))
+        s3_pending_upload_data = S3PendingUploadData(
+            upload_id=multipart_upload.id, parts=[]
+        )
+    elif isinstance(storage, FileSystemStorage):
+        if file is None:
+            file = storage.open(file_name, "w")
+            file.close()
+    else:
+        raise ValueError(
+            "TusUpload is only supported for S3Storage and FileSystemStorage"
+        )
+    return await TusUpload.objects.acreate(
+        created_by=user,
+        file=file,
+        completion_hook=completion_hook,
+        completion_hook_parameters=completion_hook_parameters,
+        pending_upload_data=s3_pending_upload_data,
+    )

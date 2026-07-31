@@ -44,16 +44,16 @@ from workspaces.workspaces.models import Workspace
 
 
 async def create_project_importation(
-    user: User,
-    workspace: Workspace,
+    user_id: UUID,
+    workspace_id: UUID,
     origin_type: ProjectImportationType,
     source_file: File,
 ) -> ProjectImportation:
     importation = ProjectImportation(
-        created_by=user,
+        created_by_id=user_id,
         origin_type=origin_type,
         source=source_file,
-        workspace=workspace,
+        workspace_id=workspace_id,
     )
 
     await importation.asave()

@@ -19,7 +19,10 @@
 
 from datetime import datetime
 
+from ninja import UploadedFile
+
 from commons.storage import repositories as storage_repositories
+from users.models import User
 
 
 def clean_deleted_storaged_objects(before: datetime) -> int:
@@ -32,3 +35,15 @@ def clean_deleted_storaged_objects(before: datetime) -> int:
             deleted += 1
 
     return deleted
+
+
+async def create_tus_upload(
+    user: User,
+    file_name: str,
+    source: UploadedFile | None,
+    completion_hook: str,
+    **completion_hook_parameters,
+):
+    await storage_repositories.create_tus_upload(
+        user, file_name, source, completion_hook, **completion_hook_parameters
+    )
