@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,7 +22,7 @@ from django.core.mail import EmailMultiAlternatives, get_connection
 from django.core.mail.backends.base import BaseEmailBackend
 
 
-async def send_email_message(
+def send_email_message(
     subject: str | None = None,
     to_emails: list[str] = [],
     from_email: str | None = None,

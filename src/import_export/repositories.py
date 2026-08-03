@@ -20,6 +20,7 @@ from typing import Any
 from uuid import UUID
 
 from django.core.files import File
+from django.db import transaction
 from procrastinate.contrib.django import app
 from procrastinate.contrib.django.models import ProcrastinateJob
 
@@ -150,8 +151,8 @@ async def cancel_project_importation(project_importation: ProjectImportation) ->
 ##########################################################
 
 
-@transaction_atomic_async()
-async def sync_pending_objects(
+@transaction.atomic
+def sync_pending_objects(
     user_id: UUID, pending_invites: ProjectImportationPendingInvitation
 ):
     if pending_invites["assigned_stories_ids"]:
@@ -159,26 +160,26 @@ async def sync_pending_objects(
         existing_stories_ids = Story.objects.filter(
             id__in=pending_invites["assigned_stories_ids"]
         ).values_list("id", flat=True)
-        await StoryAssignment.objects.abulk_create(
+        StoryAssignment.objects.bulk_create(
             [
                 StoryAssignment(story_id=story_id, user_id=user_id)
-                async for story_id in existing_stories_ids
+                for story_id in existing_stories_ids
             ],
             ignore_conflicts=True,
         )
     if pending_invites["created_stories_ids"]:
-        await Story.objects.filter(
-            id__in=pending_invites["created_stories_ids"]
-        ).aupdate(created_by_id=user_id)
+        Story.objects.filter(id__in=pending_invites["created_stories_ids"]).update(
+            created_by_id=user_id
+        )
     if pending_invites["created_attachments_ids"]:
-        await Attachment.objects.filter(
+        Attachment.objects.filter(
             id__in=pending_invites["created_attachments_ids"]
-        ).aupdate(created_by_id=user_id)
+        ).update(created_by_id=user_id)
     if pending_invites["created_comments_ids"]:
-        await Comment.objects.filter(
-            id__in=pending_invites["created_comments_ids"]
-        ).aupdate(created_by_id=user_id)
+        Comment.objects.filter(id__in=pending_invites["created_comments_ids"]).update(
+            created_by_id=user_id
+        )
     if pending_invites["deleted_comments_ids"]:
-        await Comment.objects.filter(
-            id__in=pending_invites["deleted_comments_ids"]
-        ).aupdate(deleted_by_id=user_id)
+        Comment.objects.filter(id__in=pending_invites["deleted_comments_ids"]).update(
+            deleted_by_id=user_id
+        )

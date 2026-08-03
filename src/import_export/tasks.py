@@ -19,6 +19,7 @@
 
 import logging
 
+from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.db import DatabaseError
 from procrastinate import RetryStrategy
@@ -39,21 +40,21 @@ logger = logging.getLogger(__name__)
         retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
     )
 )
-async def import_taiga_project(project_importation_id: str) -> None:
+def import_taiga_project(project_importation_id: str) -> None:
     from import_export import services as import_export_services
 
-    importation = await import_export_services.get_project_importation(
+    importation = async_to_sync(import_export_services.get_project_importation)(
         project_importation_id=decode_b64str_to_uuid(project_importation_id)
     )
-    await do_import_taiga_project(importation)
+    async_to_sync(do_import_taiga_project)(importation)
 
 
 @app.task()
-async def sync_importation_pending_objects(
+def sync_importation_pending_objects(
     user_id: str, pending_invites: ProjectImportationPendingInvitation
 ) -> None:
     from import_export import repositories as import_export_repositories
 
-    await import_export_repositories.sync_pending_objects(
+    import_export_repositories.sync_pending_objects(
         user_id=decode_b64str_to_uuid(user_id), pending_invites=pending_invites
     )
