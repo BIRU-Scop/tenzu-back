@@ -104,6 +104,7 @@ INSTALLED_APPS = [
     "projects.projects",
     "stories.assignments",
     "stories.stories",
+    "stories.tags",
     "attachments",
     "comments",
     "feeds",

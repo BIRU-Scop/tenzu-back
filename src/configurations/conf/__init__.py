@@ -118,6 +118,9 @@ class Settings(BaseSettings):
     # Workflows
     MAX_NUM_WORKFLOWS: int = 8
 
+    # Story tags
+    MAX_STORY_TAGS_PER_PROJECT: int = 200
+
     # Tasks (linux crontab style)
     CLEAN_EXPIRED_USERS_CRON: str = "0 0 * * *"  # default: once a day
     CLEAN_EXPIRED_TOKENS_CRON: str = "0 0 * * *"  # default: once a day
