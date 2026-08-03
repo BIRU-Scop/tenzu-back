@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from base64 import urlsafe_b64decode
 from datetime import datetime
 
 from ninja import UploadedFile
@@ -47,3 +47,12 @@ async def create_tus_upload(
     await storage_repositories.create_tus_upload(
         user, file_name, source, completion_hook, **completion_hook_parameters
     )
+
+
+def parse_tus_metadata(upload_metadata: str) -> dict:
+    if not upload_metadata:
+        return {}
+    return {
+        key: urlsafe_b64decode(value[0]) if value else None
+        for key, *value in (data.split(" ") for data in upload_metadata.split(","))
+    }

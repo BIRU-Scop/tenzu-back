@@ -15,9 +15,11 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Literal
 from uuid import UUID
 
-from ninja import File, Form, Path, Router, Status
+from ninja import File, Form, Header, Path, Router, Status
+from pydantic import NonNegativeInt, PositiveInt
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -68,12 +70,16 @@ import_export_router = Router()
 async def launch_project_importation(
     request,
     workspace_id: Path[B64UUID],
-    form: Form[ImportProjectValidator],
-    source: File[ImportationFileField],
+    upload_metadata: Header[ImportProjectValidator],
+    upload_length: Header[PositiveInt],
+    content_length: Header[NonNegativeInt],
+    content_type: Header[Literal["application/offset+octet-stream"]],
+    source: File[ImportationFileField] | None = None,
 ) -> None:
     """
     Launch an importation for a project in a given workspace.
     A resumable upload protocol is used in order to permit big files
+    See protocol spec for how to use: https://tus.io/protocols/resumable-upload
     The importation will only be created once the upload has been completed
     """
     workspace = await get_workspace_or_404(workspace_id=workspace_id)
@@ -85,13 +91,13 @@ async def launch_project_importation(
     )
     return await storage_services.create_tus_upload(
         user=request.user,
-        file_name=source.name or "",
+        file_name=upload_metadata.filename,
         source=source,
         completion_hook="import_export.services.import_project",
         completion_hook_parameters=dict(
             user_id=request.user.id,
             workspace_id=workspace_id,
-            origin_type=form.origin_type,
+            origin_type=upload_metadata.origin_type,
         ),
     )
 
