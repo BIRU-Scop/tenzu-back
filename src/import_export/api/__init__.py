@@ -18,8 +18,11 @@
 from typing import Literal
 from uuid import UUID
 
-from ninja import File, Form, Header, Path, Router, Status
-from pydantic import NonNegativeInt, PositiveInt
+from django.conf import settings
+from django.http import HttpResponse
+from ninja import File, Header, Path, Router, Status
+from pydantic import NonNegativeInt
+from storage.api import add_tus_headers, check_tus_request
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -27,6 +30,9 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
+    ERROR_RESPONSE_412,
+    ERROR_RESPONSE_413,
+    ERROR_RESPONSE_415,
     ERROR_RESPONSE_422,
 )
 from commons.storage import services as storage_services
@@ -62,26 +68,39 @@ import_export_router = Router()
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
+        412: ERROR_RESPONSE_412,
+        413: ERROR_RESPONSE_413,
+        415: ERROR_RESPONSE_415,
         422: ERROR_RESPONSE_422,
     },
-    tags=["workspaces", "projects", "import_export"],
+    tags=["workspaces", "projects", "import_export", "upload"],
     by_alias=True,
 )
 async def launch_project_importation(
     request,
+    response: HttpResponse,
     workspace_id: Path[B64UUID],
     upload_metadata: Header[ImportProjectValidator],
-    upload_length: Header[PositiveInt],
+    tus_resumable: Header[str],
+    upload_length: Header[NonNegativeInt],
     content_length: Header[NonNegativeInt],
-    content_type: Header[Literal["application/offset+octet-stream"]],
-    source: File[ImportationFileField] | None = None,
-) -> None:
+    source: File[
+        (
+            ImportationFileField,
+            {"max_length": settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE},
+        )
+    ]
+    | None = None,
+) -> Status[None]:
     """
     Launch an importation for a project in a given workspace.
     A resumable upload protocol is used in order to permit big files
     See protocol spec for how to use: https://tus.io/protocols/resumable-upload
     The importation will only be created once the upload has been completed
     """
+    check_tus_request(
+        request, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
+    )
     workspace = await get_workspace_or_404(workspace_id=workspace_id)
 
     await check_permissions(
@@ -89,10 +108,11 @@ async def launch_project_importation(
         user=request.user,
         obj=workspace,
     )
-    return await storage_services.create_tus_upload(
+    upload = await storage_services.create_tus_upload(
         user=request.user,
         file_name=upload_metadata.filename,
-        source=source,
+        file=source,
+        total_size=upload_length,
         completion_hook="import_export.services.import_project",
         completion_hook_parameters=dict(
             user_id=request.user.id,
@@ -100,6 +120,10 @@ async def launch_project_importation(
             origin_type=upload_metadata.origin_type,
         ),
     )
+    add_tus_headers(
+        response, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
+    )  # TODO use upload result
+    return Status(201, None)
 
 
 ##########################################################

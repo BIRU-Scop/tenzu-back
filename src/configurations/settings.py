@@ -325,6 +325,8 @@ STORAGES = {
         "BACKEND": f"{settings.STORAGE.STATIC_BACKEND_CLASS.value}",
     },
 }
+SUPPORTED_TUS_VERSION = "1.0.0"
+SUPPORTED_TUS_EXTENSIONS = "creation,creation-with-upload,expiration,termination"
 
 # easy_thumbnails
 

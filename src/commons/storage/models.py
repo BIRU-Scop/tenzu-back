@@ -95,10 +95,14 @@ class TusUpload(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
         blank=False,
         verbose_name="file",
     )
+    offset = models.PositiveBigIntegerField(default=0)
+    total_size = models.PositiveBigIntegerField()
+
     completion_hook = models.CharField(null=False, blank=False, max_length=128)
     completion_hook_parameters = models.JSONField(
         null=False, blank=True, default=dict, encoder=DjangoJSONEncoder
     )
+
     pending_upload_data: S3PendingUploadData | {} = models.JSONField(
         null=False,
         blank=True,

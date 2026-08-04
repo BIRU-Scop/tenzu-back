@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -55,6 +55,14 @@ EX_NOT_FOUND: Final = Error(
 EX_PRECONDITION_FAILED: Final = Error(
     code="precondition-failed",
     msg="A necessary precondition was not met",
+)
+EX_CONTENT_TOO_LARGE: Final = Error(
+    code="content-too-large",
+    msg="The maximum allowed upload size was exceeded",
+)
+EX_UNSUPPORTED_MEDIA_TYPE: Final = Error(
+    code="unsupported-media-type",
+    msg="The request used an unsupported content type or encoding",
 )
 EX_FAILED_DEPENDENCY: Final = Error(
     code="failed-dependency", msg="A required external dependency has failed"

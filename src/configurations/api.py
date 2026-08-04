@@ -65,6 +65,13 @@ api = NinjaAPI(
 )
 
 
+def add_headers(response, exc: HTTPException):
+    if exc.headers:
+        for header_name, header_value in exc.headers.items():
+            response.headers[header_name] = header_value
+    return response
+
+
 @api.exception_handler(TenzuServiceException)
 def tenzu_exception(request, exc: TenzuServiceException):
     return api.create_response(
@@ -112,16 +119,19 @@ def http_validation_exception(request, exc: ValidationError):
 
 @api.exception_handler(HTTPException)
 def http_exception(request, exc: HTTPException):
-    return api.create_response(
-        request,
-        {
-            "error": {
-                "code": exc.code,
-                "detail": exc.detail,
-                "msg": exc.message,
-            }
-        },
-        status=exc.status_code,
+    return add_headers(
+        api.create_response(
+            request,
+            {
+                "error": {
+                    "code": exc.code,
+                    "detail": exc.detail,
+                    "msg": exc.message,
+                }
+            },
+            status=exc.status_code,
+        ),
+        exc,
     )
 
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -91,23 +91,32 @@ class BadRequestErrorModel(GenericSingleError):
     msg: str = codes.EX_BAD_REQUEST.msg
 
 
+class PreconditionFailedModel(GenericSingleError):
+    code: str = codes.EX_PRECONDITION_FAILED.code
+    msg: str = codes.EX_PRECONDITION_FAILED.msg
+
+
+class ContentTooLargeModel(GenericSingleError):
+    code: str = codes.EX_CONTENT_TOO_LARGE.code
+    msg: str = codes.EX_CONTENT_TOO_LARGE.msg
+
+
+class UnsupportedMediaModel(GenericSingleError):
+    code: str = codes.EX_UNSUPPORTED_MEDIA_TYPE.code
+    msg: str = codes.EX_UNSUPPORTED_MEDIA_TYPE.msg
+
+
 class FailedDependencyModel(GenericSingleError):
     code: str = codes.EX_FAILED_DEPENDENCY.code
     msg: str = codes.EX_FAILED_DEPENDENCY.msg
 
 
-ErrorsDict = dict[int | str, dict[str, type[ErrorResponse[Any]]]]
-
 ERROR_RESPONSE_400 = ErrorResponse[BadRequestErrorModel]
 ERROR_RESPONSE_401 = ErrorResponse[UnauthorizedErrorModel]
 ERROR_RESPONSE_403 = ErrorResponse[ForbiddenErrorModel]
 ERROR_RESPONSE_404 = ErrorResponse[NotFoundErrorModel]
+ERROR_RESPONSE_412 = ErrorResponse[PreconditionFailedModel]
+ERROR_RESPONSE_413 = ErrorResponse[ContentTooLargeModel]
+ERROR_RESPONSE_415 = ErrorResponse[UnsupportedMediaModel]
 ERROR_RESPONSE_422 = ErrorResponse[UnprocessableEntityModel]
 ERROR_RESPONSE_424 = ErrorResponse[FailedDependencyModel]
-
-ERROR_400: ErrorsDict = {400: {"model": ERROR_RESPONSE_400}}
-ERROR_401: ErrorsDict = {401: {"model": ERROR_RESPONSE_401}}
-ERROR_403: ErrorsDict = {403: {"model": ERROR_RESPONSE_403}}
-ERROR_404: ErrorsDict = {404: {"model": ERROR_RESPONSE_404}}
-ERROR_422: ErrorsDict = {422: {"model": ERROR_RESPONSE_422}}
-ERROR_424: ErrorsDict = {424: {"model": ERROR_RESPONSE_424}}

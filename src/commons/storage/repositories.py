@@ -110,6 +110,7 @@ async def create_tus_upload(
     user: User,
     file_name: str,
     file: File | None,
+    total_size: int,
     completion_hook: str,
     **completion_hook_parameters,
 ) -> TusUpload:
@@ -148,6 +149,7 @@ async def create_tus_upload(
     return await TusUpload.objects.acreate(
         created_by=user,
         file=file,
+        total_size=total_size,
         completion_hook=completion_hook,
         completion_hook_parameters=completion_hook_parameters,
         pending_upload_data=s3_pending_upload_data,
