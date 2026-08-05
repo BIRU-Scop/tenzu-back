@@ -16,12 +16,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from django.core.files.uploadedfile import UploadedFile as DjangoUploadedFile
+from typing import Literal
+
 from ninja import UploadedFile
 from pydantic import AfterValidator, WithJsonSchema, field_validator
-from storage.api.validators import TusMetadata
 from typing_extensions import Annotated
 
+from commons.storage.api.validators import TusMetadata
 from commons.validators import BaseValidatorSchema
 from import_export.models import ProjectImportationType
 
@@ -33,23 +34,13 @@ class ImportationFileField(UploadedFile):
 class _ImportProjectValidator(BaseValidatorSchema):
     origin_type: ProjectImportationType
     filename: str
-    filetype: str
+    filetype: Literal["application/json"]
 
     @field_validator("origin_type", mode="after")
     @classmethod
     def is_supported(cls, value: ProjectImportationType) -> ProjectImportationType:
         if value not in (ProjectImportationType.TAIGA,):
             raise ValueError(f"Importation of type {value} is not supported yet")
-        return value
-
-    @field_validator("filetype", mode="after")
-    @classmethod
-    def is_handled_type(cls, value: str) -> str:
-        supported_content_type = {"application/json"}
-        if value not in supported_content_type:
-            raise ValueError(
-                f"Invalid importation content type, expected one of {', '.join(supported_content_type)}"
-            )
         return value
 
 

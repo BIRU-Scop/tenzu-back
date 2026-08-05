@@ -19,10 +19,9 @@ from typing import Literal
 from uuid import UUID
 
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from ninja import File, Header, Path, Router, Status
 from pydantic import NonNegativeInt
-from storage.api import add_tus_headers, check_tus_request
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -36,6 +35,7 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_422,
 )
 from commons.storage import services as storage_services
+from commons.storage.api import add_tus_headers, check_tus_request
 from commons.validators import B64UUID
 from import_export import services as import_export_services
 from import_export.api.validators import ImportationFileField, ImportProjectValidator
@@ -64,7 +64,7 @@ import_export_router = Router()
     url_name="importation.projects.create",
     summary="Create and launch a project importation",
     response={
-        200: BaseDataSchema[None],
+        201: None,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
@@ -77,20 +77,20 @@ import_export_router = Router()
     by_alias=True,
 )
 async def launch_project_importation(
-    request,
+    request: HttpRequest,
     response: HttpResponse,
     workspace_id: Path[B64UUID],
     upload_metadata: Header[ImportProjectValidator],
     tus_resumable: Header[str],
     upload_length: Header[NonNegativeInt],
     content_length: Header[NonNegativeInt],
-    source: File[
-        (
-            ImportationFileField,
-            {"max_length": settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE},
-        )
-    ]
-    | None = None,
+    # source: File[
+    #     (
+    #         ImportationFileField,
+    #         {"max_length": settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE},
+    #     )
+    # ]
+    # | None = None,
 ) -> Status[None]:
     """
     Launch an importation for a project in a given workspace.
@@ -108,10 +108,12 @@ async def launch_project_importation(
         user=request.user,
         obj=workspace,
     )
-    upload = await storage_services.create_tus_upload(
+    tus_upload = await storage_services.create_tus_upload(
         user=request.user,
         file_name=upload_metadata.filename,
-        file=source,
+        file_content_type=upload_metadata.filetype,
+        request=request,
+        content_size=content_length,
         total_size=upload_length,
         completion_hook="import_export.services.import_project",
         completion_hook_parameters=dict(

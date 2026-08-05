@@ -19,6 +19,7 @@
 from base64 import urlsafe_b64decode
 from datetime import datetime
 
+from django.http import HttpRequest
 from ninja import UploadedFile
 
 from commons.storage import repositories as storage_repositories
@@ -41,13 +42,22 @@ def clean_deleted_storaged_objects(before: datetime) -> int:
 async def create_tus_upload(
     user: User,
     file_name: str,
-    file: UploadedFile | None,
+    file_content_type: str,
+    request: HttpRequest,
+    content_size: int,
     total_size: int,
     completion_hook: str,
-    **completion_hook_parameters,
+    completion_hook_parameters: dict,
 ) -> TusUpload:
+    request.content_type = file_content_type
     return await storage_repositories.create_tus_upload(
-        user, file_name, file, total_size, completion_hook, **completion_hook_parameters
+        user,
+        file_name,
+        request,
+        content_size,
+        total_size,
+        completion_hook,
+        completion_hook_parameters,
     )
 
 
@@ -55,6 +65,6 @@ def parse_tus_metadata(upload_metadata: str) -> dict:
     if not upload_metadata:
         return {}
     return {
-        key: urlsafe_b64decode(value[0]) if value else None
+        key: urlsafe_b64decode(value[0]).decode(encoding="utf-8") if value else None
         for key, *value in (data.split(" ") for data in upload_metadata.split(","))
     }

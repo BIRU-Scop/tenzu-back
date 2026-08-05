@@ -53,12 +53,12 @@ class StoragedObject(BaseDBModel, CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin
             models.Index(
                 TruncDate("created_at"),
                 "created_at",
-                name="%(app_label)s_%(class)s_created_at_date_idx",
+                name="%(app_label)s_%(class)s_created",
             ),
             models.Index(
                 TruncDate("deleted_at"),
                 "deleted_at",
-                name="%(app_label)s_%(class)s_deleted_at_date_idx",
+                name="%(app_label)s_%(class)s_deleted",
             ),
         ]
         ordering = [
@@ -78,13 +78,13 @@ get_tus_file_path = functools.partial(
 
 
 class S3Part(TypedDict, total=True):
-    ETag: str  # TODO specify type
+    ETag: str
     PartNumber: int
 
 
 class S3PendingUploadData(TypedDict, total=True):
     upload_id: str
-    parts: list[S3Part]
+    object_key: str
 
 
 class TusUpload(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
@@ -118,7 +118,7 @@ class TusUpload(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
             models.Index(
                 TruncDate("created_at"),
                 "created_at",
-                name="%(app_label)s_%(class)s_created_at_date_idx",
+                name="%(app_label)s_%(class)s_created",
             ),
         ]
 

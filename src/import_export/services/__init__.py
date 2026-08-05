@@ -25,6 +25,7 @@ from ninja import UploadedFile
 from ninja.errors import ValidationError as APIValidationError
 from pydantic_core import ErrorDetails
 
+from commons.storage.models import TusUpload
 from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from import_export import events as import_export_events
 from import_export import repositories as import_export_repositories
@@ -58,15 +59,16 @@ async def import_project(
     user_id: UUID,
     workspace_id: UUID,
     origin_type: ProjectImportationType,
-    source: UploadedFile,
+    tus_upload: TusUpload,
 ) -> ProjectImportationSerializer:
     try:
+        # TODO check file location afterwards, might be duplicated or still in tus folder
         project_importation = (
             await import_export_repositories.create_project_importation(
                 user_id=user_id,
                 workspace_id=workspace_id,
                 origin_type=origin_type,
-                source_file=source,
+                source_file=tus_upload.file,
             )
         )
     except SuspiciousFileOperation as e:
@@ -75,10 +77,10 @@ async def import_project(
             [
                 ErrorDetails(
                     type="suspicious_file_operation",
-                    loc=["file", "source"],
+                    loc=["file"],
                     msg=msg,
                     ctx={"error": msg},
-                    input=source.name,
+                    input=tus_upload.file.name,
                 )
             ]
         ) from e
