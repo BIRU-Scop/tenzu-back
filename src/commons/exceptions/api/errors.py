@@ -91,6 +91,11 @@ class BadRequestErrorModel(GenericSingleError):
     msg: str = codes.EX_BAD_REQUEST.msg
 
 
+class ConflictModel(GenericSingleError):
+    code: str = codes.EX_CONFLICT.code
+    msg: str = codes.EX_CONFLICT.msg
+
+
 class PreconditionFailedModel(GenericSingleError):
     code: str = codes.EX_PRECONDITION_FAILED.code
     msg: str = codes.EX_PRECONDITION_FAILED.msg
@@ -111,12 +116,19 @@ class FailedDependencyModel(GenericSingleError):
     msg: str = codes.EX_FAILED_DEPENDENCY.msg
 
 
+class LockedModel(GenericSingleError):
+    code: str = codes.EX_LOCKED.code
+    msg: str = codes.EX_LOCKED.msg
+
+
 ERROR_RESPONSE_400 = ErrorResponse[BadRequestErrorModel]
 ERROR_RESPONSE_401 = ErrorResponse[UnauthorizedErrorModel]
 ERROR_RESPONSE_403 = ErrorResponse[ForbiddenErrorModel]
 ERROR_RESPONSE_404 = ErrorResponse[NotFoundErrorModel]
+ERROR_RESPONSE_409 = ErrorResponse[ConflictModel]
 ERROR_RESPONSE_412 = ErrorResponse[PreconditionFailedModel]
 ERROR_RESPONSE_413 = ErrorResponse[ContentTooLargeModel]
 ERROR_RESPONSE_415 = ErrorResponse[UnsupportedMediaModel]
 ERROR_RESPONSE_422 = ErrorResponse[UnprocessableEntityModel]
+ERROR_RESPONSE_423 = ErrorResponse[LockedModel]
 ERROR_RESPONSE_424 = ErrorResponse[FailedDependencyModel]

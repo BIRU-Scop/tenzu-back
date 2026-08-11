@@ -75,6 +75,16 @@ import_export_router = Router()
     },
     tags=["workspaces", "projects", "import_export", "upload"],
     by_alias=True,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/offset+octet-stream": {
+                    "schema": {"type": "string", "format": "binary"}
+                }
+            },
+        }
+    },
 )
 async def launch_project_importation(
     request: HttpRequest,
@@ -84,13 +94,6 @@ async def launch_project_importation(
     tus_resumable: Header[str],
     upload_length: Header[NonNegativeInt],
     content_length: Header[NonNegativeInt],
-    # source: File[
-    #     (
-    #         ImportationFileField,
-    #         {"max_length": settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE},
-    #     )
-    # ]
-    # | None = None,
 ) -> Status[None]:
     """
     Launch an importation for a project in a given workspace.

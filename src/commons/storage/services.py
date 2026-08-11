@@ -62,6 +62,18 @@ async def create_tus_upload(
     )
 
 
+async def process_new_tus_content(
+    tus_upload: TusUpload,
+    request: HttpRequest,
+    content_size: int,
+) -> TusUpload:
+    return await storage_repositories.process_new_tus_content(
+        tus_upload=tus_upload,
+        request=request,
+        content_size=content_size,
+    )
+
+
 def parse_tus_metadata(upload_metadata: str) -> dict:
     if not upload_metadata:
         return {}

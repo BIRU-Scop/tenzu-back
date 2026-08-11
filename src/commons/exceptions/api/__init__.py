@@ -143,6 +143,22 @@ class NotFoundError(HTTPException):
 
 
 ##########################
+# HTTP 409: CONFLICT
+##########################
+
+
+class ConflictError(HTTPException):
+    def __init__(
+        self,
+        msg: str = codes.EX_CONFLICT.msg,
+        headers: dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            status_code=404, code=codes.EX_CONFLICT.code, msg=msg, headers=headers
+        )
+
+
+##########################
 # HTTP 412: PRECONDITION FAILED
 ##########################
 
@@ -221,6 +237,22 @@ class ValidationError(HTTPException):
             code=codes.EX_VALIDATION_ERROR.code,
             msg=msg,
             headers=headers,
+        )
+
+
+##########################
+# HTTP 423: LOCKED
+##########################
+
+
+class ConflictError(HTTPException):
+    def __init__(
+        self,
+        msg: str = codes.EX_LOCKED.msg,
+        headers: dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            status_code=404, code=codes.EX_LOCKED.code, msg=msg, headers=headers
         )
 
 

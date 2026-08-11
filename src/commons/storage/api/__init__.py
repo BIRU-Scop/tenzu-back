@@ -19,15 +19,22 @@ from uuid import UUID
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
+    ERROR_RESPONSE_409,
     ERROR_RESPONSE_412,
+    ERROR_RESPONSE_413,
+    ERROR_RESPONSE_415,
+    ERROR_RESPONSE_422,
+    ERROR_RESPONSE_423,
 )
 from ninja import Header, Path, Router, Status
 from ninja.decorators import decorate_view
+from pydantic import NonNegativeInt
 from validators import B64UUID
 
 from commons.exceptions import api as ex
@@ -47,7 +54,7 @@ storage_router = Router()
 @storage_router.api_operation(
     ["HEAD"],
     "/upload/{tus_upload_id}",
-    url_name="upload.tus.head",
+    url_name="upload.tus.info",
     summary="Check status of tus upload",
     response={
         200: None,
@@ -76,11 +83,72 @@ async def check_tus_upload(
         user=request.user,
         obj=tus_upload,
     )
-    add_tus_headers(response, tus_upload=tus_upload)
+    add_tus_headers(
+        response, tus_upload, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
+    )
     return Status(200, None)
 
 
-# TODO PATCH
+@storage_router.patch(
+    "/upload/{tus_upload_id}",
+    url_name="upload.tus.continue",
+    summary="Continue an ongoing tus upload",
+    response={
+        204: None,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        409: ERROR_RESPONSE_409,
+        412: ERROR_RESPONSE_412,
+        413: ERROR_RESPONSE_413,
+        415: ERROR_RESPONSE_415,
+        422: ERROR_RESPONSE_422,
+        423: ERROR_RESPONSE_423,
+    },
+    by_alias=True,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/offset+octet-stream": {
+                    "schema": {"type": "string", "format": "binary"}
+                }
+            },
+        }
+    },
+)
+async def continue_tus_upload(
+    request: HttpRequest,
+    response: HttpResponse,
+    tus_upload_id: Path[B64UUID],
+    tus_resumable: Header[str],
+    content_type: Header[str],
+    upload_offset: Header[NonNegativeInt],
+    content_length: Header[NonNegativeInt],
+) -> Status[None]:
+    """
+    Continue a tus upload where it left of
+    """
+    check_tus_request(request)
+    tus_upload = await get_tus_upload_or_404(tus_upload_id=tus_upload_id)
+    if tus_upload.offset != upload_offset:
+        raise ex.ConflictError(
+            f"Provided offset for TusUpload {tus_upload_id} is not equal to server's"
+        )
+
+    await check_permissions(
+        permissions=TusUploadPermissionsCheck.MODIFY.value,
+        user=request.user,
+        obj=tus_upload,
+    )
+    tus_upload = await storage_services.process_new_tus_content(
+        tus_upload, request, content_length
+    )
+    # TODO handle lock
+    add_tus_headers(
+        response, tus_upload, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
+    )
+    return Status(204, None)
 
 
 ##########################################################
@@ -97,7 +165,9 @@ async def get_tus_upload_or_404(tus_upload_id: UUID) -> TusUpload:
     return tus_upload
 
 
-def add_tus_headers(response, tus_upload: TusUpload, max_size: int | None = None):
+def add_tus_headers(
+    response: HttpResponse, tus_upload: TusUpload, max_size: int | None = None
+):
     """
     Utility that adds the response headers expected by the tus protocol
     """
@@ -107,9 +177,12 @@ def add_tus_headers(response, tus_upload: TusUpload, max_size: int | None = None
     if max_size is not None:
         response.headers["Tus-Max-Size"] = max_size
     response.headers["Upload-Offset"] = tus_upload.offset
-    response.header["Upload-Length"] = tus_upload.total_size
-    # response.header["Location"] = "TODO"
-    # response.header["Upload-Expires"] = "TODO"
+    response.headers["Upload-Length"] = tus_upload.total_size
+    response.headers["Location"] = reverse(
+        f"api-{settings.API_VERSION}:upload.tus.continue",
+        kwargs={"tus_upload_id": tus_upload.b64id},
+    )
+    # response.headers["Upload-Expires"] = "TODO"
 
 
 def check_tus_request(request, max_size: int | None = None):

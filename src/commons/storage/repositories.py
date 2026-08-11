@@ -164,16 +164,15 @@ async def create_tus_upload(
         completion_hook_parameters=completion_hook_parameters,
         pending_upload_data=s3_pending_upload_data,
     )
-    await process_content(tus_upload, request, content_size, total_size, storage)
-    return tus_upload
+    return await process_new_tus_content(tus_upload, request, content_size, storage)
 
 
 async def get_tus_upload(tus_upload_id: UUID) -> TusUpload:
-    qs = TusUpload.objects.all()
+    qs = TusUpload.objects.all().select_related("created_by")
     return await qs.aget(id=tus_upload_id)
 
 
-async def store_s3_content(
+async def store_tus_s3_content(
     tus_upload: TusUpload, stream: LazyStream, last_write: bool, storage: Storage
 ) -> int:
     written_bytes = 0
@@ -208,7 +207,7 @@ async def store_s3_content(
     return written_bytes
 
 
-def store_file_content(tus_upload: TusUpload, stream: LazyStream) -> int:
+def store_tus_file_content(tus_upload: TusUpload, stream: LazyStream) -> int:
     written_bytes = 0
     with tus_upload.file.open("w+b") as file:
         for chunk in stream:
@@ -217,13 +216,15 @@ def store_file_content(tus_upload: TusUpload, stream: LazyStream) -> int:
 
 
 @transaction_atomic_async
-async def store_content(
+async def store_tus_content(
     tus_upload: TusUpload, stream: LazyStream, last_write: bool, storage: Storage
 ):
     if isinstance(storage, S3Storage):
-        written_bytes = await store_s3_content(tus_upload, stream, last_write, storage)
+        written_bytes = await store_tus_s3_content(
+            tus_upload, stream, last_write, storage
+        )
     elif isinstance(storage, FileSystemStorage):
-        written_bytes = store_file_content(tus_upload, stream)
+        written_bytes = store_tus_file_content(tus_upload, stream)
     else:
         raise ValueError(
             "TusUpload is only supported for S3Storage and FileSystemStorage"
@@ -232,36 +233,38 @@ async def store_content(
     await tus_upload.asave()
 
 
-async def process_content(
+async def process_new_tus_content(
     tus_upload: TusUpload,
     request: HttpRequest,
     content_size: int,
-    total_size: int,
-    storage: Storage,
-):
+    storage: Storage = None,
+) -> TusUpload:
+    if storage is None:
+        file_field = TusUpload._meta.get_field("file")
+        storage = file_field.storage
     last_write = content_size + tus_upload.offset == tus_upload.total_size
     if content_size:
         if content_size + tus_upload.offset > tus_upload.total_size:
             raise api_ex.ContentTooLarge()  # TODO use other exception and catch and raise API exception in api
         chunk_size = (
-            ChunksizeAdjuster().adjust_chunksize(8 * 1024 * 1024, total_size)
+            ChunksizeAdjuster().adjust_chunksize(8 * 1024 * 1024, tus_upload.total_size)
             if isinstance(storage, S3Storage)
             else File.DEFAULT_CHUNK_SIZE
         )
         stream = LazyStream(ChunkIter(request, chunk_size))
-        await store_content(
+        await store_tus_content(
             tus_upload=tus_upload, stream=stream, last_write=last_write, storage=storage
         )
 
     if last_write:
-        try:
-            completion_hook = import_string(tus_upload.completion_hook)
-            if not iscoroutinefunction(completion_hook):
-                # we're in an async context so if the function call any db operation we need this
-                completion_hook = sync_to_async(completion_hook)
-            await completion_hook(
-                **tus_upload.completion_hook_parameters, tus_upload=tus_upload
-            )
-            # TODO handle move of file
-        finally:
-            await tus_upload.adelete()
+        completion_hook = import_string(tus_upload.completion_hook)
+        if not iscoroutinefunction(completion_hook):
+            # we're in an async context so if the function call any db operation we need this
+            completion_hook = sync_to_async(completion_hook)
+        await completion_hook(
+            **tus_upload.completion_hook_parameters, tus_upload=tus_upload
+        )
+        # TODO handle move of file
+        # don't call tus_upload.adelete directly since it will set id to None and we need it for tus headers
+        await TusUpload.objects.filter(id=tus_upload.id).adelete()
+    return tus_upload

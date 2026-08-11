@@ -52,6 +52,10 @@ EX_UNKNOWN: Final = Error(code="unknown", msg="Unknown error")
 EX_NOT_FOUND: Final = Error(
     code="not-found", msg="The requested resource could not be found"
 )
+EX_CONFLICT: Final = Error(
+    code="conflict",
+    msg="The request could not be completed due to a conflict with the current state",
+)
 EX_PRECONDITION_FAILED: Final = Error(
     code="precondition-failed",
     msg="A necessary precondition was not met",
@@ -75,6 +79,10 @@ EX_FORBIDDEN: Final = Error(
     code="forbidden", msg="The user doesn't have permissions to perform this action"
 )
 EX_BAD_REQUEST: Final = Error(code="bad-request", msg="The request is incorrect")
+EX_LOCKED: Final = Error(
+    code="locked",
+    msg="The resource is currently locked",
+)
 EX_INTERNAL_SERVER_ERROR: Final = Error(
     code="internal-server-error", msg="Server error"
 )
