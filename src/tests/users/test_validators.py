@@ -22,6 +22,7 @@ from django.test import override_settings
 from pydantic import ValidationError
 
 from commons import i18n
+from commons.colors import NUM_COLORS
 from tests.utils.utils import check_validation_errors
 from users.api.validators import CreateUserValidator, UpdateUserValidator
 
@@ -186,7 +187,7 @@ def test_validate_create_user_invalid_password(password, error):
     "color, error",
     [
         (0, "Input should be greater than 0"),
-        (9, "Input should be less than or equal to 8"),
+        (NUM_COLORS + 1, f"Input should be less than or equal to {NUM_COLORS}"),
         (-1, "Input should be greater than 0"),
     ],
 )

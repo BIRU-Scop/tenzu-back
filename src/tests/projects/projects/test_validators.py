@@ -22,6 +22,7 @@ import pytest
 from pydantic import ValidationError
 
 from base.serializers import BaseSchema
+from commons.colors import NUM_COLORS
 from projects.projects.api.validators import (
     CreateProjectValidator,
     LogoField,
@@ -88,10 +89,10 @@ def test_validate_project_with_long_description():
 
 def test_validate_project_with_invalid_color():
     name = "Project test"
-    color = 9
+    color = NUM_COLORS + 1
 
     with pytest.raises(
-        ValidationError, match=r"Input should be less than or equal to 8"
+        ValidationError, match=f"Input should be less than or equal to {NUM_COLORS}"
     ):
         CreateProjectValidator(name=name, color=color)
 

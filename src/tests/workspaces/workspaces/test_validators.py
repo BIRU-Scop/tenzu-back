@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,6 +20,7 @@
 import pytest
 from pydantic import ValidationError
 
+from commons.colors import NUM_COLORS
 from workspaces.workspaces.api.validators import (
     UpdateWorkspaceValidator,
     WorkspaceValidator,
@@ -48,10 +49,10 @@ def test_validate_workspace_with_long_name(client):
 
 def test_validate_workspace_with_invalid_color(client):
     name = "WS test"
-    color = 9
+    color = NUM_COLORS + 1
 
     with pytest.raises(
-        ValidationError, match=r"Input should be less than or equal to 8"
+        ValidationError, match=f"Input should be less than or equal to {NUM_COLORS}"
     ):
         WorkspaceValidator(name=name, color=color)
 
