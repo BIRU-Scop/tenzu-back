@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -215,7 +215,7 @@ async def update_workspace_invitation(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def accept_workspace_invitation(
     invitation: WorkspaceInvitation,
 ) -> WorkspaceInvitation:

@@ -610,7 +610,7 @@ async def do_import_taiga_single_story(
                 )
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def bulk_create_all(
     project_importation: ProjectImportation,
     stories_to_create: list[Story],

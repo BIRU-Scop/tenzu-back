@@ -46,7 +46,7 @@ from workflows.services import exceptions as ex
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def create_workflow(project: Project, name: str) -> WorkflowSerializer:
     workflow_orders = [
         w
@@ -159,7 +159,7 @@ async def get_workflow_by_id(workflow_id: UUID) -> Workflow | None:
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def update_workflow(
     workflow: Workflow, updated_by: User, values: dict[str, Any] = {}
 ) -> Workflow:
@@ -192,7 +192,7 @@ async def update_workflow(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_workflow(
     workflow: Workflow, deleted_by: User, target_workflow_id: UUID | None = None
 ) -> bool:
@@ -370,7 +370,7 @@ async def _calculate_offset(
     )
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def reorder_workflow_statuses(
     target_workflow: Workflow,
     status_ids: list[UUID],
@@ -494,7 +494,7 @@ async def reorder_workflow_statuses(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_workflow_status(
     workflow_status: WorkflowStatus, deleted_by: User, target_status_id: UUID | None
 ) -> bool:

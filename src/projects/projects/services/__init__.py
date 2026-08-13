@@ -113,7 +113,7 @@ async def _get_default_template() -> projects_repositories.ProjectTemplateModel:
     return template
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def _create_project(
     template: projects_repositories.ProjectTemplateModel,
     workspace: Workspace,
@@ -303,7 +303,7 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_project(project: Project, deleted_by: User) -> bool:
     # Mark the file to delete
     file_to_delete = None

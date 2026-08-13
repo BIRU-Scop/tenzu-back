@@ -31,7 +31,7 @@ from stories.stories import events as stories_events
 from stories.stories import notifications as stories_notifications
 from stories.stories import repositories as stories_repositories
 from stories.stories.models import Story
-from stories.stories.repositories import ASSIGNEE_IDS_ANNOTATION
+from stories.stories.repositories import ASSIGNEE_IDS_ANNOTATION, TAG_IDS_ANNOTATION
 from stories.stories.serializers import (
     ReorderStoriesSerializer,
     StoryDetailSerializer,
@@ -104,7 +104,10 @@ async def list_stories_for_workflow(
     if order_by is None:
         order_by = ["order"]
     keys = ["ref", "title", "workflow_id", "project_id", "status_id", "version"]
-    annotations = {"assignee_ids": ASSIGNEE_IDS_ANNOTATION}
+    annotations = {
+        "assignee_ids": ASSIGNEE_IDS_ANNOTATION,
+        "tag_ids": TAG_IDS_ANNOTATION,
+    }
     qs: QuerySet[Story, dict] = stories_repositories.list_stories_qs(
         filters={"workflow_id": workflow_id},
         offset=offset,
@@ -175,6 +178,7 @@ async def get_story_detail(
         created_at=story.created_at,
         version=story.version,
         assignee_ids=story.assignee_ids,
+        tag_ids=story.tag_ids,
         prev=neighbors.prev,
         next=neighbors.next,
         title_updated_by=story.title_updated_by,

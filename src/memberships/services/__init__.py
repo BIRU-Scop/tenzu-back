@@ -93,7 +93,7 @@ async def is_membership_the_only_owner(membership: TM) -> bool:
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def create_invitations(
     reference_object: Project | Workspace,
     invitations: list[dict[str, str | UUID]],

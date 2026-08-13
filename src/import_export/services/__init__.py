@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def import_project(
     user: User,
     workspace: Workspace,
@@ -171,7 +171,7 @@ async def list_workspace_project_importations_for_user(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_project_importation(project_importation: ProjectImportation) -> bool:
     if project_importation.status not in (
         ImportationStatus.FAILURE,
@@ -216,7 +216,7 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def handle_project_importation_pending_invites(
     project_importation: ProjectImportation,
     invitations_form: InvitationsValidator,

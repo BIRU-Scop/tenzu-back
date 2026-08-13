@@ -56,7 +56,7 @@ PASSWORD = make_password("123123")
 ################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def load_test_data() -> None:
     # USERS. Create users
     print("  - Creating sample users")

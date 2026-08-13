@@ -115,7 +115,7 @@ async def list_workspace_project_importations_for_user(
 ########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_project_importation(project_importation: ProjectImportation) -> bool:
     # don't call project_importation.adelete directly since it will set id to None and we might need it for events
     count, _ = await ProjectImportation.objects.filter(
@@ -125,7 +125,7 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
     return count > 0
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def cancel_project_importation(project_importation: ProjectImportation) -> bool:
     from import_export.tasks import import_taiga_project
 
@@ -147,7 +147,7 @@ async def cancel_project_importation(project_importation: ProjectImportation) ->
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def sync_pending_objects(
     user_id: UUID, pending_invites: ProjectImportationPendingInvitation
 ):

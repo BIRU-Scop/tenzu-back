@@ -202,7 +202,7 @@ async def update_project(project: Project, values: dict[str, Any] = {}) -> Proje
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_projects(project_id: UUID) -> int:
     qs = Project.objects.all().filter(id=project_id)
     await sync_to_async(references.delete_project_references_sequences)(
@@ -260,7 +260,7 @@ async def get_project_template(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def apply_template_to_project(
     template: ProjectTemplateModel, project: Project
 ) -> list[ProjectRole]:

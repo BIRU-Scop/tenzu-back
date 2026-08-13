@@ -17,15 +17,26 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Annotated
+from typing import Annotated, Any
+from uuid import UUID
 
-from pydantic import AfterValidator
+from pydantic import BeforeValidator
 from pydantic.json_schema import WithJsonSchema
+from pydantic_core import PydanticCustomError
 
 from base.utils.uuid import decode_b64str_to_uuid
 
+
+def _decode_b64str_to_uuid(value: Any) -> UUID:
+    if isinstance(value, UUID):
+        return value
+    if not isinstance(value, str):
+        raise PydanticCustomError("string_type", "Input should be a valid string")
+    return decode_b64str_to_uuid(value)
+
+
 B64UUID = Annotated[
-    str,
-    AfterValidator(decode_b64str_to_uuid),
+    UUID,
+    BeforeValidator(_decode_b64str_to_uuid),
     WithJsonSchema({"example": "6JgsbGyoEe2VExhWgGrI2w"}),
 ]
