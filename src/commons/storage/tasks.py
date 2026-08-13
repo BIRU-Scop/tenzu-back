@@ -42,3 +42,18 @@ def clean_deleted_storaged_objects(timestamp: int) -> int:
         extra={"deleted": total_deleted},
     )
     return total_deleted
+
+
+@app.periodic(cron=settings.STORAGE.CLEAN_EXPIRED_TUS_UPLOAD_CRON)  # type: ignore
+@app.task
+def clean_expired_tus_upload(timestamp: int) -> int:
+    total_deleted = storage_services.clean_expired_tus_uploads(
+        before=aware_utcnow() - timedelta(hours=settings.STORAGE.TUS_UPLOAD_EXPIRATION)
+    )
+
+    logger.info(
+        "deleted tus uploads: %s",
+        total_deleted,
+        extra={"deleted": total_deleted},
+    )
+    return total_deleted

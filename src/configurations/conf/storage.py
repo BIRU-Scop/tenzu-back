@@ -58,6 +58,7 @@ class StorageSettings(BaseModel):
         20 * 1024 * 1024 * 1024
     )  # 20 GB
     TUS_UPLOAD_EXPIRATION: PositiveInt | None = 48  # 48h
+    CLEAN_EXPIRED_TUS_UPLOAD_CRON: str = "0 3 * * *"  # default: once a day, at 3:00 AM
 
     @model_validator(mode="after")
     def validate_storage_backend(self) -> Self:

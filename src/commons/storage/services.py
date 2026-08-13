@@ -27,6 +27,10 @@ from commons.storage import repositories as storage_repositories
 from commons.storage.models import TusUpload
 from users.models import User
 
+##########################################################
+# storaged objects
+##########################################################
+
 
 def clean_deleted_storaged_objects(before: datetime) -> int:
     storaged_objects = storage_repositories.list_storaged_objects(
@@ -38,6 +42,11 @@ def clean_deleted_storaged_objects(before: datetime) -> int:
             deleted += 1
 
     return deleted
+
+
+##########################################################
+# tus upload
+##########################################################
 
 
 async def create_tus_upload(
@@ -85,3 +94,15 @@ def parse_tus_metadata(upload_metadata: str) -> dict:
 
 async def get_tus_upload(tus_upload_id: UUID) -> TusUpload:
     return await storage_repositories.get_tus_upload(tus_upload_id=tus_upload_id)
+
+
+def clean_expired_tus_uploads(before: datetime) -> int:
+    tus_uploads = storage_repositories.list_tus_uploads(
+        filters={"created_at__lt": before}
+    )
+    deleted = 0
+    for tus_upload in tus_uploads:
+        if storage_repositories.delete_tus_upload(tus_upload=tus_upload):
+            deleted += 1
+
+    return deleted

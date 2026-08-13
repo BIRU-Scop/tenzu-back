@@ -16,7 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+import logging
 from datetime import datetime
 from functools import partial
 from typing import TypedDict
@@ -46,6 +46,8 @@ from commons.utils import transaction_atomic_async, transaction_on_commit_async
 from ninja_jwt.utils import aware_utcnow
 from users.models import User
 
+logger = logging.getLogger(__name__)
+
 ##########################################################
 # filters and querysets
 ##########################################################
@@ -54,6 +56,11 @@ from users.models import User
 class StoragedObjectFilters(TypedDict, total=False):
     id: UUID
     deleted_at__lt: datetime
+
+
+class TusUploadFilters(TypedDict, total=False):
+    id: UUID
+    created_at__lt: datetime
 
 
 ##########################################################
@@ -97,10 +104,12 @@ def delete_storaged_object(
     try:
         with transaction.atomic():
             storaged_object.delete()
-    except RestrictedError:
+    except RestrictedError as e:
         # This happens when you try to delete a StoragedObject that is being used by someone
         # (using ForeignKey with on_delete=PROTECT).
-        # TODO: log this
+        logger.warning(
+            f"{storaged_object.__class__.__name__} {storaged_object.id} could not be deleted: {e}"
+        )
         return False
     else:
         transaction.on_commit(partial(storaged_object.file.delete, save=False))
@@ -167,9 +176,26 @@ async def create_tus_upload(
     return await process_new_tus_content(tus_upload, request, content_size, storage)
 
 
+##########################################################
+# retrieve tus upload
+##########################################################
+
+
 async def get_tus_upload(tus_upload_id: UUID) -> TusUpload:
     qs = TusUpload.objects.all().select_related("created_by")
     return await qs.aget(id=tus_upload_id)
+
+
+def list_tus_uploads(
+    filters: TusUploadFilters = {},
+) -> list[TusUpload]:
+    qs = TusUpload.objects.all().filter(**filters)
+    return list(qs)
+
+
+##########################################################
+# process tus upload
+##########################################################
 
 
 async def store_tus_s3_content(
@@ -268,3 +294,36 @@ async def process_new_tus_content(
         # don't call tus_upload.adelete directly since it will set id to None and we need it for tus headers
         await TusUpload.objects.filter(id=tus_upload.id).adelete()
     return tus_upload
+
+
+##########################################################
+# delete tus upload
+##########################################################
+
+
+@transaction.atomic
+def delete_tus_upload(
+    tus_upload: TusUpload,
+) -> bool:
+    try:
+        with transaction.atomic():
+            tus_upload.delete()
+    except RestrictedError as e:
+        # This happens when you try to delete a TusUpload that is being used by someone
+        # (using ForeignKey with on_delete=PROTECT).
+        logger.warning(
+            f"{tus_upload.__class__.__name__} {tus_upload.id} could not be deleted: {e}"
+        )
+        return False
+    else:
+        if tus_upload.file:
+            transaction.on_commit(partial(tus_upload.file.delete, save=False))
+        else:
+            file_field = TusUpload._meta.get_field("file")
+            storage = file_field.storage
+            if isinstance(storage, S3Storage):
+                try:
+                    storage.delete(tus_upload.pending_upload_data["object_key"])
+                except Exception as e:
+                    pass
+        return True

@@ -15,11 +15,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from datetime import timedelta
 from uuid import UUID
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
+from django.utils.http import http_date
 from django.views.decorators.cache import never_cache
 from exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -182,7 +184,10 @@ def add_tus_headers(
         f"api-{settings.API_VERSION}:upload.tus.continue",
         kwargs={"tus_upload_id": tus_upload.b64id},
     )
-    # response.headers["Upload-Expires"] = "TODO"
+    expiry_date = tus_upload.created_at + timedelta(
+        hours=settings.STORAGE.TUS_UPLOAD_EXPIRATION
+    )
+    response.headers["Upload-Expires"] = http_date(expiry_date.timestamp())
 
 
 def check_tus_request(request, max_size: int | None = None):
