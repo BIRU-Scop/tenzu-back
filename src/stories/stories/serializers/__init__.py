@@ -35,6 +35,7 @@ class StorySummarySerializer(StoryNestedSerializer):
     status_id: UUIDB64
     version: int
     assignee_ids: list[UUIDB64]
+    tag_ids: list[UUIDB64]
 
 
 class StoryDetailSerializer(StorySummarySerializer):
