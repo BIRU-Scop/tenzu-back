@@ -23,6 +23,7 @@ from typing import TypedDict
 from uuid import UUID
 
 from asgiref.sync import iscoroutinefunction, sync_to_async
+from botocore.exceptions import ClientError
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage, Storage
@@ -35,7 +36,7 @@ from django.utils.module_loading import import_string
 from s3transfer.utils import ChunksizeAdjuster
 from storages.backends.s3 import S3Storage
 
-from commons.exceptions import api as api_ex
+from commons.storage import exceptions as ex
 from commons.storage.models import (
     S3Part,
     S3PendingUploadData,
@@ -198,6 +199,14 @@ def list_tus_uploads(
 ##########################################################
 
 
+async def _check_stored_length(tus_upload: TusUpload, written_bytes: int):
+    # prevent any write as soon as what was sent overflow expected max size
+    if tus_upload.offset + written_bytes > tus_upload.total_size:
+        tus_upload.offset += written_bytes
+        await tus_upload.asave()
+        raise ex.OverflowExpectedSizeError()
+
+
 async def store_tus_s3_content(
     tus_upload: TusUpload, stream: LazyStream, last_write: bool, storage: Storage
 ) -> int:
@@ -213,15 +222,20 @@ async def store_tus_s3_content(
     except storage.connection.meta.client.exceptions.NoSuchUpload as e:
         storage.delete(tus_upload.pending_upload_data["object_key"])
         await tus_upload.adelete()
-        raise api_ex.NotFoundError()  # TODO use other exception and catch and raise API exception in api
+        raise ex.NoOngoingMultipartUploadError()
 
     for chunk in stream:
         part = multipart_upload.Part(len(uploaded_parts) + 1)
-        part_response = part.upload(Body=chunk)
+        try:
+            part_response = part.upload(Body=chunk)
+        except ClientError as e:
+            multipart_upload.abort()
+            raise e
         uploaded_parts.append(
             S3Part(ETag=part_response["ETag"], PartNumber=part.part_number)
         )
         written_bytes += len(chunk)
+        await _check_stored_length(tus_upload, written_bytes)
 
     if last_write:
         # Never complete upload if new offset is not saved
@@ -229,15 +243,15 @@ async def store_tus_s3_content(
             MultipartUpload={"Parts": uploaded_parts}
         )
         tus_upload.file = multipart_upload.object_key
-    ## TODO use multipart_upload.abort in error scenario
     return written_bytes
 
 
-def store_tus_file_content(tus_upload: TusUpload, stream: LazyStream) -> int:
+async def store_tus_file_content(tus_upload: TusUpload, stream: LazyStream) -> int:
     written_bytes = 0
     with tus_upload.file.open("w+b") as file:
         for chunk in stream:
             written_bytes += file.write(chunk)
+            await _check_stored_length(tus_upload, written_bytes)
     return written_bytes
 
 
@@ -250,7 +264,7 @@ async def store_tus_content(
             tus_upload, stream, last_write, storage
         )
     elif isinstance(storage, FileSystemStorage):
-        written_bytes = store_tus_file_content(tus_upload, stream)
+        written_bytes = await store_tus_file_content(tus_upload, stream)
     else:
         raise ValueError(
             "TusUpload is only supported for S3Storage and FileSystemStorage"
@@ -265,19 +279,19 @@ async def process_new_tus_content(
     content_size: int,
     storage: Storage = None,
 ) -> TusUpload:
+    if content_size + tus_upload.offset > tus_upload.total_size:
+        raise ex.OverflowExpectedSizeError()
     if storage is None:
         file_field = TusUpload._meta.get_field("file")
         storage = file_field.storage
     last_write = content_size + tus_upload.offset == tus_upload.total_size
     if content_size:
-        if content_size + tus_upload.offset > tus_upload.total_size:
-            raise api_ex.ContentTooLarge()  # TODO use other exception and catch and raise API exception in api
         chunk_size = (
             ChunksizeAdjuster().adjust_chunksize(8 * 1024 * 1024, tus_upload.total_size)
             if isinstance(storage, S3Storage)
             else File.DEFAULT_CHUNK_SIZE
         )
-        stream = LazyStream(ChunkIter(request, chunk_size))
+        stream = LazyStream(ChunkIter(request, chunk_size), length=content_size)
         await store_tus_content(
             tus_upload=tus_upload, stream=stream, last_write=last_write, storage=storage
         )
@@ -322,8 +336,15 @@ def delete_tus_upload(
             file_field = TusUpload._meta.get_field("file")
             storage = file_field.storage
             if isinstance(storage, S3Storage):
+                multipart_upload = storage.bucket.Object(
+                    tus_upload.pending_upload_data["object_key"]
+                ).MultipartUpload(tus_upload.pending_upload_data["upload_id"])
+                try:
+                    multipart_upload.abort()
+                except ClientError as e:
+                    pass
                 try:
                     storage.delete(tus_upload.pending_upload_data["object_key"])
-                except Exception as e:
+                except ClientError as e:
                     pass
         return True

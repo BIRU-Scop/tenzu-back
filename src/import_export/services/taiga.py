@@ -299,7 +299,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             project_importation, workflows, taiga_project, pending_invites
         )
     except (RuntimeError, BlockNoteEmptyOutputError, DatabaseError) as e:
-        # TODO those are the errors where a retry of the job should be attempted
+        # those are the errors where a retry of the job should be attempted
         raise e
     except Exception as e:
         await update_project_importation(

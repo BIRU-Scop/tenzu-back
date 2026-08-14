@@ -18,6 +18,7 @@
 from datetime import timedelta
 from uuid import UUID
 
+from botocore.exceptions import ClientError
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
@@ -33,6 +34,7 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_415,
     ERROR_RESPONSE_422,
     ERROR_RESPONSE_423,
+    ERROR_RESPONSE_424,
 )
 from ninja import Header, Path, Router, Status
 from ninja.decorators import decorate_view
@@ -41,6 +43,10 @@ from validators import B64UUID
 
 from commons.exceptions import api as ex
 from commons.storage import services as storage_services
+from commons.storage.exceptions import (
+    NoOngoingMultipartUploadError,
+    OverflowExpectedSizeError,
+)
 from commons.storage.models import TusUpload
 from commons.storage.permissions import TusUploadPermissionsCheck
 from permissions import check_permissions
@@ -72,7 +78,7 @@ async def check_tus_upload(
     request: HttpRequest,
     response: HttpResponse,
     tus_upload_id: Path[B64UUID],
-    tus_resumable: Header[str],
+    tus_resumable: Header[str] = "1.0.0",
 ) -> Status[None]:
     """
     Retrieve info about an ongoing tus upload
@@ -106,6 +112,7 @@ async def check_tus_upload(
         415: ERROR_RESPONSE_415,
         422: ERROR_RESPONSE_422,
         423: ERROR_RESPONSE_423,
+        424: ERROR_RESPONSE_424,
     },
     by_alias=True,
     openapi_extra={
@@ -123,10 +130,10 @@ async def continue_tus_upload(
     request: HttpRequest,
     response: HttpResponse,
     tus_upload_id: Path[B64UUID],
-    tus_resumable: Header[str],
     content_type: Header[str],
     upload_offset: Header[NonNegativeInt],
     content_length: Header[NonNegativeInt],
+    tus_resumable: Header[str] = "1.0.0",
 ) -> Status[None]:
     """
     Continue a tus upload where it left of
@@ -143,9 +150,16 @@ async def continue_tus_upload(
         user=request.user,
         obj=tus_upload,
     )
-    tus_upload = await storage_services.process_new_tus_content(
-        tus_upload, request, content_length
-    )
+    try:
+        tus_upload = await storage_services.process_new_tus_content(
+            tus_upload, request, content_length
+        )
+    except NoOngoingMultipartUploadError:
+        raise ex.NotFoundError()
+    except OverflowExpectedSizeError:
+        raise ex.ContentTooLarge(headers={"Tus-Max-Size": tus_upload.total_size})
+    except ClientError as e:
+        raise ex.FailedDependency("Request to S3 has failed") from e
     # TODO handle lock
     add_tus_headers(
         response, tus_upload, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
@@ -195,7 +209,7 @@ def check_tus_request(request, max_size: int | None = None):
     Utility that check the specified tus parameters are correct
     """
     version_header = request.headers.get("Tus-Resumable")
-    if version_header is not None and version_header != settings.SUPPORTED_TUS_VERSION:
+    if version_header != settings.SUPPORTED_TUS_VERSION:
         raise ex.PreconditionFailed(
             "Unsupported tus version",
             headers={"Tus-Version": settings.SUPPORTED_TUS_VERSION},
@@ -205,6 +219,12 @@ def check_tus_request(request, max_size: int | None = None):
         try:
             if int(length_header) > max_size:
                 raise ex.ContentTooLarge(headers={"Tus-Max-Size": max_size})
+        except ValueError:
+            pass  # error will be caught by ninja validation
+        content_header = request.headers.get("Content-Length")
+        try:
+            if int(content_header) > int(length_header):
+                raise ex.BadRequest("Content size can't be bigger than total size")
         except ValueError:
             pass  # error will be caught by ninja validation
     type_header = request.headers.get("Content-Type")

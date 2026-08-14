@@ -19,16 +19,26 @@
 
 import logging
 
+from django.conf import settings
+from django.db import DatabaseError
+from procrastinate import RetryStrategy
 from procrastinate.contrib.django import app
 
 from base.utils.uuid import decode_b64str_to_uuid
 from import_export.models import ProjectImportationPendingInvitation
 from import_export.services.taiga import do_import_taiga_project
+from stories.stories.services.blocknote import BlockNoteEmptyOutputError
 
 logger = logging.getLogger(__name__)
 
 
-@app.task()
+@app.task(
+    retry=RetryStrategy(
+        max_attempts=settings.STORAGE.IMPORTATION_RETRY_ATTEMPTS,
+        exponential_wait=settings.STORAGE.IMPORTATION_RETRY_EXPONENTIAL_WAIT,
+        retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
+    )
+)
 async def import_taiga_project(project_importation_id: str) -> None:
     from import_export import services as import_export_services
 

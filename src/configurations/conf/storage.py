@@ -57,6 +57,9 @@ class StorageSettings(BaseModel):
     IMPORTATION_MAX_UPLOAD_FILE_SIZE: PositiveInt | None = (
         20 * 1024 * 1024 * 1024
     )  # 20 GB
+    IMPORTATION_RETRY_ATTEMPTS: PositiveInt = 5
+    IMPORTATION_RETRY_EXPONENTIAL_WAIT: PositiveInt = 2
+
     TUS_UPLOAD_EXPIRATION: PositiveInt | None = 48  # 48h
     CLEAN_EXPIRED_TUS_UPLOAD_CRON: str = "0 3 * * *"  # default: once a day, at 3:00 AM
 

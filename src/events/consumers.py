@@ -275,7 +275,7 @@ class CollaborationConsumer(YjsConsumer):
             await self._save_to_db()
             self._save_task = None
         except asyncio.CancelledError:
-            # Task was cancelled (e.g., new update came in), which is expected behavior
+            # Task was cancelled (e.g., new update came in), which is expected behaviour
             pass
 
     async def force_save(self):
