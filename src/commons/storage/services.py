@@ -20,6 +20,7 @@ from base64 import urlsafe_b64decode
 from datetime import datetime
 from uuid import UUID
 
+from asgiref.sync import sync_to_async
 from django.http import HttpRequest
 from ninja import UploadedFile
 
@@ -106,3 +107,9 @@ def clean_expired_tus_uploads(before: datetime) -> int:
             deleted += 1
 
     return deleted
+
+
+async def delete_tus_upload(tus_upload: TusUpload) -> bool:
+    return await sync_to_async(storage_repositories.delete_tus_upload)(
+        tus_upload=tus_upload
+    )

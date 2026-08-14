@@ -167,6 +167,43 @@ async def continue_tus_upload(
     return Status(204, None)
 
 
+@storage_router.delete(
+    "/upload/{tus_upload_id}",
+    url_name="upload.tus.continue",
+    summary="Delete an ongoing tus upload",
+    response={
+        204: None,
+        400: ERROR_RESPONSE_400,
+        403: ERROR_RESPONSE_403,
+        404: ERROR_RESPONSE_404,
+        412: ERROR_RESPONSE_412,
+        422: ERROR_RESPONSE_422,
+        423: ERROR_RESPONSE_423,
+    },
+    by_alias=True,
+)
+async def terminate_tus_upload(
+    request: HttpRequest,
+    response: HttpResponse,
+    tus_upload_id: Path[B64UUID],
+    tus_resumable: Header[str] = "1.0.0",
+) -> Status[None]:
+    """
+    Terminate a tus upload and free up resources
+    """
+    check_tus_request(request)
+    tus_upload = await get_tus_upload_or_404(tus_upload_id=tus_upload_id)
+
+    await check_permissions(
+        permissions=TusUploadPermissionsCheck.DELETE.value,
+        user=request.user,
+        obj=tus_upload,
+    )
+    await storage_services.delete_tus_upload(tus_upload)
+    # TODO handle lock
+    return Status(204, None)
+
+
 ##########################################################
 # misc
 ##########################################################

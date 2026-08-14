@@ -26,3 +26,4 @@ from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 class TusUploadPermissionsCheck(Enum):
     VIEW = IsAuthenticated() & IsRelatedToTheUser("created_by")
     MODIFY = IsAuthenticated() & IsRelatedToTheUser("created_by")
+    DELETE = IsAuthenticated() & IsRelatedToTheUser("created_by")
