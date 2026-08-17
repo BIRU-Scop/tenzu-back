@@ -339,11 +339,13 @@ CHANNEL_LAYERS = {
 }
 EVENTS_DEBOUNCE_SAVE_DELAY = settings.EVENTS.DEBOUNCE_SAVE_DELAY
 
+REDIS_URL = None
 if settings.EVENTS.PUBSUB_BACKEND == PubSubBackendChoices.REDIS:
+    REDIS_URL = f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}"
     CHANNEL_LAYERS["default"]["CONFIG"] = {
         "hosts": [
             {
-                "address": f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
+                "address": REDIS_URL,
                 **settings.EVENTS.REDIS_OPTIONS,
             }
         ],

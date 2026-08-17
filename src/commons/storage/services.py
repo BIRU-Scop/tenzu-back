@@ -24,6 +24,7 @@ from asgiref.sync import sync_to_async
 from django.http import HttpRequest
 from ninja import UploadedFile
 
+from commons.storage import exceptions as ex
 from commons.storage import repositories as storage_repositories
 from commons.storage.models import TusUpload
 from users.models import User
@@ -74,9 +75,12 @@ async def create_tus_upload(
 
 async def process_new_tus_content(
     tus_upload: TusUpload,
+    upload_offset: int,
     request: HttpRequest,
     content_size: int,
 ) -> TusUpload:
+    if tus_upload.offset != upload_offset:
+        raise ex.MisalignedOffsets()
     return await storage_repositories.process_new_tus_content(
         tus_upload=tus_upload,
         request=request,

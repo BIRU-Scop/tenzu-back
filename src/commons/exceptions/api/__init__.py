@@ -154,7 +154,7 @@ class ConflictError(HTTPException):
         headers: dict[str, Any] | None = None,
     ):
         super().__init__(
-            status_code=404, code=codes.EX_CONFLICT.code, msg=msg, headers=headers
+            status_code=409, code=codes.EX_CONFLICT.code, msg=msg, headers=headers
         )
 
 
@@ -245,14 +245,14 @@ class ValidationError(HTTPException):
 ##########################
 
 
-class ConflictError(HTTPException):
+class LockedError(HTTPException):
     def __init__(
         self,
         msg: str = codes.EX_LOCKED.msg,
         headers: dict[str, Any] | None = None,
     ):
         super().__init__(
-            status_code=404, code=codes.EX_LOCKED.code, msg=msg, headers=headers
+            status_code=423, code=codes.EX_LOCKED.code, msg=msg, headers=headers
         )
 
 

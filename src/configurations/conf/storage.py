@@ -61,6 +61,8 @@ class StorageSettings(BaseModel):
     IMPORTATION_RETRY_EXPONENTIAL_WAIT: PositiveInt = 2
 
     TUS_UPLOAD_EXPIRATION: PositiveInt | None = 48  # 48h
+    TUS_UPLOAD_LOCK_TIMEOUT: PositiveInt = 1
+    TUS_UPLOAD_LOCK_TTL: PositiveInt = 60
     CLEAN_EXPIRED_TUS_UPLOAD_CRON: str = "0 3 * * *"  # default: once a day, at 3:00 AM
 
     @model_validator(mode="after")

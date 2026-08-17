@@ -24,8 +24,15 @@ from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 from django.utils.http import http_date
 from django.views.decorators.cache import never_cache
-from exceptions.api.errors import (
+from ninja import Header, Path, Router, Status
+from ninja.decorators import decorate_view
+from pydantic import NonNegativeInt
+from redis.exceptions import LockError
+
+from commons.exceptions import api as ex
+from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
+    ERROR_RESPONSE_401,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_409,
@@ -36,19 +43,16 @@ from exceptions.api.errors import (
     ERROR_RESPONSE_423,
     ERROR_RESPONSE_424,
 )
-from ninja import Header, Path, Router, Status
-from ninja.decorators import decorate_view
-from pydantic import NonNegativeInt
-from validators import B64UUID
-
-from commons.exceptions import api as ex
 from commons.storage import services as storage_services
 from commons.storage.exceptions import (
+    MisalignedOffsets,
     NoOngoingMultipartUploadError,
     OverflowExpectedSizeError,
 )
 from commons.storage.models import TusUpload
 from commons.storage.permissions import TusUploadPermissionsCheck
+from commons.utils import concurrency
+from commons.validators import B64UUID
 from permissions import check_permissions
 
 storage_router = Router()
@@ -67,9 +71,11 @@ storage_router = Router()
     response={
         200: None,
         400: ERROR_RESPONSE_400,
+        401: ERROR_RESPONSE_401,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         412: ERROR_RESPONSE_412,
+        422: ERROR_RESPONSE_422,
     },
     by_alias=True,
 )
@@ -104,6 +110,7 @@ async def check_tus_upload(
     response={
         204: None,
         400: ERROR_RESPONSE_400,
+        401: ERROR_RESPONSE_401,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         409: ERROR_RESPONSE_409,
@@ -140,10 +147,6 @@ async def continue_tus_upload(
     """
     check_tus_request(request)
     tus_upload = await get_tus_upload_or_404(tus_upload_id=tus_upload_id)
-    if tus_upload.offset != upload_offset:
-        raise ex.ConflictError(
-            f"Provided offset for TusUpload {tus_upload_id} is not equal to server's"
-        )
 
     await check_permissions(
         permissions=TusUploadPermissionsCheck.MODIFY.value,
@@ -151,16 +154,27 @@ async def continue_tus_upload(
         obj=tus_upload,
     )
     try:
-        tus_upload = await storage_services.process_new_tus_content(
-            tus_upload, request, content_length
-        )
+        # prevent parallel write on the same file
+        async with concurrency.aget_redis_lock(
+            f"tus_upload_{tus_upload.b64id}",
+            blocking_timeout=settings.STORAGE.TUS_UPLOAD_LOCK_TIMEOUT,
+            ttl=settings.STORAGE.TUS_UPLOAD_LOCK_TTL,
+        ):
+            tus_upload = await storage_services.process_new_tus_content(
+                tus_upload, upload_offset, request, content_length
+            )
     except NoOngoingMultipartUploadError:
         raise ex.NotFoundError()
     except OverflowExpectedSizeError:
         raise ex.ContentTooLarge(headers={"Tus-Max-Size": tus_upload.total_size})
+    except MisalignedOffsets:
+        raise ex.ConflictError(
+            f"Provided offset for TusUpload {tus_upload.id} is not equal to server's"
+        )
     except ClientError as e:
         raise ex.FailedDependency("Request to S3 has failed") from e
-    # TODO handle lock
+    except LockError as e:
+        raise ex.LockedError("Another operation in ongoing on this tus upload") from e
     add_tus_headers(
         response, tus_upload, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
     )
@@ -169,11 +183,12 @@ async def continue_tus_upload(
 
 @storage_router.delete(
     "/upload/{tus_upload_id}",
-    url_name="upload.tus.continue",
+    url_name="upload.tus.delete",
     summary="Delete an ongoing tus upload",
     response={
         204: None,
         400: ERROR_RESPONSE_400,
+        401: ERROR_RESPONSE_401,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
         412: ERROR_RESPONSE_412,
@@ -199,8 +214,16 @@ async def terminate_tus_upload(
         user=request.user,
         obj=tus_upload,
     )
-    await storage_services.delete_tus_upload(tus_upload)
-    # TODO handle lock
+    try:
+        # prevent parallel write on the same file
+        async with concurrency.aget_redis_lock(
+            f"tus_upload_{tus_upload.b64id}",
+            blocking_timeout=settings.STORAGE.TUS_UPLOAD_LOCK_TIMEOUT,
+            ttl=settings.STORAGE.TUS_UPLOAD_LOCK_TTL,
+        ):
+            await storage_services.delete_tus_upload(tus_upload)
+    except LockError as e:
+        raise ex.LockedError("Another operation in ongoing on this tus upload") from e
     return Status(204, None)
 
 

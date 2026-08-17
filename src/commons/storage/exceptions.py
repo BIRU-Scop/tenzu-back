@@ -24,3 +24,7 @@ class NoOngoingMultipartUploadError(Exception):
 
 class OverflowExpectedSizeError(Exception):
     pass
+
+
+class MisalignedOffsets(Exception):
+    pass
