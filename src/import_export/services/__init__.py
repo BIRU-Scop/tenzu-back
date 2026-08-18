@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def import_project(
     user: User,
     workspace: Workspace,
@@ -171,20 +171,32 @@ async def list_workspace_project_importations_for_user(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_project_importation(project_importation: ProjectImportation) -> bool:
-    if project_importation.status not in (ImportationStatus.FAILURE,):
+    if project_importation.status not in (
+        ImportationStatus.FAILURE,
+        ImportationStatus.PENDING,
+        ImportationStatus.ONGOING,
+    ):
         raise ex.IncompatibleImportationStatus()
 
+    if project_importation.status != ImportationStatus.FAILURE:
+        await import_export_repositories.cancel_project_importation(
+            project_importation=project_importation
+        )
+
+    deleted = False
     if project_importation.project is not None:
-        await projects_services.delete_project(
+        deleted = await projects_services.delete_project(
             project_importation.project, deleted_by=project_importation.created_by
         )
-    deleted = await import_export_repositories.delete_project_importation(
-        project_importation=project_importation
-    )
+    if not deleted:
+        # If the project was deleted, we don't need to delete associated importation since its on_delete is set to cascade
+        deleted = await import_export_repositories.delete_project_importation(
+            project_importation=project_importation
+        )
 
-    if deleted > 0:
+    if deleted:
         # Emit event
         await transaction_on_commit_async(
             import_export_events.emit_event_when_project_importation_is_deleted
@@ -204,7 +216,7 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def handle_project_importation_pending_invites(
     project_importation: ProjectImportation,
     invitations_form: InvitationsValidator,

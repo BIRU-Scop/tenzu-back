@@ -215,7 +215,7 @@ async def update_project_invitation(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def accept_project_invitation(invitation: ProjectInvitation) -> ProjectInvitation:
     workspace_membership = await _sync_related_workspace_membership(invitation)
     invitation = await memberships_services.accept_invitation(

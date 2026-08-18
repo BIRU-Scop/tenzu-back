@@ -76,7 +76,7 @@ def test_source_name():
         ProjectImportationSerializer.model_validate(
             ProjectImportation(**common_args, source=mock_file)
         ).source_name
-        is None
+        == ""
     )
     mock_file.name = "/this/is/a/path/file.json"
     serializer = ProjectImportationSerializer.model_validate(

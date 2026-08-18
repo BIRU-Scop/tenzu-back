@@ -20,6 +20,8 @@ from typing import Any
 from uuid import UUID
 
 from django.core.files import File
+from procrastinate.contrib.django import app
+from procrastinate.contrib.django.models import ProcrastinateJob
 
 from attachments.models import Attachment
 from comments.models import Comment
@@ -113,14 +115,31 @@ async def list_workspace_project_importations_for_user(
 ########################################################
 
 
-@transaction_atomic_async
-async def delete_project_importation(project_importation: ProjectImportation) -> int:
+@transaction_atomic_async()
+async def delete_project_importation(project_importation: ProjectImportation) -> bool:
     # don't call project_importation.adelete directly since it will set id to None and we might need it for events
     count, _ = await ProjectImportation.objects.filter(
         id=project_importation.id
     ).adelete()
     await transaction_on_commit_async(project_importation.source.delete)(save=False)
-    return count
+    return count > 0
+
+
+@transaction_atomic_async()
+async def cancel_project_importation(project_importation: ProjectImportation) -> bool:
+    from import_export.tasks import import_taiga_project
+
+    job_ids = ProcrastinateJob.objects.filter(
+        task_name=f"{import_taiga_project.name}",
+        args__project_importation_id=project_importation.b64id,
+    ).values_list("id", flat=True)
+    cancelled = False
+    async for job_id in job_ids:
+        cancelled = (
+            await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+            or cancelled
+        )
+    return cancelled
 
 
 ##########################################################
@@ -128,7 +147,7 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def sync_pending_objects(
     user_id: UUID, pending_invites: ProjectImportationPendingInvitation
 ):

@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,6 +19,7 @@
 import pytest
 from procrastinate import App, testing
 from procrastinate.contrib.django import procrastinate_app
+from procrastinate.jobs import Status
 from procrastinate.testing import JobRow
 
 
@@ -44,7 +45,7 @@ class TestTasksQueueManager:
         return [
             job
             for job in self.jobs.values()
-            if job["status"] not in ["failed", "succeeded"]
+            if job["status"] in [Status.TODO.value, Status.DOING.value]
         ]
 
     @property
@@ -53,22 +54,37 @@ class TestTasksQueueManager:
 
     @property
     def failed_jobs(self) -> list[JobRow]:
-        return [job for job in self.jobs.values() if job["status"] == "failed"]
+        return [
+            job for job in self.jobs.values() if job["status"] == Status.FAILED.value
+        ]
+
+    @property
+    def cancelled_jobs(self) -> list[JobRow]:
+        return [
+            job
+            for job in self.jobs.values()
+            if job["status"] in [Status.ABORTED.value, Status.CANCELLED.value]
+        ]
 
     @property
     def succeeded_jobs(self) -> list[JobRow]:
-        return [job for job in self.jobs.values() if job["status"] == "succeeded"]
+        return [
+            job for job in self.jobs.values() if job["status"] == Status.SUCCEEDED.value
+        ]
 
     def reset(self) -> None:
         self._app.connector.reset()  # type: ignore[attr-defined]
 
 
 @pytest.fixture(autouse=True)
-def in_memory_app():
+def in_memory_app(request):
     in_memory = testing.InMemoryConnector()
 
-    with procrastinate_app.current_app.replace_connector(in_memory) as app:
-        yield app
+    if "db_task_queue_app" in request.keywords:
+        yield None
+    else:
+        with procrastinate_app.current_app.replace_connector(in_memory) as app:
+            yield app
 
 
 @pytest.fixture

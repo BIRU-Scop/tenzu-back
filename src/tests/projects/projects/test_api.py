@@ -21,6 +21,7 @@ import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
+from commons.colors import NUM_COLORS
 from permissions.choices import ProjectPermissions
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID
@@ -89,7 +90,7 @@ async def test_create_project_401_being_anonymous(client):
 
 async def test_create_project_422_unprocessable_color(client):
     workspace = await f.create_workspace()
-    data = {"name": "My project", "color": 12}
+    data = {"name": "My project", "color": NUM_COLORS + 1}
 
     client.login(workspace.created_by)
     response = await client.post(f"/workspaces/{workspace.b64id}/projects", data=data)

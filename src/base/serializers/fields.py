@@ -30,7 +30,7 @@ from commons.utils import get_absolute_url
 UUIDB64 = Annotated[
     UUID,
     PlainSerializer(encode_uuid_to_b64str, return_type=str),
-    WithJsonSchema({"example": "6JgsbGyoEe2VExhWgGrI2w"}),
+    WithJsonSchema({"type": "string", "example": "6JgsbGyoEe2VExhWgGrI2w"}),
 ]
 
 

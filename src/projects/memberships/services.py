@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -69,7 +69,7 @@ async def get_project_membership(membership_id: UUID) -> ProjectMembership:
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def update_project_membership(
     membership: ProjectMembership, role_id: UUID, user: User
 ) -> ProjectMembership:
@@ -135,7 +135,7 @@ async def _handle_membership_succession(
         raise ex.MembershipIsTheOnlyOwnerError("Membership is the only project owner")
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_project_membership(
     membership: ProjectMembership, user: User, successor_user_id: UUID | None = None
 ) -> bool:
@@ -207,7 +207,7 @@ async def get_project_role(role_id: UUID, get_members_details=False) -> ProjectR
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def create_project_role(
     name: str, permissions: list[str], project_id: UUID
 ) -> ProjectRole:
@@ -231,7 +231,7 @@ async def create_project_role(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def update_project_role(
     role: ProjectRole, values: dict[str, Any] = {}
 ) -> ProjectRole:
@@ -267,7 +267,7 @@ async def update_project_role(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_project_role(
     user: User,
     role: ProjectRole,
@@ -300,11 +300,10 @@ async def delete_project_role(
             role=role, target_role=target_role
         )
     try:
-        deleted = await transaction_atomic_async(
-            memberships_repositories.delete_project_role
-        )(
-            role=role,
-        )
+        async with transaction_atomic_async():
+            deleted = await memberships_repositories.delete_project_role(
+                role=role,
+            )
     except RestrictedError:
         # TODO handle concurrency issue where target_role_id was provided
         #  but a membership or invitation was created in the meantime

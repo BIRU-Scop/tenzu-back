@@ -225,7 +225,7 @@ async def verify_user(
     return await verify_user_from_token(verification_token)
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def _verify_user(user: User) -> None:
     await users_repositories.update_user(
         user=user, values={"is_active": True, "date_verification": aware_utcnow()}
@@ -237,7 +237,7 @@ async def _verify_user(user: User) -> None:
     await project_invitations_services.update_user_projects_invitations(user=user)
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def verify_user_from_token(token: str) -> VerificationInfoSerializer:
     # Get token and deny it
     try:
@@ -349,7 +349,7 @@ async def update_user(user: User, full_name: str, lang: str, password: str) -> U
 #####################################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_user(user: User) -> bool:
     # Check that there is no workspace or project where the user is the only owner and there are other members
     if await ws_memberships_repositories.only_owner_queryset(

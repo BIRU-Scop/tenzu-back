@@ -18,6 +18,9 @@
 from pathlib import Path
 
 import pytest
+from OpenSSL.rand import status
+from procrastinate.contrib.django.models import ProcrastinateJob
+from procrastinate.jobs import Status
 
 from attachments.models import Attachment
 from comments.models import Comment
@@ -27,6 +30,7 @@ from import_export.models import (
     ProjectImportation,
     ProjectImportationType,
 )
+from import_export.tasks import import_taiga_project
 from ninja_jwt.utils import aware_utcnow
 from stories.assignments.models import StoryAssignment
 from stories.stories.models import Story
@@ -173,8 +177,60 @@ async def test_delete_project_importation():
         deleted = await repositories.delete_project_importation(
             project_importation=project_importation
         )
-    assert deleted == 1
+    assert deleted
     assert not Path(source_path).exists()
+
+
+@pytest.mark.db_task_queue_app
+async def test_cancel_project_importation():
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.PENDING, project=None
+    )
+    assert not await ProcrastinateJob.objects.aexists()
+    assert not await repositories.cancel_project_importation(project_importation)
+    await import_taiga_project.defer_async(
+        project_importation_id=project_importation.b64id,
+    )
+    assert (
+        await ProcrastinateJob.objects.filter(
+            status__in=[Status.TODO.value, Status.DOING.value]
+        ).acount()
+        == 1
+    )
+    assert await repositories.cancel_project_importation(project_importation)
+    assert not await ProcrastinateJob.objects.filter(
+        status__in=[Status.TODO.value, Status.DOING.value]
+    ).aexists()
+    assert (
+        await ProcrastinateJob.objects.filter(
+            status__in=[Status.ABORTED.value, Status.CANCELLED.value]
+        ).acount()
+        == 1
+    )
+    assert not await repositories.cancel_project_importation(project_importation)
+
+    # create multiple, identical jobs to check that it does not cause any error
+    for _ in range(2):
+        await import_taiga_project.defer_async(
+            project_importation_id=project_importation.b64id,
+        )
+    assert (
+        await ProcrastinateJob.objects.filter(
+            status__in=[Status.TODO.value, Status.DOING.value]
+        ).acount()
+        == 2
+    )
+    assert await repositories.cancel_project_importation(project_importation)
+    assert not await ProcrastinateJob.objects.filter(
+        status__in=[Status.TODO.value, Status.DOING.value]
+    ).aexists()
+    assert (
+        await ProcrastinateJob.objects.filter(
+            status__in=[Status.ABORTED.value, Status.CANCELLED.value]
+        ).acount()
+        == 3
+    )
+    assert not await repositories.cancel_project_importation(project_importation)
 
 
 ##########################################################

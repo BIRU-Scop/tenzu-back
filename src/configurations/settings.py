@@ -104,6 +104,7 @@ INSTALLED_APPS = [
     "projects.projects",
     "stories.assignments",
     "stories.stories",
+    "stories.tags",
     "attachments",
     "comments",
     "feeds",
@@ -115,6 +116,7 @@ INSTALLED_APPS = [
     "import_export",
     # 3rd-party
     "easy_thumbnails",
+    "ninja",
     "martor",  # markdown editor widget for the admin (feeds)
     "ninja_jwt",
     "ninja_jwt.token_blacklist",
