@@ -60,7 +60,7 @@ async def create_workspace(
     return workspace_detail
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def _create_workspace(
     name: str, color: int, created_by: User
 ) -> tuple[Workspace, WorkspaceRole]:

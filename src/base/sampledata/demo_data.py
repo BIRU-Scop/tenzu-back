@@ -32,7 +32,7 @@ from workspaces.memberships import repositories as ws_memberships_repositories
 from workspaces.memberships.models import WorkspaceRole
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def load_demo_data() -> None:
     # CUSTOM SCENARIOS
     print("  - Creating scenario to freelance user working for herself")

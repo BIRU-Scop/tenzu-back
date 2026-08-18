@@ -20,7 +20,7 @@
 import random
 from typing import Generator
 
-NUM_COLORS = 8
+NUM_COLORS = 20
 
 
 def generate_random_color(min_color: int = 1, max_color: int = NUM_COLORS) -> int:

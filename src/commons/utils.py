@@ -18,7 +18,8 @@
 
 import functools
 from asyncio import Task, create_task
-from functools import partial
+from contextlib import asynccontextmanager
+from functools import partial, wraps
 from urllib.parse import urljoin
 
 from asgiref.sync import async_to_sync, iscoroutinefunction, sync_to_async
@@ -34,13 +35,17 @@ def get_absolute_url(url: str | Url):
     return url
 
 
-def transaction_atomic_async(func):
-    @sync_to_async
-    def wrapper(*args, **kwargs):
-        with transaction.atomic():
-            return async_to_sync(func)(*args, **kwargs)
-
-    return wrapper
+@asynccontextmanager
+async def transaction_atomic_async():
+    atomic = transaction.atomic()
+    await sync_to_async(atomic.__enter__)()
+    try:
+        yield
+    except BaseException as error:
+        await sync_to_async(atomic.__exit__)(type(error), error, error.__traceback__)
+        raise
+    else:
+        await sync_to_async(atomic.__exit__)(None, None, None)
 
 
 def transaction_on_commit_async(func):

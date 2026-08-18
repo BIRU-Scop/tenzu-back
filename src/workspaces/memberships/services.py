@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -180,7 +180,7 @@ async def _handle_membership_projects_succession(
         )(membership=pj_membership, user=user, project=pj_membership.project)
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def _delete_inner_projects_membership(membership: WorkspaceMembership) -> bool:
     (
         deleted,
@@ -229,7 +229,7 @@ async def _delete_inner_projects_membership(membership: WorkspaceMembership) -> 
     return False
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_workspace_membership(
     membership: WorkspaceMembership, user: User, successor_user_id: UUID | None = None
 ) -> bool:

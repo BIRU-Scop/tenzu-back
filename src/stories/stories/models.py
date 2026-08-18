@@ -79,6 +79,13 @@ class Story(
         through_fields=("story", "user"),
         verbose_name="assignees",
     )
+    tags = models.ManyToManyField(
+        "stories_tags.StoryTag",
+        related_name="stories",
+        through="stories_tags.StoryTagAssignment",
+        through_fields=("story", "tag"),
+        verbose_name="tags",
+    )
 
     class Meta:
         verbose_name = "story"

@@ -23,13 +23,16 @@ from uuid import UUID
 
 from asgiref.sync import sync_to_async
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import Q, QuerySet
+from django.contrib.postgres.fields import ArrayField
+from django.db.models import OuterRef, Q, QuerySet, Subquery, UUIDField, Value
+from django.db.models.functions import Coalesce
 
 from base.occ import repositories as occ_repositories
 from base.repositories import neighbors as neighbors_repositories
 from base.repositories.neighbors import Neighbor
 from projects.references import get_multiple_new_project_reference_ids
 from stories.stories.models import Story
+from stories.tags.models import StoryTagAssignment
 
 ##########################################################
 # filters and querysets
@@ -40,6 +43,18 @@ ASSIGNEE_IDS_ANNOTATION = ArrayAgg(
     order_by="-story_assignments__created_at",
     filter=Q(assignees__isnull=False),
     default=[],
+)
+
+
+TAG_IDS_ANNOTATION = Coalesce(
+    Subquery(
+        StoryTagAssignment.objects.filter(story_id=OuterRef("pk"))
+        .values("story_id")
+        .annotate(ids=ArrayAgg("tag_id", order_by="-created_at"))
+        .values("ids")
+    ),
+    Value([], output_field=ArrayField(UUIDField())),
+    output_field=ArrayField(UUIDField()),
 )
 
 
@@ -150,7 +165,11 @@ async def get_story(
     select_related: StorySelectRelated = ["status"],
     get_assignees=False,
 ) -> Story:
-    annotations = {"assignee_ids": ASSIGNEE_IDS_ANNOTATION} if get_assignees else {}
+    annotations = (
+        {"assignee_ids": ASSIGNEE_IDS_ANNOTATION, "tag_ids": TAG_IDS_ANNOTATION}
+        if get_assignees
+        else {}
+    )
     qs = (
         Story.objects.all()
         .filter(ref=ref, **filters)

@@ -16,11 +16,9 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import uuid
 
 from asgiref.sync import sync_to_async
 
-from base.utils.uuid import encode_uuid_to_b64str
 from import_export.models import ImportationStatus, ProjectImportationType
 
 from .base import Factory, factory

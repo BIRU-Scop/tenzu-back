@@ -86,7 +86,7 @@ class Migration(migrations.Migration):
                     models.IntegerField(
                         blank=True,
                         default=commons.colors.generate_random_color,
-                        validators=[django.core.validators.MaxValueValidator(8)],
+                        validators=[django.core.validators.MaxValueValidator(20)],
                         verbose_name="color",
                     ),
                 ),

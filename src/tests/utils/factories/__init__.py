@@ -67,6 +67,14 @@ from .stories import (  # noqa
     create_story,
     create_story_assignment,
 )
+from .tags import (  # noqa
+    StoryTagAssignmentFactory,
+    StoryTagFactory,
+    build_story_tag,
+    build_story_tag_assignment,
+    create_story_tag,
+    create_story_tag_assignment,
+)
 from .users import (  # noqa
     UserFactory,
     build_user,
