@@ -18,7 +18,6 @@
 from pathlib import Path
 
 import pytest
-from OpenSSL.rand import status
 from procrastinate.contrib.django.models import ProcrastinateJob
 from procrastinate.jobs import Status
 
