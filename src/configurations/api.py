@@ -27,6 +27,7 @@ from base.utils.strings import to_kebab
 from commons.exceptions.api import HTTPException, codes
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
+from commons.storage.api import storage_router
 from feeds.api import feeds_router
 from import_export.api import import_export_router
 from ninja_jwt.api import auth_router
@@ -172,6 +173,7 @@ api.add_router("", tags=["import_export"], router=import_export_router)
 api.add_router("", tags=["auth"], router=auth_router)
 api.add_router("", tags=["auth"], router=social_auth_router)
 api.add_router("", tags=["system"], router=health_router)
+api.add_router("", tags=["upload"], router=storage_router)
 
 for extra_dep in settings.EXTRA_DEPS:
     if extra_dep.api is not None:

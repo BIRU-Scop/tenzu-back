@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 from base64 import urlsafe_b64decode
 from datetime import datetime
+from uuid import UUID
 
 from django.http import HttpRequest
 from ninja import UploadedFile
@@ -68,3 +69,7 @@ def parse_tus_metadata(upload_metadata: str) -> dict:
         key: urlsafe_b64decode(value[0]).decode(encoding="utf-8") if value else None
         for key, *value in (data.split(" ") for data in upload_metadata.split(","))
     }
+
+
+async def get_tus_upload(tus_upload_id: UUID) -> TusUpload:
+    return await storage_repositories.get_tus_upload(tus_upload_id=tus_upload_id)

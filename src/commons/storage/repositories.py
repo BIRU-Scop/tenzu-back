@@ -168,6 +168,11 @@ async def create_tus_upload(
     return tus_upload
 
 
+async def get_tus_upload(tus_upload_id: UUID) -> TusUpload:
+    qs = TusUpload.objects.all()
+    return await qs.aget(id=tus_upload_id)
+
+
 async def store_s3_content(
     tus_upload: TusUpload, stream: LazyStream, last_write: bool, storage: Storage
 ) -> int:

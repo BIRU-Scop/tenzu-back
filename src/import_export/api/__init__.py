@@ -123,8 +123,8 @@ async def launch_project_importation(
         ),
     )
     add_tus_headers(
-        response, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
-    )  # TODO use upload result
+        response, tus_upload, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
+    )
     return Status(201, None)
 
 
