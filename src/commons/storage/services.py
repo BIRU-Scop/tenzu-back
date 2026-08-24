@@ -22,7 +22,6 @@ from uuid import UUID
 
 from asgiref.sync import sync_to_async
 from django.http import HttpRequest
-from ninja import UploadedFile
 
 from commons.storage import exceptions as ex
 from commons.storage import repositories as storage_repositories
