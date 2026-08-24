@@ -16,6 +16,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from io import BytesIO
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock
@@ -28,7 +29,7 @@ from ninja.testing import (
 from ninja.testing import (
     TestClient as TestClientBase,
 )
-from ninja.testing.client import NinjaClientBase
+from ninja.testing.client import NinjaClientBase, NinjaResponse
 
 from configurations.api import api
 
@@ -46,6 +47,15 @@ class TextClientAuthMixin(NinjaClientBase):
     def logout(self) -> None:
         self.headers.pop("Authorization", None)
 
+    def head(
+        self,
+        path: str,
+        data: dict | None = None,
+        json: Any = None,
+        **request_params: Any,
+    ) -> NinjaResponse:
+        return self.request("HEAD", path, data, json, **request_params)
+
     def _build_request(
         self, method: str, path: str, data: dict, request_params: Any
     ) -> Mock:
@@ -53,6 +63,12 @@ class TextClientAuthMixin(NinjaClientBase):
             method=method, path=path, data=data, request_params=request_params
         )
         request.allauth = SimpleNamespace()
+
+        # Enable direct raw streaming of the request content
+        if isinstance(request.body, (bytes, bytearray)):
+            request._stream = BytesIO(request.body)
+            request.read.side_effect = request._stream.read
+            request.readline.side_effect = request._stream.readline
         return request
 
 

@@ -15,35 +15,24 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from contextlib import contextmanager
 from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
-from typing import Generator
 from unittest.mock import MagicMock, Mock, patch
 
 import boto3
 import pytest
-from boto3.resources.factory import ResourceFactory
 from botocore.exceptions import ClientError
-from django.conf import settings
 from django.test import TestCase, override_settings
 
 from commons.storage import exceptions as ex
 from commons.storage import repositories
 from commons.storage.models import S3Part, S3PendingUploadData, TusUpload
-from configurations.conf.storage import StorageBackends
 from ninja_jwt.utils import aware_utcnow
+from tests.commons.storage.utils import S3_STORAGE_SETTINGS, patch_s3_multipart_upload
 from tests.utils import factories as f
 
 pytestmark = pytest.mark.django_db
-
-_S3_STORAGE_SETTINGS = {
-    "default": {
-        "BACKEND": StorageBackends.S3Storage.value,
-    },
-    "staticfiles": settings.STORAGES["staticfiles"],
-}
 
 
 ##########################################################
@@ -64,64 +53,6 @@ def test_delete_storaged_object():
 ##########################################################
 # tus upload
 ########################################################
-
-
-@contextmanager
-def patch_s3_multipart_upload(
-    mock_complete=None, mock_abort=None, mock_upload=None, mock_parts=None
-) -> Generator[tuple[Mock, Mock, Mock, Mock]]:
-    s3 = boto3.resource("s3")
-    real_create_action = ResourceFactory._create_action
-    real_create_collection = ResourceFactory._create_collection
-
-    if mock_complete is None:
-        mock_complete = Mock(spec=s3.MultipartUpload("", "", "").complete)
-    if mock_abort is None:
-        mock_abort = Mock(spec=s3.MultipartUpload("", "", "").abort)
-    if mock_upload is None:
-        mock_upload = Mock(
-            spec=s3.MultipartUploadPart("", "", "", 1).upload,
-            return_value={"ETag": "test-etag"},
-        )
-    if mock_parts is None:
-        mock_parts = MagicMock(spec=s3.MultipartUpload("", "", "").parts)
-
-    def mock_multipart_create_action(
-        factory_self,
-        action_model,
-        resource_name,
-        service_context,
-        is_load=False,
-    ):
-        if resource_name == "MultipartUpload":
-            if action_model.name == "complete":
-                return mock_complete
-            if action_model.name == "abort":
-                return mock_abort
-        if resource_name == "MultipartUploadPart" and action_model.name == "upload":
-            return mock_upload
-        return real_create_action(
-            factory_self, action_model, resource_name, service_context, is_load
-        )
-
-    def mock_multipart_create_collection(
-        factory_self, resource_name, collection_model, service_context
-    ):
-        if resource_name == "MultipartUpload" and collection_model.name == "parts":
-            return mock_parts
-        return real_create_collection(
-            factory_self, resource_name, collection_model, service_context
-        )
-
-    with (
-        patch.object(
-            ResourceFactory, "_create_action", new=mock_multipart_create_action
-        ),
-        patch.object(
-            ResourceFactory, "_create_collection", new=mock_multipart_create_collection
-        ),
-    ):
-        yield (mock_complete, mock_abort, mock_upload, mock_parts)
 
 
 async def test_get_tus_upload():
@@ -156,7 +87,7 @@ async def test_create_tus_upload_filesystem(rf):
     assert await TusUpload.objects.acount() == 1
 
 
-@override_settings(**{"STORAGES": _S3_STORAGE_SETTINGS})
+@override_settings(**{"STORAGES": S3_STORAGE_SETTINGS})
 async def test_create_tus_upload_s3(rf):
     user = await f.create_user()
     request = rf.get("/test")
@@ -201,7 +132,7 @@ def test_delete_tus_upload_filesystem():
     assert not Path(path).exists()
 
 
-@override_settings(**{"STORAGES": _S3_STORAGE_SETTINGS})
+@override_settings(**{"STORAGES": S3_STORAGE_SETTINGS})
 def test_delete_tus_upload_s3():
     file_field = TusUpload._meta.get_field("file")
     storage = file_field.storage
@@ -263,7 +194,7 @@ async def test_process_new_tus_content_filesystem_last_write():
     patched_completion_hook.assert_called_once_with(elem=1, tus_upload=tus_upload)
 
 
-@override_settings(**{"STORAGES": _S3_STORAGE_SETTINGS})
+@override_settings(**{"STORAGES": S3_STORAGE_SETTINGS})
 async def test_process_new_tus_content_s3_overflow_content():
     tus_upload = await f.create_tus_upload(
         file=None,
@@ -282,7 +213,7 @@ async def test_process_new_tus_content_s3_overflow_content():
     assert tus_upload.offset == 7
 
 
-@override_settings(**{"STORAGES": _S3_STORAGE_SETTINGS})
+@override_settings(**{"STORAGES": S3_STORAGE_SETTINGS})
 async def test_process_new_tus_content_s3():
     tus_upload = await f.create_tus_upload(
         file=None,
@@ -298,7 +229,7 @@ async def test_process_new_tus_content_s3():
     assert tus_upload.offset == 2
 
 
-@override_settings(**{"STORAGES": _S3_STORAGE_SETTINGS})
+@override_settings(**{"STORAGES": S3_STORAGE_SETTINGS})
 async def test_process_new_tus_content_s3_no_upload():
     file_field = TusUpload._meta.get_field("file")
     storage = file_field.storage
@@ -331,7 +262,7 @@ async def test_process_new_tus_content_s3_no_upload():
     wrapped_delete.assert_called_once_with("test_key")
 
 
-@override_settings(**{"STORAGES": _S3_STORAGE_SETTINGS})
+@override_settings(**{"STORAGES": S3_STORAGE_SETTINGS})
 async def test_process_new_tus_content_s3_client_error():
     s3 = boto3.resource("s3")
     mock_upload = Mock(
@@ -357,7 +288,7 @@ async def test_process_new_tus_content_s3_client_error():
     mock_abort.assert_called_once()
 
 
-@override_settings(**{"STORAGES": _S3_STORAGE_SETTINGS})
+@override_settings(**{"STORAGES": S3_STORAGE_SETTINGS})
 async def test_process_new_tus_content_s3_last_write():
     tus_upload = await f.create_tus_upload(
         file=None,

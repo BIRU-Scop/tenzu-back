@@ -39,6 +39,7 @@ def build_storaged_object(**kwargs):
 
 
 class TusUploadFactory(Factory):
+    created_by = factory.SubFactory("tests.utils.factories.UserFactory")
     file = factory.django.ImageField(format="PNG")
     offset = 0
     total_size = 1024
