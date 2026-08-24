@@ -20,7 +20,12 @@
 import pytest
 from pydantic import ValidationError
 
-from import_export.api import ImportationFileField, ImportProjectValidator
+from base.serializers import BaseSchema
+from import_export.api.validators import (
+    ImportationFileField,
+    ImportProjectValidator,
+    _ImportProjectValidator,
+)
 from import_export.models import ProjectImportationType
 from tests.utils import factories as f
 from tests.utils.utils import check_validation_errors
@@ -30,10 +35,16 @@ from tests.utils.utils import check_validation_errors
 ##########################################################
 
 
+class ImportDataValidator(BaseSchema):
+    metadata: ImportProjectValidator
+
+
 def test_invalid_import():
     with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyTypeChecker
-        ImportProjectValidator(origin_type="test")
+        _ImportProjectValidator(
+            origin_type="test", filename="test.json", filetype="application/json"
+        )
 
     expected_error_fields = [
         "origin_type",
@@ -45,17 +56,22 @@ def test_invalid_import():
     check_validation_errors(
         validations_errors, expected_error_fields, expected_error_messages
     )
-
-
-def test_invalid_import_file():
-    import_file = f.build_string_uploadfile()
-
-    with pytest.raises(ValueError) as validations_error:
+    with pytest.raises(ValidationError) as validations_errors:
         # noinspection PyTypeChecker
-        ImportationFileField._validate(import_file, None)
+        _ImportProjectValidator(
+            origin_type=ProjectImportationType.TAIGA.value,
+            filename="test.json",
+            filetype="image/gif",
+        )
 
-    assert validations_error.value.args == (
-        "Invalid importation content type, expected one of application/json",
+    expected_error_fields = [
+        "filetype",
+    ]
+    expected_error_messages = [
+        f"Input should be 'application/json'",
+    ]
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
     )
 
 
@@ -63,5 +79,41 @@ def test_valid_import():
     import_file = f.build_string_uploadfile(content_type="application/json")
 
     # noinspection PyTypeChecker
-    ImportProjectValidator(origin_type=ProjectImportationType.TAIGA.value)
+    _ImportProjectValidator(
+        origin_type=ProjectImportationType.TAIGA.value,
+        filename="test.json",
+        filetype="application/json",
+    )
     ImportationFileField(import_file)
+
+
+def test_metadata():
+    ImportDataValidator(
+        metadata="originType VEE=,filename Zm9vLmpzb24=,filetype YXBwbGljYXRpb24vanNvbg=="
+    )
+
+    with pytest.raises(ValidationError) as validations_errors:
+        ImportDataValidator(metadata="key invalid")
+
+    expected_error_fields = [
+        "metadata",
+    ]
+    expected_error_messages = [
+        "Value error, Incorrect padding",
+    ]
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
+    )
+
+    with pytest.raises(ValidationError) as validations_errors:
+        ImportDataValidator(metadata="test")
+
+    expected_error_fields = [
+        "metadata.originType",
+        "metadata.filename",
+        "metadata.filetype",
+    ]
+    expected_error_messages = ["Field required"] * 3
+    check_validation_errors(
+        validations_errors, expected_error_fields, expected_error_messages
+    )
