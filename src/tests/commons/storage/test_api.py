@@ -46,7 +46,6 @@ async def test_check_tus_upload_401_403(client):
 
     response = await client.head(
         f"/upload/{tus_upload.b64id}",
-        headers={"Tus-Resumable": settings.SUPPORTED_TUS_VERSION},
     )
     assert response.status_code == 401, response.data
     client.login(await f.create_user())
@@ -113,7 +112,6 @@ async def test_continue_tus_upload_401_403(client):
 
     response = await client.patch(
         f"/upload/{tus_upload.b64id}",
-        headers={"Tus-Resumable": settings.SUPPORTED_TUS_VERSION},
     )
     assert response.status_code == 401, response.data
     client.login(await f.create_user())
@@ -219,6 +217,7 @@ async def test_continue_tus_upload_413(client):
             "Content-Length": 7,
         },
     )
+    # announced content-length overflow the total_size of the tus_upload
     assert response.status_code == 413, response.data
     assert response.headers["Tus-Max-Size"] == str(tus_upload.total_size)
     response = await client.patch(
@@ -231,6 +230,7 @@ async def test_continue_tus_upload_413(client):
             "Content-Length": 5,
         },
     )
+    # concrete content length overflow the total_size of the tus_upload
     assert response.status_code == 413, response.data
     assert response.headers["Tus-Max-Size"] == str(tus_upload.total_size)
 
@@ -338,7 +338,6 @@ async def test_terminate_tus_upload_401_403(client):
 
     response = await client.delete(
         f"/upload/{tus_upload.b64id}",
-        headers={"Tus-Resumable": settings.SUPPORTED_TUS_VERSION},
     )
     assert response.status_code == 401, response.data
     client.login(await f.create_user())
