@@ -62,7 +62,6 @@ async def import_project(
     tus_upload: TusUpload,
 ) -> ProjectImportationSerializer:
     try:
-        # TODO check file location afterwards, might be duplicated or still in tus folder
         project_importation = (
             await import_export_repositories.create_project_importation(
                 user_id=user_id,

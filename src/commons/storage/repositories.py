@@ -137,15 +137,25 @@ async def create_tus_upload(
     total_size: int,
     completion_hook: str,
     completion_hook_parameters: dict,
+    overwrite_base_path: str | None = None,
 ) -> TusUpload:
     file_field = TusUpload._meta.get_field("file")
     storage = file_field.storage
-    s3_pending_upload_data = {}
     file_name = MultiPartParser.sanitize_file_name(None, file_name)
-    file = None
+
+    tus_upload = TusUpload(
+        created_by=user,
+        file=None,
+        total_size=total_size,
+        completion_hook=completion_hook,
+        completion_hook_parameters=completion_hook_parameters,
+        pending_upload_data={},
+    )
+    if overwrite_base_path is not None:
+        tus_upload.set_upload_to_base_path(overwrite_base_path)
 
     if isinstance(storage, S3Storage):
-        name = file_field.generate_filename(None, file_name)
+        name = file_field.generate_filename(tus_upload, file_name)
         validate_file_name(name, allow_relative_path=True)
         # Potentially find a different name depending on storage constraints.
         name = storage.get_available_name(name, max_length=file_field.max_length)
@@ -157,23 +167,16 @@ async def create_tus_upload(
         multipart_upload = obj.initiate_multipart_upload(
             **storage._get_write_parameters(obj.key, request)
         )
-        s3_pending_upload_data = S3PendingUploadData(
+        tus_upload.pending_upload_data = S3PendingUploadData(
             upload_id=multipart_upload.id, object_key=obj.key
         )
     elif isinstance(storage, FileSystemStorage):
-        file = ContentFile("", name=file_name)
+        tus_upload.file = ContentFile("", name=file_name)
     else:
         raise ValueError(
             "TusUpload is only supported for S3Storage and FileSystemStorage"
         )
-    tus_upload = await TusUpload.objects.acreate(
-        created_by=user,
-        file=file,
-        total_size=total_size,
-        completion_hook=completion_hook,
-        completion_hook_parameters=completion_hook_parameters,
-        pending_upload_data=s3_pending_upload_data,
-    )
+    await tus_upload.asave()
     return await process_new_tus_content(tus_upload, request, content_size, storage)
 
 
@@ -301,10 +304,11 @@ async def process_new_tus_content(
         if not iscoroutinefunction(completion_hook):
             # we're in an async context so if the function call any db operation we need this
             completion_hook = sync_to_async(completion_hook)
+        # Responsibility for the file itself passes to the hook function
+        # The hook should either delete it after using it or store a reference to it in another db model
         await completion_hook(
             **tus_upload.completion_hook_parameters, tus_upload=tus_upload
         )
-        # TODO handle move of file
         # don't call tus_upload.adelete directly since it will set id to None and we need it for tus headers
         await TusUpload.objects.filter(id=tus_upload.id).adelete()
     return tus_upload

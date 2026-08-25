@@ -59,6 +59,7 @@ async def create_tus_upload(
     total_size: int,
     completion_hook: str,
     completion_hook_parameters: dict,
+    overwrite_base_path: str | None = None,
 ) -> TusUpload:
     request.content_type = file_content_type
     return await storage_repositories.create_tus_upload(
@@ -69,6 +70,7 @@ async def create_tus_upload(
         total_size,
         completion_hook,
         completion_hook_parameters,
+        overwrite_base_path,
     )
 
 

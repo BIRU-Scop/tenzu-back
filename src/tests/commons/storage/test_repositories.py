@@ -15,6 +15,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import re
 from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
@@ -68,7 +69,14 @@ def test_list_tus_uploads():
     assert repositories.list_tus_uploads({"created_at__lt": now}) == [past_tus_upload]
 
 
-async def test_create_tus_upload_filesystem(rf):
+@pytest.mark.parametrize(
+    "overwrite_base_path, result_base_path",
+    [
+        (None, "tus_pending_files"),
+        ("test_folder", "test_folder"),
+    ],
+)
+async def test_create_tus_upload_filesystem(rf, overwrite_base_path, result_base_path):
     user = await f.create_user()
     request = rf.get("/test")
     with patch(
@@ -82,13 +90,22 @@ async def test_create_tus_upload_filesystem(rf):
             total_size=1024,
             completion_hook="",
             completion_hook_parameters={},
+            overwrite_base_path=overwrite_base_path,
         )
     process_new_tus_content.assert_awaited_once()
-    assert await TusUpload.objects.acount() == 1
+    tus_upload = await TusUpload.objects.aget()
+    assert re.match(rf"^{result_base_path}/.+/test.test$", tus_upload.file.name)
 
 
+@pytest.mark.parametrize(
+    "overwrite_base_path, result_base_path",
+    [
+        (None, "tus_pending_files"),
+        ("test_folder", "test_folder"),
+    ],
+)
 @override_settings(**{"STORAGES": S3_STORAGE_SETTINGS})
-async def test_create_tus_upload_s3(rf):
+async def test_create_tus_upload_s3(rf, overwrite_base_path, result_base_path):
     user = await f.create_user()
     request = rf.get("/test")
     file_field = TusUpload._meta.get_field("file")
@@ -99,7 +116,10 @@ async def test_create_tus_upload_s3(rf):
         ) as process_new_tus_content,
         patch.object(storage, "_open", autospec=True) as fake_storage_open,
         patch.object(
-            storage, "get_available_name", autospec=True
+            storage,
+            "get_available_name",
+            autospec=True,
+            side_effect=lambda name, max_length: name,
         ) as fake_get_available_name,
     ):
         fake_storage_open.return_value.obj.key = "test_key"
@@ -114,12 +134,15 @@ async def test_create_tus_upload_s3(rf):
             total_size=1024,
             completion_hook="",
             completion_hook_parameters={},
+            overwrite_base_path=overwrite_base_path,
         )
     process_new_tus_content.assert_awaited_once()
     tus_upload = await TusUpload.objects.aget()
     tus_upload.pending_upload_data == S3PendingUploadData(
         upload_id="test_id", object_key="test_key"
     )
+    file_name = fake_storage_open.call_args.args[0]
+    assert re.match(rf"^{result_base_path}/.+/test.test$", file_name)
 
 
 def test_delete_tus_upload_filesystem():

@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
                         max_length=500,
                         null=True,
                         upload_to=functools.partial(
-                            base.utils.files.get_obfuscated_file_path,
+                            base.utils.files.get_overwritable_obfuscated_file_path,
                             base_path="tus_pending_files",
                         ),
                         verbose_name="file",

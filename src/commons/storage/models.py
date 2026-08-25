@@ -30,14 +30,22 @@ from base.db.models.mixins import (
     DeletedAtMetaInfoMixin,
     ModifiedAtMetaInfoMixin,
 )
-from base.utils.files import get_obfuscated_file_path
+from base.utils.files import (
+    OverwritableUploadToMixin,
+    get_overwritable_obfuscated_file_path,
+)
 
 
 def get_storaged_object_file_patch(instance: "StoragedObject", filename: str) -> str:
-    return get_obfuscated_file_path(instance, filename, "storagedobjets")
+    return get_overwritable_obfuscated_file_path(instance, filename, "storagedobjets")
 
 
-class StoragedObject(BaseDBModel, CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin):
+class StoragedObject(
+    BaseDBModel,
+    CreatedAtMetaInfoMixin,
+    DeletedAtMetaInfoMixin,
+    OverwritableUploadToMixin,
+):
     file = models.FileField(
         upload_to=get_storaged_object_file_patch,
         max_length=500,
@@ -73,7 +81,7 @@ class StoragedObject(BaseDBModel, CreatedAtMetaInfoMixin, DeletedAtMetaInfoMixin
 
 
 get_tus_file_path = functools.partial(
-    get_obfuscated_file_path, base_path="tus_pending_files"
+    get_overwritable_obfuscated_file_path, base_path="tus_pending_files"
 )
 
 
@@ -87,7 +95,12 @@ class S3PendingUploadData(TypedDict, total=True):
     object_key: str
 
 
-class TusUpload(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
+class TusUpload(
+    BaseDBModel,
+    CreatedMetaInfoMixin,
+    ModifiedAtMetaInfoMixin,
+    OverwritableUploadToMixin,
+):
     file = models.FileField(
         upload_to=get_tus_file_path,
         max_length=500,

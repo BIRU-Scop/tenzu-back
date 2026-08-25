@@ -42,7 +42,7 @@ from commons.storage.exceptions import OverflowExpectedSizeError
 from commons.validators import B64UUID
 from import_export import services as import_export_services
 from import_export.api.validators import ImportProjectValidator
-from import_export.models import ProjectImportation
+from import_export.models import PROJECT_IMPORTATION_BASE_PATH, ProjectImportation
 from import_export.permissions import ProjectImportationPermissionsCheck
 from import_export.serializers import (
     InvitedProjectImportationSerializer,
@@ -129,6 +129,7 @@ async def launch_project_importation(
                 workspace_id=workspace_id,
                 origin_type=upload_metadata.origin_type,
             ),
+            overwrite_base_path=PROJECT_IMPORTATION_BASE_PATH,
         )
     except OverflowExpectedSizeError:
         raise ex.ContentTooLarge(headers={"Tus-Max-Size": upload_length})

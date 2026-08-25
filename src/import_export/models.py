@@ -49,8 +49,9 @@ class ImportationError(models.TextChoices):
     SERVER_ERROR = "server_error_while_processing"
 
 
+PROJECT_IMPORTATION_BASE_PATH = "project/importation"
 get_importation_source_file_path = functools.partial(
-    get_obfuscated_file_path, base_path="project/importation"
+    get_obfuscated_file_path, base_path=PROJECT_IMPORTATION_BASE_PATH
 )
 
 

@@ -113,6 +113,8 @@ async def test_launch_importation_200_full_content(client):
     assert importation.status == ImportationStatus.PENDING
     assert importation.workspace_id == workspace.id
     assert importation.pending_invites == {}
+    # check that the file has been moved to the correct folder
+    assert importation.source.name.startswith("project/importation")
 
     assert not await TusUpload.objects.aexists()
 
