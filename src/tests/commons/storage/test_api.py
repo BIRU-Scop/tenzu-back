@@ -287,6 +287,8 @@ async def test_continue_tus_upload_424_multipart(client):
         total_size=10,
     )
 
+    file_field = TusUpload._meta.get_field("file")
+    storage = file_field.storage
     s3 = boto3.resource("s3")
     mock_upload = Mock(
         spec=s3.MultipartUploadPart("", "", "", 1).upload,
@@ -296,6 +298,7 @@ async def test_continue_tus_upload_424_multipart(client):
     client.login(tus_upload.created_by)
     with (
         patch_s3_multipart_upload(mock_upload=mock_upload) as multipart_mocks,
+        patch.object(storage, "delete", autospec=True) as fake_storage_delete,
     ):
         response = await client.patch(
             f"/upload/{tus_upload.b64id}",

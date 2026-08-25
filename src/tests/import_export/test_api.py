@@ -309,6 +309,7 @@ async def test_terminate_tus_upload_424_multipart(client):
             storage, "get_available_name", autospec=True
         ) as fake_get_available_name,
         patch.object(storage, "_open", autospec=True) as fake_storage_open,
+        patch.object(storage, "delete", autospec=True) as fake_storage_delete,
     ):
         fake_storage_open.return_value.obj.key = "test_key"
         fake_storage_open.return_value.obj.initiate_multipart_upload.return_value.id = (

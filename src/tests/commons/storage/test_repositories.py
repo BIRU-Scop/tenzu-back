@@ -292,6 +292,8 @@ async def test_process_new_tus_content_s3_client_error():
         spec=s3.MultipartUploadPart("", "", "", 1).upload,
         side_effect=ClientError({}, ""),
     )
+    file_field = TusUpload._meta.get_field("file")
+    storage = file_field.storage
 
     tus_upload = await f.create_tus_upload(
         file=None,
@@ -305,6 +307,7 @@ async def test_process_new_tus_content_s3_client_error():
     with (
         pytest.raises(ClientError),
         patch_s3_multipart_upload(mock_upload=mock_upload) as multipart_mocks,
+        patch.object(storage, "delete", autospec=True) as fake_storage_delete,
     ):
         await repositories.process_new_tus_content(tus_upload, request, 2)
     (mock_complete, mock_abort, mock_upload, mock_parts) = multipart_mocks

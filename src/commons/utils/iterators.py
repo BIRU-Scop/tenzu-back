@@ -19,6 +19,8 @@
 
 from typing import Generator
 
+from django.http.multipartparser import LazyStream
+
 
 def split_by_n(seq: str, n: int) -> Generator[str, str, None]:
     """
@@ -27,3 +29,24 @@ def split_by_n(seq: str, n: int) -> Generator[str, str, None]:
     while seq:
         yield seq[:n]
         seq = seq[n:]
+
+
+def min_chunk_lazystream(stream: LazyStream, min_size: int | None):
+    """
+    Iterate on a stream and optionally merge last and before last chunks if
+    last chunk alone would make it smaller than given min_size constraint.
+    Expect the size of all other chunks but the last to be >= min_size
+    """
+    if min_size is None:
+        yield from stream
+
+    for chunk in stream:
+        for next_chunk in stream:
+            if len(next_chunk) < min_size:
+                # next chunk would be too small, we merge it with current one
+                chunk += next_chunk
+            else:
+                # otherwise we undo our read
+                stream.unget(next_chunk)
+            break
+        yield chunk

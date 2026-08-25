@@ -33,7 +33,7 @@ from django.db.models.deletion import RestrictedError
 from django.http import HttpRequest
 from django.http.multipartparser import ChunkIter, LazyStream, MultiPartParser
 from django.utils.module_loading import import_string
-from s3transfer.utils import ChunksizeAdjuster
+from s3transfer.utils import MIN_UPLOAD_CHUNKSIZE, ChunksizeAdjuster
 from storages.backends.s3 import S3Storage
 
 from commons.storage import exceptions as ex
@@ -47,6 +47,7 @@ from commons.utils.async_func import (
     transaction_atomic_async,
     transaction_on_commit_async,
 )
+from commons.utils.iterators import min_chunk_lazystream
 from ninja_jwt.utils import aware_utcnow
 from users.models import User
 
@@ -213,6 +214,17 @@ async def _check_stored_length(tus_upload: TusUpload, written_bytes: int):
         raise ex.OverflowExpectedSizeError()
 
 
+def _complete_s3_upload(
+    tus_upload: TusUpload, multipart_upload, uploaded_parts: list[S3Part]
+):
+    try:
+        multipart_upload.complete(MultipartUpload={"Parts": uploaded_parts})
+    except ClientError as e:
+        logger.error(e)
+        delete_tus_upload(tus_upload)
+        raise e
+
+
 async def store_tus_s3_content(
     tus_upload: TusUpload, stream: LazyStream, last_write: bool, storage: Storage
 ) -> int:
@@ -230,12 +242,15 @@ async def store_tus_s3_content(
         await tus_upload.adelete()
         raise ex.NoOngoingMultipartUploadError()
 
-    for chunk in stream:
+    for chunk in min_chunk_lazystream(
+        stream, min_size=None if last_write else MIN_UPLOAD_CHUNKSIZE
+    ):
         part = multipart_upload.Part(len(uploaded_parts) + 1)
         try:
             part_response = part.upload(Body=chunk)
         except ClientError as e:
-            multipart_upload.abort()
+            logger.error(e)
+            await sync_to_async(delete_tus_upload)(tus_upload)
             raise e
         uploaded_parts.append(
             S3Part(ETag=part_response["ETag"], PartNumber=part.part_number)
@@ -245,8 +260,10 @@ async def store_tus_s3_content(
 
     if last_write:
         # Never complete upload if new offset is not saved
-        await transaction_on_commit_async(multipart_upload.complete)(
-            MultipartUpload={"Parts": uploaded_parts}
+        await transaction_on_commit_async(_complete_s3_upload)(
+            tus_upload=tus_upload,
+            multipart_upload=multipart_upload,
+            uploaded_parts=uploaded_parts,
         )
         tus_upload.file = multipart_upload.object_key
     return written_bytes
@@ -261,7 +278,7 @@ async def store_tus_file_content(tus_upload: TusUpload, stream: LazyStream) -> i
     return written_bytes
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def store_tus_content(
     tus_upload: TusUpload, stream: LazyStream, last_write: bool, storage: Storage
 ):
