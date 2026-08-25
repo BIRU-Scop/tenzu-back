@@ -41,17 +41,17 @@ pytestmark = pytest.mark.django_db
 
 
 ##########################################################
-# create_importation
+# create_project_importation
 ##########################################################
 
 
-async def test_create_importation():
+async def test_create_project_importation():
     source_file = f.build_string_file()
     workspace = await f.create_workspace()
     user = await f.create_user()
     importation = await repositories.create_project_importation(
-        user=user,
-        workspace=workspace,
+        user_id=user.id,
+        workspace_id=workspace.id,
         origin_type=ProjectImportationType.TAIGA,
         source_file=source_file,
     )

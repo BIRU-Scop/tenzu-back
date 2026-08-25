@@ -80,11 +80,12 @@ async def test_do_import_project_no_kanban(tqmanager: TestTasksQueueManager, cap
         Path(__file__).resolve().parent / "samples" / "export_from_taiga_no-kanban.json"
     )
     with open(source_path) as source_file:
+        tus_upload = await f.create_tus_upload(file=UploadedFile(source_file))
         await services.import_project(
-            user=workspace.created_by,
-            workspace=workspace,
+            user_id=workspace.created_by_id,
+            workspace_id=workspace.id,
             origin_type=ProjectImportationType.TAIGA,
-            source=UploadedFile(source_file),
+            tus_upload=tus_upload,
         )
     assert len(tqmanager.pending_jobs) == 1
     await tqmanager.run_async()
@@ -122,11 +123,12 @@ async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, capl
         / "export_from_taiga_project1_small.json"
     )
     with open(source_path) as source_file:
+        tus_upload = await f.create_tus_upload(file=UploadedFile(source_file))
         await services.import_project(
-            user=workspace.created_by,
-            workspace=workspace,
+            user_id=workspace.created_by_id,
+            workspace_id=workspace.id,
             origin_type=ProjectImportationType.TAIGA,
-            source=UploadedFile(source_file),
+            tus_upload=tus_upload,
         )
     assert len(tqmanager.pending_jobs) == 1
     await tqmanager.run_async()
@@ -166,11 +168,12 @@ async def test_do_import_project_complete_with_warnings(
         / "export_from_taiga_project1_small.json"
     )
     with open(source_path) as source_file:
+        tus_upload = await f.create_tus_upload(file=UploadedFile(source_file))
         await services.import_project(
-            user=workspace.created_by,
-            workspace=workspace,
+            user_id=workspace.created_by_id,
+            workspace_id=workspace.id,
             origin_type=ProjectImportationType.TAIGA,
-            source=UploadedFile(source_file),
+            tus_upload=tus_upload,
         )
     assert len(tqmanager.pending_jobs) == 1
     await tqmanager.run_async()
