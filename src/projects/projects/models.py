@@ -41,8 +41,8 @@ get_project_logo_file_path = functools.partial(
 
 class Project(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin):
     name = models.CharField(max_length=80, null=False, blank=False, verbose_name="name")
-    description = models.CharField(
-        max_length=220, null=False, blank=True, default="", verbose_name="description"
+    description = models.TextField(
+        null=False, blank=True, default="", verbose_name="description"
     )
     color = models.IntegerField(
         null=False,
