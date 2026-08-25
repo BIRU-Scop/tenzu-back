@@ -26,9 +26,9 @@ from slugify import slugify
 
 from base.db.models import BaseDBModel, LowerSlugField
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
-from base.utils.files import get_obfuscated_file_path
-from base.utils.slug import slugify_uniquely
-from commons.colors import NUM_COLORS, generate_random_color
+from commons.utils.colors import NUM_COLORS, generate_random_color
+from commons.utils.files import get_obfuscated_file_path
+from commons.utils.slug import slugify_uniquely
 from projects import references
 
 if TYPE_CHECKING:

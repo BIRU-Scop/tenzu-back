@@ -20,8 +20,7 @@
 import pytest
 from django.test import override_settings
 
-from base.utils.uuid import encode_uuid_to_b64str
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from permissions.choices import ProjectPermissions
 from stories.tags.models import StoryTag, StoryTagAssignment
 from tests.utils import factories as f

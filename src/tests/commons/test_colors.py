@@ -16,10 +16,24 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from commons.colors import NUM_COLORS, ordered_colour_generator
+from commons.utils.colors import (
+    NUM_COLORS,
+    generate_random_color,
+    ordered_colour_generator,
+)
 
 
 def test_ordered_colour_generator():
     colour_generator = ordered_colour_generator()
     for i in list(range(1, NUM_COLORS + 1)) * 2:
         assert i == next(colour_generator)
+
+
+def test_random_color_default():
+    res = generate_random_color()
+    assert 0 < res < NUM_COLORS + 1
+
+
+def test_random_color_custom():
+    res = generate_random_color(99, 100)
+    assert 98 < res < 101

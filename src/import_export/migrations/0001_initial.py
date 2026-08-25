@@ -26,7 +26,7 @@ import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
 
-import base.utils.files
+import commons.utils.files
 import ninja_jwt.utils
 
 
@@ -92,7 +92,7 @@ class Migration(migrations.Migration):
                     models.FileField(
                         max_length=500,
                         upload_to=functools.partial(
-                            base.utils.files.get_obfuscated_file_path,
+                            commons.utils.files.get_obfuscated_file_path,
                             base_path="project/importation",
                         ),
                     ),

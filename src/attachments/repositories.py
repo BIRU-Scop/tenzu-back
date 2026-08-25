@@ -25,9 +25,8 @@ from django.db.models import Model
 from ninja import UploadedFile
 
 from attachments.models import Attachment
-from base.utils.files import get_size
 from commons.storage import repositories as storage_repositories
-from commons.storage.models import StoragedObject
+from commons.utils.files import get_size
 from users.models import User
 
 ##########################################################

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,17 +15,3 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-import re
-
-
-def are_the_same(email1: str, email2: str) -> bool:
-    """
-    Compare two email addresses and check if they are the same.
-    """
-    return email1.casefold() == email2.casefold()
-
-
-def is_email(value: str) -> bool:
-    email_regex = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
-    return bool(re.fullmatch(email_regex, value))

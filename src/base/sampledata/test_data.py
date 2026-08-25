@@ -25,8 +25,8 @@ from django.contrib.auth.hashers import make_password
 from faker import Faker
 
 from base.sampledata import factories
-from commons.colors import NUM_COLORS
-from commons.utils import transaction_atomic_async
+from commons.utils.async_func import transaction_atomic_async
+from commons.utils.colors import NUM_COLORS
 from ninja_jwt.utils import aware_utcnow
 from permissions.choices import ProjectPermissions
 from projects.memberships import repositories as pj_memberships_repositories

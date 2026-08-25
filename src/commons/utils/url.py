@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,8 +16,14 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import sys
+from urllib.parse import urljoin
+
+from django.conf import settings
+from pydantic_core import Url
 
 
-def is_test_running() -> bool:
-    return "pytest" in sys.modules
+def get_absolute_url(url: str | Url):
+    if str(url).startswith("/"):
+        # relative url
+        return urljoin(str(settings.BACKEND_URL), url)
+    return url

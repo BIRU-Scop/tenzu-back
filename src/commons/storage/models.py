@@ -30,7 +30,7 @@ from base.db.models.mixins import (
     DeletedAtMetaInfoMixin,
     ModifiedAtMetaInfoMixin,
 )
-from base.utils.files import (
+from commons.utils.files import (
     OverwritableUploadToMixin,
     get_overwritable_obfuscated_file_path,
 )

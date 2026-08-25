@@ -27,7 +27,7 @@ from pydantic import EmailStr
 from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from base.serializers import UUIDB64
-from base.utils.files import get_obfuscated_file_path
+from commons.utils.files import get_obfuscated_file_path
 
 
 class ProjectImportationType(TextChoices):

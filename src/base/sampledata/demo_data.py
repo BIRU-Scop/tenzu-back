@@ -21,7 +21,7 @@ import os
 import random
 
 from base.sampledata import factories
-from commons.utils import transaction_atomic_async
+from commons.utils.async_func import transaction_atomic_async
 from memberships.choices import InvitationStatus
 from projects.invitations import repositories as pj_invitations_repositories
 from projects.invitations.models import ProjectInvitation

@@ -39,7 +39,7 @@ from typing import Any, Optional
 
 from ninja.errors import HttpError as NinjaHttpError
 
-from base.utils.strings import to_kebab
+from commons.utils.strings import to_kebab
 
 from . import codes
 

@@ -25,7 +25,10 @@ from procrastinate.contrib.django.models import ProcrastinateJob
 
 from attachments.models import Attachment
 from comments.models import Comment
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from import_export.models import (
     ImportationStatus,
     ProjectImportation,

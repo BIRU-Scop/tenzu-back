@@ -43,7 +43,10 @@ from commons.storage.models import (
     StoragedObject,
     TusUpload,
 )
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from ninja_jwt.utils import aware_utcnow
 from users.models import User
 

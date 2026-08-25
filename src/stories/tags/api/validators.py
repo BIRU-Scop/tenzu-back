@@ -22,7 +22,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, Field, StringConstraints
 
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from commons.validators import B64UUID, BaseValidatorSchema
 
 

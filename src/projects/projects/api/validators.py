@@ -24,12 +24,11 @@ from pydantic import (
     PlainValidator,
     StringConstraints,
     conint,
-    constr,
 )
 from typing_extensions import Annotated
 
-from base.utils.images import valid_image_content, valid_image_content_type
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
+from commons.utils.images import valid_image_content, valid_image_content_type
 from commons.validators import BaseValidatorSchema
 
 

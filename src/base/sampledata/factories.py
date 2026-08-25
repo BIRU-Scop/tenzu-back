@@ -31,8 +31,8 @@ from ninja import UploadedFile
 
 from base.sampledata import constants
 from comments.models import Comment
-from commons.colors import NUM_COLORS
-from commons.ordering import DEFAULT_ORDER_OFFSET
+from commons.utils.colors import NUM_COLORS
+from commons.utils.ordering import DEFAULT_ORDER_OFFSET
 from memberships.choices import InvitationStatus
 from ninja_jwt.utils import aware_utcnow
 from projects.invitations import repositories as pj_invitations_repositories

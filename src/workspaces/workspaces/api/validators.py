@@ -20,7 +20,7 @@
 from pydantic import Field, StringConstraints
 from typing_extensions import Annotated
 
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from commons.validators import BaseValidatorSchema
 
 Name = Annotated[

@@ -26,7 +26,10 @@ from ninja.errors import ValidationError as APIValidationError
 from pydantic_core import ErrorDetails
 
 from commons.storage.models import TusUpload
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from import_export import events as import_export_events
 from import_export import repositories as import_export_repositories
 from import_export.models import (

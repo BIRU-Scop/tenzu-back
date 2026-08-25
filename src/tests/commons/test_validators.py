@@ -21,7 +21,7 @@ from uuid import uuid1
 import pytest
 from pydantic import AfterValidator, BaseModel, ValidationError
 
-from base.utils.uuid import encode_uuid_to_b64str
+from commons.utils.uuid import encode_uuid_to_b64str
 from commons.validators import (
     B64UUID,
     BaseValidatorSchema,

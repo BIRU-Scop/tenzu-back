@@ -23,11 +23,11 @@ from ninja.errors import ValidationError
 
 from auth.api import auth_router as social_auth_router
 from base.services.exceptions import TenzuAuthException, TenzuServiceException
-from base.utils.strings import to_kebab
 from commons.exceptions.api import HTTPException, codes
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
 from commons.storage.api import storage_router
+from commons.utils.strings import to_kebab
 from feeds.api import feeds_router
 from import_export.api import import_export_router
 from ninja_jwt.api import auth_router

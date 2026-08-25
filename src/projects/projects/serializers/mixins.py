@@ -24,7 +24,7 @@ from django.conf import settings
 from django.urls import reverse_lazy
 
 from base.serializers import BaseSchema, FileField
-from base.utils.uuid import encode_uuid_to_b64str
+from commons.utils.uuid import encode_uuid_to_b64str
 
 
 class ProjectLogoBaseSerializer(BaseSchema):

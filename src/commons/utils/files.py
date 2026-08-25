@@ -26,7 +26,7 @@ from django.db.models.fields.files import FieldFile  # noqa
 from easy_thumbnails.files import ThumbnailFile
 from slugify import slugify
 
-from base.utils.iterators import split_by_n
+from commons.utils.iterators import split_by_n
 from ninja_jwt.utils import aware_utcnow
 
 

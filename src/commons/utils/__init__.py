@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,15 +16,3 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-from commons.colors import generate_random_color
-
-
-def test_random_color_default():
-    res = generate_random_color()
-    assert 0 < res < 9
-
-
-def test_random_color_custom():
-    res = generate_random_color(99, 100)
-    assert 98 < res < 101

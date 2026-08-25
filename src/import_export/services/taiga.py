@@ -33,12 +33,12 @@ from slugify import slugify
 from attachments import repositories as attachments_repositories
 from attachments.models import Attachment
 from base.db.models import BaseDBModel
-from base.utils.slug import generate_incremental_int_suffix
 from comments import repositories as comments_repositories
 from comments.models import Comment
-from commons.colors import ordered_colour_generator
 from commons.storage.models import StoragedObject
-from commons.utils import transaction_atomic_async
+from commons.utils.async_func import transaction_atomic_async
+from commons.utils.colors import ordered_colour_generator
+from commons.utils.slug import generate_incremental_int_suffix
 from import_export import notifications
 from import_export.models import (
     ImportationError,

@@ -314,7 +314,7 @@ async def test_continue_tus_upload_423(client):
     tus_upload = await f.create_tus_upload(offset=4, total_size=10)
 
     client.login(tus_upload.created_by)
-    with patch("base.utils.concurrency.aget_redis_lock", side_effect=LockError):
+    with patch("commons.utils.concurrency.aget_redis_lock", side_effect=LockError):
         response = await client.patch(
             f"/upload/{tus_upload.b64id}",
             data=b"a" * 5,
@@ -392,7 +392,7 @@ async def test_terminate_tus_upload_423(client):
     tus_upload = await f.create_tus_upload(offset=4, total_size=10)
 
     client.login(tus_upload.created_by)
-    with patch("base.utils.concurrency.aget_redis_lock", side_effect=LockError):
+    with patch("commons.utils.concurrency.aget_redis_lock", side_effect=LockError):
         response = await client.delete(
             f"/upload/{tus_upload.b64id}",
             data=b"a" * 5,

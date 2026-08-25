@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,14 +16,23 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Mapping
 
-from typing import Generator
+from pydantic.alias_generators import to_camel, to_snake
 
 
-def split_by_n(seq: str, n: int) -> Generator[str, str, None]:
-    """
-    A generator to divide a sequence into chunks of n units.
-    """
-    while seq:
-        yield seq[:n]
-        seq = seq[n:]
+def to_kebab(msg: str) -> str:
+    return to_snake(msg).replace("_", "-")
+
+
+def dict_to_camel(value: Mapping | list | str):
+    if isinstance(value, Mapping):
+        return {to_camel(k): dict_to_camel(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [dict_to_camel(k) for k in value]
+    return value
+
+
+def orderby_to_snake(data: str):
+    snake_data = to_snake(data)
+    return f"-{snake_data[1:]}" if data.startswith("-") else snake_data

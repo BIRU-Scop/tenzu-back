@@ -27,7 +27,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model, UUIDField
 
 from base.db.models.fields import *  # noqa
-from base.utils.uuid import encode_uuid_to_b64str
+from commons.utils.uuid import encode_uuid_to_b64str
 
 
 def uuid_generator() -> uuid.UUID:

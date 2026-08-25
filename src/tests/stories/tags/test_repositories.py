@@ -21,8 +21,8 @@ import pytest
 from django.db import IntegrityError
 from psycopg import errors as pg_errors
 
-from commons.colors import NUM_COLORS
-from commons.utils import transaction_atomic_async
+from commons.utils.async_func import transaction_atomic_async
+from commons.utils.colors import NUM_COLORS
 from stories.tags import repositories
 from stories.tags.models import UNIQUE_LABEL_CONSTRAINT, StoryTag, StoryTagAssignment
 from tests.utils import factories as f

@@ -24,7 +24,7 @@ from django.db.models import QuerySet
 
 from base.repositories.neighbors import Neighbor
 from comments import services as comments_services
-from commons.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
+from commons.utils.ordering import DEFAULT_ORDER_OFFSET, calculate_offset
 from ninja_jwt.utils import aware_utcnow
 from projects.projects.models import Project
 from stories.stories import events as stories_events

@@ -1,4 +1,4 @@
-# Copyright (C) 2024-2026 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,22 +17,13 @@
 # You can contact BIRU at ask@biru.sh
 
 import functools
-from asyncio import Task, create_task
+from _asyncio import Task
+from asyncio import create_task
 from contextlib import asynccontextmanager
-from functools import partial, wraps
-from urllib.parse import urljoin
+from functools import partial
 
 from asgiref.sync import async_to_sync, iscoroutinefunction, sync_to_async
-from django.conf import settings
 from django.db import transaction
-from pydantic_core import Url
-
-
-def get_absolute_url(url: str | Url):
-    if str(url).startswith("/"):
-        # relative url
-        return urljoin(str(settings.BACKEND_URL), url)
-    return url
 
 
 @asynccontextmanager

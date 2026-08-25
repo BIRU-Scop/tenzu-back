@@ -21,7 +21,10 @@ from uuid import UUID
 
 from django.db.models import RestrictedError
 
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from memberships import services as memberships_services
 from memberships.services import exceptions as ex
 from memberships.services import is_membership_the_only_owner  # noqa

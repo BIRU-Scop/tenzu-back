@@ -22,7 +22,7 @@ import pytest
 from pydantic import ValidationError
 
 from base.serializers import BaseSchema
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from projects.projects.api.validators import (
     CreateProjectValidator,
     LogoField,

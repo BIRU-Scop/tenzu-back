@@ -24,7 +24,7 @@ from django.db import DatabaseError
 from procrastinate import RetryStrategy
 from procrastinate.contrib.django import app
 
-from base.utils.uuid import decode_b64str_to_uuid
+from commons.utils.uuid import decode_b64str_to_uuid
 from import_export.models import ProjectImportationPendingInvitation
 from import_export.services.taiga import do_import_taiga_project
 from stories.stories.services.blocknote import BlockNoteEmptyOutputError
