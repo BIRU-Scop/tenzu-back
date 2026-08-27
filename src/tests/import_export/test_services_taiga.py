@@ -1560,13 +1560,13 @@ async def test_do_import_taiga_users_members():
         us_statuses=[],
         owner="1user@tenzu.test",
         memberships=[
-            Mock(email=None),
-            Mock(email="1user@tenzu.test"),
-            Mock(email=project_importation.created_by.email),
-            Mock(email="2user@tenzu.test", is_admin=True),
-            Mock(email="3user@tenzu.test", is_admin=False, role=None),
-            Mock(email="4user@tenzu.test", is_admin=False, role="Member"),
-            Mock(email="5user@tenzu.test", is_admin=False, role="Unknown"),
+            Mock(email=None, user=None),
+            Mock(email="1user@tenzu.test", user=None),
+            Mock(user=project_importation.created_by.email, email=None),
+            Mock(email="2user@tenzu.test", user="2user@tenzu.test", is_admin=True),
+            Mock(email="3user@tenzu.test", user=None, is_admin=False, role=None),
+            Mock(user="4user@tenzu.test", email=None, is_admin=False, role="Member"),
+            Mock(email="5user@tenzu.test", user=None, is_admin=False, role="Unknown"),
         ],
     )
     project_roles = [

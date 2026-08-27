@@ -29,9 +29,16 @@ def check_not_empty(v: Any) -> Any:
     return v
 
 
-def UniqueInListValidator(attribute_name: str) -> Callable[[list], list]:
+def UniqueInListValidator(
+    attribute_name: str, ignore_none=False
+) -> Callable[[list], list]:
     def is_unique(value: list) -> list:
-        if len(set(getattr(elt, attribute_name) for elt in value)) < len(value):
+        attr_list = [
+            getattr(elt, attribute_name)
+            for elt in value
+            if not ignore_none or getattr(elt, attribute_name) is not None
+        ]
+        if len(set(attr_list)) < len(attr_list):
             raise ValueError(
                 f"{attribute_name} of each element is not unique for the given project"
             )

@@ -292,7 +292,9 @@ class _TaigaMembership(BaseModel):
 
 
 _UniqueTaigaMemberships = Annotated[
-    list[_TaigaMembership], AfterValidator(UniqueInListValidator("email"))
+    list[_TaigaMembership],
+    AfterValidator(UniqueInListValidator("user", ignore_none=True)),
+    AfterValidator(UniqueInListValidator("email", ignore_none=True)),
 ]
 
 
