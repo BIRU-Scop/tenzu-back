@@ -43,21 +43,12 @@ from pydantic_core import core_schema
 from base.db.models import BaseDBModel
 from commons.validators import UniqueInListValidator
 
-
-def db_model_to_id(v: Any) -> Any:
-    if isinstance(v, BaseDBModel):
-        return v.id
-    return v
+TenzuId = UUID
 
 
-TenzuId = (
-    UUID
-    | Annotated[
-        BaseDBModel,
-        GetPydanticSchema(lambda _s, h: h(core_schema.is_instance_schema(BaseDBModel))),
-        PlainSerializer(db_model_to_id),
-    ]
-)
+class TenzuDbObject(BaseModel):
+    tenzu_id: TenzuId | None = None
+
 
 _FileData = Annotated[
     str,
@@ -134,9 +125,7 @@ class _TaigaHistoryType(enum.IntEnum):
     delete = 3
 
 
-class _TaigaHistory(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaHistory(TenzuDbObject):
     user: _TaigaHistoryUser
     created_at: datetime
     type: Literal[_TaigaHistoryType.change, _TaigaHistoryType.create]
@@ -156,9 +145,7 @@ class _TaigaHistory(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class _TaigaAttachment(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaAttachment(TenzuDbObject):
     owner: EmailStr | None
     created_date: datetime
     modified_date: datetime
@@ -241,18 +228,14 @@ class _TaigaIssueType(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class _TaigaSwimlaneUserStoryStatus(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaSwimlaneUserStoryStatus(TenzuDbObject):
     wip_limit: int | None
     status: str  # related name
 
     model_config = ConfigDict(extra="allow")
 
 
-class _TaigaSwimlane(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaSwimlane(TenzuDbObject):
     name: str
     order: int
     statuses: list[_TaigaSwimlaneUserStoryStatus] = None
@@ -265,9 +248,7 @@ _UniqueTaigaSwimlanes = Annotated[
 ]
 
 
-class _TaigaRole(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaRole(TenzuDbObject):
     name: str
     slug: str
     order: int
@@ -411,9 +392,7 @@ class _TaigaRolePoints(BaseModel):
     points: str | None  # related slug
 
 
-class _TaigaUserStory(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaUserStory(TenzuDbObject):
     watchers: list[EmailStr | None] = None
     owner: EmailStr | None = None
     assigned_to: EmailStr | None = None
