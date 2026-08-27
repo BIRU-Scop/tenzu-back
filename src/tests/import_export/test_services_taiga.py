@@ -23,6 +23,7 @@ import orjson
 import pytest
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import UploadedFile
+from django.db import DatabaseError
 from django.test import override_settings
 
 from attachments.models import Attachment
@@ -69,7 +70,7 @@ from stories.stories.models import Story
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_UUID
 from tests.utils.taskqueue import TestTasksQueueManager
-from tests.utils.utils import patch_db_transaction
+from tests.utils.utils import patch_db_transaction, raise_on_nth_call
 from workflows.models import Workflow, WorkflowStatus
 
 
@@ -91,11 +92,11 @@ async def test_do_import_project_no_kanban(tqmanager: TestTasksQueueManager, cap
     await tqmanager.run_async()
     assert tqmanager.succeeded_jobs and not tqmanager.failed_jobs
     project = await Project.objects.aget()
-    importation = await ProjectImportation.objects.select_related("project").aget()
+    importation = await ProjectImportation.objects.aget()
     assert project.created_at.year == 2025
     assert importation.status == ImportationStatus.ACTION_NEEDED
     assert importation.extra_data["progress_percentage"] == 100
-    assert importation.project == project
+    assert importation.project_id == project.id
     assert await Workflow.objects.acount() == 1
     assert await WorkflowStatus.objects.acount() == 7
     assert (
@@ -109,6 +110,93 @@ async def test_do_import_project_no_kanban(tqmanager: TestTasksQueueManager, cap
         type=PROJECT_IMPORTATION_ACTION_NEEDED
     ).aexists()
     assert not caplog.records
+
+
+@pytest.mark.django_db
+async def test_do_import_project_no_kanban_with_interruptions():
+    source_path = (
+        Path(__file__).resolve().parent / "samples" / "export_from_taiga_no-kanban.json"
+    )
+    with open(source_path) as source_file:
+        project_importation = await f.create_project_importation(
+            source=UploadedFile(source_file), project=None
+        )
+
+    with patch(
+        "projects.projects.services._create_project", side_effect=DatabaseError
+    ), pytest.raises(DatabaseError):
+        await services.taiga.do_import_taiga_project(
+            project_importation=project_importation
+        )
+    await project_importation.arefresh_from_db(
+        from_queryset=ProjectImportation.objects.select_related(
+            "workspace", "created_by", "project"
+        )
+    )
+    assert project_importation.status == ImportationStatus.ONGOING
+    assert project_importation.project_id is None
+    assert not await Project.objects.aexists()
+
+    with patch(
+        "import_export.services.taiga.update_project_importation",
+        side_effect=raise_on_nth_call(
+            services.update_project_importation, 2, DatabaseError
+        ),
+    ), pytest.raises(DatabaseError):
+        await services.taiga.do_import_taiga_project(
+            project_importation=project_importation
+        )
+    await project_importation.arefresh_from_db(
+        from_queryset=ProjectImportation.objects.select_related(
+            "workspace", "created_by", "project"
+        )
+    )
+    assert project_importation.status == ImportationStatus.ONGOING
+    assert project_importation.project_id is None
+    assert not await Project.objects.aexists()
+
+    with patch(
+        "import_export.services.taiga.update_project_importation",
+        side_effect=raise_on_nth_call(
+            services.update_project_importation, 3, DatabaseError
+        ),
+    ), pytest.raises(DatabaseError):
+        await services.taiga.do_import_taiga_project(
+            project_importation=project_importation
+        )
+    await project_importation.arefresh_from_db(
+        from_queryset=ProjectImportation.objects.select_related(
+            "workspace", "created_by", "project"
+        )
+    )
+    project = await Project.objects.aget()
+    assert project_importation.project_id == project.id
+    assert project_importation.extra_data["progress_percentage"] == 2
+
+    with patch(
+        "import_export.services.taiga.update_project_importation",
+        side_effect=raise_on_nth_call(
+            services.update_project_importation, 3, DatabaseError
+        ),
+    ), pytest.raises(DatabaseError):
+        await services.taiga.do_import_taiga_project(
+            project_importation=project_importation
+        )
+    await project_importation.arefresh_from_db(
+        from_queryset=ProjectImportation.objects.select_related(
+            "workspace", "created_by", "project"
+        )
+    )
+    assert project_importation.status == ImportationStatus.ONGOING
+    assert project_importation.extra_data["progress_percentage"] == 100
+    project = await Project.objects.aget()
+    assert project_importation.project_id == project.id
+
+    # Finished without error
+    await services.taiga.do_import_taiga_project(
+        project_importation=project_importation
+    )
+    assert project_importation.status == ImportationStatus.ACTION_NEEDED
 
 
 @pytest.mark.django_db
@@ -134,11 +222,11 @@ async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, capl
     await tqmanager.run_async()
     assert tqmanager.succeeded_jobs and not tqmanager.failed_jobs
     project = await Project.objects.aget()
-    importation = await ProjectImportation.objects.select_related("project").aget()
+    importation = await ProjectImportation.objects.aget()
     assert project.created_at.year == 2025
     assert importation.status == ImportationStatus.ACTION_NEEDED
     assert importation.extra_data["progress_percentage"] == 100
-    assert importation.project == project
+    assert importation.project_id == project.id
     assert await Workflow.objects.acount() == 2
     assert await WorkflowStatus.objects.acount() == 7 * 2
     assert (

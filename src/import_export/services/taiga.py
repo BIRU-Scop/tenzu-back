@@ -55,6 +55,7 @@ from import_export.serializers.taiga import (
     _TaigaMemberPermission,
     _TaigaUserStory,
 )
+from import_export.services import exceptions as ex
 from import_export.services import (
     succeed_project_importation,
     update_project_importation,
@@ -211,6 +212,11 @@ async def sync_project_ids_to_taiga_import(
 
 
 async def do_import_taiga_project(project_importation: ProjectImportation):
+    if project_importation.status not in (
+        ImportationStatus.PENDING,
+        ImportationStatus.ONGOING,
+    ):
+        raise ex.IncompatibleImportationStatus()
     with project_importation.source.open() as source_file:
         try:
             taiga_project = FullTaigaProjectImport.model_validate_json(
@@ -245,37 +251,52 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
         template, roles_old_to_new_mapping = await get_template_from_taiga_project(
             taiga_project
         )
-        project, roles = await projects_services._create_project(
-            template=template,
-            workspace=project_importation.workspace,
-            name=taiga_project.name,
-            description=taiga_project.description,
-            created_by=project_importation.created_by,
-            color=None,
-            logo_file=SimpleUploadedFile(
-                taiga_project.logo.name, taiga_project.logo.data
+        roles = None
+        if project_importation.project is None:
+            async with transaction_atomic_async():
+                project, roles = await projects_services._create_project(
+                    template=template,
+                    workspace=project_importation.workspace,
+                    name=taiga_project.name,
+                    description=taiga_project.description,
+                    created_by=project_importation.created_by,
+                    color=None,
+                    logo_file=SimpleUploadedFile(
+                        taiga_project.logo.name, taiga_project.logo.data
+                    )
+                    if taiga_project.logo is not None
+                    else None,
+                    created_at=taiga_project.created_date,
+                )
+                # send small progress percentage to indicate creation of statuses, workflow and roles
+                await update_project_importation(
+                    project_importation,
+                    {
+                        "project": project,
+                        "extra_data": {"progress_percentage": 2},
+                    },
+                )
+            workflows = await workflows_services.list_workflows(project_id=project.id)
+            await sync_project_ids_to_taiga_import(
+                taiga_project, workflows, roles, roles_old_to_new_mapping["slug"]
             )
-            if taiga_project.logo is not None
-            else None,
-            created_at=taiga_project.created_date,
-        )
-        workflows = await workflows_services.list_workflows(project_id=project.id)
-        await sync_project_ids_to_taiga_import(
-            taiga_project, workflows, roles, roles_old_to_new_mapping["slug"]
-        )
-        # send small progress percentage to indicate creation of statuses, workflow and roles
-        await update_project_importation(
-            project_importation,
-            {
-                "project": project,
-                "extra_data": {"progress_percentage": 2},
-            },
-        )
-        pending_invites: dict[
-            EmailStr, ProjectImportationPendingInvitation
-        ] = await do_import_taiga_users(
-            project_importation, taiga_project, roles, roles_old_to_new_mapping["name"]
-        )
+        else:
+            workflows = await workflows_services.list_workflows(
+                project_id=project_importation.project_id
+            )
+
+        pending_invites: dict[EmailStr, ProjectImportationPendingInvitation]
+        if not project_importation.pending_invites:
+            if roles is None:
+                roles = [r async for r in project_importation.project.roles.all()]
+            pending_invites = await do_import_taiga_users(
+                project_importation,
+                taiga_project,
+                roles,
+                roles_old_to_new_mapping["name"],
+            )
+        else:
+            pending_invites = project_importation.pending_invites
 
         if not taiga_project.is_kanban_activated:
             await update_project_importation(
@@ -295,11 +316,16 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
                 "extra_data": {"progress_percentage": 5},
             },
         )
+        # TODO handle already registered stories and tenzu_id saved in file only if corresponding objects saved to db
+        #  use transaction_on_commit_async to set tenzu_id for that
+        #  save partial state of pending_invites at the same time
         await do_import_taiga_stories(
             project_importation, workflows, taiga_project, pending_invites
         )
+        await close_importation(project_importation, taiga_project)
     except (RuntimeError, BlockNoteEmptyOutputError, DatabaseError) as e:
         # those are the errors where a retry of the job should be attempted
+        await backport_tenzu_ids(project_importation, taiga_project)
         raise e
     except Exception as e:
         await update_project_importation(
@@ -311,7 +337,36 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
         )
         await notifications.notify_when_project_importation_fail(project_importation)
         raise e
-    await close_importation(project_importation, taiga_project)
+
+
+async def backport_tenzu_ids(
+    project_importation: ProjectImportation, taiga_project: FullTaigaProjectImport
+):
+    """
+    We overwrite the original file in order to keep a trace of the associated tenzu IDs
+    so we can operate on this importation file later on when we support new properties
+    as well as to support continuing in case of error
+    """
+    try:
+        # file instance is cached and the mode can't be changed afterwards for some storage (S3Storage) so we clear it
+        del project_importation.source.file
+        with project_importation.source.open(mode="w") as source_file:
+            source_file.write(
+                taiga_project.model_dump_json(
+                    exclude_unset=True, round_trip=True, warnings="error"
+                )
+            )
+
+    except Exception as e:
+        await update_project_importation(
+            project_importation,
+            {
+                "status": ImportationStatus.FAILURE,
+                "extra_data": {"error_code": ImportationError.SERVER_ERROR},
+            },
+        )
+        await notifications.notify_when_project_importation_fail(project_importation)
+        raise e
 
 
 async def close_importation(
@@ -329,17 +384,7 @@ async def close_importation(
         )
     else:
         await succeed_project_importation(project_importation)
-
-    # file instance is cached and the mode can't be changed afterwards for some storage (S3Storage) so we clear it
-    del project_importation.source.file
-    with project_importation.source.open(mode="w") as source_file:
-        # we overwrite the file in order to keep a trace of the associated tenzu IDs
-        # so we can operate on this importation file later on when we support new properties
-        source_file.write(
-            taiga_project.model_dump_json(
-                exclude_unset=True, round_trip=True, warnings="error"
-            )
-        )
+    await backport_tenzu_ids(project_importation, taiga_project)
 
 
 async def do_import_taiga_users(
