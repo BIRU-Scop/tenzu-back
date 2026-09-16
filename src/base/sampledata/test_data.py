@@ -294,6 +294,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member", "editable": True},
     )
+    project_role.project = project
     await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
@@ -324,6 +325,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member", "editable": True},
     )
+    project_role.project = project
     project_role.permissions = []
     await project_role.asave()
     # more projects
@@ -430,6 +432,7 @@ async def _create_project_membership_scenario() -> None:
     await factories.create_project_membership(
         user=user1001, project=project, role=project_role
     )
+    project_role.project = project
     project_role.permissions = []
     await project_role.asave()
 
@@ -495,6 +498,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
+    project_role.project = project
     project_role.permissions = []
     await project_role.asave()
     await factories.create_project_invitation(
@@ -540,6 +544,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
+    project_role.project = project
     project_role.permissions = []
     await project_role.asave()
     await factories.create_project_membership(
@@ -556,6 +561,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
+    project_role.project = project
     project_role.permissions = [ProjectPermissions.VIEW_STORY]
     await project_role.asave()
     await factories.create_project_membership(
@@ -591,6 +597,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
+    project_role.project = project
     project_role.permissions = [ProjectPermissions.VIEW_STORY]
     await project_role.asave()
     await factories.create_project_membership(
@@ -625,6 +632,7 @@ async def _create_project_membership_scenario() -> None:
         ProjectRole,
         filters={"project_id": project.id, "slug": "member"},
     )
+    project_role.project = project
     project_role.permissions = [ProjectPermissions.VIEW_STORY]
     await project_role.asave()
     await factories.create_project_membership(

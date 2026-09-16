@@ -133,6 +133,9 @@ async def get_attachment(
 
 
 async def delete_attachments(filters: AttachmentFilters) -> int:
-    qs = Attachment.objects.all().filter(**filters)
+    # prefetch the storaged_object that's used in post_delete signal
+    # delete queries clear the select_related, cheat by using prefetch_related instead
+    # see https://forum.djangoproject.com/t/select-related-removed-when-performing-a-deletion/40857
+    qs = Attachment.objects.all().prefetch_related("storaged_object").filter(**filters)
     count, _ = await qs.adelete()
     return count
