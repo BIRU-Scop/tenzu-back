@@ -67,8 +67,6 @@ class TextClientAuthMixin(NinjaClientBase):
         # Enable direct raw streaming of the request content
         if isinstance(request.body, (bytes, bytearray)):
             request._stream = BytesIO(request.body)
-            request.read.side_effect = request._stream.read
-            request.readline.side_effect = request._stream.readline
         return request
 
 
