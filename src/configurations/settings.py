@@ -39,6 +39,7 @@ from commons.i18n import TRANSLATION_DIRECTORY
 
 from .conf import settings
 from .conf.auth import LDAPActivation
+from .conf.emails import EmailBackends
 from .conf.events import PubSubBackendChoices
 from .utils import BASE_DIR, remove_ending_slash
 
@@ -300,7 +301,41 @@ locals().update({f"AUTH_LDAP_{key}": value for key, value in settings.LDAP})
 
 # EMAIL
 
-locals().update(settings.EMAIL.model_dump())
+locals().update(
+    settings.EMAIL.model_dump(
+        include={
+            "EMAIL_USE_LOCALTIME",
+            "DEFAULT_FROM_EMAIL",
+            "EMAIL_RETRY_ATTEMPTS",
+            "EMAIL_RETRY_EXPONENTIAL_WAIT",
+        }
+    )
+)
+
+_EMAIL_BACKEND_OPTIONS = {
+    EmailBackends.SMTP: {
+        "host": settings.EMAIL.EMAIL_HOST,
+        "port": settings.EMAIL.EMAIL_PORT,
+        "username": settings.EMAIL.EMAIL_HOST_USER,
+        "password": settings.EMAIL.EMAIL_HOST_PASSWORD,
+        "use_tls": settings.EMAIL.EMAIL_USE_TLS,
+        "use_ssl": settings.EMAIL.EMAIL_USE_SSL,
+        "timeout": settings.EMAIL.EMAIL_TIMEOUT,
+        "ssl_keyfile": settings.EMAIL.EMAIL_SSL_KEYFILE,
+        "ssl_certfile": settings.EMAIL.EMAIL_SSL_CERTFILE,
+    },
+    EmailBackends.FILE: {
+        "file_path": str(settings.EMAIL.EMAIL_FILE_PATH),
+    },
+}
+MAILERS = {
+    "default": {
+        "BACKEND": settings.EMAIL.EMAIL_BACKEND,
+        "OPTIONS": _EMAIL_BACKEND_OPTIONS.get(settings.EMAIL.EMAIL_BACKEND, {}),
+    },
+}
+
+
 #############s##################################################################
 # 3-PARTY LIBS
 ###############################################################################

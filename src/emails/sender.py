@@ -18,8 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, get_connection
-from django.core.mail.backends.base import BaseEmailBackend
+from django.core.mail import EmailMultiAlternatives
 
 
 def send_email_message(
@@ -38,7 +37,6 @@ def send_email_message(
     """
 
     message = EmailMultiAlternatives(
-        connection=_get_mail_connection(),
         subject=subject,
         body=body_txt,
         to=to_emails,
@@ -52,7 +50,3 @@ def send_email_message(
         message.attach_file(path=attachment_path)
 
     message.send()
-
-
-def _get_mail_connection() -> BaseEmailBackend:
-    return get_connection(backend=settings.EMAIL_BACKEND)
