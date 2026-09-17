@@ -17,7 +17,9 @@
 #
 # You can contact BIRU at ask@biru.sh
 from enum import StrEnum
+from pathlib import Path
 
+from django.conf import global_settings as default_django_settings
 from pydantic import BaseModel, PositiveInt, model_validator
 from typing_extensions import Self
 
@@ -44,6 +46,17 @@ class StorageSettings(BaseModel):
     AWS_STORAGE_BUCKET_NAME: str | None = None
     AWS_S3_ENDPOINT_URL: str | None = None
     AWS_S3_FILE_OVERWRITE: bool = False
+
+    FILE_UPLOAD_MAX_MEMORY_SIZE: PositiveInt = (
+        default_django_settings.FILE_UPLOAD_MAX_MEMORY_SIZE
+    )
+    FILE_UPLOAD_DIRECTORY_PERMISSIONS: PositiveInt | None = (
+        default_django_settings.FILE_UPLOAD_DIRECTORY_PERMISSIONS
+    )
+    FILE_UPLOAD_PERMISSIONS: PositiveInt | None = (
+        default_django_settings.FILE_UPLOAD_PERMISSIONS
+    )
+    FILE_UPLOAD_TEMP_DIR: str | None = default_django_settings.FILE_UPLOAD_TEMP_DIR
 
     CLEAN_DELETED_STORAGE_OBJECTS_CRON: str = (
         "0 4 * * *"  # default: once a day, at 4:00 AM

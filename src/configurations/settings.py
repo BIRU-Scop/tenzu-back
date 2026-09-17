@@ -347,7 +347,7 @@ locals().update(
         include={
             field_name
             for field_name, _field_value in settings.STORAGE
-            if field_name.startswith("AWS_")
+            if field_name.startswith("AWS_") or field_name.startswith("FILE_UPLOAD_")
         }
     )
 )
