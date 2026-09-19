@@ -160,16 +160,18 @@ async def test_continue_tus_upload_ok(client):
     tus_upload = await f.create_tus_upload(offset=4, total_size=10, created_at=now)
 
     client.login(tus_upload.created_by)
-    response = await client.patch(
-        f"/upload/{tus_upload.b64id}",
-        data=b"a" * 5,
-        headers={
-            "Tus-Resumable": settings.SUPPORTED_TUS_VERSION,
-            "Content-Type": "application/offset+octet-stream",
-            "Upload-Offset": tus_upload.offset,
-            "Content-Length": 5,
-        },
-    )
+
+    with patch("commons.utils.concurrency.aget_redis_lock"):
+        response = await client.patch(
+            f"/upload/{tus_upload.b64id}",
+            data=b"a" * 5,
+            headers={
+                "Tus-Resumable": settings.SUPPORTED_TUS_VERSION,
+                "Content-Type": "application/offset+octet-stream",
+                "Upload-Offset": tus_upload.offset,
+                "Content-Length": 5,
+            },
+        )
     assert response.status_code == 204, response.data
     assert (
         response.headers["Tus-Resumable"]
@@ -190,16 +192,18 @@ async def test_continue_tus_upload_409(client):
     tus_upload = await f.create_tus_upload(offset=4, total_size=10)
 
     client.login(tus_upload.created_by)
-    response = await client.patch(
-        f"/upload/{tus_upload.b64id}",
-        data=b"a",
-        headers={
-            "Tus-Resumable": settings.SUPPORTED_TUS_VERSION,
-            "Content-Type": "application/offset+octet-stream",
-            "Upload-Offset": tus_upload.offset + 1,
-            "Content-Length": 5,
-        },
-    )
+
+    with patch("commons.utils.concurrency.aget_redis_lock"):
+        response = await client.patch(
+            f"/upload/{tus_upload.b64id}",
+            data=b"a",
+            headers={
+                "Tus-Resumable": settings.SUPPORTED_TUS_VERSION,
+                "Content-Type": "application/offset+octet-stream",
+                "Upload-Offset": tus_upload.offset + 1,
+                "Content-Length": 5,
+            },
+        )
     assert response.status_code == 409, response.data
 
 
@@ -207,29 +211,33 @@ async def test_continue_tus_upload_413(client):
     tus_upload = await f.create_tus_upload(offset=4, total_size=10)
 
     client.login(tus_upload.created_by)
-    response = await client.patch(
-        f"/upload/{tus_upload.b64id}",
-        data=b"a" * 5,
-        headers={
-            "Tus-Resumable": settings.SUPPORTED_TUS_VERSION,
-            "Content-Type": "application/offset+octet-stream",
-            "Upload-Offset": tus_upload.offset,
-            "Content-Length": 7,
-        },
-    )
+
+    with patch("commons.utils.concurrency.aget_redis_lock"):
+        response = await client.patch(
+            f"/upload/{tus_upload.b64id}",
+            data=b"a" * 5,
+            headers={
+                "Tus-Resumable": settings.SUPPORTED_TUS_VERSION,
+                "Content-Type": "application/offset+octet-stream",
+                "Upload-Offset": tus_upload.offset,
+                "Content-Length": 7,
+            },
+        )
     # announced content-length overflow the total_size of the tus_upload
     assert response.status_code == 413, response.data
     assert response.headers["Tus-Max-Size"] == str(tus_upload.total_size)
-    response = await client.patch(
-        f"/upload/{tus_upload.b64id}",
-        data=b"a" * 7,
-        headers={
-            "Tus-Resumable": settings.SUPPORTED_TUS_VERSION,
-            "Content-Type": "application/offset+octet-stream",
-            "Upload-Offset": tus_upload.offset,
-            "Content-Length": 5,
-        },
-    )
+
+    with patch("commons.utils.concurrency.aget_redis_lock"):
+        response = await client.patch(
+            f"/upload/{tus_upload.b64id}",
+            data=b"a" * 7,
+            headers={
+                "Tus-Resumable": settings.SUPPORTED_TUS_VERSION,
+                "Content-Type": "application/offset+octet-stream",
+                "Upload-Offset": tus_upload.offset,
+                "Content-Length": 5,
+            },
+        )
     # concrete content length overflow the total_size of the tus_upload
     assert response.status_code == 413, response.data
     assert response.headers["Tus-Max-Size"] == str(tus_upload.total_size)
@@ -262,6 +270,7 @@ async def test_continue_tus_upload_404_multipart(client):
     with (
         patch_s3_multipart_upload(mock_parts=mock_parts),
         patch.object(storage, "delete"),
+        patch("commons.utils.concurrency.aget_redis_lock"),
     ):
         response = await client.patch(
             f"/upload/{tus_upload.b64id}",
@@ -299,6 +308,7 @@ async def test_continue_tus_upload_424_multipart(client):
     with (
         patch_s3_multipart_upload(mock_upload=mock_upload) as multipart_mocks,
         patch.object(storage, "delete", autospec=True) as fake_storage_delete,
+        patch("commons.utils.concurrency.aget_redis_lock"),
     ):
         response = await client.patch(
             f"/upload/{tus_upload.b64id}",
@@ -383,10 +393,11 @@ async def test_terminate_tus_upload_ok(client):
     tus_upload = await f.create_tus_upload(offset=4, total_size=10)
 
     client.login(tus_upload.created_by)
-    response = await client.delete(
-        f"/upload/{tus_upload.b64id}",
-        headers={"Tus-Resumable": settings.SUPPORTED_TUS_VERSION},
-    )
+    with patch("commons.utils.concurrency.aget_redis_lock"):
+        response = await client.delete(
+            f"/upload/{tus_upload.b64id}",
+            headers={"Tus-Resumable": settings.SUPPORTED_TUS_VERSION},
+        )
     assert response.status_code == 204, response.data
     assert not await TusUpload.objects.filter(id=tus_upload.id).aexists()
 
