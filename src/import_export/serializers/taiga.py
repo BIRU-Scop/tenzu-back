@@ -32,16 +32,13 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     EmailStr,
-    GetPydanticSchema,
     NonNegativeInt,
     PlainSerializer,
     conlist,
-    field_validator,
 )
-from pydantic_core import core_schema
 
-from base.db.models import BaseDBModel
 from commons.validators import UniqueInListValidator
+from commons.validators.fields.text import Label
 
 TenzuId = UUID
 
@@ -339,7 +336,7 @@ class _TaigaTask(BaseModel):
     version: int
     is_blocked: bool
     blocked_note: str
-    tags: list[str] | None
+    tags: list[Label] | None
 
     due_date: datetime | None = None
     due_date_reason: str
@@ -378,7 +375,7 @@ class _TaigaEpic(BaseModel):
     version: int
     is_blocked: bool
     blocked_note: str
-    tags: list[str] | None
+    tags: list[Label] | None
 
     related_user_stories: list[_TaigaEpicRelatedUserStory]
 
@@ -392,6 +389,10 @@ class _TaigaEpic(BaseModel):
 class _TaigaRolePoints(BaseModel):
     role: str | None  # related slug
     points: str | None  # related slug
+
+
+class _TaigaStoryTag(TenzuDbObject):
+    label: Label
 
 
 class _TaigaUserStory(TenzuDbObject):
@@ -427,7 +428,7 @@ class _TaigaUserStory(TenzuDbObject):
     version: int
     is_blocked: bool
     blocked_note: str
-    tags: list[str] | None
+    tags: list[Label] | list[_TaigaStoryTag] | None
 
     due_date: datetime | None = None
     due_date_reason: str
@@ -463,7 +464,7 @@ class _TaigaIssue(BaseModel):
     version: int
     is_blocked: bool
     blocked_note: str
-    tags: list[str] | None
+    tags: list[Label] | None
 
     due_date: datetime | None = None
     due_date_reason: str
@@ -551,8 +552,8 @@ class FullTaigaProjectImport(BaseModel):
     total_activity_last_month: NonNegativeInt
     total_activity_last_year: NonNegativeInt
 
-    tags_colors: list[tuple[str | None, str | None]] = None
-    tags: list[str] | None
+    tags_colors: list[tuple[Label | None, str | None]] | None = None
+    tags: list[Label] | None
 
     creation_template: str | None = None  # related slug
     default_points: str | None = None  # related name

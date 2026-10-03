@@ -41,7 +41,7 @@ from commons.utils.async_func import (
     transaction_atomic_async,
     transaction_on_commit_async,
 )
-from commons.utils.colors import ordered_colour_generator
+from commons.utils.colors import generate_random_color, ordered_colour_generator
 from commons.utils.slug import generate_incremental_int_suffix
 from import_export import notifications
 from import_export.models import (
@@ -58,6 +58,7 @@ from import_export.serializers.taiga import (
     _TaigaAttachment,
     _TaigaHistory,
     _TaigaMemberPermission,
+    _TaigaStoryTag,
     _TaigaUserStory,
 )
 from import_export.services import exceptions as ex
@@ -77,6 +78,13 @@ from stories.stories.services.blocknote import (
     BlockNoteConverter,
     BlockNoteEmptyOutputError,
 )
+from stories.tags import (
+    repositories as story_tags_repositories,
+)
+from stories.tags import (
+    services as story_tags_services,
+)
+from stories.tags.models import StoryTag, StoryTagAssignment
 from users.models import User
 from workflows import services as workflows_services
 from workflows.models import Workflow
@@ -274,6 +282,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
                     else None,
                     created_at=taiga_project.created_date,
                 )
+                story_tags = {}
                 # send small progress percentage to indicate creation of statuses, workflow and roles
                 await update_project_importation(
                     project_importation,
@@ -292,6 +301,14 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             workflows = await workflows_services.list_workflows(
                 project_id=project_importation.project_id
             )
+            story_tags = {
+                tag.label: tag
+                for tag in (
+                    await story_tags_services.list_story_tags(
+                        project_importation.project_id
+                    )
+                )
+            }
 
         pending_invites: dict[EmailStr, ProjectImportationPendingInvitation]
         if not project_importation.pending_invites:
@@ -325,7 +342,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             },
         )
         await do_import_taiga_stories(
-            project_importation, workflows, taiga_project, pending_invites
+            project_importation, workflows, taiga_project, pending_invites, story_tags
         )
         await close_importation(project_importation, taiga_project)
     except (RuntimeError, BlockNoteEmptyOutputError, DatabaseError) as e:
@@ -451,6 +468,7 @@ async def do_import_taiga_stories(
     workflows: list[Workflow],
     taiga_project: FullTaigaProjectImport,
     pending_invites: dict[EmailStr, ProjectImportationPendingInvitation],
+    project_story_tags: dict[str, StoryTag],
 ):
     processed_stories = 0
     total_stories = len(taiga_project.user_stories)
@@ -469,12 +487,14 @@ async def do_import_taiga_stories(
     assignments_to_create: list[StoryAssignment] = []
     attachments_to_create: list[Attachment] = []
     comments_to_create: list[Comment] = []
+    tag_assignments_to_create: list[StoryTagAssignment] = []
     attachment_warnings: list[notifications.WarningFileTooBig] = []
     all_to_create = (
         stories_to_create,
         assignments_to_create,
         attachments_to_create,
         comments_to_create,
+        tag_assignments_to_create,
         attachment_warnings,
     )
     pending_data: ProjectImportationPendingData = {
@@ -513,9 +533,11 @@ async def do_import_taiga_stories(
                         converter=converter,
                         workflow_id=workflow_id,
                         status_id=status_id,
+                        project_story_tags=project_story_tags,
                         stories_to_create=stories_to_create,
                         assignments_to_create=assignments_to_create,
                         attachments_to_create=attachments_to_create,
+                        tag_assignments_to_create=tag_assignments_to_create,
                         comments_to_create=comments_to_create,
                         attachment_warnings=attachment_warnings,
                         pending_data=pending_data,
@@ -531,6 +553,7 @@ async def do_import_taiga_stories(
                     assignments_to_create=assignments_to_create,
                     attachments_to_create=attachments_to_create,
                     comments_to_create=comments_to_create,
+                    tag_assignments_to_create=tag_assignments_to_create,
                     attachment_warnings=attachment_warnings,
                     pending_invites=pending_invites,
                     pending_data=pending_data,
@@ -559,16 +582,30 @@ def assign_tenzu_id(taiga_object: TenzuDbObject, tenzu_object: BaseDBModel):
     taiga_object.tenzu_id = tenzu_object.id
 
 
+def assign_story_data(
+    taiga_story: _TaigaUserStory, tenzu_object: BaseDBModel, story_tags: list[StoryTag]
+):
+    """
+    utility function used to be encapsulated inside a transaction.on_commit
+    """
+    taiga_story.tags = [
+        _TaigaStoryTag(label=tag.label, tenzu_id=tag.id) for tag in story_tags
+    ]
+    assign_tenzu_id(taiga_story, tenzu_object)
+
+
 async def do_import_taiga_single_story(
     taiga_story: _TaigaUserStory,
     project_importation: ProjectImportation,
     converter: BlockNoteConverter,
     workflow_id: UUID,
     status_id: UUID,
+    project_story_tags: dict[str, StoryTag],
     stories_to_create: list[Story],
     assignments_to_create: list[StoryAssignment],
     attachments_to_create: list[Attachment],
     comments_to_create: list[Comment],
+    tag_assignments_to_create: list[StoryTagAssignment],
     attachment_warnings: list[notifications.WarningFileTooBig],
     pending_data: ProjectImportationPendingData,
 ):
@@ -608,7 +645,7 @@ async def do_import_taiga_single_story(
         description_updated_at=taiga_story.modified_date,
         version=taiga_story.version,
     )
-    await transaction_on_commit_async(assign_tenzu_id)(taiga_story, story)
+
     if taiga_story.owner is not None and story.created_by is None:
         pending_data["created_stories"].append(
             ProjectImportationPendingObject(
@@ -637,6 +674,15 @@ async def do_import_taiga_single_story(
                         user_email=taiga_attachment.owner, db_object=attachment
                     )
                 )
+    story_tags = []
+    if taiga_story.tags:
+        story_tags = await get_or_create_story_tags_from_taiga(
+            story.project_id, set(taiga_story.tags), project_story_tags
+        )
+        tag_assignments_to_create.extend(
+            [StoryTagAssignment(story=story, tag=tag) for tag in story_tags]
+        )
+    await transaction_on_commit_async(assign_story_data)(taiga_story, story, story_tags)
     for event in taiga_story.history:
         (
             comment,
@@ -671,6 +717,7 @@ async def bulk_create_all(
     assignments_to_create: list[StoryAssignment],
     attachments_to_create: list[Attachment],
     comments_to_create: list[Comment],
+    tag_assignments_to_create: list[StoryTagAssignment],
     attachment_warnings: list[notifications.WarningFileTooBig],
     pending_invites: dict[EmailStr, ProjectImportationPendingInvitation],
     pending_data: ProjectImportationPendingData,
@@ -692,6 +739,10 @@ async def bulk_create_all(
         await comments_repositories.bulk_create_comments(
             comments_to_create,
         )
+    if tag_assignments_to_create:
+        await story_tags_repositories.bulk_create_story_tag_assignments(
+            tag_assignments_to_create,
+        )
     if attachment_warnings:
         await notifications.notify_when_project_importation_file_too_big_warning(
             project_importation, attachment_warnings
@@ -710,6 +761,34 @@ async def bulk_create_all(
                 pending_invite[f"{pending_type}_ids"].append(
                     pending_object["db_object"].id
                 )
+
+
+async def get_or_create_story_tags_from_taiga(
+    project_id: UUID, tags: set[str], project_story_tags: dict[str, StoryTag]
+) -> list[StoryTag]:
+    # TODO this function will launch a DB request for each story that contains new tags
+    #  see if we can find a way to batch create tags later just before bulk creation of story tag assignment
+    story_tags: list[StoryTag] = []
+    story_tags_to_create: list[StoryTag] = []
+    for tag in tags:
+        existing = project_story_tags.get(tag, None)
+        if existing is not None:
+            story_tags.append(existing)
+        else:
+            story_tags_to_create.append(
+                StoryTag(
+                    label=tag,
+                    color=generate_random_color(),
+                    project_id=project_id,
+                )
+            )
+    if story_tags_to_create:
+        new_tags = await story_tags_repositories.bulk_create_story_tags(
+            story_tags_to_create
+        )
+        project_story_tags.update({tag.label: tag for tag in new_tags})
+        story_tags.extend(new_tags)
+    return story_tags
 
 
 async def build_story_attachment_from_taiga(
