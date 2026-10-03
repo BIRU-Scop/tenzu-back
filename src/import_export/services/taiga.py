@@ -559,6 +559,13 @@ async def do_import_taiga_stories(
                     pending_data=pending_data,
                 )
 
+                if len(project_story_tags) > settings.MAX_STORY_TAGS_PER_PROJECT:
+                    await notifications.notify_when_project_importation_too_many_story_tags_warning(
+                        project_importation,
+                        len(project_story_tags),
+                        settings.MAX_STORY_TAGS_PER_PROJECT,
+                    )
+
                 await update_project_importation(
                     project_importation,
                     {
