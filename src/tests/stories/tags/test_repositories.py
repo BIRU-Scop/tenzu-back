@@ -63,6 +63,19 @@ async def test_list_story_tags_sorted_with_count(project_template):
     assert [tag.stories_count for tag in story_tags] == [1, 0]
 
 
+async def test_bulk_create_story_tags_ok(project_template):
+    project = await f.create_project(project_template)
+
+    tags = [
+        StoryTag(label="test-1", project=project, color=1),
+        StoryTag(label="test-2", project=project, color=2),
+    ]
+
+    await repositories.bulk_create_story_tags(tags)
+
+    assert all(assignment.pk for assignment in tags)
+
+
 ##########################################################
 # get / update / delete story tag
 ##########################################################
@@ -164,6 +177,22 @@ async def test_create_story_tag_assignment_idempotent(project_template):
         await StoryTagAssignment.objects.filter(story=story, tag=story_tag).acount()
         == 1
     )
+
+
+async def test_bulk_create_story_tag_assignments_ok(project_template):
+    project = await f.create_project(project_template)
+    story = await f.create_story(project=project)
+    story_tag1 = await f.create_story_tag(project=project, label="Bug")
+    story_tag2 = await f.create_story_tag(project=project, label="Feature")
+
+    assignments = [
+        StoryTagAssignment(story=story, tag=story_tag1),
+        StoryTagAssignment(story=story, tag=story_tag2),
+    ]
+
+    await repositories.bulk_create_story_tag_assignments(assignments)
+
+    assert all(assignment.pk for assignment in assignments)
 
 
 async def test_get_story_tag_assignment(project_template):
