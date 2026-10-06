@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -20,3 +20,4 @@
 from commons.validators.fields.i18n import LanguageCode  # noqa
 from commons.validators.fields.text import StrNotEmpty  # noqa
 from commons.validators.fields.uuid import B64UUID  # noqa
+from commons.validators.fields.emails import LowerEmailStr  # noqa

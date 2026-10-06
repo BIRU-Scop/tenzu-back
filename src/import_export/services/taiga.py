@@ -43,6 +43,7 @@ from commons.utils.async_func import (
 )
 from commons.utils.colors import generate_random_color, ordered_colour_generator
 from commons.utils.slug import generate_incremental_int_suffix
+from commons.validators import LowerEmailStr
 from import_export import notifications
 from import_export.models import (
     ImportationError,
@@ -310,7 +311,7 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
                 )
             }
 
-        pending_invites: dict[EmailStr, ProjectImportationPendingInvitation]
+        pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation]
         if not project_importation.pending_invites:
             if roles is None:
                 roles = [r async for r in project_importation.project.roles.all()]
@@ -414,7 +415,7 @@ async def do_import_taiga_users(
     taiga_project: FullTaigaProjectImport,
     roles: list[ProjectRole],
     roles_old_to_new_name_mapping: dict[str, str],
-) -> dict[EmailStr, ProjectImportationPendingInvitation]:
+) -> dict[LowerEmailStr, ProjectImportationPendingInvitation]:
     owner_role = next(filter(attrgetter("is_owner"), roles))
 
     def find_role(attribute: str, value: str) -> ProjectRole:
@@ -427,7 +428,7 @@ async def do_import_taiga_users(
         for old_name, new_name in roles_old_to_new_name_mapping.items()
     }
 
-    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation] = {}
+    pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation] = {}
     if (
         taiga_project.owner is not None
         and taiga_project.owner != project_importation.created_by.email
@@ -467,7 +468,7 @@ async def do_import_taiga_stories(
     project_importation: ProjectImportation,
     workflows: list[Workflow],
     taiga_project: FullTaigaProjectImport,
-    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation],
+    pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation],
     project_story_tags: dict[str, StoryTag],
 ):
     processed_stories = 0
@@ -619,12 +620,12 @@ async def do_import_taiga_single_story(
     if taiga_story.tenzu_id is not None:
         return
 
-    assigned_users: set[EmailStr | None] = {
+    assigned_users: set[LowerEmailStr | None] = {
         taiga_story.assigned_to,
         *taiga_story.assigned_users,
     }
     assigned_users.discard(None)
-    assigned_users: set[EmailStr]
+    assigned_users: set[LowerEmailStr]
     creator: User | None = (
         project_importation.created_by
         if emails.are_the_same(
@@ -726,7 +727,7 @@ async def bulk_create_all(
     comments_to_create: list[Comment],
     tag_assignments_to_create: list[StoryTagAssignment],
     attachment_warnings: list[notifications.WarningFileTooBig],
-    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation],
+    pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation],
     pending_data: ProjectImportationPendingData,
 ):
     if stories_to_create:
@@ -840,10 +841,10 @@ async def build_story_comment_from_taiga(
     project_importation: ProjectImportation,
     story: Story,
     event: _TaigaHistory,
-) -> tuple[Comment | None, EmailStr | None, EmailStr | None]:
+) -> tuple[Comment | None, LowerEmailStr | None, LowerEmailStr | None]:
     if not event.comment:
         return None, None, None
-    creator_email: EmailStr | None = event.user[0] if event.user else None
+    creator_email: LowerEmailStr | None = event.user[0] if event.user else None
     user: User | None = (
         project_importation.created_by
         if emails.are_the_same(
@@ -851,7 +852,7 @@ async def build_story_comment_from_taiga(
         )
         else None
     )
-    deleter_email: EmailStr | None = (
+    deleter_email: LowerEmailStr | None = (
         event.delete_comment_user[0]
         if (event.delete_comment_user and event.delete_comment_date)
         else None

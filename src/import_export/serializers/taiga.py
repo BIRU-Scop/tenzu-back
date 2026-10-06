@@ -31,13 +31,12 @@ from pydantic import (
     AfterValidator,
     BaseModel,
     ConfigDict,
-    EmailStr,
     NonNegativeInt,
     PlainSerializer,
     conlist,
 )
 
-from commons.validators import UniqueInListValidator
+from commons.validators import LowerEmailStr, UniqueInListValidator
 from commons.validators.fields.text import Label
 
 TenzuId = UUID
@@ -112,7 +111,7 @@ _TaigaAnonPermission = Literal[
 ]
 
 _TaigaHistoryUser = (
-    tuple[EmailStr | None, str] | conlist(Any, max_length=0) | None
+    tuple[LowerEmailStr | None, str] | conlist(Any, max_length=0) | None
 )  # tuple (email, name) usually, [] if field was empty and None if user was not found (deleted)
 
 
@@ -143,7 +142,7 @@ class _TaigaHistory(TenzuDbObject):
 
 
 class _TaigaAttachment(TenzuDbObject):
-    owner: EmailStr | None
+    owner: LowerEmailStr | None
     created_date: datetime
     modified_date: datetime
     name: str
@@ -274,13 +273,13 @@ class _TaigaCustomAttribute(BaseModel):
 
 
 class _TaigaMembership(BaseModel):
-    user: EmailStr | None = None
-    invited_by: EmailStr | None = None
+    user: LowerEmailStr | None = None
+    invited_by: LowerEmailStr | None = None
 
     role: str | None  # related name
 
     is_admin: bool
-    email: EmailStr | Literal[""] | None
+    email: LowerEmailStr | Literal[""] | None
     created_at: datetime
     invitation_extra_text: str | None
     user_order: int
@@ -296,8 +295,8 @@ _UniqueTaigaMemberships = Annotated[
 
 
 class _TaigaMilestone(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
 
     name: str
     slug: str
@@ -313,9 +312,9 @@ class _TaigaMilestone(BaseModel):
 
 
 class _TaigaTask(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    assigned_to: EmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    assigned_to: LowerEmailStr | None = None
 
     status: str | None  # related name
     user_story: int | None = None  # related ref
@@ -357,9 +356,9 @@ class _TaigaEpicRelatedUserStory(BaseModel):
 
 
 class _TaigaEpic(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    assigned_to: EmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    assigned_to: LowerEmailStr | None = None
 
     ref: int
     status: str | None  # related name
@@ -396,10 +395,10 @@ class _TaigaStoryTag(TenzuDbObject):
 
 
 class _TaigaUserStory(TenzuDbObject):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    assigned_to: EmailStr | None = None
-    assigned_users: list[EmailStr | None] = (
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    assigned_to: LowerEmailStr | None = None
+    assigned_users: list[LowerEmailStr | None] = (
         None  # usually also contains assigned_to, but there is no guarantee of that
     )
     status: str | None  # related name
@@ -441,10 +440,10 @@ class _TaigaUserStory(TenzuDbObject):
 
 
 class _TaigaIssue(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    assigned_to: EmailStr | None = None
-    votes: list[EmailStr | None]
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    assigned_to: LowerEmailStr | None = None
+    votes: list[LowerEmailStr | None]
 
     status: str | None  # related name
     priority: str | None  # related name
@@ -477,9 +476,9 @@ class _TaigaIssue(BaseModel):
 
 
 class WikiPageExport(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    last_modifier: EmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    last_modifier: LowerEmailStr | None = None
 
     slug: str
     created_date: datetime
@@ -511,8 +510,8 @@ class _TaigaTimeline(BaseModel):
 
 
 class FullTaigaProjectImport(BaseModel):
-    owner: EmailStr | None = None
-    watchers: list[EmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
 
     name: str
     slug: str

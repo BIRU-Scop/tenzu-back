@@ -22,12 +22,12 @@ from typing import TypedDict
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import JSONField, TextChoices
-from pydantic import EmailStr
 
 from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
 from base.serializers import UUIDB64
 from commons.utils.files import get_obfuscated_file_path
+from commons.validators.fields.emails import LowerEmailStr
 
 
 class ProjectImportationType(TextChoices):
@@ -85,11 +85,13 @@ class ProjectImportation(BaseDBModel, CreatedMetaInfoMixin, ModifiedAtMetaInfoMi
         max_length=500,
         upload_to=get_importation_source_file_path,
     )
-    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation] = JSONField(
-        null=False,
-        blank=True,
-        default=dict,
-        encoder=DjangoJSONEncoder,
+    pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation] = (
+        JSONField(
+            null=False,
+            blank=True,
+            default=dict,
+            encoder=DjangoJSONEncoder,
+        )
     )
     extra_data: ProjectImportationData = JSONField(
         null=False,

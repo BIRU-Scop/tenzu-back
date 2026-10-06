@@ -26,6 +26,7 @@ from commons.validators import (
     B64UUID,
     BaseValidatorSchema,
     LanguageCode,
+    LowerEmailStr,
     StrNotEmpty,
     UniqueInListValidator,
 )
@@ -161,3 +162,20 @@ def test_unique_in_list_with_none_values():
     with pytest.raises(ValidationError):
         TestModel(x=names_list)
     TestModel(y=names_list)
+
+
+#########################################################
+# Email
+#########################################################
+
+
+class LowerEmailStrModel(BaseValidatorSchema):
+    x: LowerEmailStr
+
+
+def test_lower_case():
+    email = "1uSEr@tenZu.demo"
+
+    m = LowerEmailStrModel(x=email)
+
+    assert m.x == "1user@tenzu.demo"
