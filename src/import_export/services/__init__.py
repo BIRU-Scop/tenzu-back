@@ -59,11 +59,14 @@ logger = logging.getLogger(__name__)
 
 @transaction_atomic_async()
 async def import_project(
-    user_id: UUID,
-    workspace_id: UUID,
+    user_id: UUID | str,
+    workspace_id: UUID | str,
     origin_type: ProjectImportationType,
     tus_upload: TusUpload,
 ) -> ProjectImportationSerializer:
+    # args are received from a JSON field, which cast UUID to string on serialisation
+    user_id = UUID(str(user_id))
+    workspace_id = UUID(str(workspace_id))
     try:
         project_importation = (
             await import_export_repositories.create_project_importation(

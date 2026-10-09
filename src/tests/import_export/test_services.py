@@ -54,10 +54,18 @@ async def test_import_project(tqmanager):
             project_importation
         )
         serialised_importation = await services.import_project(
+            user_id=str(project_importation.created_by_id),
+            workspace_id=str(project_importation.workspace_id),
+            origin_type=project_importation.origin_type,
+            tus_upload=tus_upload,
+        )
+
+        # check that id strings have been cast to UUID
+        fake_import_export_repositories.create_project_importation.assert_awaited_once_with(
             user_id=project_importation.created_by_id,
             workspace_id=project_importation.workspace_id,
             origin_type=project_importation.origin_type,
-            tus_upload=tus_upload,
+            source_file=tus_upload.file,
         )
 
         fake_import_export_events.emit_event_when_project_importation_is_created.assert_awaited_once_with(
