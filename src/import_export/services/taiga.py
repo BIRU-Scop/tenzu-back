@@ -19,7 +19,7 @@ import logging
 import mimetypes
 from operator import attrgetter
 from pathlib import Path
-from typing import Generic, Literal, TypedDict, TypeVar
+from typing import Callable, Generic, Literal, TypedDict, TypeVar
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
@@ -64,6 +64,7 @@ from import_export.serializers.taiga import (
 )
 from import_export.services import exceptions as ex
 from import_export.services import (
+    fail_project_importation,
     succeed_project_importation,
     update_project_importation,
 )
@@ -226,7 +227,9 @@ async def sync_project_ids_to_taiga_import(
         status.tenzu_ids = tenzu_statuses_ids
 
 
-async def do_import_taiga_project(project_importation: ProjectImportation):
+async def do_import_taiga_project(
+    project_importation: ProjectImportation, will_retry: Callable[[Exception], bool]
+):
     if project_importation.status not in (
         ImportationStatus.PENDING,
         ImportationStatus.ONGOING,
@@ -238,15 +241,8 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
                 source_file.read()
             )
         except ValidationError as e:
-            await update_project_importation(
-                project_importation,
-                {
-                    "status": ImportationStatus.FAILURE,
-                    "extra_data": {"error_code": ImportationError.INVALID},
-                },
-            )
-            await notifications.notify_when_project_importation_fail(
-                project_importation
+            await fail_project_importation(
+                project_importation, ImportationError.INVALID
             )
             logger.warning(
                 f"Project import {project_importation.id} for file '{Path(project_importation.source.name or '').name}' validation failed: {e}"
@@ -349,16 +345,11 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
     except (RuntimeError, BlockNoteEmptyOutputError, DatabaseError) as e:
         # those are the errors where a retry of the job should be attempted
         await backport_tenzu_ids_to_file(project_importation, taiga_project)
+        if not will_retry(e):
+            await fail_project_importation(project_importation)
         raise e
     except Exception as e:
-        await update_project_importation(
-            project_importation,
-            {
-                "status": ImportationStatus.FAILURE,
-                "extra_data": {"error_code": ImportationError.SERVER_ERROR},
-            },
-        )
-        await notifications.notify_when_project_importation_fail(project_importation)
+        await fail_project_importation(project_importation)
         raise e
 
 
@@ -381,14 +372,7 @@ async def backport_tenzu_ids_to_file(
             )
 
     except Exception as e:
-        await update_project_importation(
-            project_importation,
-            {
-                "status": ImportationStatus.FAILURE,
-                "extra_data": {"error_code": ImportationError.SERVER_ERROR},
-            },
-        )
-        await notifications.notify_when_project_importation_fail(project_importation)
+        await fail_project_importation(project_importation)
         raise e
 
 

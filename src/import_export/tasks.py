@@ -22,7 +22,7 @@ import logging
 from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.db import DatabaseError
-from procrastinate import RetryStrategy
+from procrastinate import JobContext, RetryStrategy
 from procrastinate.contrib.django import app
 
 from commons.utils.uuid import decode_b64str_to_uuid
@@ -38,15 +38,25 @@ logger = logging.getLogger(__name__)
         max_attempts=settings.STORAGE.IMPORTATION_RETRY_ATTEMPTS,
         exponential_wait=settings.STORAGE.IMPORTATION_RETRY_EXPONENTIAL_WAIT,
         retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
-    )
+    ),
+    pass_context=True,
 )
-def import_taiga_project(project_importation_id: str) -> None:
+def import_taiga_project(job_context: JobContext, project_importation_id: str) -> None:
     from import_export import services as import_export_services
 
     importation = async_to_sync(import_export_services.get_project_importation)(
         project_importation_id=decode_b64str_to_uuid(project_importation_id)
     )
-    async_to_sync(do_import_taiga_project)(importation)
+
+    def will_retry(exception: Exception):
+        return (
+            job_context.task.retry.get_retry_decision(
+                exception=exception, job=job_context.job
+            )
+            is not None
+        )
+
+    async_to_sync(do_import_taiga_project)(importation, will_retry)
 
 
 @app.task()

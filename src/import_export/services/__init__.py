@@ -21,7 +21,6 @@ from uuid import UUID
 
 from django.core.exceptions import SuspiciousFileOperation
 from django.utils.translation import gettext
-from ninja import UploadedFile
 from ninja.errors import ValidationError as APIValidationError
 from pydantic_core import ErrorDetails
 
@@ -31,8 +30,10 @@ from commons.utils.async_func import (
     transaction_on_commit_async,
 )
 from import_export import events as import_export_events
+from import_export import notifications
 from import_export import repositories as import_export_repositories
 from import_export.models import (
+    ImportationError,
     ImportationStatus,
     ProjectImportation,
     ProjectImportationType,
@@ -139,6 +140,21 @@ async def update_project_importation(
     )(
         project_importation=project_importation,
     )
+    return updated_project_importation
+
+
+async def fail_project_importation(
+    project_importation: ProjectImportation,
+    error_code: ImportationError = ImportationError.SERVER_ERROR,
+) -> ProjectImportation:
+    updated_project_importation = await update_project_importation(
+        project_importation,
+        {
+            "status": ImportationStatus.FAILURE,
+            "extra_data": {"error_code": error_code},
+        },
+    )
+    await notifications.notify_when_project_importation_fail(project_importation)
     return updated_project_importation
 
 

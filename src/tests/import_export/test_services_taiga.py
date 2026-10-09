@@ -123,6 +123,7 @@ async def test_do_import_project_no_kanban(tqmanager: TestTasksQueueManager, cap
 
 @pytest.mark.django_db
 async def test_do_import_project_no_kanban_with_interruptions():
+    will_retry = lambda x: True
     source_path = (
         Path(__file__).resolve().parent / "samples" / "export_from_taiga_no-kanban.json"
     )
@@ -135,7 +136,7 @@ async def test_do_import_project_no_kanban_with_interruptions():
         "projects.projects.services._create_project", side_effect=DatabaseError
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation
+            project_importation=project_importation, will_retry=will_retry
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -153,7 +154,7 @@ async def test_do_import_project_no_kanban_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation
+            project_importation=project_importation, will_retry=will_retry
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -171,7 +172,7 @@ async def test_do_import_project_no_kanban_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation
+            project_importation=project_importation, will_retry=will_retry
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -189,7 +190,7 @@ async def test_do_import_project_no_kanban_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation
+            project_importation=project_importation, will_retry=will_retry
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -203,9 +204,35 @@ async def test_do_import_project_no_kanban_with_interruptions():
 
     # Finished without error
     await services.taiga.do_import_taiga_project(
-        project_importation=project_importation
+        project_importation=project_importation, will_retry=will_retry
     )
     assert project_importation.status == ImportationStatus.ACTION_NEEDED
+
+
+@pytest.mark.django_db
+async def test_do_import_project_fail_if_no_retry_attempt_left():
+    will_retry = lambda x: False
+    source_path = (
+        Path(__file__).resolve().parent / "samples" / "export_from_taiga_no-kanban.json"
+    )
+    with open(source_path) as source_file:
+        project_importation = await f.create_project_importation(
+            source=UploadedFile(source_file), project=None
+        )
+
+    with patch(
+        "projects.projects.services._create_project", side_effect=DatabaseError
+    ), pytest.raises(DatabaseError):
+        await services.taiga.do_import_taiga_project(
+            project_importation=project_importation, will_retry=will_retry
+        )
+    await project_importation.arefresh_from_db(
+        from_queryset=ProjectImportation.objects.select_related(
+            "workspace", "created_by", "project"
+        )
+    )
+    assert project_importation.status == ImportationStatus.FAILURE
+    assert project_importation.extra_data["error_code"]
 
 
 @pytest.mark.django_db
@@ -285,6 +312,7 @@ async def test_do_import_project_complete_with_warnings(
 
 @pytest.mark.django_db(transaction=True, serialized_rollback=True)
 async def test_do_import_project_complete_with_interruptions():
+    will_retry = lambda x: True
     source_path = (
         Path(__file__).resolve().parent
         / "samples"
@@ -299,7 +327,7 @@ async def test_do_import_project_complete_with_interruptions():
         "projects.projects.services._create_project", side_effect=DatabaseError
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation
+            project_importation=project_importation, will_retry=will_retry
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -317,7 +345,7 @@ async def test_do_import_project_complete_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation
+            project_importation=project_importation, will_retry=will_retry
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -335,7 +363,7 @@ async def test_do_import_project_complete_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation
+            project_importation=project_importation, will_retry=will_retry
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -359,7 +387,7 @@ async def test_do_import_project_complete_with_interruptions():
                 raise_on_nth_call(converter.convert, 1, RuntimeError),
             ), pytest.raises(RuntimeError):
                 await services.taiga.do_import_taiga_project(
-                    project_importation=project_importation
+                    project_importation=project_importation, will_retry=will_retry
                 )
                 await project_importation.arefresh_from_db(
                     from_queryset=ProjectImportation.objects.select_related(
@@ -374,7 +402,7 @@ async def test_do_import_project_complete_with_interruptions():
                 raise_on_nth_call(converter.convert, 3, RuntimeError),
             ), pytest.raises(RuntimeError):
                 await services.taiga.do_import_taiga_project(
-                    project_importation=project_importation
+                    project_importation=project_importation, will_retry=will_retry
                 )
                 await project_importation.arefresh_from_db(
                     from_queryset=ProjectImportation.objects.select_related(
@@ -388,7 +416,7 @@ async def test_do_import_project_complete_with_interruptions():
                 ]
 
     await services.taiga.do_import_taiga_project(
-        project_importation=project_importation
+        project_importation=project_importation, will_retry=will_retry
     )
     # Finished without error
     await project_importation.arefresh_from_db(
