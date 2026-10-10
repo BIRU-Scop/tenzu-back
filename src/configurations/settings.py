@@ -36,6 +36,7 @@ from rich.console import Console
 
 from commons.front import Urls
 from commons.i18n import TRANSLATION_DIRECTORY
+from tasksqueue.middleware import collect_garbage_after_job
 
 from .conf import settings
 from .conf.auth import LDAPActivation
@@ -335,6 +336,10 @@ MAILERS = {
     },
 }
 
+
+PROCRASTINATE_WORKER_DEFAULTS = {
+    "worker_middleware": [collect_garbage_after_job],
+}
 
 #############s##################################################################
 # 3-PARTY LIBS
