@@ -34,6 +34,8 @@ def test_min_chunk_lazystream():
     stream = LazyStream(ChunkIter(BytesIO(b"abcdefg"), 3))
     assert [x for x in min_chunk_lazystream(stream, 2)] == [b"abc", b"defg"]
     stream = LazyStream(ChunkIter(BytesIO(b"abcdefg"), 3))
+    assert [x for x in min_chunk_lazystream(stream, None)] == [b"abc", b"def", b"g"]
+    stream = LazyStream(ChunkIter(BytesIO(b"abcdefg"), 3))
     assert [x for x in min_chunk_lazystream(stream, 1)] == [b"abc", b"def", b"g"]
     stream = LazyStream(ChunkIter(BytesIO(b"abcdef"), 3))
     assert [x for x in min_chunk_lazystream(stream, 2)] == [b"abc", b"def"]

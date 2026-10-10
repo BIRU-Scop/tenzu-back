@@ -271,7 +271,8 @@ async def store_tus_s3_content(
 
 async def store_tus_file_content(tus_upload: TusUpload, stream: LazyStream) -> int:
     written_bytes = 0
-    with tus_upload.file.open("w+b") as file:
+    with tus_upload.file.open("r+b") as file:
+        file.seek(tus_upload.offset)
         for chunk in stream:
             written_bytes += file.write(chunk)
             await _check_stored_length(tus_upload, written_bytes)

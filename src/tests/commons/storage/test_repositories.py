@@ -202,6 +202,23 @@ async def test_process_new_tus_content_filesystem():
     assert tus_upload.offset == 2
 
 
+async def test_process_new_tus_content_filesystem_interrupted():
+    tus_upload = await f.create_tus_upload(offset=0, total_size=6)
+    request = BytesIO(b"a" * 2)
+    tus_upload = await repositories.process_new_tus_content(tus_upload, request, 2)
+    assert tus_upload.offset == 2
+    request = BytesIO(b"b" * 3)
+    with patch(
+        "commons.storage.repositories._check_stored_length",
+        side_effect=ex.OverflowExpectedSizeError(),
+    ), pytest.raises(ex.OverflowExpectedSizeError):
+        tus_upload = await repositories.process_new_tus_content(tus_upload, request, 3)
+    request = BytesIO(b"c" * 3)
+    tus_upload = await repositories.process_new_tus_content(tus_upload, request, 3)
+    with tus_upload.file.open("rb") as file:
+        assert file.read(5) == b"aaccc"
+
+
 async def test_process_new_tus_content_filesystem_last_write():
     tus_upload = await f.create_tus_upload(
         offset=4,
