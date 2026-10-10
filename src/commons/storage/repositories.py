@@ -206,11 +206,11 @@ def list_tus_uploads(
 ##########################################################
 
 
-async def _check_stored_length(tus_upload: TusUpload, written_bytes: int):
+def _check_stored_length(tus_upload: TusUpload, written_bytes: int):
     # prevent any write as soon as what was sent overflow expected max size
     if tus_upload.offset + written_bytes > tus_upload.total_size:
         tus_upload.offset += written_bytes
-        await tus_upload.asave()
+        tus_upload.save()
         raise ex.OverflowExpectedSizeError()
 
 
@@ -225,7 +225,7 @@ def _complete_s3_upload(
         raise e
 
 
-async def store_tus_s3_content(
+def store_tus_s3_content(
     tus_upload: TusUpload, stream: LazyStream, last_write: bool, storage: Storage
 ) -> int:
     written_bytes = 0
@@ -237,10 +237,13 @@ async def store_tus_s3_content(
             S3Part(ETag=part.e_tag, PartNumber=part.part_number)
             for part in multipart_upload.parts.all()
         ]
-    except storage.connection.meta.client.exceptions.NoSuchUpload as e:
-        storage.delete(tus_upload.pending_upload_data["object_key"])
-        await tus_upload.adelete()
-        raise ex.NoOngoingMultipartUploadError()
+    except ClientError as e:
+        if type(e).__name__ == "NoSuchUpload":
+            storage.delete(tus_upload.pending_upload_data["object_key"])
+            tus_upload.delete()
+            raise ex.NoOngoingMultipartUploadError()
+        else:
+            raise e
 
     for chunk in min_chunk_lazystream(
         stream, min_size=None if last_write else MIN_UPLOAD_CHUNKSIZE
@@ -250,51 +253,52 @@ async def store_tus_s3_content(
             part_response = part.upload(Body=chunk)
         except ClientError as e:
             logger.error(e)
-            await sync_to_async(delete_tus_upload)(tus_upload)
+            delete_tus_upload(tus_upload)
             raise e
         uploaded_parts.append(
             S3Part(ETag=part_response["ETag"], PartNumber=part.part_number)
         )
         written_bytes += len(chunk)
-        await _check_stored_length(tus_upload, written_bytes)
+        _check_stored_length(tus_upload, written_bytes)
 
     if last_write:
         # Never complete upload if new offset is not saved
-        await transaction_on_commit_async(_complete_s3_upload)(
-            tus_upload=tus_upload,
-            multipart_upload=multipart_upload,
-            uploaded_parts=uploaded_parts,
+        transaction.on_commit(
+            partial(
+                _complete_s3_upload,
+                tus_upload=tus_upload,
+                multipart_upload=multipart_upload,
+                uploaded_parts=uploaded_parts,
+            )
         )
         tus_upload.file = multipart_upload.object_key
     return written_bytes
 
 
-async def store_tus_file_content(tus_upload: TusUpload, stream: LazyStream) -> int:
+def store_tus_file_content(tus_upload: TusUpload, stream: LazyStream) -> int:
     written_bytes = 0
     with tus_upload.file.open("r+b") as file:
         file.seek(tus_upload.offset)
         for chunk in stream:
             written_bytes += file.write(chunk)
-            await _check_stored_length(tus_upload, written_bytes)
+            _check_stored_length(tus_upload, written_bytes)
     return written_bytes
 
 
-@transaction_atomic_async()
-async def store_tus_content(
+@transaction.atomic()
+def store_tus_content(
     tus_upload: TusUpload, stream: LazyStream, last_write: bool, storage: Storage
 ):
     if isinstance(storage, S3Storage):
-        written_bytes = await store_tus_s3_content(
-            tus_upload, stream, last_write, storage
-        )
+        written_bytes = store_tus_s3_content(tus_upload, stream, last_write, storage)
     elif isinstance(storage, FileSystemStorage):
-        written_bytes = await store_tus_file_content(tus_upload, stream)
+        written_bytes = store_tus_file_content(tus_upload, stream)
     else:
         raise ValueError(
             "TusUpload is only supported for S3Storage and FileSystemStorage"
         )
     tus_upload.offset += written_bytes
-    await tus_upload.asave()
+    tus_upload.save()
 
 
 async def process_new_tus_content(
@@ -316,7 +320,7 @@ async def process_new_tus_content(
             else File.DEFAULT_CHUNK_SIZE
         )
         stream = LazyStream(ChunkIter(request, chunk_size), length=content_size)
-        await store_tus_content(
+        await sync_to_async(store_tus_content)(
             tus_upload=tus_upload, stream=stream, last_write=last_write, storage=storage
         )
 
