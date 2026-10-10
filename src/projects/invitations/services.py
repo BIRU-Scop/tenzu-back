@@ -22,7 +22,10 @@ from uuid import UUID
 
 from django.conf import settings
 
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from emails.emails import Emails
 from emails.tasks import send_email
 from import_export.tasks import sync_importation_pending_objects

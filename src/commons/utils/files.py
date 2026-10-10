@@ -24,9 +24,9 @@ from typing import IO, Any, Generator
 
 from django.db.models.fields.files import FieldFile  # noqa
 from easy_thumbnails.files import ThumbnailFile
+from slugify import slugify
 
-from base.utils.iterators import split_by_n
-from base.utils.slug import slugify
+from commons.utils.iterators import split_by_n
 from ninja_jwt.utils import aware_utcnow
 
 
@@ -108,3 +108,37 @@ def get_obfuscated_file_path(instance: Any, filename: str, base_path: str = "") 
     hash_part = path.join(p1, p2, p3, p4, "".join(p5))
 
     return path.join(base_path, hash_part, basename)
+
+
+class OverwritableUploadToMixin:
+    """
+    Utility class in order to set a dynamic upload_to on a filefield, where the resulting
+    path root can be overwritten for each instance.
+    Can be used this way:
+
+    models.py
+    class DBModel(..., OverwritableUploadToMixin):
+        file = models.FileField(
+            upload_to=functools.partial(
+                get_overwritable_obfuscated_file_path, base_path="default_base_path"
+            ),
+            ...
+        )
+    ...
+
+    repository.py
+    db_model = DBModel(...)
+    db_model.set_upload_to_base_path("instance_specific_base_path")
+    db_model.save()
+    """
+
+    def set_upload_to_base_path(self, base_path):
+        self._upload_to_base_path = base_path
+
+
+def get_overwritable_obfuscated_file_path(
+    instance: OverwritableUploadToMixin, filename: str, base_path: str = ""
+) -> str:
+    if hasattr(instance, "_upload_to_base_path"):
+        base_path = instance._upload_to_base_path
+    return get_obfuscated_file_path(instance, filename, base_path)

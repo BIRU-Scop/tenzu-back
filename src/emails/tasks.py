@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
         },
     )
 )
-async def send_email(
+def send_email(
     email_name: str,
     to: str | list[str],
     context: dict[str, Any] = {},
@@ -81,7 +81,7 @@ async def send_email(
 
     # send the email message using the configured backend
     try:
-        await send_email_message(
+        send_email_message(
             subject=subject,
             to_emails=to_emails,
             body_txt=body_txt,

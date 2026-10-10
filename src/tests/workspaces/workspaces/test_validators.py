@@ -20,7 +20,7 @@
 import pytest
 from pydantic import ValidationError
 
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from workspaces.workspaces.api.validators import (
     UpdateWorkspaceValidator,
     WorkspaceValidator,

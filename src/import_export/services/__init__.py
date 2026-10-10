@@ -21,14 +21,19 @@ from uuid import UUID
 
 from django.core.exceptions import SuspiciousFileOperation
 from django.utils.translation import gettext
-from ninja import UploadedFile
 from ninja.errors import ValidationError as APIValidationError
 from pydantic_core import ErrorDetails
 
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.storage.models import TusUpload
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from import_export import events as import_export_events
+from import_export import notifications
 from import_export import repositories as import_export_repositories
 from import_export.models import (
+    ImportationError,
     ImportationStatus,
     ProjectImportation,
     ProjectImportationType,
@@ -55,18 +60,21 @@ logger = logging.getLogger(__name__)
 
 @transaction_atomic_async()
 async def import_project(
-    user: User,
-    workspace: Workspace,
+    user_id: UUID | str,
+    workspace_id: UUID | str,
     origin_type: ProjectImportationType,
-    source: UploadedFile,
+    tus_upload: TusUpload,
 ) -> ProjectImportationSerializer:
+    # args are received from a JSON field, which cast UUID to string on serialisation
+    user_id = UUID(str(user_id))
+    workspace_id = UUID(str(workspace_id))
     try:
         project_importation = (
             await import_export_repositories.create_project_importation(
-                user=user,
-                workspace=workspace,
+                user_id=user_id,
+                workspace_id=workspace_id,
                 origin_type=origin_type,
-                source_file=source,
+                source_file=tus_upload.file,
             )
         )
     except SuspiciousFileOperation as e:
@@ -75,10 +83,10 @@ async def import_project(
             [
                 ErrorDetails(
                     type="suspicious_file_operation",
-                    loc=["file", "source"],
+                    loc=["file"],
                     msg=msg,
                     ctx={"error": msg},
-                    input=source.name,
+                    input=tus_upload.file.name,
                 )
             ]
         ) from e
@@ -132,6 +140,21 @@ async def update_project_importation(
     )(
         project_importation=project_importation,
     )
+    return updated_project_importation
+
+
+async def fail_project_importation(
+    project_importation: ProjectImportation,
+    error_code: ImportationError = ImportationError.SERVER_ERROR,
+) -> ProjectImportation:
+    updated_project_importation = await update_project_importation(
+        project_importation,
+        {
+            "status": ImportationStatus.FAILURE,
+            "extra_data": {"error_code": error_code},
+        },
+    )
+    await notifications.notify_when_project_importation_fail(project_importation)
     return updated_project_importation
 
 

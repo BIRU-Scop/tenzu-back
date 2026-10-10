@@ -21,7 +21,7 @@ import pytest
 from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from permissions.choices import ProjectPermissions
 from tests.utils import factories as f
 from tests.utils.bad_params import INVALID_B64ID, NOT_EXISTING_B64ID

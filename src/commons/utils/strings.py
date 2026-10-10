@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,17 +16,23 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Mapping
 
-import re
-
-
-def are_the_same(email1: str, email2: str) -> bool:
-    """
-    Compare two email addresses and check if they are the same.
-    """
-    return email1.casefold() == email2.casefold()
+from pydantic.alias_generators import to_camel, to_snake
 
 
-def is_email(value: str) -> bool:
-    email_regex = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
-    return bool(re.fullmatch(email_regex, value))
+def to_kebab(msg: str) -> str:
+    return to_snake(msg).replace("_", "-")
+
+
+def dict_to_camel(value: Mapping | list | str):
+    if isinstance(value, Mapping):
+        return {to_camel(k): dict_to_camel(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [dict_to_camel(k) for k in value]
+    return value
+
+
+def orderby_to_snake(data: str):
+    snake_data = to_snake(data)
+    return f"-{snake_data[1:]}" if data.startswith("-") else snake_data

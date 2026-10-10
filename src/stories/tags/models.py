@@ -27,7 +27,7 @@ from django_stubs_ext import Annotations
 
 from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedAtMetaInfoMixin
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 
 UNIQUE_LABEL_CONSTRAINT = "stories_tags_storytag_unique_project_lower_label"
 

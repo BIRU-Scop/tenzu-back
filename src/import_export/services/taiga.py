@@ -19,7 +19,7 @@ import logging
 import mimetypes
 from operator import attrgetter
 from pathlib import Path
-from typing import Generic, Literal, TypedDict, TypeVar
+from typing import Callable, Generic, Literal, TypedDict, TypeVar
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
@@ -33,12 +33,17 @@ from slugify import slugify
 from attachments import repositories as attachments_repositories
 from attachments.models import Attachment
 from base.db.models import BaseDBModel
-from base.utils.slug import generate_incremental_int_suffix
 from comments import repositories as comments_repositories
 from comments.models import Comment
-from commons.colors import ordered_colour_generator
 from commons.storage.models import StoragedObject
-from commons.utils import transaction_atomic_async
+from commons.utils import emails
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
+from commons.utils.colors import generate_random_color, ordered_colour_generator
+from commons.utils.slug import generate_incremental_int_suffix
+from commons.validators import LowerEmailStr
 from import_export import notifications
 from import_export.models import (
     ImportationError,
@@ -50,12 +55,16 @@ from import_export.serializers import (
     FullTaigaProjectImport,
 )
 from import_export.serializers.taiga import (
+    TenzuDbObject,
     _TaigaAttachment,
     _TaigaHistory,
     _TaigaMemberPermission,
+    _TaigaStoryTag,
     _TaigaUserStory,
 )
+from import_export.services import exceptions as ex
 from import_export.services import (
+    fail_project_importation,
     succeed_project_importation,
     update_project_importation,
 )
@@ -71,6 +80,14 @@ from stories.stories.services.blocknote import (
     BlockNoteConverter,
     BlockNoteEmptyOutputError,
 )
+from stories.tags import (
+    repositories as story_tags_repositories,
+)
+from stories.tags import (
+    services as story_tags_services,
+)
+from stories.tags.models import StoryTag, StoryTagAssignment
+from users.models import User
 from workflows import services as workflows_services
 from workflows.models import Workflow
 
@@ -210,22 +227,22 @@ async def sync_project_ids_to_taiga_import(
         status.tenzu_ids = tenzu_statuses_ids
 
 
-async def do_import_taiga_project(project_importation: ProjectImportation):
+async def do_import_taiga_project(
+    project_importation: ProjectImportation, will_retry: Callable[[Exception], bool]
+):
+    if project_importation.status not in (
+        ImportationStatus.PENDING,
+        ImportationStatus.ONGOING,
+    ):
+        raise ex.IncompatibleImportationStatus()
     with project_importation.source.open() as source_file:
         try:
             taiga_project = FullTaigaProjectImport.model_validate_json(
                 source_file.read()
             )
         except ValidationError as e:
-            await update_project_importation(
-                project_importation,
-                {
-                    "status": ImportationStatus.FAILURE,
-                    "extra_data": {"error_code": ImportationError.INVALID},
-                },
-            )
-            await notifications.notify_when_project_importation_fail(
-                project_importation
+            await fail_project_importation(
+                project_importation, ImportationError.INVALID
             )
             logger.warning(
                 f"Project import {project_importation.id} for file '{Path(project_importation.source.name or '').name}' validation failed: {e}"
@@ -245,37 +262,63 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
         template, roles_old_to_new_mapping = await get_template_from_taiga_project(
             taiga_project
         )
-        project, roles = await projects_services._create_project(
-            template=template,
-            workspace=project_importation.workspace,
-            name=taiga_project.name,
-            description=taiga_project.description,
-            created_by=project_importation.created_by,
-            color=None,
-            logo_file=SimpleUploadedFile(
-                taiga_project.logo.name, taiga_project.logo.data
+        roles = None
+        if project_importation.project is None:
+            async with transaction_atomic_async():
+                project, roles = await projects_services._create_project(
+                    template=template,
+                    workspace=project_importation.workspace,
+                    name=taiga_project.name,
+                    description=taiga_project.description,
+                    created_by=project_importation.created_by,
+                    color=None,
+                    logo_file=SimpleUploadedFile(
+                        taiga_project.logo.name, taiga_project.logo.data
+                    )
+                    if taiga_project.logo is not None
+                    else None,
+                    created_at=taiga_project.created_date,
+                )
+                story_tags = {}
+                # send small progress percentage to indicate creation of statuses, workflow and roles
+                await update_project_importation(
+                    project_importation,
+                    {
+                        "project": project,
+                        "extra_data": {"progress_percentage": 2},
+                    },
+                )
+                workflows = await workflows_services.list_workflows(
+                    project_id=project.id
+                )
+                await transaction_on_commit_async(sync_project_ids_to_taiga_import)(
+                    taiga_project, workflows, roles, roles_old_to_new_mapping["slug"]
+                )
+        else:
+            workflows = await workflows_services.list_workflows(
+                project_id=project_importation.project_id
             )
-            if taiga_project.logo is not None
-            else None,
-            created_at=taiga_project.created_date,
-        )
-        workflows = await workflows_services.list_workflows(project_id=project.id)
-        await sync_project_ids_to_taiga_import(
-            taiga_project, workflows, roles, roles_old_to_new_mapping["slug"]
-        )
-        # send small progress percentage to indicate creation of statuses, workflow and roles
-        await update_project_importation(
-            project_importation,
-            {
-                "project": project,
-                "extra_data": {"progress_percentage": 2},
-            },
-        )
-        pending_invites: dict[
-            EmailStr, ProjectImportationPendingInvitation
-        ] = await do_import_taiga_users(
-            project_importation, taiga_project, roles, roles_old_to_new_mapping["name"]
-        )
+            story_tags = {
+                tag.label: tag
+                for tag in (
+                    await story_tags_services.list_story_tags(
+                        project_importation.project_id
+                    )
+                )
+            }
+
+        pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation]
+        if not project_importation.pending_invites:
+            if roles is None:
+                roles = [r async for r in project_importation.project.roles.all()]
+            pending_invites = await do_import_taiga_users(
+                project_importation,
+                taiga_project,
+                roles,
+                roles_old_to_new_mapping["name"],
+            )
+        else:
+            pending_invites = project_importation.pending_invites
 
         if not taiga_project.is_kanban_activated:
             await update_project_importation(
@@ -296,22 +339,41 @@ async def do_import_taiga_project(project_importation: ProjectImportation):
             },
         )
         await do_import_taiga_stories(
-            project_importation, workflows, taiga_project, pending_invites
+            project_importation, workflows, taiga_project, pending_invites, story_tags
         )
+        await close_importation(project_importation, taiga_project)
     except (RuntimeError, BlockNoteEmptyOutputError, DatabaseError) as e:
-        # TODO those are the errors where a retry of the job should be attempted
+        # those are the errors where a retry of the job should be attempted
+        await backport_tenzu_ids_to_file(project_importation, taiga_project)
+        if not will_retry(e):
+            await fail_project_importation(project_importation)
         raise e
     except Exception as e:
-        await update_project_importation(
-            project_importation,
-            {
-                "status": ImportationStatus.FAILURE,
-                "extra_data": {"error_code": ImportationError.SERVER_ERROR},
-            },
-        )
-        await notifications.notify_when_project_importation_fail(project_importation)
+        await fail_project_importation(project_importation)
         raise e
-    await close_importation(project_importation, taiga_project)
+
+
+async def backport_tenzu_ids_to_file(
+    project_importation: ProjectImportation, taiga_project: FullTaigaProjectImport
+):
+    """
+    We overwrite the original file in order to keep a trace of the associated tenzu IDs
+    so we can operate on this importation file later on when we support new properties
+    as well as to support continuing in case of error
+    """
+    try:
+        # file instance is cached and the mode can't be changed afterwards for some storage (S3Storage) so we clear it
+        del project_importation.source.file
+        with project_importation.source.open(mode="w") as source_file:
+            source_file.write(
+                taiga_project.model_dump_json(
+                    exclude_unset=True, round_trip=True, warnings="error"
+                )
+            )
+
+    except Exception as e:
+        await fail_project_importation(project_importation)
+        raise e
 
 
 async def close_importation(
@@ -329,17 +391,7 @@ async def close_importation(
         )
     else:
         await succeed_project_importation(project_importation)
-
-    # file instance is cached and the mode can't be changed afterwards for some storage (S3Storage) so we clear it
-    del project_importation.source.file
-    with project_importation.source.open(mode="w") as source_file:
-        # we overwrite the file in order to keep a trace of the associated tenzu IDs
-        # so we can operate on this importation file later on when we support new properties
-        source_file.write(
-            taiga_project.model_dump_json(
-                exclude_unset=True, round_trip=True, warnings="error"
-            )
-        )
+    await backport_tenzu_ids_to_file(project_importation, taiga_project)
 
 
 async def do_import_taiga_users(
@@ -347,7 +399,7 @@ async def do_import_taiga_users(
     taiga_project: FullTaigaProjectImport,
     roles: list[ProjectRole],
     roles_old_to_new_name_mapping: dict[str, str],
-) -> dict[EmailStr, ProjectImportationPendingInvitation]:
+) -> dict[LowerEmailStr, ProjectImportationPendingInvitation]:
     owner_role = next(filter(attrgetter("is_owner"), roles))
 
     def find_role(attribute: str, value: str) -> ProjectRole:
@@ -360,7 +412,7 @@ async def do_import_taiga_users(
         for old_name, new_name in roles_old_to_new_name_mapping.items()
     }
 
-    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation] = {}
+    pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation] = {}
     if (
         taiga_project.owner is not None
         and taiga_project.owner != project_importation.created_by.email
@@ -374,7 +426,8 @@ async def do_import_taiga_users(
             deleted_comments_ids=[],
         )
     for membership in taiga_project.memberships or []:
-        if not membership.email or membership.email in (
+        member_email = membership.user or membership.email
+        if not member_email or member_email in (
             taiga_project.owner,
             project_importation.created_by.email,
         ):
@@ -384,7 +437,7 @@ async def do_import_taiga_users(
             if membership.is_admin
             else taiga_roles_mapping.get(membership.role, readonlymember_role).id
         )
-        pending_invites[membership.email] = ProjectImportationPendingInvitation(
+        pending_invites[member_email] = ProjectImportationPendingInvitation(
             role_id=role_id,
             assigned_stories_ids=[],
             created_stories_ids=[],
@@ -399,7 +452,8 @@ async def do_import_taiga_stories(
     project_importation: ProjectImportation,
     workflows: list[Workflow],
     taiga_project: FullTaigaProjectImport,
-    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation],
+    pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation],
+    project_story_tags: dict[str, StoryTag],
 ):
     processed_stories = 0
     total_stories = len(taiga_project.user_stories)
@@ -418,12 +472,14 @@ async def do_import_taiga_stories(
     assignments_to_create: list[StoryAssignment] = []
     attachments_to_create: list[Attachment] = []
     comments_to_create: list[Comment] = []
+    tag_assignments_to_create: list[StoryTagAssignment] = []
     attachment_warnings: list[notifications.WarningFileTooBig] = []
     all_to_create = (
         stories_to_create,
         assignments_to_create,
         attachments_to_create,
         comments_to_create,
+        tag_assignments_to_create,
         attachment_warnings,
     )
     pending_data: ProjectImportationPendingData = {
@@ -436,52 +492,65 @@ async def do_import_taiga_stories(
     await sync_to_async(ContentType.objects.get_for_model)(
         Story
     )  # fill cache for later generic relation queries (e.g. Comment, Attachment)
+    iter_stories = iter(taiga_project.user_stories)
     # Start Node.js process once
     async with BlockNoteConverter(source_format="md") as converter:
-        for taiga_story in taiga_project.user_stories:
-            if taiga_story.status is None:
-                logger.warning(
-                    f"Project import {project_importation.id} for file '{Path(project_importation.source.name or '').name}' has a story without status: #{taiga_story.ref} {taiga_story.subject}"
-                )
-                continue
-            workflow_id, statuses = workflow_ids_by_name[taiga_story.swimlane]
-            status_id = statuses[taiga_story.status]
-            await do_import_taiga_single_story(
-                taiga_story=taiga_story,
-                project_importation=project_importation,
-                converter=converter,
-                workflow_id=workflow_id,
-                status_id=status_id,
-                stories_to_create=stories_to_create,
-                assignments_to_create=assignments_to_create,
-                attachments_to_create=attachments_to_create,
-                comments_to_create=comments_to_create,
-                attachment_warnings=attachment_warnings,
-                pending_data=pending_data,
-            )
-            if any(
-                len(list_to_create) >= _IMPORTATION_BULK_SIZE
-                for list_to_create in all_to_create
-            ):
+        while True:
+            async with transaction_atomic_async():
+                # create stories by batches inside a transaction in order to deffer assignation of tenzu_ids
+                while (
+                    not any(
+                        len(list_to_create) >= _IMPORTATION_BULK_SIZE
+                        for list_to_create in all_to_create
+                    )
+                ) and ((taiga_story := next(iter_stories, None)) is not None):
+                    if taiga_story.status is None:
+                        logger.warning(
+                            f"Project import {project_importation.id} for file '{Path(project_importation.source.name or '').name}' has a story without status: #{taiga_story.ref} {taiga_story.subject}"
+                        )
+                        continue
+
+                    workflow_id, statuses = workflow_ids_by_name[taiga_story.swimlane]
+                    status_id = statuses[taiga_story.status]
+                    await do_import_taiga_single_story(
+                        taiga_story=taiga_story,
+                        project_importation=project_importation,
+                        converter=converter,
+                        workflow_id=workflow_id,
+                        status_id=status_id,
+                        project_story_tags=project_story_tags,
+                        stories_to_create=stories_to_create,
+                        assignments_to_create=assignments_to_create,
+                        attachments_to_create=attachments_to_create,
+                        tag_assignments_to_create=tag_assignments_to_create,
+                        comments_to_create=comments_to_create,
+                        attachment_warnings=attachment_warnings,
+                        pending_data=pending_data,
+                    )
+                    processed_stories += 1
+                    current_percentage = round(processed_stories / total_stories * 100)
+
+                # save progress any time a list of pending objects reach _IMPORTATION_BULK_SIZE
+                # or if we have finished parsing all the stories
                 await bulk_create_all(
                     project_importation=project_importation,
                     stories_to_create=stories_to_create,
                     assignments_to_create=assignments_to_create,
                     attachments_to_create=attachments_to_create,
                     comments_to_create=comments_to_create,
+                    tag_assignments_to_create=tag_assignments_to_create,
                     attachment_warnings=attachment_warnings,
                     pending_invites=pending_invites,
                     pending_data=pending_data,
                 )
-                for list_to_create in all_to_create:
-                    list_to_create.clear()
-                for pending_list in pending_data.values():
-                    pending_list.clear()
-            processed_stories += 1
-            percentage = round(processed_stories / total_stories * 100)
-            # send update every 5% gain
-            if percentage >= current_percentage + 5:
-                current_percentage = percentage
+
+                if len(project_story_tags) > settings.MAX_STORY_TAGS_PER_PROJECT:
+                    await notifications.notify_when_project_importation_too_many_story_tags_warning(
+                        project_importation,
+                        len(project_story_tags),
+                        settings.MAX_STORY_TAGS_PER_PROJECT,
+                    )
+
                 await update_project_importation(
                     project_importation,
                     {
@@ -489,25 +558,32 @@ async def do_import_taiga_stories(
                         "pending_invites": pending_invites,
                     },
                 )
+                if taiga_story is None:
+                    break
+                else:
+                    for list_to_create in all_to_create:
+                        list_to_create.clear()
+                    for pending_list in pending_data.values():
+                        pending_list.clear()
 
-    # Flush remaining objects, possibly empty
-    await bulk_create_all(
-        project_importation=project_importation,
-        stories_to_create=stories_to_create,
-        assignments_to_create=assignments_to_create,
-        attachments_to_create=attachments_to_create,
-        comments_to_create=comments_to_create,
-        attachment_warnings=attachment_warnings,
-        pending_invites=pending_invites,
-        pending_data=pending_data,
-    )
-    await update_project_importation(
-        project_importation,
-        {
-            "extra_data": {"progress_percentage": 100},
-            "pending_invites": pending_invites,
-        },
-    )
+
+def assign_tenzu_id(taiga_object: TenzuDbObject, tenzu_object: BaseDBModel):
+    """
+    utility function used to be encapsulated inside a transaction.on_commit
+    """
+    taiga_object.tenzu_id = tenzu_object.id
+
+
+def assign_story_data(
+    taiga_story: _TaigaUserStory, tenzu_object: BaseDBModel, story_tags: list[StoryTag]
+):
+    """
+    utility function used to be encapsulated inside a transaction.on_commit
+    """
+    taiga_story.tags = [
+        _TaigaStoryTag(label=tag.label, tenzu_id=tag.id) for tag in story_tags
+    ]
+    assign_tenzu_id(taiga_story, tenzu_object)
 
 
 async def do_import_taiga_single_story(
@@ -516,22 +592,29 @@ async def do_import_taiga_single_story(
     converter: BlockNoteConverter,
     workflow_id: UUID,
     status_id: UUID,
+    project_story_tags: dict[str, StoryTag],
     stories_to_create: list[Story],
     assignments_to_create: list[StoryAssignment],
     attachments_to_create: list[Attachment],
     comments_to_create: list[Comment],
+    tag_assignments_to_create: list[StoryTagAssignment],
     attachment_warnings: list[notifications.WarningFileTooBig],
     pending_data: ProjectImportationPendingData,
 ):
-    assigned_users: set[EmailStr | None] = {
+    if taiga_story.tenzu_id is not None:
+        return
+
+    assigned_users: set[LowerEmailStr | None] = {
         taiga_story.assigned_to,
         *taiga_story.assigned_users,
     }
     assigned_users.discard(None)
-    assigned_users: set[EmailStr]
-    creator = (
+    assigned_users: set[LowerEmailStr]
+    creator: User | None = (
         project_importation.created_by
-        if project_importation.created_by.email == taiga_story.owner
+        if emails.are_the_same(
+            project_importation.created_by.email, taiga_story.owner or ""
+        )
         else None
     )
 
@@ -554,7 +637,7 @@ async def do_import_taiga_single_story(
         description_updated_at=taiga_story.modified_date,
         version=taiga_story.version,
     )
-    taiga_story.tenzu_id = story
+
     if taiga_story.owner is not None and story.created_by is None:
         pending_data["created_stories"].append(
             ProjectImportationPendingObject(
@@ -572,7 +655,7 @@ async def do_import_taiga_single_story(
         for user_email in assigned_users
     )
     for taiga_attachment in sorted(taiga_story.attachments, key=attrgetter("order")):
-        attachment = build_story_attachment_from_taiga(
+        attachment = await build_story_attachment_from_taiga(
             project_importation, story, taiga_attachment, attachment_warnings
         )
         if attachment is not None:
@@ -583,6 +666,15 @@ async def do_import_taiga_single_story(
                         user_email=taiga_attachment.owner, db_object=attachment
                     )
                 )
+    story_tags = []
+    if taiga_story.tags:
+        story_tags = await get_or_create_story_tags_from_taiga(
+            story.project_id, set(taiga_story.tags), project_story_tags
+        )
+        tag_assignments_to_create.extend(
+            [StoryTagAssignment(story=story, tag=tag) for tag in story_tags]
+        )
+    await transaction_on_commit_async(assign_story_data)(taiga_story, story, story_tags)
     for event in taiga_story.history:
         (
             comment,
@@ -617,8 +709,9 @@ async def bulk_create_all(
     assignments_to_create: list[StoryAssignment],
     attachments_to_create: list[Attachment],
     comments_to_create: list[Comment],
+    tag_assignments_to_create: list[StoryTagAssignment],
     attachment_warnings: list[notifications.WarningFileTooBig],
-    pending_invites: dict[EmailStr, ProjectImportationPendingInvitation],
+    pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation],
     pending_data: ProjectImportationPendingData,
 ):
     if stories_to_create:
@@ -637,6 +730,10 @@ async def bulk_create_all(
     if comments_to_create:
         await comments_repositories.bulk_create_comments(
             comments_to_create,
+        )
+    if tag_assignments_to_create:
+        await story_tags_repositories.bulk_create_story_tag_assignments(
+            tag_assignments_to_create,
         )
     if attachment_warnings:
         await notifications.notify_when_project_importation_file_too_big_warning(
@@ -658,7 +755,35 @@ async def bulk_create_all(
                 )
 
 
-def build_story_attachment_from_taiga(
+async def get_or_create_story_tags_from_taiga(
+    project_id: UUID, tags: set[str], project_story_tags: dict[str, StoryTag]
+) -> list[StoryTag]:
+    # TODO this function will launch a DB request for each story that contains new tags
+    #  see if we can find a way to batch create tags later just before bulk creation of story tag assignment
+    story_tags: list[StoryTag] = []
+    story_tags_to_create: list[StoryTag] = []
+    for tag in tags:
+        existing = project_story_tags.get(tag, None)
+        if existing is not None:
+            story_tags.append(existing)
+        else:
+            story_tags_to_create.append(
+                StoryTag(
+                    label=tag,
+                    color=generate_random_color(),
+                    project_id=project_id,
+                )
+            )
+    if story_tags_to_create:
+        new_tags = await story_tags_repositories.bulk_create_story_tags(
+            story_tags_to_create
+        )
+        project_story_tags.update({tag.label: tag for tag in new_tags})
+        story_tags.extend(new_tags)
+    return story_tags
+
+
+async def build_story_attachment_from_taiga(
     project_importation: ProjectImportation,
     story: Story,
     taiga_attachment: _TaigaAttachment,
@@ -666,9 +791,11 @@ def build_story_attachment_from_taiga(
 ) -> Attachment | None:
     if taiga_attachment.attached_file is None:
         return None
-    user = (
+    user: User | None = (
         project_importation.created_by
-        if project_importation.created_by.email == taiga_attachment.owner
+        if emails.are_the_same(
+            project_importation.created_by.email, taiga_attachment.owner or ""
+        )
         else None
     )
     file = SimpleUploadedFile(
@@ -689,7 +816,7 @@ def build_story_attachment_from_taiga(
         content_object=story,
         created_by=user,
     )
-    taiga_attachment.tenzu_id = attachment
+    await transaction_on_commit_async(assign_tenzu_id)(taiga_attachment, attachment)
     return attachment
 
 
@@ -698,23 +825,27 @@ async def build_story_comment_from_taiga(
     project_importation: ProjectImportation,
     story: Story,
     event: _TaigaHistory,
-) -> tuple[Comment | None, EmailStr | None, EmailStr | None]:
+) -> tuple[Comment | None, LowerEmailStr | None, LowerEmailStr | None]:
     if not event.comment:
         return None, None, None
-    creator_email = event.user[0] if event.user else None
-    user = (
+    creator_email: LowerEmailStr | None = event.user[0] if event.user else None
+    user: User | None = (
         project_importation.created_by
-        if project_importation.created_by.email == creator_email
+        if emails.are_the_same(
+            project_importation.created_by.email, creator_email or ""
+        )
         else None
     )
-    deleter_email = (
+    deleter_email: LowerEmailStr | None = (
         event.delete_comment_user[0]
         if (event.delete_comment_user and event.delete_comment_date)
         else None
     )
-    delete_comment_user = (
+    delete_comment_user: User | None = (
         project_importation.created_by
-        if project_importation.created_by.email == deleter_email
+        if emails.are_the_same(
+            project_importation.created_by.email, deleter_email or ""
+        )
         else None
     )
 
@@ -732,7 +863,7 @@ async def build_story_comment_from_taiga(
         deleted_by=delete_comment_user,
         modified_at=event.edit_comment_date,
     )
-    event.tenzu_id = comment
+    await transaction_on_commit_async(assign_tenzu_id)(event, comment)
     return (
         comment,
         creator_email,

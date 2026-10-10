@@ -25,9 +25,8 @@ from django.db.models import Model
 from ninja import UploadedFile
 
 from attachments.models import Attachment
-from base.utils.files import get_size
 from commons.storage import repositories as storage_repositories
-from commons.storage.models import StoragedObject
+from commons.utils.files import get_size
 from users.models import User
 
 ##########################################################
@@ -134,6 +133,9 @@ async def get_attachment(
 
 
 async def delete_attachments(filters: AttachmentFilters) -> int:
-    qs = Attachment.objects.all().filter(**filters)
+    # prefetch the storaged_object that's used in post_delete signal
+    # delete queries clear the select_related, cheat by using prefetch_related instead
+    # see https://forum.djangoproject.com/t/select-related-removed-when-performing-a-deletion/40857
+    qs = Attachment.objects.all().prefetch_related("storaged_object").filter(**filters)
     count, _ = await qs.adelete()
     return count

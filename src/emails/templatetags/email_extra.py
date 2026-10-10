@@ -30,7 +30,7 @@ from django.utils.translation import ngettext
 
 from commons.front import Urls
 from commons.front.exceptions import InvalidFrontUrl
-from commons.utils import get_absolute_url
+from commons.utils.url import get_absolute_url
 
 register = template.Library()
 

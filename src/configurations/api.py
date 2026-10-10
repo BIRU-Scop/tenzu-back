@@ -23,10 +23,11 @@ from ninja.errors import ValidationError
 
 from auth.api import auth_router as social_auth_router
 from base.services.exceptions import TenzuAuthException, TenzuServiceException
-from base.utils.strings import to_kebab
 from commons.exceptions.api import HTTPException, codes
 from commons.parsers import ORJSONParser
 from commons.renderers import ORJSONRenderer
+from commons.storage.api import storage_router
+from commons.utils.strings import to_kebab
 from feeds.api import feeds_router
 from import_export.api import import_export_router
 from ninja_jwt.api import auth_router
@@ -63,6 +64,13 @@ api = NinjaAPI(
     version=settings.API_VERSION,
     auth=AsyncJWTAuth(),
 )
+
+
+def add_headers(response, exc: HTTPException):
+    if exc.headers:
+        for header_name, header_value in exc.headers.items():
+            response.headers[header_name] = header_value
+    return response
 
 
 @api.exception_handler(TenzuServiceException)
@@ -112,16 +120,19 @@ def http_validation_exception(request, exc: ValidationError):
 
 @api.exception_handler(HTTPException)
 def http_exception(request, exc: HTTPException):
-    return api.create_response(
-        request,
-        {
-            "error": {
-                "code": exc.code,
-                "detail": exc.detail,
-                "msg": exc.message,
-            }
-        },
-        status=exc.status_code,
+    return add_headers(
+        api.create_response(
+            request,
+            {
+                "error": {
+                    "code": exc.code,
+                    "detail": exc.detail,
+                    "msg": exc.message,
+                }
+            },
+            status=exc.status_code,
+        ),
+        exc,
     )
 
 
@@ -162,6 +173,7 @@ api.add_router("", tags=["import_export"], router=import_export_router)
 api.add_router("", tags=["auth"], router=auth_router)
 api.add_router("", tags=["auth"], router=social_auth_router)
 api.add_router("", tags=["system"], router=health_router)
+api.add_router("", tags=["upload"], router=storage_router)
 
 for extra_dep in settings.EXTRA_DEPS:
     if extra_dep.api is not None:

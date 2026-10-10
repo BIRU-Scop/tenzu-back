@@ -26,7 +26,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import base.db.models.fields
-import base.utils.datetime
+import commons.utils.datetime
 import ninja_jwt.utils
 
 
@@ -109,7 +109,8 @@ class Migration(migrations.Migration):
                 (
                     "order",
                     models.BigIntegerField(
-                        default=base.utils.datetime.timestamp_mics, verbose_name="order"
+                        default=commons.utils.datetime.timestamp_mics,
+                        verbose_name="order",
                     ),
                 ),
                 (

@@ -19,31 +19,52 @@
 
 import logging
 
+from asgiref.sync import async_to_sync
+from django.conf import settings
+from django.db import DatabaseError
+from procrastinate import JobContext, RetryStrategy
 from procrastinate.contrib.django import app
 
-from base.utils.uuid import decode_b64str_to_uuid
+from commons.utils.uuid import decode_b64str_to_uuid
 from import_export.models import ProjectImportationPendingInvitation
 from import_export.services.taiga import do_import_taiga_project
+from stories.stories.services.blocknote import BlockNoteEmptyOutputError
 
 logger = logging.getLogger(__name__)
 
 
-@app.task()
-async def import_taiga_project(project_importation_id: str) -> None:
+@app.task(
+    retry=RetryStrategy(
+        max_attempts=settings.STORAGE.IMPORTATION_RETRY_ATTEMPTS,
+        exponential_wait=settings.STORAGE.IMPORTATION_RETRY_EXPONENTIAL_WAIT,
+        retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
+    ),
+    pass_context=True,
+)
+def import_taiga_project(job_context: JobContext, project_importation_id: str) -> None:
     from import_export import services as import_export_services
 
-    importation = await import_export_services.get_project_importation(
+    importation = async_to_sync(import_export_services.get_project_importation)(
         project_importation_id=decode_b64str_to_uuid(project_importation_id)
     )
-    await do_import_taiga_project(importation)
+
+    def will_retry(exception: Exception):
+        return (
+            job_context.task.retry.get_retry_decision(
+                exception=exception, job=job_context.job
+            )
+            is not None
+        )
+
+    async_to_sync(do_import_taiga_project)(importation, will_retry)
 
 
 @app.task()
-async def sync_importation_pending_objects(
+def sync_importation_pending_objects(
     user_id: str, pending_invites: ProjectImportationPendingInvitation
 ) -> None:
     from import_export import repositories as import_export_repositories
 
-    await import_export_repositories.sync_pending_objects(
+    import_export_repositories.sync_pending_objects(
         user_id=decode_b64str_to_uuid(user_id), pending_invites=pending_invites
     )

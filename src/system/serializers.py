@@ -19,8 +19,8 @@
 from enum import Enum
 
 from base.serializers import BaseSchema
-from base.utils.enum import OrderedEnum
 from commons.i18n import choices as i18n_choices
+from commons.utils.enum import OrderedEnum
 
 
 class TextDirection(Enum):

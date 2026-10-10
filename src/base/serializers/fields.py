@@ -17,15 +17,15 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Annotated, Any, Callable, Generator
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import AnyHttpUrl, BeforeValidator, PlainSerializer
 from pydantic.json_schema import WithJsonSchema
 
-from base.utils.strings import dict_to_camel
-from base.utils.uuid import encode_uuid_to_b64str
-from commons.utils import get_absolute_url
+from commons.utils.strings import dict_to_camel
+from commons.utils.url import get_absolute_url
+from commons.utils.uuid import encode_uuid_to_b64str
 
 UUIDB64 = Annotated[
     UUID,

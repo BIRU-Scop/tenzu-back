@@ -41,6 +41,10 @@ async def create_story_tag(
     return story_tag
 
 
+async def bulk_create_story_tags(tags: list[StoryTag]) -> list[StoryTag]:
+    return await StoryTag.objects.abulk_create(tags)
+
+
 ##########################################################
 # list story tags
 ##########################################################
@@ -115,6 +119,12 @@ async def create_story_tag_assignment(
     story_tag_assignment.story = story
     story_tag_assignment.tag = tag
     return story_tag_assignment, created
+
+
+async def bulk_create_story_tag_assignments(
+    tag_assignments: list[StoryTagAssignment],
+) -> list[StoryTagAssignment]:
+    return await StoryTagAssignment.objects.abulk_create(tag_assignments)
 
 
 async def get_story_tag_assignment(story_id: UUID, tag_id: UUID) -> StoryTagAssignment:

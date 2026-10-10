@@ -40,7 +40,7 @@ async def emit_event_when_project_importation_is_created(
     """
     # for the creator on homepage or workspace detail
     await events_manager.publish_on_user_channel(
-        user=project_importation.created_by,
+        user=project_importation.created_by_id,
         type=CREATE_PROJECT_IMPORTATION,
         content=CreateProjectImportationContent(
             project_importation=project_importation,

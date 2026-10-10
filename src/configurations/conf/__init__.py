@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import (
+    AliasChoices,
     AnyHttpUrl,
     BaseModel,
     EmailStr,
@@ -90,15 +91,47 @@ class Settings(BaseSettings):
     DB: DbSettings = DbSettings()
 
     # Media and Static files
+    # TODO move to StorageSettings, remove validation_alias in a later version.
+    #  Corresponding root settings aliases are deprecated
     # Static files (CSS, JavaScript, Images)
     # https://docs.djangoproject.com/en/4.0/howto/static-files/
-    STATIC_URL: str = "/static/"
-    STATIC_ROOT: Path = Path("/public/static")
+    STATIC_URL: str = Field(
+        validation_alias=AliasChoices(
+            "TENZU_STORAGE__STATIC_URL",
+            "TENZU_STATIC_URL",
+        ),
+        default="/static/",
+    )
+    STATIC_ROOT: Path = Field(
+        validation_alias=AliasChoices(
+            "TENZU_STORAGE__STATIC_ROOT",
+            "TENZU_STATIC_ROOT",
+        ),
+        default=Path("/public/static"),
+    )
     # Media files
     # https://docs.djangoproject.com/en/4.0/topics/files/#file-storage
-    MEDIA_URL: str = "/media/"
-    MEDIA_ROOT: Path = Path("/public/media")
-    MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 100 * 1024 * 1024  # 100 MB
+    MEDIA_URL: str = Field(
+        validation_alias=AliasChoices(
+            "TENZU_STORAGE__MEDIA_URL",
+            "TENZU_MEDIA_URL",
+        ),
+        default="/media/",
+    )
+    MEDIA_ROOT: Path = Field(
+        validation_alias=AliasChoices(
+            "TENZU_STORAGE__MEDIA_ROOT",
+            "TENZU_MEDIA_ROOT",
+        ),
+        default=Path("/public/media"),
+    )
+    MAX_UPLOAD_FILE_SIZE: PositiveInt | None = Field(
+        validation_alias=AliasChoices(
+            "TENZU_STORAGE__MAX_UPLOAD_FILE_SIZE",
+            "TENZU_MAX_UPLOAD_FILE_SIZE",
+        ),
+        default=100 * 1024 * 1024,
+    )  # 100 MB
 
     # I18N
     LANGUAGE_CODE: LanguageCode = "en-us"

@@ -17,31 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import unicodedata
 from typing import Annotated
 
-from pydantic import AfterValidator, Field, StringConstraints
+from pydantic import Field
 
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from commons.validators import B64UUID, BaseValidatorSchema
-
-
-def _check_no_control_characters(value: str) -> str:
-    if any(unicodedata.category(char) in ("Cc", "Cf") for char in value):
-        raise ValueError("Control characters are not allowed")
-    return value
-
-
-def _normalize_nfc(value: str) -> str:
-    return unicodedata.normalize("NFC", value)
-
-
-Label = Annotated[
-    str,
-    StringConstraints(strip_whitespace=True, min_length=1, max_length=50),
-    AfterValidator(_check_no_control_characters),
-    AfterValidator(_normalize_nfc),
-]
+from commons.validators.fields.text import Label
 
 
 class StoryTagCreateValidator(BaseValidatorSchema):

@@ -24,8 +24,8 @@ from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Field
 from typing_extensions import Annotated
 
-from base.utils.uuid import decode_b64str_to_uuid
 from commons.exceptions.api import AuthorizationError, ForbiddenError
+from commons.utils.uuid import decode_b64str_to_uuid
 from events import channels
 from events.events import Event
 from ninja_jwt.authentication import JWTBaseAuthentication

@@ -23,11 +23,11 @@ from django.core.validators import MaxValueValidator
 from django.db import models
 
 from base.db.models import BaseDBModel, LowerSlugField
-from base.utils.slug import (
+from commons.utils.colors import NUM_COLORS
+from commons.utils.ordering import OrderedMixin
+from commons.utils.slug import (
     sync_slug_on_save,
 )
-from commons.colors import NUM_COLORS
-from commons.ordering import OrderedMixin
 from projects.projects.models import Project
 
 

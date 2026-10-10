@@ -28,8 +28,6 @@ from ninja import File, Form, Path, Router, Status
 from ninja.decorators import decorate_view
 
 from base.serializers import BaseDataSchema
-from base.utils.files import iterfile
-from base.utils.images import ImageSizeFormat
 from commons.exceptions import api as ex
 from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
@@ -37,6 +35,8 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_404,
     ERROR_RESPONSE_422,
 )
+from commons.utils.files import iterfile
+from commons.utils.images import ImageSizeFormat
 from commons.validators import B64UUID
 from permissions import (
     check_permissions,

@@ -26,7 +26,7 @@ from django.db.models.functions import Coalesce
 
 from base.repositories import neighbors as neighbors_repositories
 from base.repositories.neighbors import Neighbor
-from commons.ordering import DEFAULT_ORDER_OFFSET
+from commons.utils.ordering import DEFAULT_ORDER_OFFSET
 from projects.projects.models import Project, ProjectTemplate
 from workflows.models import Workflow, WorkflowStatus
 

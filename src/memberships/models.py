@@ -26,8 +26,8 @@ from django.db.models.base import ModelBase
 
 from base.db.models import BaseDBModel, LowerEmailField, LowerSlugField
 from base.db.models.mixins import CreatedAtMetaInfoMixin
-from base.utils.datetime import timestamp_mics
-from base.utils.slug import (
+from commons.utils.datetime import timestamp_mics
+from commons.utils.slug import (
     sync_slug_on_save,
 )
 from memberships.choices import InvitationStatus

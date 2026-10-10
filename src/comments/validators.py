@@ -21,7 +21,7 @@ from typing import List, Literal
 
 from pydantic import Field, model_serializer
 
-from base.utils.strings import orderby_to_snake
+from commons.utils.strings import orderby_to_snake
 from commons.validators import BaseValidatorSchema, StrNotEmpty
 
 

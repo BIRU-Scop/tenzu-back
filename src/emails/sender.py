@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -18,11 +18,10 @@
 # You can contact BIRU at ask@biru.sh
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, get_connection
-from django.core.mail.backends.base import BaseEmailBackend
+from django.core.mail import EmailMultiAlternatives
 
 
-async def send_email_message(
+def send_email_message(
     subject: str | None = None,
     to_emails: list[str] = [],
     from_email: str | None = None,
@@ -38,7 +37,6 @@ async def send_email_message(
     """
 
     message = EmailMultiAlternatives(
-        connection=_get_mail_connection(),
         subject=subject,
         body=body_txt,
         to=to_emails,
@@ -52,7 +50,3 @@ async def send_email_message(
         message.attach_file(path=attachment_path)
 
     message.send()
-
-
-def _get_mail_connection() -> BaseEmailBackend:
-    return get_connection(backend=settings.EMAIL_BACKEND)

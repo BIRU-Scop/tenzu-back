@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from contextlib import asynccontextmanager, contextmanager
+from inspect import iscoroutinefunction, markcoroutinefunction
 from typing import Any, AsyncContextManager, Callable
 from unittest.mock import Mock, patch
 
@@ -26,9 +27,6 @@ from asgiref.sync import sync_to_async
 from django.db.models import Model
 from django.test import TestCase
 from pydantic import ValidationError
-from pytest_django.fixtures import (
-    DjangoCaptureOnCommitCallbacks,
-)
 
 
 def check_validation_errors(
@@ -71,18 +69,16 @@ def patch_db_transaction():
 
 
 @asynccontextmanager
-async def async_django_capture_on_commit_callbacks(
-    execute=False,
-) -> AsyncContextManager[list[Callable[[], Any]]]:
-    """
-    can be used like
-        async with async_django_capture_on_commit_callbacks(execute=True) as callbacks:
-    for function registered with transaction_on_commit_async
-    """
-    with await sync_to_async(TestCase.captureOnCommitCallbacks)(
-        execute=execute
-    ) as callbacks:
+async def async_django_capture_on_commit_callbacks(execute=False):
+    capture = TestCase.captureOnCommitCallbacks(execute=execute)
+    callbacks = await sync_to_async(capture.__enter__)()
+    try:
         yield callbacks
+    except BaseException as error:
+        await sync_to_async(capture.__exit__)(type(error), error, error.__traceback__)
+        raise
+    else:
+        await sync_to_async(capture.__exit__)(None, None, None)
 
 
 def set_prefetched_qs_cache(model_object: Model, related_values: dict[str, list]):
@@ -103,3 +99,61 @@ def add_to_selected_instance_cache(model_object: Model, related_values: dict[str
     """
     for field, value in related_values.items():
         model_object._state.fields_cache[field] = value
+
+
+def raise_on_nth_call(
+    real_method: Callable,
+    threshold: int,
+    exception: type[Exception],
+    continue_after_exception=True,
+) -> Callable:
+    class RaiseOnNthCall:
+        def __init__(
+            self,
+            real_method: Callable,
+            threshold: int,
+            exception: Exception,
+            continue_after_exception=True,
+        ):
+            self.real_method = real_method
+            self.threshold = threshold
+            self.exception = exception
+            self.continue_after_exception = continue_after_exception
+            self.count = 0
+
+        def __call__(self, *args, **kwargs):
+            self.count += 1
+            if self.count < self.threshold or (
+                self.count > self.threshold and self.continue_after_exception
+            ):
+                return self.real_method(*args, **kwargs)
+            raise self.exception
+
+    class AsyncRaiseOnNthCall(RaiseOnNthCall):
+        def __init__(
+            self,
+            real_method: Callable,
+            threshold: int,
+            exception: Exception,
+            continue_after_exception=True,
+        ):
+            super().__init__(
+                real_method, threshold, exception, continue_after_exception
+            )
+            markcoroutinefunction(
+                self
+            )  # workaround for https://github.com/python/cpython/issues/156460
+
+        async def __call__(self, *args, **kwargs):
+            self.count += 1
+            if self.count < self.threshold or (
+                self.count > self.threshold and self.continue_after_exception
+            ):
+                return await self.real_method(*args, **kwargs)
+            raise self.exception
+
+    if iscoroutinefunction(real_method):
+        return AsyncRaiseOnNthCall(
+            real_method, threshold, exception, continue_after_exception
+        )
+    return RaiseOnNthCall(real_method, threshold, exception, continue_after_exception)

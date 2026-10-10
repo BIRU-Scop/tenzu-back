@@ -22,7 +22,7 @@ from django.conf import settings
 from django.db import IntegrityError
 from psycopg import errors as pg_errors
 
-from commons.utils import transaction_atomic_async
+from commons.utils.async_func import transaction_atomic_async
 from projects.projects.models import Project
 from stories.tags import events as story_tags_events
 from stories.tags import repositories as story_tags_repositories

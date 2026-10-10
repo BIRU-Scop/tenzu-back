@@ -22,28 +22,28 @@ import uuid
 from typing import Type
 
 from asgiref.sync import sync_to_async
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Model, UUIDField
+from django.db import models
 
 from base.db.models.fields import *  # noqa
-from base.utils.uuid import encode_uuid_to_b64str
+from commons.utils.uuid import encode_uuid_to_b64str
 
 
-def uuid_generator() -> uuid.UUID:
-    """uuid.uuid1 wrap function to protect the MAC address."""
-    return uuid.uuid1(node=settings.UUID_NODE)
+class BaseDBManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().fetch_mode(models.FETCH_RAISE)
 
 
-class BaseDBModel(Model):
-    id = UUIDField(
+class BaseDBModel(models.Model):
+    id = models.UUIDField(
         primary_key=True,
         null=False,
         blank=True,
-        default=uuid.uuid7,  # TODO Try to replace with UUIDv7 db_default once on django 6.1 and postgres 18
+        default=uuid.uuid7,  # TODO Try to replace with django.db.models.functions.UUIDv7 db_default once on postgres 18
         editable=False,
         verbose_name="ID",
     )
+    objects = BaseDBManager()
 
     class Meta:
         abstract = True
@@ -54,5 +54,5 @@ class BaseDBModel(Model):
 
 
 @sync_to_async
-def get_contenttype_for_model(model: Model | Type[Model]) -> ContentType:
+def get_contenttype_for_model(model: models.Model | Type[models.Model]) -> ContentType:
     return ContentType.objects.get_for_model(model)

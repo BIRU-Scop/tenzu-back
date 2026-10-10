@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,14 +16,15 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import gc
+import logging
 
-from base64 import urlsafe_b64decode, urlsafe_b64encode
-from uuid import UUID
-
-
-def encode_uuid_to_b64str(uuid: UUID) -> str:
-    return urlsafe_b64encode(uuid.bytes).decode("utf8").rstrip("=\n")
+logger = logging.getLogger(__name__)
 
 
-def decode_b64str_to_uuid(b64str: str) -> UUID:
-    return UUID(bytes=urlsafe_b64decode(f"{b64str}=="))
+async def collect_garbage_after_job(call_next, context, worker):
+    gc.collect()
+    try:
+        return await call_next()
+    finally:
+        gc.collect()
