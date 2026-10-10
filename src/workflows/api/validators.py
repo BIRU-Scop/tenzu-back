@@ -23,7 +23,7 @@ from pydantic import Field, StringConstraints, field_validator
 from pydantic_core.core_schema import ValidationInfo
 from typing_extensions import Annotated
 
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from commons.validators import B64UUID, BaseValidatorSchema
 
 WorkflowStatusName = Annotated[

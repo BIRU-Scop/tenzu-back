@@ -24,7 +24,7 @@ from slugify import slugify
 
 from base.db.models import BaseDBModel
 from base.db.models.mixins import CreatedMetaInfoMixin, ModifiedAtMetaInfoMixin
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 
 if TYPE_CHECKING:
     from django_stubs_ext.db.models.manager import ManyRelatedManager

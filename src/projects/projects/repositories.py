@@ -26,7 +26,7 @@ from django.db.models import Exists, OuterRef, Q
 from pydantic import BaseModel, PositiveInt
 
 from base.db.utils import Q_for_related
-from commons.utils import transaction_atomic_async
+from commons.utils.async_func import transaction_atomic_async
 from import_export.models import ImportationStatus
 from memberships import repositories as memberships_repositories
 from memberships.choices import InvitationStatus

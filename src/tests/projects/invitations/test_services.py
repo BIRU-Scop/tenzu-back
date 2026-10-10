@@ -1141,7 +1141,7 @@ async def test_accept_project_invitation_pending_importation_data(tqmanager) -> 
     ):
         await tqmanager.run_async()
         assert tqmanager.succeeded_jobs and not tqmanager.failed_jobs
-        fake_import_export_repositories.sync_pending_objects.assert_awaited_once_with(
+        fake_import_export_repositories.sync_pending_objects.assert_called_once_with(
             user_id=user.id, pending_invites={"dummy_data": 0}
         )
 

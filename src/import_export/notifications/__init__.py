@@ -23,12 +23,16 @@ from import_export.notifications.content import (
     ProjectImportationActionNeededNotificationContent,
     ProjectImportationFailNotificationContent,
     ProjectImportationWarningFileNotificationContent,
+    ProjectImportationWarningStoryTagsNumberNotificationContent,
 )
 from notifications import services as notifications_services
 
 PROJECT_IMPORTATION_FAILURE = "project_importation.fail"
 PROJECT_IMPORTATION_ACTION_NEEDED = "project_importation.action_needed"
 PROJECT_IMPORTATION_WARNING_FILE_TOO_BIG = "project_importation.warning.file_too_big"
+PROJECT_IMPORTATION_WARNING_STORY_TAGS_TOO_MANY = (
+    "project_importation.warning.too_many_story_tags"
+)
 
 
 class WarningFileTooBig(TypedDict):
@@ -83,5 +87,23 @@ async def notify_when_project_importation_file_too_big_warning(
                 file_size=warning["file_size"],
             )
             for warning in warnings
+        ],
+    )
+
+
+async def notify_when_project_importation_too_many_story_tags_warning(
+    project_importation: ProjectImportation, story_tags_number: int, max_number: int
+) -> None:
+    await notifications_services.notify_users(
+        notification_type=PROJECT_IMPORTATION_WARNING_STORY_TAGS_TOO_MANY,
+        emitted_by=None,
+        notified_user_ids=[project_importation.created_by_id],
+        content_list=[
+            ProjectImportationWarningStoryTagsNumberNotificationContent(
+                project=project_importation.project,
+                project_importation=project_importation,
+                story_tags_number=story_tags_number,
+                max_number=max_number,
+            )
         ],
     )

@@ -39,7 +39,7 @@ from typing import Any, Optional
 
 from ninja.errors import HttpError as NinjaHttpError
 
-from base.utils.strings import to_kebab
+from commons.utils.strings import to_kebab
 
 from . import codes
 
@@ -71,12 +71,18 @@ class HTTPException(NinjaHttpError):
 
 
 class BadRequest(HTTPException):
-    def __init__(self, msg: str = codes.EX_BAD_REQUEST.msg, detail: Any = None) -> None:
+    def __init__(
+        self,
+        msg: str = codes.EX_BAD_REQUEST.msg,
+        detail: Any = None,
+        headers: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(
             status_code=400,
             code=codes.EX_BAD_REQUEST.code,
             msg=msg,
             detail=detail,
+            headers=headers,
         )
 
 
@@ -86,12 +92,16 @@ class BadRequest(HTTPException):
 
 
 class AuthorizationError(HTTPException):
-    def __init__(self, msg: str = codes.EX_AUTHORIZATION.msg):
+    def __init__(
+        self,
+        msg: str = codes.EX_AUTHORIZATION.msg,
+        headers: dict[str, Any] | None = None,
+    ):
         super().__init__(
             status_code=401,
             code=codes.EX_AUTHORIZATION.code,
             msg=msg,
-            headers={"WWW-Authenticate": 'Bearer realm="api"'},
+            headers={"WWW-Authenticate": 'Bearer realm="api"', **(headers or {})},
         )
 
 
@@ -101,12 +111,18 @@ class AuthorizationError(HTTPException):
 
 
 class ForbiddenError(HTTPException):
-    def __init__(self, msg: str = codes.EX_FORBIDDEN.msg, detail: Any = None) -> None:
+    def __init__(
+        self,
+        msg: str = codes.EX_FORBIDDEN.msg,
+        detail: Any = None,
+        headers: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(
             status_code=403,
             code=codes.EX_FORBIDDEN.code,
             msg=msg,
             detail=detail,
+            headers=headers,
         )
 
 
@@ -116,8 +132,30 @@ class ForbiddenError(HTTPException):
 
 
 class NotFoundError(HTTPException):
-    def __init__(self, msg: str = codes.EX_NOT_FOUND.msg):
-        super().__init__(status_code=404, code=codes.EX_NOT_FOUND.code, msg=msg)
+    def __init__(
+        self,
+        msg: str = codes.EX_NOT_FOUND.msg,
+        headers: dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            status_code=404, code=codes.EX_NOT_FOUND.code, msg=msg, headers=headers
+        )
+
+
+##########################
+# HTTP 409: CONFLICT
+##########################
+
+
+class ConflictError(HTTPException):
+    def __init__(
+        self,
+        msg: str = codes.EX_CONFLICT.msg,
+        headers: dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            status_code=409, code=codes.EX_CONFLICT.code, msg=msg, headers=headers
+        )
 
 
 ##########################
@@ -127,13 +165,59 @@ class NotFoundError(HTTPException):
 
 class PreconditionFailed(HTTPException):
     def __init__(
-        self, msg: str = codes.EX_PRECONDITION_FAILED.msg, detail: Any = None
+        self,
+        msg: str = codes.EX_PRECONDITION_FAILED.msg,
+        detail: Any = None,
+        headers: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             status_code=412,
             code=codes.EX_PRECONDITION_FAILED.code,
             msg=msg,
             detail=detail,
+            headers=headers,
+        )
+
+
+##########################
+# HTTP 413: REQUEST ENTITY TOO LARGE
+##########################
+
+
+class ContentTooLarge(HTTPException):
+    def __init__(
+        self,
+        msg: str = codes.EX_CONTENT_TOO_LARGE.msg,
+        detail: Any = None,
+        headers: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            status_code=413,
+            code=codes.EX_CONTENT_TOO_LARGE.code,
+            msg=msg,
+            detail=detail,
+            headers=headers,
+        )
+
+
+##########################
+# HTTP 415: UNSUPPORTED MEDIA TYPE
+##########################
+
+
+class UnsupportedMediaType(HTTPException):
+    def __init__(
+        self,
+        msg: str = codes.EX_UNSUPPORTED_MEDIA_TYPE.msg,
+        detail: Any = None,
+        headers: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            status_code=415,
+            code=codes.EX_UNSUPPORTED_MEDIA_TYPE.code,
+            msg=msg,
+            detail=detail,
+            headers=headers,
         )
 
 
@@ -143,11 +227,32 @@ class PreconditionFailed(HTTPException):
 
 
 class ValidationError(HTTPException):
-    def __init__(self, msg: str = codes.EX_VALIDATION_ERROR.msg):
+    def __init__(
+        self,
+        msg: str = codes.EX_VALIDATION_ERROR.msg,
+        headers: dict[str, Any] | None = None,
+    ):
         super().__init__(
             status_code=422,
             code=codes.EX_VALIDATION_ERROR.code,
             msg=msg,
+            headers=headers,
+        )
+
+
+##########################
+# HTTP 423: LOCKED
+##########################
+
+
+class LockedError(HTTPException):
+    def __init__(
+        self,
+        msg: str = codes.EX_LOCKED.msg,
+        headers: dict[str, Any] | None = None,
+    ):
+        super().__init__(
+            status_code=423, code=codes.EX_LOCKED.code, msg=msg, headers=headers
         )
 
 
@@ -158,11 +263,15 @@ class ValidationError(HTTPException):
 
 class FailedDependency(HTTPException):
     def __init__(
-        self, msg: str = codes.EX_FAILED_DEPENDENCY.msg, detail: Any = None
+        self,
+        msg: str = codes.EX_FAILED_DEPENDENCY.msg,
+        detail: Any = None,
+        headers: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             status_code=424,
             code=codes.EX_FAILED_DEPENDENCY.code,
             msg=msg,
             detail=detail,
+            headers=headers,
         )

@@ -39,6 +39,7 @@ from tests.utils.utils import patch_db_transaction
 
 async def test_import_project(tqmanager):
     project_importation = f.build_project_importation()
+    tus_upload = f.build_tus_upload(file=project_importation.source)
 
     with (
         patch(
@@ -53,10 +54,18 @@ async def test_import_project(tqmanager):
             project_importation
         )
         serialised_importation = await services.import_project(
-            user=project_importation.created_by,
-            workspace=project_importation.workspace,
+            user_id=str(project_importation.created_by_id),
+            workspace_id=str(project_importation.workspace_id),
             origin_type=project_importation.origin_type,
-            source=project_importation.source,
+            tus_upload=tus_upload,
+        )
+
+        # check that id strings have been cast to UUID
+        fake_import_export_repositories.create_project_importation.assert_awaited_once_with(
+            user_id=project_importation.created_by_id,
+            workspace_id=project_importation.workspace_id,
+            origin_type=project_importation.origin_type,
+            source_file=tus_upload.file,
         )
 
         fake_import_export_events.emit_event_when_project_importation_is_created.assert_awaited_once_with(
@@ -68,6 +77,7 @@ async def test_import_project(tqmanager):
 
 async def test_import_project_suspicious_file():
     importation = f.build_project_importation()
+    tus_upload = f.build_tus_upload(file=importation.source)
 
     with (
         patch(
@@ -80,15 +90,16 @@ async def test_import_project_suspicious_file():
         )
         with pytest.raises(ValidationError):
             await services.import_project(
-                user=importation.created_by,
-                workspace=importation.workspace,
+                user_id=importation.created_by_id,
+                workspace_id=importation.workspace_id,
                 origin_type=importation.origin_type,
-                source=importation.source,
+                tus_upload=tus_upload,
             )
 
 
 async def test_import_project_not_supported():
     importation = f.build_project_importation(origin_type=ProjectImportationType.TRELLO)
+    tus_upload = f.build_tus_upload(file=importation.source)
 
     with (
         patch(
@@ -101,10 +112,10 @@ async def test_import_project_not_supported():
         )
         with pytest.raises(NotImplementedError):
             await services.import_project(
-                user=importation.created_by,
-                workspace=importation.workspace,
+                user_id=importation.created_by_id,
+                workspace_id=importation.workspace_id,
                 origin_type=importation.origin_type,
-                source=importation.source,
+                tus_upload=tus_upload,
             )
 
 

@@ -1,4 +1,4 @@
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -43,7 +43,7 @@ from django.db import models
 class OutstandingToken(models.Model):
     id = models.BigAutoField(primary_key=True, serialize=False)
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+        settings.AUTH_USER_MODEL, on_delete=models.DB_SET_NULL, null=True, blank=True
     )
 
     jti = models.CharField(unique=True, max_length=255)
@@ -70,7 +70,7 @@ class OutstandingToken(models.Model):
 
 class BlacklistedToken(models.Model):
     id = models.BigAutoField(primary_key=True, serialize=False)
-    token = models.OneToOneField(OutstandingToken, on_delete=models.CASCADE)
+    token = models.OneToOneField(OutstandingToken, on_delete=models.DB_CASCADE)
 
     blacklisted_at = models.DateTimeField(auto_now_add=True)
 

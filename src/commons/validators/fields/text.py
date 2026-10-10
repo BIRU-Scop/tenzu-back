@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,9 +16,27 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+import unicodedata
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import AfterValidator, StringConstraints
 
 StrNotEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+def _check_no_control_characters(value: str) -> str:
+    if any(unicodedata.category(char) in ("Cc", "Cf") for char in value):
+        raise ValueError("Control characters are not allowed")
+    return value
+
+
+def _normalize_nfc(value: str) -> str:
+    return unicodedata.normalize("NFC", value)
+
+
+Label = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=50),
+    AfterValidator(_check_no_control_characters),
+    AfterValidator(_normalize_nfc),
+]

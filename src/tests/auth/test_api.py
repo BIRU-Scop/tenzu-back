@@ -275,7 +275,7 @@ def test_continue_signup_to_provider_invalid(ssr_client):
         f"/api/{settings.API_VERSION}/auth/provider/continue_signup",
         content_type="application/json",
     )
-    assert response.status_code == 422, response.json()
+    assert response.status_code == 422, response.data
 
 
 def test_continue_signup_to_provider_notfound(ssr_client):

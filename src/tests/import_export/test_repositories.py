@@ -18,7 +18,6 @@
 from pathlib import Path
 
 import pytest
-from OpenSSL.rand import status
 from procrastinate.contrib.django.models import ProcrastinateJob
 from procrastinate.jobs import Status
 
@@ -42,17 +41,17 @@ pytestmark = pytest.mark.django_db
 
 
 ##########################################################
-# create_importation
+# create_project_importation
 ##########################################################
 
 
-async def test_create_importation():
+async def test_create_project_importation():
     source_file = f.build_string_file()
     workspace = await f.create_workspace()
     user = await f.create_user()
     importation = await repositories.create_project_importation(
-        user=user,
-        workspace=workspace,
+        user_id=user.id,
+        workspace_id=workspace.id,
         origin_type=ProjectImportationType.TAIGA,
         source_file=source_file,
     )
@@ -238,37 +237,39 @@ async def test_cancel_project_importation():
 ##########################################################
 
 
-async def test_sync_pending_objects():
+def test_sync_pending_objects():
     now = aware_utcnow()
-    user = await f.create_user()
+    user = f.UserFactory.create()
 
-    story = await f.create_story()
-    already_done_story = await f.create_story(created_by=user)
+    story = f.StoryFactory.create()
+    already_done_story = f.StoryFactory.create(created_by=user)
 
-    other_assignment = await f.create_story_assignment()
-    already_done_assignment = await f.create_story_assignment(user=user)
+    other_assignment = f.StoryAssignmentFactory.create()
+    already_done_assignment = f.StoryAssignmentFactory.create(user=user)
 
-    attachment = await f.create_attachment(
+    attachment = f.AttachmentFactory.create(
         content_object=story,
     )
-    already_done_attachment = await f.create_attachment(
+    already_done_attachment = f.AttachmentFactory.create(
         content_object=story, created_by=user
     )
 
-    comment = await f.create_comment(
+    comment = f.CommentFactory.create(
         content_object=story,
     )
-    already_done_comment = await f.create_comment(content_object=story, created_by=user)
+    already_done_comment = f.CommentFactory.create(
+        content_object=story, created_by=user
+    )
 
-    deleted_comment = await f.create_comment(content_object=story, deleted_at=now)
-    already_done_deleted_comment = await f.create_comment(
+    deleted_comment = f.CommentFactory.create(content_object=story, deleted_at=now)
+    already_done_deleted_comment = f.CommentFactory.create(
         content_object=story, deleted_at=now, deleted_by=user
     )
-    wrong_state_deleted_comment = await f.create_comment(
+    wrong_state_deleted_comment = f.CommentFactory.create(
         content_object=story, deleted_by=user
     )
 
-    await repositories.sync_pending_objects(
+    repositories.sync_pending_objects(
         user_id=user.id,
         pending_invites={
             "role_id": NOT_EXISTING_UUID,
@@ -298,42 +299,42 @@ async def test_sync_pending_objects():
         },
     )
     assert (
-        await Story.objects.filter(
+        Story.objects.filter(
             id__in=[story.id, already_done_story.id], created_by=user
-        ).acount()
+        ).count()
         == 2
     )
     assert (
-        await StoryAssignment.objects.filter(
+        StoryAssignment.objects.filter(
             story_id__in=[
                 story.id,
                 other_assignment.story_id,
                 already_done_assignment.story_id,
             ],
             user=user,
-        ).acount()
+        ).count()
         == 3
     )
     assert (
-        await Attachment.objects.filter(
+        Attachment.objects.filter(
             id__in=[attachment.id, already_done_attachment.id], created_by=user
-        ).acount()
+        ).count()
         == 2
     )
     assert (
-        await Comment.objects.filter(
+        Comment.objects.filter(
             id__in=[comment.id, already_done_comment.id], created_by=user
-        ).acount()
+        ).count()
         == 2
     )
     assert (
-        await Comment.objects.filter(
+        Comment.objects.filter(
             id__in=[
                 deleted_comment.id,
                 already_done_deleted_comment.id,
                 wrong_state_deleted_comment.id,
             ],
             deleted_by=user,
-        ).acount()
+        ).count()
         == 3
     )

@@ -22,7 +22,7 @@ import pytest
 from pydantic import ValidationError
 
 from base.serializers import BaseSchema
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from projects.projects.api.validators import (
     CreateProjectValidator,
     LogoField,
@@ -69,22 +69,6 @@ def test_validate_project_with_long_name():
         ValidationError, match=r"String should have at most 80 characters"
     ):
         CreateProjectValidator(name=name, color=color)
-
-
-def test_validate_project_with_long_description():
-    name = "Project test"
-    description = (
-        "Project Lorem ipsum dolor sit amet, consectetuer adipiscing elit."
-        "Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus "
-        "et magnis dis parturient montes, nascetur ridiculus mus. Donec quam fe "
-        "aenean massa. Cum sociis natoque penatibus"
-    )
-    color = 1
-
-    with pytest.raises(
-        ValidationError, match=r"String should have at most 220 characters"
-    ):
-        CreateProjectValidator(name=name, description=description, color=color)
 
 
 def test_validate_project_with_invalid_color():

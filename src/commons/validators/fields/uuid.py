@@ -24,7 +24,7 @@ from pydantic import BeforeValidator
 from pydantic.json_schema import WithJsonSchema
 from pydantic_core import PydanticCustomError
 
-from base.utils.uuid import decode_b64str_to_uuid
+from commons.utils.uuid import decode_b64str_to_uuid
 
 
 def _decode_b64str_to_uuid(value: Any) -> UUID:

@@ -70,7 +70,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Support
 
 For support request, see [Support](SUPPORT.md).
-This project is not yet ready for production.
+This project is ready for production.
 
 ## Security
 

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,14 +16,14 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-import asyncio
-from collections.abc import Coroutine
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, TypeVar
+from enum import Enum
 
-T = TypeVar("T")
+from permissions import IsAuthenticated, IsRelatedToTheUser
+from projects.projects.permissions import ProjectPermissionsCheck
+from workspaces.workspaces.permissions import WorkspacePermissionsCheck
 
 
-def run_async_as_sync(coroutine: Coroutine[Any, Any, T]) -> T:
-    pool = ThreadPoolExecutor(1)
-    return pool.submit(asyncio.run, coroutine).result()
+class TusUploadPermissionsCheck(Enum):
+    VIEW = IsAuthenticated() & IsRelatedToTheUser("created_by")
+    MODIFY = IsAuthenticated() & IsRelatedToTheUser("created_by")
+    DELETE = IsAuthenticated() & IsRelatedToTheUser("created_by")

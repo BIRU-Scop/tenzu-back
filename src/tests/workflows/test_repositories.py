@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,7 +22,7 @@ from unittest import IsolatedAsyncioTestCase
 import pytest
 from asgiref.sync import sync_to_async
 
-from commons.ordering import DEFAULT_ORDER_OFFSET
+from commons.utils.ordering import DEFAULT_ORDER_OFFSET
 from projects.projects.models import Project
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_UUID

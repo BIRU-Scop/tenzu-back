@@ -26,14 +26,14 @@ from easy_thumbnails.files import ThumbnailFile
 from ninja import UploadedFile
 from pydantic import ValidationError
 
-from base.utils.images import ImageSizeFormat, get_thumbnail
-from commons.colors import generate_random_color
-from commons.utils import (
+from commons.utils.async_func import (
     async_cache,
-    get_absolute_url,
     transaction_atomic_async,
     transaction_on_commit_async,
 )
+from commons.utils.colors import generate_random_color
+from commons.utils.images import ImageSizeFormat, get_thumbnail
+from commons.utils.url import get_absolute_url
 from import_export.models import ProjectImportation
 from permissions.choices import ProjectPermissions
 from projects.memberships import repositories as memberships_repositories

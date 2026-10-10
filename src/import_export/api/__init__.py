@@ -15,9 +15,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+from typing import Literal
 from uuid import UUID
 
-from ninja import File, Form, Path, Router, Status
+from botocore.exceptions import ClientError
+from django.conf import settings
+from django.http import HttpRequest, HttpResponse
+from ninja import Header, Path, Router, Status
+from pydantic import NonNegativeInt
 
 from base.serializers import BaseDataSchema
 from commons.exceptions import api as ex
@@ -25,12 +30,19 @@ from commons.exceptions.api.errors import (
     ERROR_RESPONSE_400,
     ERROR_RESPONSE_403,
     ERROR_RESPONSE_404,
+    ERROR_RESPONSE_412,
+    ERROR_RESPONSE_413,
+    ERROR_RESPONSE_415,
     ERROR_RESPONSE_422,
+    ERROR_RESPONSE_424,
 )
+from commons.storage import services as storage_services
+from commons.storage.api import add_tus_headers, check_tus_request
+from commons.storage.exceptions import OverflowExpectedSizeError
 from commons.validators import B64UUID
 from import_export import services as import_export_services
-from import_export.api.validators import ImportationFileField, ImportProjectValidator
-from import_export.models import ProjectImportation
+from import_export.api.validators import ImportProjectValidator
+from import_export.models import PROJECT_IMPORTATION_BASE_PATH, ProjectImportation
 from import_export.permissions import ProjectImportationPermissionsCheck
 from import_export.serializers import (
     InvitedProjectImportationSerializer,
@@ -55,24 +67,47 @@ import_export_router = Router()
     url_name="importation.projects.create",
     summary="Create and launch a project importation",
     response={
-        200: BaseDataSchema[ProjectImportationSerializer],
+        201: None,
         400: ERROR_RESPONSE_400,
         403: ERROR_RESPONSE_403,
         404: ERROR_RESPONSE_404,
+        412: ERROR_RESPONSE_412,
+        413: ERROR_RESPONSE_413,
+        415: ERROR_RESPONSE_415,
         422: ERROR_RESPONSE_422,
+        424: ERROR_RESPONSE_424,
     },
-    tags=["workspaces", "projects", "import_export"],
+    tags=["workspaces", "projects", "import_export", "upload"],
     by_alias=True,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/offset+octet-stream": {
+                    "schema": {"type": "string", "format": "binary"}
+                }
+            },
+        }
+    },
 )
 async def launch_project_importation(
-    request,
+    request: HttpRequest,
+    response: HttpResponse,
     workspace_id: Path[B64UUID],
-    form: Form[ImportProjectValidator],
-    source: File[ImportationFileField],
-) -> ProjectImportationSerializer:
+    upload_metadata: Header[ImportProjectValidator],
+    upload_length: Header[NonNegativeInt],
+    content_length: Header[NonNegativeInt],
+    tus_resumable: Header[str] = "1.0.0",
+) -> Status[None]:
     """
     Launch an importation for a project in a given workspace.
+    A resumable upload protocol is used in order to permit big files
+    See protocol spec for how to use: https://tus.io/protocols/resumable-upload
+    The importation will only be created once the upload has been completed
     """
+    check_tus_request(
+        request, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
+    )
     workspace = await get_workspace_or_404(workspace_id=workspace_id)
 
     await check_permissions(
@@ -80,12 +115,30 @@ async def launch_project_importation(
         user=request.user,
         obj=workspace,
     )
-    return await import_export_services.import_project(
-        user=request.user,
-        workspace=workspace,
-        origin_type=form.origin_type,
-        source=source,
+    try:
+        tus_upload = await storage_services.create_tus_upload(
+            user=request.user,
+            file_name=upload_metadata.filename,
+            file_content_type=upload_metadata.filetype,
+            request=request,
+            content_size=content_length,
+            total_size=upload_length,
+            completion_hook="import_export.services.import_project",
+            completion_hook_parameters=dict(
+                user_id=request.user.id,
+                workspace_id=workspace_id,
+                origin_type=upload_metadata.origin_type,
+            ),
+            overwrite_base_path=PROJECT_IMPORTATION_BASE_PATH,
+        )
+    except OverflowExpectedSizeError:
+        raise ex.ContentTooLarge(headers={"Tus-Max-Size": upload_length})
+    except ClientError as e:
+        raise ex.FailedDependency("Request to S3 has failed") from e
+    add_tus_headers(
+        response, tus_upload, max_size=settings.STORAGE.IMPORTATION_MAX_UPLOAD_FILE_SIZE
     )
+    return Status(201, None)
 
 
 ##########################################################

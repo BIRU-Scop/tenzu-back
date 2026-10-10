@@ -21,11 +21,12 @@ from uuid import uuid1
 import pytest
 from pydantic import AfterValidator, BaseModel, ValidationError
 
-from base.utils.uuid import encode_uuid_to_b64str
+from commons.utils.uuid import encode_uuid_to_b64str
 from commons.validators import (
     B64UUID,
     BaseValidatorSchema,
     LanguageCode,
+    LowerEmailStr,
     StrNotEmpty,
     UniqueInListValidator,
 )
@@ -108,7 +109,7 @@ def test_b64uuid_with_invalid_value(value):
 
 
 class ObjectWithName(BaseModel):
-    name: str
+    name: str | None
 
 
 UniqueNameList = Annotated[
@@ -117,21 +118,28 @@ UniqueNameList = Annotated[
 ]
 
 
+UniqueNameOrNoneList = Annotated[
+    list[ObjectWithName],
+    AfterValidator(UniqueInListValidator("name", ignore_none=True)),
+]
+
+
 class TestModel(BaseValidatorSchema):
-    x: UniqueNameList
+    x: UniqueNameList = []
+    y: UniqueNameOrNoneList = []
 
 
-def test_unique_in_list_with_valid_value():
+def test_unique_in_list_with_valid_values():
     names_list = [
         ObjectWithName(name="name0"),
         ObjectWithName(name="name1"),
         ObjectWithName(name="name2"),
         ObjectWithName(name="name3"),
     ]
-    TestModel(x=names_list)
+    TestModel(x=names_list, y=names_list)
 
 
-def test_unique_in_list_with_invalid_value():
+def test_unique_in_list_with_invalid_values():
     names_list = [
         ObjectWithName(name="name0"),
         ObjectWithName(name="name1"),
@@ -140,3 +148,34 @@ def test_unique_in_list_with_invalid_value():
     ]
     with pytest.raises(ValidationError):
         TestModel(x=names_list)
+    with pytest.raises(ValidationError):
+        TestModel(y=names_list)
+
+
+def test_unique_in_list_with_none_values():
+    names_list = [
+        ObjectWithName(name=None),
+        ObjectWithName(name="name1"),
+        ObjectWithName(name=None),
+        ObjectWithName(name="name3"),
+    ]
+    with pytest.raises(ValidationError):
+        TestModel(x=names_list)
+    TestModel(y=names_list)
+
+
+#########################################################
+# Email
+#########################################################
+
+
+class LowerEmailStrModel(BaseValidatorSchema):
+    x: LowerEmailStr
+
+
+def test_lower_case():
+    email = "1uSEr@tenZu.demo"
+
+    m = LowerEmailStrModel(x=email)
+
+    assert m.x == "1user@tenzu.demo"

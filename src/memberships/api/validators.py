@@ -21,14 +21,13 @@
 from typing import Self
 
 from pydantic import (
-    EmailStr,
     Field,
     field_validator,
     model_validator,
 )
 from typing_extensions import Annotated
 
-from commons.validators import B64UUID, BaseValidatorSchema
+from commons.validators import B64UUID, BaseValidatorSchema, LowerEmailStr
 from users.api.validators import check_email_in_domain
 
 
@@ -44,7 +43,7 @@ class DeleteMembershipQuery(BaseValidatorSchema):
 
 
 class _InvitationValidator(BaseValidatorSchema):
-    email: EmailStr | None = None
+    email: LowerEmailStr | None = None
     username: str | None = None
     role_id: B64UUID
 

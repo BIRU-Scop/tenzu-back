@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -16,9 +15,3 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-import sys
-
-
-def is_test_running() -> bool:
-    return "pytest" in sys.modules

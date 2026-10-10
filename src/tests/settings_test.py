@@ -58,6 +58,7 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+AWS_S3_ENDPOINT_URL = "http://s3.test"
 
 REQUIRED_TERMS = True
 MAX_UPLOAD_FILE_SIZE = 1 * 1024  # 1 KB

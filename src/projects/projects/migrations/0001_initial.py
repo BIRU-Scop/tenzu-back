@@ -27,8 +27,8 @@ from django.conf import settings
 from django.db import migrations, models
 
 import base.db.models.fields
-import base.utils.files
-import commons.colors
+import commons.utils.colors
+import commons.utils.files
 import ninja_jwt.utils
 
 
@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
                     "color",
                     models.IntegerField(
                         blank=True,
-                        default=commons.colors.generate_random_color,
+                        default=commons.utils.colors.generate_random_color,
                         validators=[django.core.validators.MaxValueValidator(20)],
                         verbose_name="color",
                     ),
@@ -91,7 +91,7 @@ class Migration(migrations.Migration):
                         max_length=500,
                         null=True,
                         upload_to=functools.partial(
-                            base.utils.files.get_obfuscated_file_path,
+                            commons.utils.files.get_obfuscated_file_path,
                             *(),
                             **{"base_path": "project"},
                         ),

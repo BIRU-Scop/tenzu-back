@@ -28,7 +28,7 @@ from base.db.models.mixins import (
 )
 from base.occ.models import VersionedMixin
 from comments.mixins import RelatedCommentsMixin
-from commons.ordering import OrderedMixin
+from commons.utils.ordering import OrderedMixin
 from projects.references.mixins import ProjectReferenceMixin
 
 

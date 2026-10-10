@@ -58,6 +58,9 @@ from .storage import (  # noqa
     StoragedObjectFactory,
     build_storaged_object,
     create_storaged_object,
+    TusUploadFactory,
+    build_tus_upload,
+    create_tus_upload,
 )
 from .stories import (  # noqa
     StoryAssignmentFactory,

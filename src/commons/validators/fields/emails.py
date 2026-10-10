@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,13 +17,12 @@
 #
 # You can contact BIRU at ask@biru.sh
 
-from typing import Generator
+from operator import methodcaller
+from typing import Annotated
 
+from pydantic import AfterValidator, EmailStr
 
-def split_by_n(seq: str, n: int) -> Generator[str, str, None]:
-    """
-    A generator to divide a sequence into chunks of n units.
-    """
-    while seq:
-        yield seq[:n]
-        seq = seq[n:]
+LowerEmailStr = Annotated[
+    EmailStr,
+    AfterValidator(methodcaller("lower")),
+]

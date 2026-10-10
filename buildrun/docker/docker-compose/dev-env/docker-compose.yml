@@ -34,6 +34,22 @@ services:
     command: ["python", "./manage.py", "runserver", "0.0.0.0:8000", "--settings=configurations.dev"]
 #    ports:
 #      - 8000:8000
+
+  tenzu-back-test:
+    <<: *dev-image
+    volumes:
+      - ../../../../src/:/tenzu/
+      - tenzu-static:/public/static
+      - tenzu-media:/public/media
+    networks:
+      - tenzu
+    env_file:
+      - ../../${MODULE_NAME}/test.env
+    depends_on:
+      tenzu-db:
+        condition: service_healthy
+    command: [ "pytest" ]
+
   tenzu-worker:
     <<: *dev-image
     command: "python manage.py procrastinate worker"

@@ -200,7 +200,7 @@ def _list_project_users_by_text_qs(
     """
     users_qs = _list_users_by_text_qs(
         text_search=text_search, exclude_inactive=exclude_inactive
-    )
+    ).annotate(priority=Value(0))
 
     if project_id:
         # List all the users matching the full-text search criteria, ordering results by their proximity to a project :
@@ -221,9 +221,7 @@ def _list_project_users_by_text_qs(
             users_qs.filter(projects__id=project_id)
             .annotate(user_is_member=Exists(memberships))
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
-        )
-        sorted_project_users_qs = _sort_queryset_if_unsorted(
-            project_users_qs, text_search
+            .annotate(priority=Value(0))
         )
 
         # 2nd: Users that are members of the project's workspace but are NOT project members
@@ -232,9 +230,7 @@ def _list_project_users_by_text_qs(
             .annotate(user_is_member=Value(False, output_field=BooleanField()))
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
             .exclude(projects__id=project_id)
-        )
-        sorted_workspace_users_qs = _sort_queryset_if_unsorted(
-            workspace_users_qs, text_search
+            .annotate(priority=Value(1))
         )
 
         # 3rd: Users that are neither a project member nor a member of its workspace
@@ -243,16 +239,19 @@ def _list_project_users_by_text_qs(
             .exclude(workspaces__projects__id=project_id)
             .annotate(user_is_member=Value(False, output_field=BooleanField()))
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
+            .annotate(priority=Value(2))
         )
-        sorted_other_users_qs = _sort_queryset_if_unsorted(other_users_qs, text_search)
 
         # NOTE: `Union all` are important to keep the individual ordering when combining the different search criteria.
-        users_qs = sorted_project_users_qs.union(
-            sorted_workspace_users_qs.union(sorted_other_users_qs, all=True), all=True
+        # NOTE: union overrides ordering
+        users_qs = project_users_qs.union(
+            workspace_users_qs.union(other_users_qs, all=True), all=True
         )
-        return users_qs
-
-    return _sort_queryset_if_unsorted(users_qs, text_search)
+    if text_search:
+        return users_qs.order_by(
+            "priority", "-rank", "first_match", "full_name", "username"
+        )
+    return users_qs.order_by("priority", "full_name", "username")
 
 
 def _list_workspace_users_by_text_qs(
@@ -271,7 +270,7 @@ def _list_workspace_users_by_text_qs(
     """
     users_qs = _list_users_by_text_qs(
         text_search=text_search, exclude_inactive=exclude_inactive
-    )
+    ).annotate(priority=Value(0))
 
     if workspace_id:
         # List all the users matching the full-text search criteria, ordering results by their proximity to a workspace:
@@ -292,9 +291,7 @@ def _list_workspace_users_by_text_qs(
             users_qs.filter(workspaces__id=workspace_id)
             .annotate(user_is_member=Exists(memberships))
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
-        )
-        sorted_workspace_users_qs = _sort_queryset_if_unsorted(
-            workspace_users_qs, text_search
+            .annotate(priority=Value(0))
         )
 
         # # 2nd: Users that are members of the workspace's projects but are NOT workspace members
@@ -303,10 +300,8 @@ def _list_workspace_users_by_text_qs(
             .exclude(workspaces__id=workspace_id)
             .annotate(user_is_member=Value(False, output_field=BooleanField()))
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
+            .annotate(priority=Value(1))
             .distinct()
-        )
-        sorted_ws_projects_users_qs = _sort_queryset_if_unsorted(
-            ws_projects_users_qs, text_search
         )
 
         # 3rd: Users that are neither a workspace member nor a member of the workspace's projects
@@ -315,26 +310,19 @@ def _list_workspace_users_by_text_qs(
             .exclude(projects__workspace_id=workspace_id)
             .annotate(user_is_member=Value(False, output_field=BooleanField()))
             .annotate(user_has_pending_invitation=Exists(pending_invitations))
+            .annotate(priority=Value(2))
         )
-        sorted_other_users_qs = _sort_queryset_if_unsorted(other_users_qs, text_search)
 
         # NOTE: `Union all` are important to keep the individual ordering when combining the different search criteria.
-        users_qs = sorted_workspace_users_qs.union(
-            sorted_ws_projects_users_qs.union(sorted_other_users_qs, all=True), all=True
+        # NOTE: union overrides ordering
+        users_qs = workspace_users_qs.union(
+            ws_projects_users_qs.union(other_users_qs, all=True), all=True
         )
-        return users_qs
-
-    return _sort_queryset_if_unsorted(users_qs, text_search)
-
-
-def _sort_queryset_if_unsorted(
-    users_qs: QuerySet[User], text_search: str
-) -> QuerySet[User]:
-    if not text_search:
-        return users_qs.order_by("full_name", "username")
-
-    # the queryset has already been sorted by the "Full Text Search" and its annotated 'rank' field
-    return users_qs
+    if text_search:
+        return users_qs.order_by(
+            "priority", "-rank", "first_match", "full_name", "username"
+        )
+    return users_qs.order_by("priority", "full_name", "username")
 
 
 def _list_users_by_fullname_or_username(
@@ -373,7 +361,6 @@ def _list_users_by_fullname_or_username(
             )
         )
         .filter(rank__gte=0.2)
-        .order_by("-rank", "first_match", "full_name", "username")
     )
 
     return full_text_matching_users

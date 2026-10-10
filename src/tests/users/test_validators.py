@@ -22,7 +22,7 @@ from django.test import override_settings
 from pydantic import ValidationError
 
 from commons import i18n
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from tests.utils.utils import check_validation_errors
 from users.api.validators import CreateUserValidator, UpdateUserValidator
 
