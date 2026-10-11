@@ -81,6 +81,7 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS = [
 TUS_HEADERS = (
     "upload-offset",
     "upload-length",
+    "upload-metadata",
     "tus-version",
     "tus-resumable",
     "tus-extension",
