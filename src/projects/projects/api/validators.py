@@ -30,6 +30,7 @@ from typing_extensions import Annotated
 from commons.utils.colors import NUM_COLORS
 from commons.utils.images import valid_image_content, valid_image_content_type
 from commons.validators import BaseValidatorSchema
+from commons.validators.fields.text import convert_empty_str_to_none
 
 
 def validate_logo(logo: UploadedFile) -> UploadedFile:
@@ -41,18 +42,12 @@ def validate_logo(logo: UploadedFile) -> UploadedFile:
     return logo
 
 
-def logo_can_be_empty_str(v: Any) -> Any | None:
-    if v == "":
-        return None
-    return v
-
-
 # Need to add the JsonSchema because of the PlainValidator
 # (https://docs.pydantic.dev/latest/concepts/json_schema/#withjsonschema-annotation)
 LogoField = Annotated[
     UploadedFile,
     BeforeValidator(
-        logo_can_be_empty_str, json_schema_input_type=UploadedFile | Literal[""]
+        convert_empty_str_to_none, json_schema_input_type=UploadedFile | Literal[""]
     ),
     PlainValidator(validate_logo, json_schema_input_type=UploadedFile),
 ]

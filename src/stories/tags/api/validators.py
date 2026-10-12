@@ -23,16 +23,16 @@ from pydantic import Field
 
 from commons.utils.colors import NUM_COLORS
 from commons.validators import B64UUID, BaseValidatorSchema
-from commons.validators.fields.text import Label
+from commons.validators.fields.text import ShortLabel
 
 
 class StoryTagCreateValidator(BaseValidatorSchema):
-    label: Label
+    label: ShortLabel
     color: Annotated[int, Field(ge=1, le=NUM_COLORS)]
 
 
 class StoryTagUpdateValidator(BaseValidatorSchema):
-    label: Label
+    label: ShortLabel
     color: Annotated[int, Field(ge=1, le=NUM_COLORS)]
 
 
