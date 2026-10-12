@@ -21,6 +21,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, PositiveInt
 
+from configurations.utils import KILOBYTE
+
 
 class ImageSettings(BaseModel):
     THUMBNAIL_FORMAT_SMALL: str = "32x32_crop"
@@ -33,7 +35,7 @@ class ImageSettings(BaseModel):
             "image/webp",
         ]
     )
-    MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 500 * 1024  # 500 KB
+    MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 500 * KILOBYTE
     # easy_thumbnails
     THUMBNAIL_ALIASES: dict[str, Any] = Field(
         default={

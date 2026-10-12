@@ -23,6 +23,8 @@ from django.conf import global_settings as default_django_settings
 from pydantic import BaseModel, PositiveInt, model_validator
 from typing_extensions import Self
 
+from configurations.utils import GIGABYTE, MEGABYTE
+
 
 class StorageBackends(StrEnum):
     FileSystemStorage = "django.core.files.storage.FileSystemStorage"
@@ -67,9 +69,7 @@ class StorageSettings(BaseModel):
         StaticStorageBackends.CompressedManifestWhitenoiseStorage
     )
 
-    IMPORTATION_MAX_UPLOAD_FILE_SIZE: PositiveInt | None = (
-        20 * 1024 * 1024 * 1024
-    )  # 20 GB
+    IMPORTATION_MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 20 * GIGABYTE
     IMPORTATION_RETRY_ATTEMPTS: PositiveInt = 5
     IMPORTATION_RETRY_EXPONENTIAL_WAIT: PositiveInt = 2
 

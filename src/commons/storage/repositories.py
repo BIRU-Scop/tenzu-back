@@ -48,6 +48,7 @@ from commons.utils.async_func import (
     transaction_on_commit_async,
 )
 from commons.utils.iterators import min_chunk_lazystream
+from configurations.utils import MEGABYTE
 from ninja_jwt.utils import aware_utcnow
 from users.models import User
 
@@ -315,7 +316,7 @@ async def process_new_tus_content(
     last_write = content_size + tus_upload.offset == tus_upload.total_size
     if content_size:
         chunk_size = (
-            ChunksizeAdjuster().adjust_chunksize(8 * 1024 * 1024, tus_upload.total_size)
+            ChunksizeAdjuster().adjust_chunksize(8 * MEGABYTE, tus_upload.total_size)
             if isinstance(storage, S3Storage)
             else File.DEFAULT_CHUNK_SIZE
         )
