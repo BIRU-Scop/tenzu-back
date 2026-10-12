@@ -83,6 +83,7 @@ TUS_FROM_BROWSER_HEADERS = (
     "upload-offset",
     "upload-length",
     "upload-metadata",
+    "tus-resumable",
 )
 TUS_TO_BROWSER_HEADERS = (
     "upload-offset",
