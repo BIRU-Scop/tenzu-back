@@ -310,7 +310,7 @@ async def delete_project(project: Project, deleted_by: User) -> bool:
     if project.logo:
         file_to_delete = project.logo.name
 
-    deleted = await projects_repositories.delete_projects(project_id=project.id)
+    deleted = await projects_repositories.delete_project(project_id=project.id)
 
     if deleted > 0:
         # Delete old file if existed

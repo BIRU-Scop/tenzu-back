@@ -50,9 +50,7 @@ class StorageSettings(BaseModel):
     AWS_S3_FILE_OVERWRITE: bool = False
     AWS_S3_MAX_MEMORY_SIZE: PositiveInt = 10 * MEGABYTE
 
-    FILE_UPLOAD_MAX_MEMORY_SIZE: PositiveInt = (
-        default_django_settings.FILE_UPLOAD_MAX_MEMORY_SIZE
-    )
+    FILE_UPLOAD_MAX_MEMORY_SIZE: PositiveInt = 64 * MEGABYTE
     FILE_UPLOAD_DIRECTORY_PERMISSIONS: PositiveInt | None = (
         default_django_settings.FILE_UPLOAD_DIRECTORY_PERMISSIONS
     )

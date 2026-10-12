@@ -222,11 +222,11 @@ async def test_update_project_delete_logo(project_template):
 
 
 ##########################################################
-# delete_projects
+# delete_project
 ##########################################################
 
 
-async def test_delete_projects(project_template):
+async def test_delete_project(project_template):
     project = await f.create_project(
         template=project_template,
     )
@@ -236,7 +236,7 @@ async def test_delete_projects(project_template):
     seqname = references.get_project_references_seqname(project.id)
 
     assert await _seq_exists(seqname)
-    deleted = await repositories.delete_projects(project_id=project.id)
+    deleted = await repositories.delete_project(project_id=project.id)
     assert (
         deleted == 12
     )  # 1 project, 1 workflow, 4 statuses, 1 invitation, 1 membership, 4 roles

@@ -31,6 +31,7 @@ from import_export.models import (
 )
 from import_export.tasks import import_taiga_project
 from ninja_jwt.utils import aware_utcnow
+from projects.projects import repositories as project_repositories
 from stories.assignments.models import StoryAssignment
 from stories.stories.models import Story
 from tests.utils import factories as f
@@ -175,6 +176,21 @@ async def test_delete_project_importation():
     async with async_django_capture_on_commit_callbacks(execute=True):
         deleted = await repositories.delete_project_importation(
             project_importation=project_importation
+        )
+    assert deleted
+    assert not Path(source_path).exists()
+
+
+async def test_delete_project_importation_cascade():
+    project_importation = await f.create_project_importation(
+        status=ImportationStatus.SUCCESS
+    )
+    source_path = Path(project_importation.source.path)
+    assert Path(source_path).exists()
+
+    async with async_django_capture_on_commit_callbacks(execute=True):
+        deleted = await project_repositories.delete_project(
+            project_id=project_importation.project_id
         )
     assert deleted
     assert not Path(source_path).exists()

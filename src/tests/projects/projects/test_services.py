@@ -627,12 +627,12 @@ async def test_delete_project_fail():
         ) as fake_projects_events,
         patch_db_transaction(),
     ):
-        fake_projects_repo.delete_projects.return_value = 0
+        fake_projects_repo.delete_project.return_value = 0
 
         await services.delete_project(project=project, deleted_by=user)
 
         fake_projects_events.emit_event_when_project_is_deleted.assert_not_awaited()
-        fake_projects_repo.delete_projects.assert_awaited_once_with(
+        fake_projects_repo.delete_project.assert_awaited_once_with(
             project_id=project.id,
         )
 
@@ -651,13 +651,13 @@ async def test_delete_project_ok(tqmanager):
         ) as fake_projects_events,
         patch_db_transaction(),
     ):
-        fake_projects_repo.delete_projects.return_value = 1
+        fake_projects_repo.delete_project.return_value = 1
 
         await services.delete_project(project=project, deleted_by=user)
         fake_projects_events.emit_event_when_project_is_deleted.assert_awaited_once_with(
             workspace_id=project.workspace_id, project=project, deleted_by=user
         )
-        fake_projects_repo.delete_projects.assert_awaited_once_with(
+        fake_projects_repo.delete_project.assert_awaited_once_with(
             project_id=project.id,
         )
         assert len(tqmanager.pending_jobs) == 1
