@@ -351,6 +351,8 @@ async def do_import_taiga_project(
     except Exception as e:
         await fail_project_importation(project_importation)
         raise e
+    finally:
+        del taiga_project
 
 
 async def backport_tenzu_ids_to_file(
@@ -364,10 +366,15 @@ async def backport_tenzu_ids_to_file(
     try:
         # file instance is cached and the mode can't be changed afterwards for some storage (S3Storage) so we clear it
         del project_importation.source.file
-        with project_importation.source.open(mode="w") as source_file:
+        with project_importation.source.open(mode="wb") as source_file:
+            # use __pydantic_serializer__.to_json instead of model_dump_json
+            # to lower memory consumption by skipping the "decode" operation
             source_file.write(
-                taiga_project.model_dump_json(
-                    exclude_unset=True, round_trip=True, warnings="error"
+                taiga_project.__pydantic_serializer__.to_json(
+                    taiga_project,
+                    exclude_unset=True,
+                    round_trip=True,
+                    warnings="error",
                 )
             )
 

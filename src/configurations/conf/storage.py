@@ -48,6 +48,7 @@ class StorageSettings(BaseModel):
     AWS_STORAGE_BUCKET_NAME: str | None = None
     AWS_S3_ENDPOINT_URL: str | None = None
     AWS_S3_FILE_OVERWRITE: bool = False
+    AWS_S3_MAX_MEMORY_SIZE: PositiveInt = 10 * MEGABYTE
 
     FILE_UPLOAD_MAX_MEMORY_SIZE: PositiveInt = (
         default_django_settings.FILE_UPLOAD_MAX_MEMORY_SIZE

@@ -16,15 +16,32 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import ctypes
 import gc
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-async def collect_garbage_after_job(call_next, context, worker):
+def _load_malloc_trim():
+    try:
+        return ctypes.CDLL(None).malloc_trim
+    except (OSError, AttributeError):
+        return None
+
+
+_malloc_trim = _load_malloc_trim()
+
+
+def release_memory():
     gc.collect()
+    if _malloc_trim is not None:
+        _malloc_trim(0)
+
+
+async def collect_garbage_after_job(call_next, context, worker):
+    release_memory()
     try:
         return await call_next()
     finally:
-        gc.collect()
+        release_memory()
