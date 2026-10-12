@@ -125,7 +125,6 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
     count, _ = await ProjectImportation.objects.filter(
         id=project_importation.id
     ).adelete()
-    await transaction_on_commit_async(project_importation.source.delete)(save=False)
     return count > 0
 
 

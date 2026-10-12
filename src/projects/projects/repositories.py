@@ -203,10 +203,10 @@ async def update_project(project: Project, values: dict[str, Any] = {}) -> Proje
 
 
 @transaction_atomic_async()
-async def delete_projects(project_id: UUID) -> int:
+async def delete_project(project_id: UUID) -> int:
     qs = Project.objects.all().filter(id=project_id)
     await sync_to_async(references.delete_project_references_sequences)(
-        project_ids=[p_id async for p_id in qs.values_list("id", flat=True)]
+        project_ids=[project_id]
     )
     count, _ = await qs.adelete()
     return count
