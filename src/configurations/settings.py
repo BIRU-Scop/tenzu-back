@@ -78,10 +78,15 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS = [
     remove_ending_slash(str(settings.FRONTEND_URL)),
     *settings.EXTRA_CORS,
 ]
-TUS_HEADERS = (
+
+TUS_FROM_BROWSER_HEADERS = (
     "upload-offset",
     "upload-length",
     "upload-metadata",
+)
+TUS_TO_BROWSER_HEADERS = (
+    "upload-offset",
+    "upload-length",
     "tus-version",
     "tus-resumable",
     "tus-extension",
@@ -89,7 +94,8 @@ TUS_HEADERS = (
     "upload-expires",
     "location",
 )
-CORS_ALLOW_HEADERS = (*default_headers, "correlation-id", *TUS_HEADERS)
+CORS_ALLOW_HEADERS = (*default_headers, "correlation-id", *TUS_FROM_BROWSER_HEADERS)
+CORS_EXPOSE_HEADERS = (*TUS_TO_BROWSER_HEADERS,)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
