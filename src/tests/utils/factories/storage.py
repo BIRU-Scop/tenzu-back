@@ -19,6 +19,8 @@
 
 from asgiref.sync import sync_to_async
 
+from configurations.utils import KILOBYTE
+
 from .base import Factory, factory
 
 
@@ -42,7 +44,7 @@ class TusUploadFactory(Factory):
     created_by = factory.SubFactory("tests.utils.factories.UserFactory")
     file = factory.django.ImageField(format="PNG")
     offset = 0
-    total_size = 1024
+    total_size = 1 * KILOBYTE
 
     completion_hook = ""
     completion_hook_parameters = {}

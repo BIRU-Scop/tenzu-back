@@ -29,6 +29,7 @@ from django.test import TestCase, override_settings
 from commons.storage import exceptions as ex
 from commons.storage import repositories
 from commons.storage.models import S3Part, S3PendingUploadData, TusUpload
+from configurations.utils import KILOBYTE
 from ninja_jwt.utils import aware_utcnow
 from tests.commons.storage.utils import S3_STORAGE_SETTINGS, patch_s3_multipart_upload
 from tests.utils import factories as f
@@ -86,8 +87,8 @@ async def test_create_tus_upload_filesystem(rf, overwrite_base_path, result_base
             user=user,
             file_name="test.test",
             request=request,
-            content_size=1024,
-            total_size=1024,
+            content_size=1 * KILOBYTE,
+            total_size=1 * KILOBYTE,
             completion_hook="",
             completion_hook_parameters={},
             overwrite_base_path=overwrite_base_path,
@@ -130,8 +131,8 @@ async def test_create_tus_upload_s3(rf, overwrite_base_path, result_base_path):
             user=user,
             file_name="test.test",
             request=request,
-            content_size=1024,
-            total_size=1024,
+            content_size=1 * KILOBYTE,
+            total_size=1 * KILOBYTE,
             completion_hook="",
             completion_hook_parameters={},
             overwrite_base_path=overwrite_base_path,

@@ -37,7 +37,7 @@ from pydantic import (
 )
 
 from commons.validators import LowerEmailStr, UniqueInListValidator
-from commons.validators.fields.text import Label
+from commons.validators.fields.text import Label, convert_empty_str_to_none
 
 TenzuId = UUID
 
@@ -279,7 +279,11 @@ class _TaigaMembership(BaseModel):
     role: str | None  # related name
 
     is_admin: bool
-    email: LowerEmailStr | Literal[""] | None
+    email: (
+        LowerEmailStr
+        | Annotated[Literal[""], AfterValidator(convert_empty_str_to_none)]
+        | None
+    )
     created_at: datetime
     invitation_extra_text: str | None
     user_order: int

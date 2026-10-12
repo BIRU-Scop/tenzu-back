@@ -44,7 +44,7 @@ from configurations.conf.logs import LogsSettings
 from configurations.conf.notifications import NotificationsSettings
 from configurations.conf.storage import StorageSettings
 from configurations.conf.tasksqueue import TaskQueueSettings
-from configurations.utils import remove_ending_slash
+from configurations.utils import MEGABYTE, remove_ending_slash
 
 _DEFAULT_BACKEND_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=8000)
 _DEFAULT_FRONTEND_URL = AnyHttpUrl.build(scheme="http", host="localhost", port=4200)
@@ -130,8 +130,8 @@ class Settings(BaseSettings):
             "TENZU_STORAGE__MAX_UPLOAD_FILE_SIZE",
             "TENZU_MAX_UPLOAD_FILE_SIZE",
         ),
-        default=100 * 1024 * 1024,
-    )  # 100 MB
+        default=100 * MEGABYTE,
+    )
 
     # I18N
     LANGUAGE_CODE: LanguageCode = "en-us"
