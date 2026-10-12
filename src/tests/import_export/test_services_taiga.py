@@ -29,6 +29,7 @@ from django.test import override_settings
 
 from attachments.models import Attachment
 from comments.models import Comment
+from configurations.utils import MEGABYTE
 from import_export import services
 from import_export.models import (
     ImportationStatus,
@@ -236,9 +237,7 @@ async def test_do_import_project_fail_if_no_retry_attempt_left():
 
 
 @pytest.mark.django_db
-@override_settings(
-    **{"MAX_NUM_WORKFLOWS": 1, "MAX_UPLOAD_FILE_SIZE": 100 * 1024 * 1024}
-)
+@override_settings(**{"MAX_NUM_WORKFLOWS": 1, "MAX_UPLOAD_FILE_SIZE": 100 * MEGABYTE})
 async def test_do_import_project_complete(tqmanager: TestTasksQueueManager, caplog):
     workspace = await f.create_workspace()
     source_path = (

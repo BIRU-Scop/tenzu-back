@@ -17,7 +17,7 @@
 #
 # You can contact BIRU at ask@biru.sh
 import unicodedata
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import AfterValidator, StringConstraints
 
@@ -36,7 +36,15 @@ def _normalize_nfc(value: str) -> str:
 
 Label = Annotated[
     str,
-    StringConstraints(strip_whitespace=True, min_length=1, max_length=50),
+    StringConstraints(strip_whitespace=True, min_length=1),
     AfterValidator(_check_no_control_characters),
     AfterValidator(_normalize_nfc),
 ]
+
+ShortLabel = Annotated[Label, StringConstraints(max_length=50)]
+
+
+def convert_empty_str_to_none(v: Any) -> Any | None:
+    if v == "":
+        return None
+    return v
