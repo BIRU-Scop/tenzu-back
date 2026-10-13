@@ -704,6 +704,7 @@ async def test_sync_project_ids_to_taiga_import():
         description="",
         created_date=aware_utcnow(),
         is_kanban_activated=True,
+        logo=_TaigaFile(name="", data=""),
         roles=[
             _TaigaRole(
                 name="Owner",
@@ -766,6 +767,7 @@ async def test_sync_project_ids_to_taiga_import():
         [statuses[0].id, other_statuses[0].id],
         [statuses[1].id, other_statuses[1].id],
     ]
+    assert taiga_project.logo is None
 
 
 async def test_do_import_taiga_stories(caplog):
@@ -1376,13 +1378,14 @@ async def test_get_or_create_story_tags_from_taiga():
 async def test_build_story_attachment_from_taiga_ok():
     project_importation = f.build_project_importation()
     story = f.build_story()
+    taiga_file = _TaigaFile.model_construct(
+        data=b"some initial text data", name="path/test_file.png"
+    )
     warnings = []
     taiga_attachment = _TaigaAttachment.model_construct(
         owner=project_importation.created_by.email,
         name="test_file.png",
-        attached_file=_TaigaFile.model_construct(
-            data=b"some initial text data", name="path/test_file.png"
-        ),
+        attached_file=taiga_file,
     )
 
     with (
@@ -1395,6 +1398,7 @@ async def test_build_story_attachment_from_taiga_ok():
         assert story == attachment.content_object
         assert project_importation.created_by == attachment.created_by
 
+        taiga_attachment.attached_file = taiga_file
         taiga_attachment.owner = "1user@tenzu.test"
 
         attachment = await build_story_attachment_from_taiga(
@@ -1407,6 +1411,7 @@ async def test_build_story_attachment_from_taiga_ok():
 
     # ids
     assert taiga_attachment.tenzu_id is not None
+    assert taiga_attachment.attached_file is None
 
 
 @override_settings(**{"MAX_UPLOAD_FILE_SIZE": 0})
