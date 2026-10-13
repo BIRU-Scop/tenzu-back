@@ -226,6 +226,8 @@ async def sync_project_ids_to_taiga_import(
         ]
         status.tenzu_ids = tenzu_statuses_ids
 
+    taiga_project.logo = None  # free up memory of already imported file
+
 
 async def do_import_taiga_project(
     project_importation: ProjectImportation, will_retry: Callable[[Exception], bool]
@@ -574,23 +576,33 @@ async def do_import_taiga_stories(
                         pending_list.clear()
 
 
+# ---------------
+# DEFFERED ASSIGNATIONS
+# utility functions used to be encapsulated inside a transaction.on_commit
+# in order to defer the modification done to taiga_story since it will be written back to file and much match wath is inside DB
+
+
 def assign_tenzu_id(taiga_object: TenzuDbObject, tenzu_object: BaseDBModel):
-    """
-    utility function used to be encapsulated inside a transaction.on_commit
-    """
     taiga_object.tenzu_id = tenzu_object.id
 
 
 def assign_story_data(
     taiga_story: _TaigaUserStory, tenzu_object: BaseDBModel, story_tags: list[StoryTag]
 ):
-    """
-    utility function used to be encapsulated inside a transaction.on_commit
-    """
     taiga_story.tags = [
         _TaigaStoryTag(label=tag.label, tenzu_id=tag.id) for tag in story_tags
     ]
     assign_tenzu_id(taiga_story, tenzu_object)
+
+
+def assign_attachment_data(
+    taiga_attachment: _TaigaAttachment, tenzu_object: BaseDBModel
+):
+    taiga_attachment.attached_file = None  # free up memory of already imported file
+    assign_tenzu_id(taiga_attachment, tenzu_object)
+
+
+# ---------------
 
 
 async def do_import_taiga_single_story(
@@ -806,7 +818,7 @@ async def build_story_attachment_from_taiga(
         else None
     )
     file = SimpleUploadedFile(
-        name=taiga_attachment.name,
+        name=taiga_attachment.attached_file.name or taiga_attachment.name,
         content=taiga_attachment.attached_file.data,
         content_type=mimetypes.guess_file_type(taiga_attachment.attached_file.name)[0]
         or "application/octet-stream",
@@ -817,13 +829,15 @@ async def build_story_attachment_from_taiga(
 
     attachment = Attachment(
         storaged_object=StoragedObject(file=file),
-        name=file.name or "unknown",
+        name=taiga_attachment.name or file.name or "unknown",
         size=file.size,
         content_type=file.content_type,
         content_object=story,
         created_by=user,
     )
-    await transaction_on_commit_async(assign_tenzu_id)(taiga_attachment, attachment)
+    await transaction_on_commit_async(assign_attachment_data)(
+        taiga_attachment, attachment
+    )
     return attachment
 
 
