@@ -140,7 +140,7 @@ async def test_get_importation():
 
 
 async def test_update_project_importation():
-    importation = f.build_project_importation()
+    importation = f.build_project_importation(status=ImportationStatus.PENDING)
     with (
         patch(
             "import_export.services.import_export_repositories", autospec=True
@@ -150,9 +150,17 @@ async def test_update_project_importation():
         ) as fake_import_export_events,
         patch_db_transaction(),
     ):
-        await services.update_project_importation(importation, {})
+        fake_import_export_repositories.update_project_importation.return_value = (
+            importation
+        )
+        await services.update_project_importation(
+            importation, {"status": ImportationStatus.ACTION_NEEDED}
+        )
         fake_import_export_repositories.update_project_importation.assert_called()
-        fake_import_export_events.emit_event_when_project_importation_is_updated.assert_called()
+        fake_import_export_events.emit_event_when_project_importation_is_updated.assert_called_once_with(
+            previous_status=ImportationStatus.PENDING,
+            project_importation=importation,
+        )
 
 
 ##########################################################

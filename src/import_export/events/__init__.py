@@ -24,7 +24,7 @@ from import_export.events.content import (
     DeleteProjectImportationContent,
     UpdateProjectImportationContent,
 )
-from import_export.models import ProjectImportation
+from import_export.models import ImportationStatus, ProjectImportation
 from users.models import User
 
 CREATE_PROJECT_IMPORTATION = "projectimportations.create"
@@ -50,7 +50,7 @@ async def emit_event_when_project_importation_is_created(
 
 
 async def emit_event_when_project_importation_is_updated(
-    project_importation: ProjectImportation,
+    project_importation: ProjectImportation, previous_status: ImportationStatus
 ) -> None:
     """
     This event is emitted whenever there's a change in the project importation
@@ -60,6 +60,7 @@ async def emit_event_when_project_importation_is_updated(
         user=project_importation.created_by_id,
         type=UPDATE_PROJECT_IMPORTATION,
         content=UpdateProjectImportationContent(
+            previous_status=previous_status,
             project_importation=project_importation,
             workspace_id=project_importation.workspace_id,
         ),

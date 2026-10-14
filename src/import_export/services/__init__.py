@@ -129,6 +129,7 @@ async def get_project_importation(project_importation_id: UUID) -> ProjectImport
 async def update_project_importation(
     project_importation: ProjectImportation, values: dict[str, Any] = {}
 ) -> ProjectImportation:
+    previous_status = project_importation.status
     updated_project_importation = (
         await import_export_repositories.update_project_importation(
             project_importation=project_importation, values=values
@@ -138,6 +139,7 @@ async def update_project_importation(
     await transaction_on_commit_async(
         import_export_events.emit_event_when_project_importation_is_updated
     )(
+        previous_status=previous_status,
         project_importation=project_importation,
     )
     return updated_project_importation
