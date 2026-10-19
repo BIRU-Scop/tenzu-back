@@ -178,7 +178,7 @@ class CollaborationConsumer(YjsConsumer):
                     await self.send(
                         text_data=orjson.dumps(
                             {"type": "save_status", "status": "saved"}
-                        )
+                        ).decode()
                     )
                     return None
             except orjson.JSONDecodeError:
