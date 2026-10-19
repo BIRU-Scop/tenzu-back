@@ -17,9 +17,9 @@
 #
 # You can contact BIRU at ask@biru.sh
 
+import json
 from typing import Any
 
-import orjson
 from django.forms import Form, ModelForm, widgets  # noqa
 from django.forms.models import ModelChoiceField  # noqa
 
@@ -27,7 +27,7 @@ from django.forms.models import ModelChoiceField  # noqa
 class PrettyJSONWidget(widgets.Textarea):
     def format_value(self, value: Any) -> Any:
         try:
-            value = orjson.dumps(orjson.loads(value), indent=2, sort_keys=True)
+            value = json.dumps(json.loads(value), indent=2, sort_keys=True)
             # these lines will try to adjust size of TextArea to fit to content
             row_lengths = [len(r) for r in value.split("\n")]
             self.attrs["rows"] = min(max(len(row_lengths) + 2, 10), 30)
