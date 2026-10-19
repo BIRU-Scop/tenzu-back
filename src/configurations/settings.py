@@ -36,9 +36,11 @@ from rich.console import Console
 
 from commons.front import Urls
 from commons.i18n import TRANSLATION_DIRECTORY
+from tasksqueue.middleware import collect_garbage_after_job
 
 from .conf import settings
 from .conf.auth import LDAPActivation
+from .conf.emails import EmailBackends
 from .conf.events import PubSubBackendChoices
 from .utils import BASE_DIR, remove_ending_slash
 
@@ -76,7 +78,25 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS = [
     remove_ending_slash(str(settings.FRONTEND_URL)),
     *settings.EXTRA_CORS,
 ]
-CORS_ALLOW_HEADERS = (*default_headers, "correlation-id")
+
+TUS_FROM_BROWSER_HEADERS = (
+    "upload-offset",
+    "upload-length",
+    "upload-metadata",
+    "tus-resumable",
+)
+TUS_TO_BROWSER_HEADERS = (
+    "upload-offset",
+    "upload-length",
+    "tus-version",
+    "tus-resumable",
+    "tus-extension",
+    "tus-max-size",
+    "upload-expires",
+    "location",
+)
+CORS_ALLOW_HEADERS = (*default_headers, "correlation-id", *TUS_FROM_BROWSER_HEADERS)
+CORS_EXPOSE_HEADERS = (*TUS_TO_BROWSER_HEADERS,)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
@@ -104,6 +124,7 @@ INSTALLED_APPS = [
     "projects.projects",
     "stories.assignments",
     "stories.stories",
+    "stories.tags",
     "attachments",
     "comments",
     "feeds",
@@ -115,6 +136,7 @@ INSTALLED_APPS = [
     "import_export",
     # 3rd-party
     "easy_thumbnails",
+    "ninja",
     "martor",  # markdown editor widget for the admin (feeds)
     "ninja_jwt",
     "ninja_jwt.token_blacklist",
@@ -298,7 +320,45 @@ locals().update({f"AUTH_LDAP_{key}": value for key, value in settings.LDAP})
 
 # EMAIL
 
-locals().update(settings.EMAIL.model_dump())
+locals().update(
+    settings.EMAIL.model_dump(
+        include={
+            "EMAIL_USE_LOCALTIME",
+            "DEFAULT_FROM_EMAIL",
+            "EMAIL_RETRY_ATTEMPTS",
+            "EMAIL_RETRY_EXPONENTIAL_WAIT",
+        }
+    )
+)
+
+_EMAIL_BACKEND_OPTIONS = {
+    EmailBackends.SMTP: {
+        "host": settings.EMAIL.EMAIL_HOST,
+        "port": settings.EMAIL.EMAIL_PORT,
+        "username": settings.EMAIL.EMAIL_HOST_USER,
+        "password": settings.EMAIL.EMAIL_HOST_PASSWORD,
+        "use_tls": settings.EMAIL.EMAIL_USE_TLS,
+        "use_ssl": settings.EMAIL.EMAIL_USE_SSL,
+        "timeout": settings.EMAIL.EMAIL_TIMEOUT,
+        "ssl_keyfile": settings.EMAIL.EMAIL_SSL_KEYFILE,
+        "ssl_certfile": settings.EMAIL.EMAIL_SSL_CERTFILE,
+    },
+    EmailBackends.FILE: {
+        "file_path": str(settings.EMAIL.EMAIL_FILE_PATH),
+    },
+}
+MAILERS = {
+    "default": {
+        "BACKEND": settings.EMAIL.EMAIL_BACKEND,
+        "OPTIONS": _EMAIL_BACKEND_OPTIONS.get(settings.EMAIL.EMAIL_BACKEND, {}),
+    },
+}
+
+
+PROCRASTINATE_WORKER_DEFAULTS = {
+    "worker_middleware": [collect_garbage_after_job],
+}
+
 #############s##################################################################
 # 3-PARTY LIBS
 ###############################################################################
@@ -310,7 +370,7 @@ locals().update(
         include={
             field_name
             for field_name, _field_value in settings.STORAGE
-            if field_name.startswith("AWS_")
+            if field_name.startswith("AWS_") or field_name.startswith("FILE_UPLOAD_")
         }
     )
 )
@@ -323,6 +383,8 @@ STORAGES = {
         "BACKEND": f"{settings.STORAGE.STATIC_BACKEND_CLASS.value}",
     },
 }
+SUPPORTED_TUS_VERSION = "1.0.0"
+SUPPORTED_TUS_EXTENSIONS = "creation,creation-with-upload,expiration,termination"
 
 # easy_thumbnails
 
@@ -335,11 +397,13 @@ CHANNEL_LAYERS = {
 }
 EVENTS_DEBOUNCE_SAVE_DELAY = settings.EVENTS.DEBOUNCE_SAVE_DELAY
 
+REDIS_URL = None
 if settings.EVENTS.PUBSUB_BACKEND == PubSubBackendChoices.REDIS:
+    REDIS_URL = f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}"
     CHANNEL_LAYERS["default"]["CONFIG"] = {
         "hosts": [
             {
-                "address": f"redis://default:{settings.EVENTS.REDIS_PASSWORD}@{settings.EVENTS.REDIS_HOST}:{settings.EVENTS.REDIS_PORT}/{settings.EVENTS.REDIS_DATABASE}",
+                "address": REDIS_URL,
                 **settings.EVENTS.REDIS_OPTIONS,
             }
         ],

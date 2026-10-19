@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -91,7 +91,14 @@ class StoryFactory(Factory):
         if extracted is None:
             return
         if not create:
-            self.assignee_ids = [uuid.uuid1() for _ in range(extracted)]
+            self.assignee_ids = [uuid.uuid7() for _ in range(extracted)]
+
+    @factory.post_generation
+    def tag_ids(self, create, extracted, **kwargs):
+        if extracted is None:
+            return
+        if not create:
+            self.tag_ids = [uuid.uuid7() for _ in range(extracted)]
 
     class Meta:
         model = "stories.Story"

@@ -24,7 +24,7 @@ from ninja import Schema
 
 from attachments.serializers import AttachmentSerializer
 from base.serializers import BaseSchema, FileField
-from base.utils.uuid import encode_uuid_to_b64str
+from commons.utils.uuid import encode_uuid_to_b64str
 
 
 class StoryAttachmentSerializer(AttachmentSerializer):

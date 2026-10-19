@@ -24,13 +24,13 @@ from pydantic import (
     PlainValidator,
     StringConstraints,
     conint,
-    constr,
 )
 from typing_extensions import Annotated
 
-from base.utils.images import valid_image_content, valid_image_content_type
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
+from commons.utils.images import valid_image_content, valid_image_content_type
 from commons.validators import BaseValidatorSchema
+from commons.validators.fields.text import convert_empty_str_to_none
 
 
 def validate_logo(logo: UploadedFile) -> UploadedFile:
@@ -42,18 +42,12 @@ def validate_logo(logo: UploadedFile) -> UploadedFile:
     return logo
 
 
-def logo_can_be_empty_str(v: Any) -> Any | None:
-    if v == "":
-        return None
-    return v
-
-
 # Need to add the JsonSchema because of the PlainValidator
 # (https://docs.pydantic.dev/latest/concepts/json_schema/#withjsonschema-annotation)
 LogoField = Annotated[
     UploadedFile,
     BeforeValidator(
-        logo_can_be_empty_str, json_schema_input_type=UploadedFile | Literal[""]
+        convert_empty_str_to_none, json_schema_input_type=UploadedFile | Literal[""]
     ),
     PlainValidator(validate_logo, json_schema_input_type=UploadedFile),
 ]
@@ -63,7 +57,7 @@ class CreateProjectValidator(BaseValidatorSchema):
     name: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)
     ]  # type: ignore
-    description: constr(max_length=220) | None = None  # type: ignore
+    description: str | None = None  # type: ignore
     color: conint(gt=0, le=NUM_COLORS) | None = None  # type: ignore
 
 

@@ -16,10 +16,21 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
+from base64 import urlsafe_b64decode
 from datetime import datetime
+from uuid import UUID
 
+from asgiref.sync import sync_to_async
+from django.http import HttpRequest
+
+from commons.storage import exceptions as ex
 from commons.storage import repositories as storage_repositories
+from commons.storage.models import TusUpload
+from users.models import User
+
+##########################################################
+# storaged objects
+##########################################################
 
 
 def clean_deleted_storaged_objects(before: datetime) -> int:
@@ -32,3 +43,78 @@ def clean_deleted_storaged_objects(before: datetime) -> int:
             deleted += 1
 
     return deleted
+
+
+##########################################################
+# tus upload
+##########################################################
+
+
+async def create_tus_upload(
+    user: User,
+    file_name: str,
+    file_content_type: str,
+    request: HttpRequest,
+    content_size: int,
+    total_size: int,
+    completion_hook: str,
+    completion_hook_parameters: dict,
+    overwrite_base_path: str | None = None,
+) -> TusUpload:
+    request.content_type = file_content_type
+    return await storage_repositories.create_tus_upload(
+        user,
+        file_name,
+        request,
+        content_size,
+        total_size,
+        completion_hook,
+        completion_hook_parameters,
+        overwrite_base_path,
+    )
+
+
+async def process_new_tus_content(
+    tus_upload: TusUpload,
+    upload_offset: int,
+    request: HttpRequest,
+    content_size: int,
+) -> TusUpload:
+    if tus_upload.offset != upload_offset:
+        raise ex.MisalignedOffsets()
+    return await storage_repositories.process_new_tus_content(
+        tus_upload=tus_upload,
+        request=request,
+        content_size=content_size,
+    )
+
+
+def parse_tus_metadata(upload_metadata: str) -> dict:
+    if not upload_metadata:
+        return {}
+    return {
+        key: urlsafe_b64decode(value[0]).decode(encoding="utf-8") if value else None
+        for key, *value in (data.split(" ") for data in upload_metadata.split(","))
+    }
+
+
+async def get_tus_upload(tus_upload_id: UUID) -> TusUpload:
+    return await storage_repositories.get_tus_upload(tus_upload_id=tus_upload_id)
+
+
+def clean_expired_tus_uploads(before: datetime) -> int:
+    tus_uploads = storage_repositories.list_tus_uploads(
+        filters={"created_at__lt": before}
+    )
+    deleted = 0
+    for tus_upload in tus_uploads:
+        if storage_repositories.delete_tus_upload(tus_upload=tus_upload):
+            deleted += 1
+
+    return deleted
+
+
+async def delete_tus_upload(tus_upload: TusUpload) -> bool:
+    return await sync_to_async(storage_repositories.delete_tus_upload)(
+        tus_upload=tus_upload
+    )

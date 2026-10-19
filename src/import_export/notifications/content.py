@@ -38,3 +38,10 @@ class ProjectImportationWarningFileNotificationContent(BaseSchema):
     project_importation: ProjectImportationSerializer
     file_name: str
     file_size: int
+
+
+class ProjectImportationWarningStoryTagsNumberNotificationContent(BaseSchema):
+    project: ProjectLinkNestedSerializer
+    project_importation: ProjectImportationSerializer
+    story_tags_number: int
+    max_number: int

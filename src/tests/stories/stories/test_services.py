@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -40,7 +40,9 @@ from workflows.serializers.nested import WorkflowStatusNestedSerializer
 async def test_create_story_ok():
     user = f.build_user()
     status = f.build_workflow_status()
-    story = f.build_story(status=status, workflow=status.workflow, assignee_ids=1)
+    story = f.build_story(
+        status=status, workflow=status.workflow, assignee_ids=1, tag_ids=1
+    )
     neighbors = Neighbor(next=f.build_story(), prev=f.build_story())
 
     with (
@@ -142,7 +144,9 @@ async def test_list_paginated_stories():
             order_by=["order"],
         )
         fake_stories_repo.list_stories_qs.return_value.values.assert_called_once_with(
-            *fields, assignee_ids=repositories.ASSIGNEE_IDS_ANNOTATION
+            *fields,
+            assignee_ids=repositories.ASSIGNEE_IDS_ANNOTATION,
+            tag_ids=repositories.TAG_IDS_ANNOTATION,
         )
         fake_stories_repo.list_stories_qs.reset_mock()
         fake_stories_repo.list_stories_qs.return_value.values.reset_mock()
@@ -162,7 +166,9 @@ async def test_list_paginated_stories():
             order_by=["order"],
         )
         fake_stories_repo.list_stories_qs.return_value.values.assert_called_once_with(
-            *fields, assignee_ids=repositories.ASSIGNEE_IDS_ANNOTATION
+            *fields,
+            assignee_ids=repositories.ASSIGNEE_IDS_ANNOTATION,
+            tag_ids=repositories.TAG_IDS_ANNOTATION,
         )
 
 
@@ -179,6 +185,7 @@ async def test_get_story_detail_ok():
         workflow=story1.workflow,
         status=story1.status,
         assignee_ids=1,
+        tag_ids=1,
     )
     story3 = f.build_story(
         ref=3, project=story1.project, workflow=story1.workflow, status=story1.status
@@ -227,7 +234,7 @@ async def test_get_story_detail_ok():
 
 
 async def test_get_story_detail_no_neighbors():
-    story1 = f.build_story(ref=1, assignee_ids=1)
+    story1 = f.build_story(ref=1, assignee_ids=1, tag_ids=1)
     neighbors = Neighbor(prev=None, next=None)
 
     with patch(

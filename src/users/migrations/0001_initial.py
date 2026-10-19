@@ -28,7 +28,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import base.db.models.fields
-import commons.colors
+import commons.utils.colors
 import users.models
 
 
@@ -85,8 +85,8 @@ class Migration(migrations.Migration):
                     "color",
                     models.IntegerField(
                         blank=True,
-                        default=commons.colors.generate_random_color,
-                        validators=[django.core.validators.MaxValueValidator(8)],
+                        default=commons.utils.colors.generate_random_color,
+                        validators=[django.core.validators.MaxValueValidator(20)],
                         verbose_name="color",
                     ),
                 ),

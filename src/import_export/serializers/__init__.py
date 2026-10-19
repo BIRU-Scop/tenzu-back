@@ -30,18 +30,17 @@ from projects.projects.serializers.nested import ProjectNestedSerializer
 
 class ProjectImportationSerializer(ProjectImportationNestedSerializer):
     extra_data: ProjectImportationData
-    source_name: str | None
+    source_name: str
     project: ProjectNestedSerializer | None
 
     @staticmethod
     def resolve_source_name(
         obj: "ProjectImportation | ProjectImportationSerializer",
-    ) -> str | None:
-        source_name = getattr(obj, "source_name", None)
-        if source_name is not None:
-            # This happens when serializer is called on already serialized object
+    ) -> str:
+        if isinstance(obj, ProjectImportationSerializer):
+            source_name = getattr(obj, "source_name", "")
             return source_name
-        return Path(obj.source.name).name if obj.source.name else None
+        return Path(obj.source.name).name if obj.source.name else ""
 
 
 class InvitedProjectImportationSerializer(BaseSchema):

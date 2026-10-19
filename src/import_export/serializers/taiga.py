@@ -31,33 +31,20 @@ from pydantic import (
     AfterValidator,
     BaseModel,
     ConfigDict,
-    EmailStr,
-    GetPydanticSchema,
     NonNegativeInt,
     PlainSerializer,
     conlist,
-    field_validator,
 )
-from pydantic_core import core_schema
 
-from base.db.models import BaseDBModel
-from commons.validators import UniqueInListValidator
+from commons.validators import LowerEmailStr, UniqueInListValidator
+from commons.validators.fields.text import Label, convert_empty_str_to_none
 
-
-def db_model_to_id(v: Any) -> Any:
-    if isinstance(v, BaseDBModel):
-        return v.id
-    return v
+TenzuId = UUID
 
 
-TenzuId = (
-    UUID
-    | Annotated[
-        BaseDBModel,
-        GetPydanticSchema(lambda _s, h: h(core_schema.is_instance_schema(BaseDBModel))),
-        PlainSerializer(db_model_to_id),
-    ]
-)
+class TenzuDbObject(BaseModel):
+    tenzu_id: TenzuId | None = None
+
 
 _FileData = Annotated[
     str,
@@ -124,7 +111,7 @@ _TaigaAnonPermission = Literal[
 ]
 
 _TaigaHistoryUser = (
-    tuple[EmailStr | None, str] | conlist(Any, max_length=0) | None
+    tuple[LowerEmailStr | None, str] | conlist(Any, max_length=0) | None
 )  # tuple (email, name) usually, [] if field was empty and None if user was not found (deleted)
 
 
@@ -134,9 +121,7 @@ class _TaigaHistoryType(enum.IntEnum):
     delete = 3
 
 
-class _TaigaHistory(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaHistory(TenzuDbObject):
     user: _TaigaHistoryUser
     created_at: datetime
     type: Literal[_TaigaHistoryType.change, _TaigaHistoryType.create]
@@ -156,10 +141,8 @@ class _TaigaHistory(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class _TaigaAttachment(BaseModel):
-    tenzu_id: TenzuId | None = None
-
-    owner: EmailStr | None
+class _TaigaAttachment(TenzuDbObject):
+    owner: LowerEmailStr | None
     created_date: datetime
     modified_date: datetime
     name: str
@@ -241,18 +224,14 @@ class _TaigaIssueType(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
-class _TaigaSwimlaneUserStoryStatus(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaSwimlaneUserStoryStatus(TenzuDbObject):
     wip_limit: int | None
     status: str  # related name
 
     model_config = ConfigDict(extra="allow")
 
 
-class _TaigaSwimlane(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaSwimlane(TenzuDbObject):
     name: str
     order: int
     statuses: list[_TaigaSwimlaneUserStoryStatus] = None
@@ -265,9 +244,7 @@ _UniqueTaigaSwimlanes = Annotated[
 ]
 
 
-class _TaigaRole(BaseModel):
-    tenzu_id: TenzuId | None = None
-
+class _TaigaRole(TenzuDbObject):
     name: str
     slug: str
     order: int
@@ -296,13 +273,17 @@ class _TaigaCustomAttribute(BaseModel):
 
 
 class _TaigaMembership(BaseModel):
-    user: EmailStr | None = None
-    invited_by: EmailStr | None = None
+    user: LowerEmailStr | None = None
+    invited_by: LowerEmailStr | None = None
 
     role: str | None  # related name
 
     is_admin: bool
-    email: EmailStr | Literal[""] | None
+    email: (
+        LowerEmailStr
+        | Annotated[Literal[""], AfterValidator(convert_empty_str_to_none)]
+        | None
+    )
     created_at: datetime
     invitation_extra_text: str | None
     user_order: int
@@ -311,13 +292,15 @@ class _TaigaMembership(BaseModel):
 
 
 _UniqueTaigaMemberships = Annotated[
-    list[_TaigaMembership], AfterValidator(UniqueInListValidator("email"))
+    list[_TaigaMembership],
+    AfterValidator(UniqueInListValidator("user", ignore_none=True)),
+    AfterValidator(UniqueInListValidator("email", ignore_none=True)),
 ]
 
 
 class _TaigaMilestone(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
 
     name: str
     slug: str
@@ -333,9 +316,9 @@ class _TaigaMilestone(BaseModel):
 
 
 class _TaigaTask(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    assigned_to: EmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    assigned_to: LowerEmailStr | None = None
 
     status: str | None  # related name
     user_story: int | None = None  # related ref
@@ -356,7 +339,7 @@ class _TaigaTask(BaseModel):
     version: int
     is_blocked: bool
     blocked_note: str
-    tags: list[str] | None
+    tags: list[Label] | None
 
     due_date: datetime | None = None
     due_date_reason: str
@@ -377,9 +360,9 @@ class _TaigaEpicRelatedUserStory(BaseModel):
 
 
 class _TaigaEpic(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    assigned_to: EmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    assigned_to: LowerEmailStr | None = None
 
     ref: int
     status: str | None  # related name
@@ -395,7 +378,7 @@ class _TaigaEpic(BaseModel):
     version: int
     is_blocked: bool
     blocked_note: str
-    tags: list[str] | None
+    tags: list[Label] | None
 
     related_user_stories: list[_TaigaEpicRelatedUserStory]
 
@@ -411,13 +394,15 @@ class _TaigaRolePoints(BaseModel):
     points: str | None  # related slug
 
 
-class _TaigaUserStory(BaseModel):
-    tenzu_id: TenzuId | None = None
+class _TaigaStoryTag(TenzuDbObject):
+    label: Label
 
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    assigned_to: EmailStr | None = None
-    assigned_users: list[EmailStr | None] = (
+
+class _TaigaUserStory(TenzuDbObject):
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    assigned_to: LowerEmailStr | None = None
+    assigned_users: list[LowerEmailStr | None] = (
         None  # usually also contains assigned_to, but there is no guarantee of that
     )
     status: str | None  # related name
@@ -446,7 +431,7 @@ class _TaigaUserStory(BaseModel):
     version: int
     is_blocked: bool
     blocked_note: str
-    tags: list[str] | None
+    tags: list[Label] | list[_TaigaStoryTag] | None
 
     due_date: datetime | None = None
     due_date_reason: str
@@ -459,10 +444,10 @@ class _TaigaUserStory(BaseModel):
 
 
 class _TaigaIssue(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    assigned_to: EmailStr | None = None
-    votes: list[EmailStr | None]
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    assigned_to: LowerEmailStr | None = None
+    votes: list[LowerEmailStr | None]
 
     status: str | None  # related name
     priority: str | None  # related name
@@ -482,7 +467,7 @@ class _TaigaIssue(BaseModel):
     version: int
     is_blocked: bool
     blocked_note: str
-    tags: list[str] | None
+    tags: list[Label] | None
 
     due_date: datetime | None = None
     due_date_reason: str
@@ -495,9 +480,9 @@ class _TaigaIssue(BaseModel):
 
 
 class WikiPageExport(BaseModel):
-    watchers: list[EmailStr | None] = None
-    owner: EmailStr | None = None
-    last_modifier: EmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    last_modifier: LowerEmailStr | None = None
 
     slug: str
     created_date: datetime
@@ -529,8 +514,8 @@ class _TaigaTimeline(BaseModel):
 
 
 class FullTaigaProjectImport(BaseModel):
-    owner: EmailStr | None = None
-    watchers: list[EmailStr | None] = None
+    owner: LowerEmailStr | None = None
+    watchers: list[LowerEmailStr | None] = None
 
     name: str
     slug: str
@@ -570,8 +555,8 @@ class FullTaigaProjectImport(BaseModel):
     total_activity_last_month: NonNegativeInt
     total_activity_last_year: NonNegativeInt
 
-    tags_colors: list[tuple[str | None, str | None]] = None
-    tags: list[str] | None
+    tags_colors: list[tuple[Label | None, str | None]] | None = None
+    tags: list[Label] | None
 
     creation_template: str | None = None  # related slug
     default_points: str | None = None  # related name

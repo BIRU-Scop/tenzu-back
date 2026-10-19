@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -17,9 +17,13 @@
 #
 # You can contact BIRU at ask@biru.sh
 from enum import StrEnum
+from pathlib import Path
 
-from pydantic import BaseModel, model_validator
+from django.conf import global_settings as default_django_settings
+from pydantic import BaseModel, PositiveInt, model_validator
 from typing_extensions import Self
+
+from configurations.utils import GIGABYTE, MEGABYTE
 
 
 class StorageBackends(StrEnum):
@@ -44,6 +48,16 @@ class StorageSettings(BaseModel):
     AWS_STORAGE_BUCKET_NAME: str | None = None
     AWS_S3_ENDPOINT_URL: str | None = None
     AWS_S3_FILE_OVERWRITE: bool = False
+    AWS_S3_MAX_MEMORY_SIZE: PositiveInt = 10 * MEGABYTE
+
+    FILE_UPLOAD_MAX_MEMORY_SIZE: PositiveInt = 64 * MEGABYTE
+    FILE_UPLOAD_DIRECTORY_PERMISSIONS: PositiveInt | None = (
+        default_django_settings.FILE_UPLOAD_DIRECTORY_PERMISSIONS
+    )
+    FILE_UPLOAD_PERMISSIONS: PositiveInt | None = (
+        default_django_settings.FILE_UPLOAD_PERMISSIONS
+    )
+    FILE_UPLOAD_TEMP_DIR: str | None = default_django_settings.FILE_UPLOAD_TEMP_DIR
 
     CLEAN_DELETED_STORAGE_OBJECTS_CRON: str = (
         "0 4 * * *"  # default: once a day, at 4:00 AM
@@ -53,6 +67,15 @@ class StorageSettings(BaseModel):
     STATIC_BACKEND_CLASS: StaticStorageBackends = (
         StaticStorageBackends.CompressedManifestWhitenoiseStorage
     )
+
+    IMPORTATION_MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 20 * GIGABYTE
+    IMPORTATION_RETRY_ATTEMPTS: PositiveInt = 5
+    IMPORTATION_RETRY_EXPONENTIAL_WAIT: PositiveInt = 2
+
+    TUS_UPLOAD_EXPIRATION: PositiveInt | None = 48  # 48h
+    TUS_UPLOAD_LOCK_TIMEOUT: PositiveInt = 1
+    TUS_UPLOAD_LOCK_TTL: PositiveInt = 60
+    CLEAN_EXPIRED_TUS_UPLOAD_CRON: str = "0 3 * * *"  # default: once a day, at 3:00 AM
 
     @model_validator(mode="after")
     def validate_storage_backend(self) -> Self:

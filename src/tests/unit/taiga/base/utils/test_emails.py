@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,7 +19,7 @@
 
 import pytest
 
-from base.utils import emails
+from commons.utils import emails
 
 
 @pytest.mark.parametrize(

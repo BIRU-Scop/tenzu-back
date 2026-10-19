@@ -16,31 +16,25 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-from typing import Any
+from typing import Literal
 
-from django.core.files.uploadedfile import UploadedFile as DjangoUploadedFile
 from ninja import UploadedFile
-from pydantic import field_validator
+from pydantic import AfterValidator, WithJsonSchema, field_validator
+from typing_extensions import Annotated
 
+from commons.storage.api.validators import TusMetadata
 from commons.validators import BaseValidatorSchema
 from import_export.models import ProjectImportationType
 
 
 class ImportationFileField(UploadedFile):
-    @classmethod
-    def _validate(cls, v: Any, _: Any) -> Any:
-        importation_file: DjangoUploadedFile = super()._validate(v, _)
-        if importation_file:
-            supported_content_type = {"application/json"}
-            if importation_file.content_type not in supported_content_type:
-                raise ValueError(
-                    f"Invalid importation content type, expected one of {', '.join(supported_content_type)}"
-                )
-        return importation_file
+    pass
 
 
-class ImportProjectValidator(BaseValidatorSchema):
+class _ImportProjectValidator(BaseValidatorSchema):
     origin_type: ProjectImportationType
+    filename: str
+    filetype: Literal["application/json"]
 
     @field_validator("origin_type", mode="after")
     @classmethod
@@ -48,3 +42,19 @@ class ImportProjectValidator(BaseValidatorSchema):
         if value not in (ProjectImportationType.TAIGA,):
             raise ValueError(f"Importation of type {value} is not supported yet")
         return value
+
+
+def _parse_import_validator(v: dict) -> _ImportProjectValidator:
+    return _ImportProjectValidator(**v)
+
+
+ImportProjectValidator = Annotated[
+    TusMetadata,
+    AfterValidator(_parse_import_validator),
+    WithJsonSchema(
+        {
+            "type": "string",
+            "example": "originType VEE=,filename Zm9vLmpzb24=,filetype YXBwbGljYXRpb24vanNvbg==",
+        }
+    ),
+]

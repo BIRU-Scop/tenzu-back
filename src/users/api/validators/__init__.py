@@ -18,11 +18,12 @@
 # You can contact BIRU at ask@biru.sh
 
 from django.conf import settings
-from pydantic import EmailStr, Field, StrictBool, StringConstraints, field_validator
-from typing_extensions import Annotated, Optional
+from pydantic import Field, StrictBool, StringConstraints, field_validator
+from typing_extensions import Annotated
 
-from commons.colors import NUM_COLORS
+from commons.utils.colors import NUM_COLORS
 from commons.validators import BaseValidatorSchema, LanguageCode, check_not_empty
+from commons.validators.fields.emails import LowerEmailStr
 from users.api.validators.mixins import PasswordMixin
 
 #####################################################################
@@ -43,7 +44,7 @@ def check_email_in_domain(v: str) -> str:
 
 
 class SendVerifyUserValidator(BaseValidatorSchema):
-    email: EmailStr
+    email: LowerEmailStr
     project_invitation_token: str | None = None
     workspace_invitation_token: str | None = None
     accept_project_invitation: StrictBool = True
@@ -101,7 +102,7 @@ class VerifyTokenValidator(BaseValidatorSchema):
 
 
 class RequestResetPasswordValidator(BaseValidatorSchema):
-    email: EmailStr
+    email: LowerEmailStr
 
 
 class ResetPasswordValidator(PasswordMixin, BaseValidatorSchema):

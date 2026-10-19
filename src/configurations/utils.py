@@ -22,6 +22,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from django.contrib.admin import AdminSite
 
+
+KILOBYTE = 1024
+MEGABYTE = KILOBYTE * KILOBYTE
+GIGABYTE = MEGABYTE * KILOBYTE
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 

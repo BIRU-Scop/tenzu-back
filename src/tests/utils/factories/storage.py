@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -19,6 +19,8 @@
 
 from asgiref.sync import sync_to_async
 
+from configurations.utils import KILOBYTE
+
 from .base import Factory, factory
 
 
@@ -36,3 +38,26 @@ def create_storaged_object(**kwargs):
 
 def build_storaged_object(**kwargs):
     return StoragedObjectFactory.build(**kwargs)
+
+
+class TusUploadFactory(Factory):
+    created_by = factory.SubFactory("tests.utils.factories.UserFactory")
+    file = factory.django.ImageField(format="PNG")
+    offset = 0
+    total_size = 1 * KILOBYTE
+
+    completion_hook = ""
+    completion_hook_parameters = {}
+    pending_upload_data = {}
+
+    class Meta:
+        model = "storage.TusUpload"
+
+
+@sync_to_async
+def create_tus_upload(**kwargs):
+    return TusUploadFactory.create(**kwargs)
+
+
+def build_tus_upload(**kwargs):
+    return TusUploadFactory.build(**kwargs)

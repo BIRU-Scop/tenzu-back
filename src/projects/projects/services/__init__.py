@@ -26,14 +26,14 @@ from easy_thumbnails.files import ThumbnailFile
 from ninja import UploadedFile
 from pydantic import ValidationError
 
-from base.utils.images import ImageSizeFormat, get_thumbnail
-from commons.colors import generate_random_color
-from commons.utils import (
+from commons.utils.async_func import (
     async_cache,
-    get_absolute_url,
     transaction_atomic_async,
     transaction_on_commit_async,
 )
+from commons.utils.colors import generate_random_color
+from commons.utils.images import ImageSizeFormat, get_thumbnail
+from commons.utils.url import get_absolute_url
 from import_export.models import ProjectImportation
 from permissions.choices import ProjectPermissions
 from projects.memberships import repositories as memberships_repositories
@@ -113,7 +113,7 @@ async def _get_default_template() -> projects_repositories.ProjectTemplateModel:
     return template
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def _create_project(
     template: projects_repositories.ProjectTemplateModel,
     workspace: Workspace,
@@ -303,14 +303,14 @@ async def _update_project(project: Project, values: dict[str, Any] = {}) -> Proj
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def delete_project(project: Project, deleted_by: User) -> bool:
     # Mark the file to delete
     file_to_delete = None
     if project.logo:
         file_to_delete = project.logo.name
 
-    deleted = await projects_repositories.delete_projects(project_id=project.id)
+    deleted = await projects_repositories.delete_project(project_id=project.id)
 
     if deleted > 0:
         # Delete old file if existed

@@ -15,13 +15,20 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
+import logging
 
+from commons.utils.async_func import transaction_atomic_async
+from commons.utils.colors import generate_random_color
 from import_export.models import ImportationStatus, ProjectImportation
 from import_export.serializers import FullTaigaProjectImport
+from import_export.serializers.taiga import _TaigaStoryTag
 from import_export.services.taiga import (
     do_import_taiga_users,
     get_template_from_taiga_project,
 )
+from stories.tags.models import StoryTag, StoryTagAssignment
+
+logger = logging.getLogger(__name__)
 
 
 async def fill_pending_invites_for_importations_in_batches(
@@ -42,8 +49,8 @@ async def fill_pending_invites_for_importations_in_batches(
     pending_updates: list[ProjectImportation] = []
 
     async for project_importation in importations_to_process:
-        if processed_count % 100 == 0:
-            print(f"Progress: {processed_count}/{total}")
+        print(f"Progress: {processed_count}/{total}")
+        print(f"File: {project_importation.source.name}")
 
         with project_importation.source.open() as source_file:
             taiga_project = FullTaigaProjectImport.model_validate_json(
@@ -84,4 +91,109 @@ async def fill_pending_invites_for_importations_in_batches(
             ["status", "pending_invites"],
             batch_size=BULK_SIZE,
         )
+    print(f"Progress: {processed_count}/{total}")
+
+
+async def fill_story_tags_for_importations_in_batches(
+    ProjectImportationClass: type[ProjectImportation],
+    StoryTagClass: type[StoryTag],
+    StoryTagAssignmentClass: type[StoryTagAssignment],
+):
+    BULK_SIZE = 250
+
+    importations_to_process = (
+        ProjectImportationClass.objects.exclude(status=ImportationStatus.FAILURE)
+        .filter(project__isnull=False)
+        .exclude(project__story_tags__isnull=False)
+        .select_related("created_by")
+        .prefetch_related("project__roles")
+    )
+    total = await importations_to_process.acount()
+    print(f"\nStarting batch migration of {total} project importations...")
+
+    processed_count = 0
+
+    async for project_importation in importations_to_process:
+        tags_to_create: list[StoryTagClass] = []
+        tag_assignments_to_create: list[StoryTagAssignmentClass] = []
+
+        print(f"Progress: {processed_count}/{total}")
+        print(f"File: {project_importation.source.name}")
+
+        with project_importation.source.open() as source_file:
+            taiga_project = FullTaigaProjectImport.model_validate_json(
+                source_file.read()
+            )
+        project_story_tags: dict[str, StoryTag] = {}
+
+        async with transaction_atomic_async():
+            for taiga_story in taiga_project.user_stories:
+                if taiga_story.tags:
+                    if isinstance(taiga_story.tags[0], _TaigaStoryTag):
+                        taiga_story.tags = [tag.label for tag in taiga_story.tags]
+                    tags_to_create.extend(
+                        [
+                            StoryTagClass(
+                                label=tag,
+                                color=generate_random_color(),
+                                project_id=project_importation.project_id,
+                            )
+                            for tag in taiga_story.tags
+                            if project_story_tags.get(tag, None) is None
+                        ]
+                    )
+                    project_story_tags.update(
+                        {tag.label: tag for tag in tags_to_create}
+                    )
+                    if taiga_story.tenzu_id is not None:
+                        assignments = [
+                            StoryTagAssignmentClass(
+                                tag=project_story_tags[tag],
+                                story_id=taiga_story.tenzu_id,
+                            )
+                            for tag in taiga_story.tags
+                        ]
+                        tag_assignments_to_create.extend(assignments)
+                        taiga_story.tags = [
+                            _TaigaStoryTag(
+                                label=assignment.tag.label, tenzu_id=assignment.tag_id
+                            )
+                            for assignment in assignments
+                        ]
+                    else:
+                        logger.error(
+                            f"Importation {project_importation.source.name} contains stories without associated tenzu_ids. Newly handled data (tags) can't be imported for it"
+                        )
+
+                if (
+                    len(tags_to_create) > BULK_SIZE
+                    or len(tag_assignments_to_create) > BULK_SIZE
+                ):
+                    await StoryTagClass.objects.abulk_create(tags_to_create)
+                    await StoryTagAssignmentClass.objects.abulk_create(
+                        tag_assignments_to_create
+                    )
+                    tags_to_create.clear()
+                    tag_assignments_to_create.clear()
+
+            # Flush remaining updates
+            if tags_to_create:
+                await StoryTagClass.objects.abulk_create(tags_to_create)
+            if tag_assignments_to_create:
+                await StoryTagAssignmentClass.objects.abulk_create(
+                    tag_assignments_to_create
+                )
+            del project_importation.source.file
+            with project_importation.source.open(mode="wb") as source_file:
+                source_file.write(
+                    taiga_project.__pydantic_serializer__.to_json(
+                        taiga_project,
+                        exclude_unset=True,
+                        round_trip=True,
+                        warnings="error",
+                    )
+                )
+        del taiga_project
+        processed_count += 1
+
     print(f"Progress: {processed_count}/{total}")

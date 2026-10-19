@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -22,7 +22,10 @@ from uuid import UUID
 
 from django.conf import settings
 
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from emails.emails import Emails
 from emails.tasks import send_email
 from memberships import services as memberships_services
@@ -215,7 +218,7 @@ async def update_workspace_invitation(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def accept_workspace_invitation(
     invitation: WorkspaceInvitation,
 ) -> WorkspaceInvitation:

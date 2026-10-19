@@ -29,8 +29,8 @@ from pycrdt import Doc, TransactionEvent, YMessageType, YSyncMessageType
 from pycrdt.websocket.django_channels_consumer import YjsConsumer
 from pydantic import ValidationError
 
-from base.utils.uuid import decode_b64str_to_uuid
 from commons.exceptions.api import ForbiddenError
+from commons.utils.uuid import decode_b64str_to_uuid
 from events.actions import Action, ActionResponse, SystemResponse, channel_login
 from ninja_jwt.exceptions import AuthenticationFailed, InvalidToken
 from permissions import check_permissions
@@ -178,7 +178,7 @@ class CollaborationConsumer(YjsConsumer):
                     await self.send(
                         text_data=orjson.dumps(
                             {"type": "save_status", "status": "saved"}
-                        )
+                        ).decode()
                     )
                     return None
             except orjson.JSONDecodeError:
@@ -275,7 +275,7 @@ class CollaborationConsumer(YjsConsumer):
             await self._save_to_db()
             self._save_task = None
         except asyncio.CancelledError:
-            # Task was cancelled (e.g., new update came in), which is expected behavior
+            # Task was cancelled (e.g., new update came in), which is expected behaviour
             pass
 
     async def force_save(self):

@@ -22,7 +22,10 @@ from uuid import UUID
 
 from django.conf import settings
 
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from emails.emails import Emails
 from emails.tasks import send_email
 from import_export.tasks import sync_importation_pending_objects
@@ -215,7 +218,7 @@ async def update_project_invitation(
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def accept_project_invitation(invitation: ProjectInvitation) -> ProjectInvitation:
     workspace_membership = await _sync_related_workspace_membership(invitation)
     invitation = await memberships_services.accept_invitation(

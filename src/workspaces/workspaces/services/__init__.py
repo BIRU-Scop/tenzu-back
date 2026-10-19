@@ -20,7 +20,10 @@
 from typing import Any
 from uuid import UUID
 
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from permissions.choices import WorkspacePermissions
 from projects.projects import repositories as projects_repositories
 from users.models import User
@@ -60,7 +63,7 @@ async def create_workspace(
     return workspace_detail
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def _create_workspace(
     name: str, color: int, created_by: User
 ) -> tuple[Workspace, WorkspaceRole]:

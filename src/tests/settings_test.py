@@ -16,11 +16,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # You can contact BIRU at ask@biru.sh
-
-
 from configurations.settings import *  # noqa
-from configurations.settings import ACCOUNT
-from configurations.settings import INSTALLED_APPS
+from configurations.settings import ACCOUNT, INSTALLED_APPS
+from configurations.utils import KILOBYTE
 
 DEBUG = True
 
@@ -58,9 +56,10 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+AWS_S3_ENDPOINT_URL = "http://s3.test"
 
 REQUIRED_TERMS = True
-MAX_UPLOAD_FILE_SIZE = 1 * 1024  # 1 KB
+MAX_UPLOAD_FILE_SIZE = 1 * KILOBYTE
 
 PROCRASTINATE_PERIODIC_DEFAULTS = {
     "max_delay": -1

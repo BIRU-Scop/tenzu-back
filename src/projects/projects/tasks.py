@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -28,7 +28,7 @@ from projects.projects.models import Project
 
 
 @app.task
-async def delete_old_logo(file_name: str) -> None:
+def delete_old_logo(file_name: str) -> None:
     # we need to delete parent folder to also delete any created thumbnails
     path = str(Path(file_name).parent)
     storage = Project._meta.get_field("logo").storage

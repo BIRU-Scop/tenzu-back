@@ -22,8 +22,8 @@ from uuid import UUID
 
 from django.conf import settings
 
-from base.utils import emails
-from commons.utils import transaction_atomic_async
+from commons.utils import emails
+from commons.utils.async_func import transaction_atomic_async
 from import_export import services as import_export_services
 from import_export.models import ProjectImportation
 from memberships import repositories as memberships_repositories
@@ -93,7 +93,7 @@ async def is_membership_the_only_owner(membership: TM) -> bool:
 ##########################################################
 
 
-@transaction_atomic_async
+@transaction_atomic_async()
 async def create_invitations(
     reference_object: Project | Workspace,
     invitations: list[dict[str, str | UUID]],

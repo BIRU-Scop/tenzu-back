@@ -20,10 +20,16 @@ from typing import Any
 from uuid import UUID
 
 from django.core.files import File
+from django.db import transaction
+from procrastinate.contrib.django import app
+from procrastinate.contrib.django.models import ProcrastinateJob
 
 from attachments.models import Attachment
 from comments.models import Comment
-from commons.utils import transaction_atomic_async, transaction_on_commit_async
+from commons.utils.async_func import (
+    transaction_atomic_async,
+    transaction_on_commit_async,
+)
 from import_export.models import (
     ImportationStatus,
     ProjectImportation,
@@ -42,16 +48,16 @@ from workspaces.workspaces.models import Workspace
 
 
 async def create_project_importation(
-    user: User,
-    workspace: Workspace,
+    user_id: UUID,
+    workspace_id: UUID,
     origin_type: ProjectImportationType,
     source_file: File,
 ) -> ProjectImportation:
     importation = ProjectImportation(
-        created_by=user,
+        created_by_id=user_id,
         origin_type=origin_type,
         source=source_file,
-        workspace=workspace,
+        workspace_id=workspace_id,
     )
 
     await importation.asave()
@@ -113,14 +119,30 @@ async def list_workspace_project_importations_for_user(
 ########################################################
 
 
-@transaction_atomic_async
-async def delete_project_importation(project_importation: ProjectImportation) -> int:
+@transaction_atomic_async()
+async def delete_project_importation(project_importation: ProjectImportation) -> bool:
     # don't call project_importation.adelete directly since it will set id to None and we might need it for events
     count, _ = await ProjectImportation.objects.filter(
         id=project_importation.id
     ).adelete()
-    await transaction_on_commit_async(project_importation.source.delete)(save=False)
-    return count
+    return count > 0
+
+
+@transaction_atomic_async()
+async def cancel_project_importation(project_importation: ProjectImportation) -> bool:
+    from import_export.tasks import import_taiga_project
+
+    job_ids = ProcrastinateJob.objects.filter(
+        task_name=f"{import_taiga_project.name}",
+        args__project_importation_id=project_importation.b64id,
+    ).values_list("id", flat=True)
+    cancelled = False
+    async for job_id in job_ids:
+        cancelled = (
+            await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+            or cancelled
+        )
+    return cancelled
 
 
 ##########################################################
@@ -128,8 +150,8 @@ async def delete_project_importation(project_importation: ProjectImportation) ->
 ##########################################################
 
 
-@transaction_atomic_async
-async def sync_pending_objects(
+@transaction.atomic
+def sync_pending_objects(
     user_id: UUID, pending_invites: ProjectImportationPendingInvitation
 ):
     if pending_invites["assigned_stories_ids"]:
@@ -137,26 +159,26 @@ async def sync_pending_objects(
         existing_stories_ids = Story.objects.filter(
             id__in=pending_invites["assigned_stories_ids"]
         ).values_list("id", flat=True)
-        await StoryAssignment.objects.abulk_create(
+        StoryAssignment.objects.bulk_create(
             [
                 StoryAssignment(story_id=story_id, user_id=user_id)
-                async for story_id in existing_stories_ids
+                for story_id in existing_stories_ids
             ],
             ignore_conflicts=True,
         )
     if pending_invites["created_stories_ids"]:
-        await Story.objects.filter(
-            id__in=pending_invites["created_stories_ids"]
-        ).aupdate(created_by_id=user_id)
+        Story.objects.filter(id__in=pending_invites["created_stories_ids"]).update(
+            created_by_id=user_id
+        )
     if pending_invites["created_attachments_ids"]:
-        await Attachment.objects.filter(
+        Attachment.objects.filter(
             id__in=pending_invites["created_attachments_ids"]
-        ).aupdate(created_by_id=user_id)
+        ).update(created_by_id=user_id)
     if pending_invites["created_comments_ids"]:
-        await Comment.objects.filter(
-            id__in=pending_invites["created_comments_ids"]
-        ).aupdate(created_by_id=user_id)
+        Comment.objects.filter(id__in=pending_invites["created_comments_ids"]).update(
+            created_by_id=user_id
+        )
     if pending_invites["deleted_comments_ids"]:
-        await Comment.objects.filter(
-            id__in=pending_invites["deleted_comments_ids"]
-        ).aupdate(deleted_by_id=user_id)
+        Comment.objects.filter(id__in=pending_invites["deleted_comments_ids"]).update(
+            deleted_by_id=user_id
+        )

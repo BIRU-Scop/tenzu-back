@@ -18,6 +18,7 @@
 # You can contact BIRU at ask@biru.sh
 
 from base.serializers import UUIDB64, BaseSchema
+from import_export.models import ImportationStatus
 from import_export.serializers import ProjectImportationSerializer
 
 
@@ -27,6 +28,7 @@ class CreateProjectImportationContent(BaseSchema):
 
 
 class UpdateProjectImportationContent(BaseSchema):
+    previous_status: ImportationStatus
     project_importation: ProjectImportationSerializer
     workspace_id: UUIDB64
 

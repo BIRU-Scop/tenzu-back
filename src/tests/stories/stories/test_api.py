@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024-2025 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -189,6 +189,10 @@ async def test_list_workflow_stories_200_ok(client, project_template):
     await f.create_story(project=project, workflow=workflow)
 
     assignments = [await f.create_story_assignment(story=story) for _ in range(3)]
+    tag_bug = await f.create_story_tag(project=project, label="Bug")
+    tag_doc = await f.create_story_tag(project=project, label="Doc")
+    await f.create_story_tag_assignment(tag=tag_bug, story=story)
+    await f.create_story_tag_assignment(tag=tag_doc, story=story)
 
     client.login(project.created_by)
     response = await client.get(f"/workflows/{workflow.b64id}/stories")
@@ -198,6 +202,7 @@ async def test_list_workflow_stories_200_ok(client, project_template):
     assert res[0]["assigneeIds"] == [
         assignment.user.b64id for assignment in reversed(assignments)
     ]
+    assert res[0]["tagIds"] == [tag_doc.b64id, tag_bug.b64id]
     assert res[1]["assigneeIds"] == []
 
     pj_member = await f.create_user()
@@ -291,7 +296,10 @@ async def test_get_story_200_ok(client, project_template):
     )
 
     assignments = [await f.create_story_assignment(story=story) for _ in range(2)]
-
+    tag_bug = await f.create_story_tag(project=project, label="Bug")
+    tag_doc = await f.create_story_tag(project=project, label="Doc")
+    await f.create_story_tag_assignment(tag=tag_bug, story=story)
+    await f.create_story_tag_assignment(tag=tag_doc, story=story)
     client.login(project.created_by)
     response = await client.get(f"/projects/{project.b64id}/stories/{story.ref}")
     assert response.status_code == 200, response.data["data"]
@@ -300,6 +308,7 @@ async def test_get_story_200_ok(client, project_template):
     assert res["assigneeIds"] == [
         assignment.user.b64id for assignment in reversed(assignments)
     ]
+    assert res["tagIds"] == [tag_doc.b64id, tag_bug.b64id]
 
     pj_member = await f.create_user()
     pj_role = await f.create_project_role(

@@ -225,6 +225,8 @@ class FeedItemAdmin(admin.ModelAdmin):
         )
 
     def save_model(self, request, obj, form, change):
-        if not change and obj.created_by_id is None:
+        if change:
+            obj.modified_at = aware_utcnow()
+        elif obj.created_by_id is None:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)

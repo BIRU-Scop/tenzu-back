@@ -23,7 +23,7 @@ import django.core.validators
 import django.db.models.deletion
 from django.db import migrations, models
 
-import base.utils.datetime
+import commons.utils.datetime
 
 
 class Migration(migrations.Migration):
@@ -53,7 +53,8 @@ class Migration(migrations.Migration):
                 (
                     "order",
                     models.BigIntegerField(
-                        default=base.utils.datetime.timestamp_mics, verbose_name="order"
+                        default=commons.utils.datetime.timestamp_mics,
+                        verbose_name="order",
                     ),
                 ),
                 (
@@ -92,14 +93,15 @@ class Migration(migrations.Migration):
                     "color",
                     models.IntegerField(
                         default=1,
-                        validators=[django.core.validators.MaxValueValidator(8)],
+                        validators=[django.core.validators.MaxValueValidator(20)],
                         verbose_name="color",
                     ),
                 ),
                 (
                     "order",
                     models.BigIntegerField(
-                        default=base.utils.datetime.timestamp_mics, verbose_name="order"
+                        default=commons.utils.datetime.timestamp_mics,
+                        verbose_name="order",
                     ),
                 ),
                 (
