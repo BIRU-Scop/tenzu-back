@@ -25,7 +25,7 @@
     <option name="RUN_TOOL" value="" />
     <option name="launchJavascriptDebuger" value="false" />
     <option name="host" value="" />
-    <option name="additionalOptions" value="_dev_assets/release.md --title &quot;v3.1.0&quot; --action_title=&quot;Read the article&quot; --action_url=&quot;https://tenzu.net/blog/logbook-12-users-taiga-news-feed&quot;" />
+    <option name="additionalOptions" value="/tenzu/_dev_assets/release.md --title &quot;v3.2.0&quot; --action_title=&quot;Read the article&quot; --action_url=&quot;https://tenzu.net/blog/logbook-13-tags&quot;" />
     <option name="browserUrl" value="" />
     <option name="runTestServer" value="false" />
     <option name="runNoReload" value="false" />
