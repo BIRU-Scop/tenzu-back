@@ -53,6 +53,7 @@ tasks:
       - task: manage
         vars:
           CLI_ARGS: "migrate --no-input"
+      - docker compose restart tenzu-worker
 
   # MANAGEMENT COMMANDS
   shell:
@@ -81,7 +82,7 @@ tasks:
     cmds:
       - task: collectstatic
       - task: manage
-        vars: 
+        vars:
           CLI_ARGS: "loaddata initial_user"
       # can pass --no-demo to import less data
       # can pass --no-test as well for no test data
@@ -92,11 +93,21 @@ tasks:
     cmds:
       - task: build
       - task: up
-      - task: reset-db
-      - task: init-data
+      - task: reload-all-data
       - task: manage
         vars:
           CLI_ARGS: "compilemessages"
+  reload-all-data:
+    desc: "rebuild the db and copy its tables to the e2e_schema schema for the front E2E suite; rerun after a migration or a sample data change"
+    dotenv:
+      - "../../tenzu/dev.env"
+    cmds:
+      - task: reset-db
+      - task: init-data
+        vars:
+          CLI_ARGS: ""
+      - docker compose exec -T tenzu-db psql -U $TENZU_DB__USER -d $TENZU_DB__NAME < create-e2e-schema.sql
+
 
   # DEPENDENCIES
   compile-dep:

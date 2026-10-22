@@ -1,11 +1,11 @@
 x-dev-image: &dev-image
-    image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
-    build:
-      context: ../../../../
-      dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
-      target: dev-image
-      args:
-        - EXTRA_PACKAGES=${EXTRA_PACKAGES:-}
+  image: gitlab.biru.sh:4567/biru/dev/tenzu/tenzu-back/${MODULE_NAME}:develop
+  build:
+    context: ../../../../
+    dockerfile: buildrun/docker/${MODULE_NAME}/Dockerfile
+    target: dev-image
+    args:
+      - EXTRA_PACKAGES=${EXTRA_PACKAGES:-}
 
 services:
   tenzu-back:
@@ -31,9 +31,9 @@ services:
       tenzu-minio:
         condition: service_started
 
-    command: ["python", "./manage.py", "runserver", "0.0.0.0:8000", "--settings=configurations.dev"]
-#    ports:
-#      - 8000:8000
+    command: [ "python", "./manage.py", "runserver", "0.0.0.0:8000", "--settings=configurations.dev" ]
+  #    ports:
+  #      - 8000:8000
 
   tenzu-back-test:
     <<: *dev-image
@@ -53,6 +53,7 @@ services:
   tenzu-worker:
     <<: *dev-image
     command: "python manage.py procrastinate worker"
+    restart: unless-stopped
     volumes:
       - ../../../../src/:/tenzu/
       - tenzu-static:/public/static
@@ -74,7 +75,7 @@ services:
       POSTGRES_USER: "tenzu"
       POSTGRES_PASSWORD: "tenzu"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tenzu"]
+      test: [ "CMD-SHELL", "pg_isready -U tenzu" ]
       interval: 2s
       timeout: 15s
       retries: 5
@@ -88,7 +89,7 @@ services:
   tenzu-redis:
     image: redis:7.2
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 2s
       timeout: 15s
       retries: 5
@@ -147,9 +148,9 @@ services:
       - tenzu-ldap-config:/etc/ldap/slapd.d
     networks:
       - tenzu
-#    ports:
-#      - 389:389
-#      - 636:636
+  #    ports:
+  #      - 389:389
+  #      - 636:636
 
   compile-dep:
     <<: *dev-image
