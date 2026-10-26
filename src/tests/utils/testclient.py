@@ -78,11 +78,6 @@ class TestSyncClient(TextClientAuthMixin, TestClientBase):
     pass
 
 
-# TODO have a client for websocket urls
-# See https://channels.readthedocs.io/en/latest/topics/testing.html
-# test_app.mount("/events/", app=events_app)
-
-
 @pytest.fixture(scope="function")
 def client():
     return TestAsyncClient(api)
