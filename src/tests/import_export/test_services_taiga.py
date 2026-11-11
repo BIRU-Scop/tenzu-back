@@ -71,7 +71,10 @@ from projects.memberships.models import ProjectRole
 from projects.projects.models import Project
 from projects.projects.repositories import ProjectTemplateModel
 from stories.stories.models import Story
-from stories.stories.services.blocknote import BlockNoteConverter
+from stories.stories.services.blocknote import (
+    BlockNoteConverter,
+    BlockNoteEmptyOutputError,
+)
 from stories.tags.models import StoryTag, StoryTagAssignment
 from tests.utils import factories as f
 from tests.utils.bad_params import NOT_EXISTING_UUID
@@ -137,7 +140,9 @@ async def test_do_import_project_no_kanban_with_interruptions():
         "projects.projects.services._create_project", side_effect=DatabaseError
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation, will_retry=will_retry
+            project_importation=project_importation,
+            will_retry=will_retry,
+            retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -155,7 +160,9 @@ async def test_do_import_project_no_kanban_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation, will_retry=will_retry
+            project_importation=project_importation,
+            will_retry=will_retry,
+            retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -173,7 +180,9 @@ async def test_do_import_project_no_kanban_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation, will_retry=will_retry
+            project_importation=project_importation,
+            will_retry=will_retry,
+            retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -191,7 +200,9 @@ async def test_do_import_project_no_kanban_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation, will_retry=will_retry
+            project_importation=project_importation,
+            will_retry=will_retry,
+            retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -205,7 +216,9 @@ async def test_do_import_project_no_kanban_with_interruptions():
 
     # Finished without error
     await services.taiga.do_import_taiga_project(
-        project_importation=project_importation, will_retry=will_retry
+        project_importation=project_importation,
+        will_retry=will_retry,
+        retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
     )
     assert project_importation.status == ImportationStatus.ACTION_NEEDED
 
@@ -225,7 +238,9 @@ async def test_do_import_project_fail_if_no_retry_attempt_left():
         "projects.projects.services._create_project", side_effect=DatabaseError
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation, will_retry=will_retry
+            project_importation=project_importation,
+            will_retry=will_retry,
+            retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -326,7 +341,9 @@ async def test_do_import_project_complete_with_interruptions():
         "projects.projects.services._create_project", side_effect=DatabaseError
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation, will_retry=will_retry
+            project_importation=project_importation,
+            will_retry=will_retry,
+            retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -344,7 +361,9 @@ async def test_do_import_project_complete_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation, will_retry=will_retry
+            project_importation=project_importation,
+            will_retry=will_retry,
+            retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -362,7 +381,9 @@ async def test_do_import_project_complete_with_interruptions():
         ),
     ), pytest.raises(DatabaseError):
         await services.taiga.do_import_taiga_project(
-            project_importation=project_importation, will_retry=will_retry
+            project_importation=project_importation,
+            will_retry=will_retry,
+            retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
         )
     await project_importation.arefresh_from_db(
         from_queryset=ProjectImportation.objects.select_related(
@@ -386,7 +407,13 @@ async def test_do_import_project_complete_with_interruptions():
                 raise_on_nth_call(converter.convert, 1, RuntimeError),
             ), pytest.raises(RuntimeError):
                 await services.taiga.do_import_taiga_project(
-                    project_importation=project_importation, will_retry=will_retry
+                    project_importation=project_importation,
+                    will_retry=will_retry,
+                    retry_exceptions={
+                        RuntimeError,
+                        BlockNoteEmptyOutputError,
+                        DatabaseError,
+                    },
                 )
                 await project_importation.arefresh_from_db(
                     from_queryset=ProjectImportation.objects.select_related(
@@ -401,7 +428,13 @@ async def test_do_import_project_complete_with_interruptions():
                 raise_on_nth_call(converter.convert, 3, RuntimeError),
             ), pytest.raises(RuntimeError):
                 await services.taiga.do_import_taiga_project(
-                    project_importation=project_importation, will_retry=will_retry
+                    project_importation=project_importation,
+                    will_retry=will_retry,
+                    retry_exceptions={
+                        RuntimeError,
+                        BlockNoteEmptyOutputError,
+                        DatabaseError,
+                    },
                 )
                 await project_importation.arefresh_from_db(
                     from_queryset=ProjectImportation.objects.select_related(
@@ -415,7 +448,9 @@ async def test_do_import_project_complete_with_interruptions():
                 ]
 
     await services.taiga.do_import_taiga_project(
-        project_importation=project_importation, will_retry=will_retry
+        project_importation=project_importation,
+        will_retry=will_retry,
+        retry_exceptions={RuntimeError, BlockNoteEmptyOutputError, DatabaseError},
     )
     # Finished without error
     await project_importation.arefresh_from_db(

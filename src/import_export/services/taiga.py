@@ -19,14 +19,13 @@ import logging
 import mimetypes
 from operator import attrgetter
 from pathlib import Path
-from typing import Callable, Generic, Literal, TypedDict, TypeVar
+from typing import Callable, Generic, Iterable, Literal, TypedDict, TypeVar
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import DatabaseError
 from pydantic import EmailStr, ValidationError
 from slugify import slugify
 
@@ -230,7 +229,9 @@ async def sync_project_ids_to_taiga_import(
 
 
 async def do_import_taiga_project(
-    project_importation: ProjectImportation, will_retry: Callable[[Exception], bool]
+    project_importation: ProjectImportation,
+    will_retry: Callable[[Exception], bool],
+    retry_exceptions: Iterable[type[Exception]],
 ):
     if project_importation.status not in (
         ImportationStatus.PENDING,
@@ -344,15 +345,15 @@ async def do_import_taiga_project(
             project_importation, workflows, taiga_project, pending_invites, story_tags
         )
         await close_importation(project_importation, taiga_project)
-    except (RuntimeError, BlockNoteEmptyOutputError, DatabaseError) as e:
+    except tuple(retry_exceptions) as e:
         # those are the errors where a retry of the job should be attempted
         await backport_tenzu_ids_to_file(project_importation, taiga_project)
-        if not will_retry(e):
+        if not will_retry(e):  # check if this is last attempt
             await fail_project_importation(project_importation)
-        raise e
-    except Exception as e:
+        raise
+    except Exception:
         await fail_project_importation(project_importation)
-        raise e
+        raise
     finally:
         del taiga_project
 
