@@ -144,11 +144,13 @@ def ensure_roles_unique_attributes(
         values_from_tenzu = set(role[attribute] for role in tenzu_roles)
         values_from_taiga = set(role[attribute] for role in taiga_roles)
         values_from_both = values_from_tenzu | values_from_taiga
+        max_length = ProjectRole._meta.get_field(attribute).max_length
         for role in taiga_roles:
             if (old_value := role[attribute]) in values_from_tenzu:
                 suffix_generator = generate_incremental_int_suffix()
                 for suffix in suffix_generator:
-                    new_value = f"{prefix}{old_value}{suffix}"
+                    taiga_value = old_value[: max_length - len(prefix) - len(suffix)]
+                    new_value = f"{prefix}{taiga_value}{suffix}"
                     if new_value not in values_from_both:
                         old_to_new_mapping[attribute][old_value] = new_value
                         role[attribute] = new_value

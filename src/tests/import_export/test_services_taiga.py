@@ -571,6 +571,25 @@ def test_ensure_roles_unique_attributes():
     }
 
 
+def test_ensure_roles_unique_attributes_long_values():
+    max_name_length = ProjectRole._meta.get_field("name").max_length
+    max_slug_length = ProjectRole._meta.get_field("slug").max_length
+    long_name = "a" * max_name_length
+    long_slug = "b" * max_slug_length
+
+    tenzu_roles = [dict(name=long_name, slug=long_slug)]
+    taiga_roles = [dict(name=long_name, slug=long_slug)]
+    old_to_new_mapping = ensure_roles_unique_attributes(tenzu_roles, taiga_roles)
+    assert tenzu_roles == [dict(name=long_name, slug=long_slug)]
+    new_name = f"Taiga {long_name[:max_name_length-7]}1"
+    new_slug = f"taiga-{long_slug[:max_slug_length-7]}1"
+    assert taiga_roles == [dict(name=new_name, slug=new_slug)]
+    assert old_to_new_mapping == {
+        "slug": {long_slug: new_slug},
+        "name": {long_name: new_name},
+    }
+
+
 async def test_get_template_from_taiga_project():
     with (
         patch(
