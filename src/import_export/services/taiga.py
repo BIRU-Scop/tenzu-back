@@ -19,7 +19,7 @@ import logging
 import mimetypes
 from operator import attrgetter
 from pathlib import Path
-from typing import Callable, Generic, Iterable, Literal, TypedDict, TypeVar
+from typing import Callable, Generic, Iterable, Literal, TypedDict, TypeVar, cast
 from uuid import UUID
 
 from asgiref.sync import sync_to_async
@@ -41,7 +41,7 @@ from commons.utils.async_func import (
     transaction_on_commit_async,
 )
 from commons.utils.colors import generate_random_color, ordered_colour_generator
-from commons.utils.slug import generate_incremental_int_suffix
+from commons.utils.strings import get_unique_string_with_max_length
 from commons.validators import LowerEmailStr
 from import_export import notifications
 from import_export.models import (
@@ -88,7 +88,7 @@ from stories.tags import (
 from stories.tags.models import StoryTag, StoryTagAssignment
 from users.models import User
 from workflows import services as workflows_services
-from workflows.models import Workflow
+from workflows.models import Workflow, WorkflowStatus
 
 logger = logging.getLogger(__name__)
 
@@ -134,10 +134,11 @@ def convert_to_tenzu_permissions(
     return list(tenzu_perms)
 
 
-def ensure_roles_unique_attributes(
-    tenzu_roles, taiga_roles
-) -> dict[str, dict[str, str]]:
-    # prevent any duplicate identifying value between default static roles from Tenzu and dynamic ones from Taiga
+def ensure_roles_constraints(tenzu_roles, taiga_roles) -> dict[str, dict[str, str]]:
+    """
+    prevent any duplicate identifying value between default static roles from Tenzu and dynamic ones from Taiga
+    and ensure max_length of the field value
+    """
     old_to_new_mapping = {"slug": {}, "name": {}}
     attribute: Literal["slug", "name"]
     for attribute, prefix in (("slug", "taiga-"), ("name", "Taiga ")):
@@ -147,14 +148,11 @@ def ensure_roles_unique_attributes(
         max_length = ProjectRole._meta.get_field(attribute).max_length
         for role in taiga_roles:
             if (old_value := role[attribute]) in values_from_tenzu:
-                suffix_generator = generate_incremental_int_suffix()
-                for suffix in suffix_generator:
-                    taiga_value = old_value[: max_length - len(prefix) - len(suffix)]
-                    new_value = f"{prefix}{taiga_value}{suffix}"
-                    if new_value not in values_from_both:
-                        old_to_new_mapping[attribute][old_value] = new_value
-                        role[attribute] = new_value
-                        break
+                new_value = get_unique_string_with_max_length(
+                    old_value, max_length, values_from_both, prefix
+                )
+                old_to_new_mapping[attribute][old_value] = new_value
+                role[attribute] = new_value
             else:
                 old_to_new_mapping[attribute][old_value] = old_value
     return old_to_new_mapping
@@ -162,7 +160,9 @@ def ensure_roles_unique_attributes(
 
 async def get_template_from_taiga_project(
     taiga_project: FullTaigaProjectImport,
-) -> tuple[ProjectTemplateModel, dict[str, dict[str, str]]]:
+) -> tuple[
+    ProjectTemplateModel, dict[str, dict[str, str]], dict[str, str], dict[str, str]
+]:
     default_template = await projects_services._get_default_template()
     default_roles = [role for role in default_template.roles if not role["editable"]]
 
@@ -175,13 +175,36 @@ async def get_template_from_taiga_project(
         role["permissions"] = convert_to_tenzu_permissions(role["permissions"])
         del role["computable"]
         del role["tenzu_id"]
+    roles_old_to_new_mapping = ensure_roles_constraints(
+        default_roles, serialized_project["roles"]
+    )
+
+    unique_workflow_names = set()
+    workflow_name_max_length = Workflow._meta.get_field("name").max_length
+    workflow_names_old_to_new_mapping = {}
     for swimlane in serialized_project["swimlanes"]:
+        new_name = get_unique_string_with_max_length(
+            swimlane["name"], workflow_name_max_length, unique_workflow_names
+        )
+        unique_workflow_names.add(new_name)
+        workflow_names_old_to_new_mapping[swimlane["name"]] = new_name
+        swimlane["name"] = new_name
         swimlane["slug"] = slugify(swimlane["name"])
         del swimlane["statuses"]
         del swimlane["tenzu_id"]
+
+    unique_statuses_names = set()
+    status_name_max_length = WorkflowStatus._meta.get_field("name").max_length
+    status_names_old_to_new_mapping = {}
     for status, colour in zip(
         serialized_project["us_statuses"], ordered_colour_generator()
     ):
+        new_name = get_unique_string_with_max_length(
+            status["name"], status_name_max_length, unique_statuses_names
+        )
+        unique_statuses_names.add(new_name)
+        status_names_old_to_new_mapping[status["name"]] = new_name
+        status["name"] = new_name
         # no strong need for clever colour correspondance, it's probably acceptable to lose the hex colour from taiga
         status["color"] = colour
         del status["wip_limit"]
@@ -190,44 +213,78 @@ async def get_template_from_taiga_project(
         del status["slug"]
         del status["tenzu_ids"]
 
-    roles_old_to_new_mapping = ensure_roles_unique_attributes(
-        default_roles, serialized_project["roles"]
-    )
-
     template: ProjectTemplateModel = ProjectTemplateModel.model_construct(
         roles=[*default_roles, *serialized_project["roles"]],
         workflows=serialized_project["swimlanes"] or default_template.workflows,
         workflow_statuses=serialized_project["us_statuses"],
     )
-    return template, roles_old_to_new_mapping
+    return (
+        template,
+        roles_old_to_new_mapping,
+        workflow_names_old_to_new_mapping,
+        status_names_old_to_new_mapping,
+    )
 
 
 async def sync_project_ids_to_taiga_import(
     taiga_project: FullTaigaProjectImport,
     workflows: list[Workflow],
     roles: list[ProjectRole],
-    roles_old_to_new_slug_mapping: dict[str, str],
+    role_slugs_old_to_new_mapping: dict[str, str],
+    workflow_names_old_to_new_mapping: dict[str, str],
+    status_names_old_to_new_mapping: dict[str, str],
 ):
     # assign tenzu ids to source objects from taiga project importation
     for role in taiga_project.roles or []:
-        slug = roles_old_to_new_slug_mapping[role.slug]
+        slug = role_slugs_old_to_new_mapping[role.slug]
         tenzu_role = next(filter(lambda r: r.slug == slug, roles))
         role.tenzu_id = tenzu_role.id
     for swimlane in taiga_project.swimlanes or []:
-        tenzu_workflow = next(filter(lambda w: w.name == swimlane.name, workflows))
+        name = workflow_names_old_to_new_mapping[swimlane.name]
+        tenzu_workflow = next(filter(lambda w: w.name == name, workflows))
         swimlane.tenzu_id = tenzu_workflow.id
         statuses = list(tenzu_workflow.statuses.all())
-        for status in swimlane.statuses or []:
-            tenzu_status = next(filter(lambda s: s.name == status.status, statuses))
-            status.tenzu_id = tenzu_status.id
+        for sw_status in swimlane.statuses or []:
+            name = status_names_old_to_new_mapping.get(sw_status.status, None)
+            tenzu_status = next(filter(lambda s: s.name == name, statuses))
+            sw_status.tenzu_id = tenzu_status.id
     for status in taiga_project.us_statuses or []:
+        name = status_names_old_to_new_mapping[status.name]
         tenzu_statuses_ids = [
-            next(filter(lambda s: s.name == status.name, w.statuses.all())).id
+            next(filter(lambda s: s.name == name, w.statuses.all())).id
             for w in workflows
         ]
         status.tenzu_ids = tenzu_statuses_ids
 
     taiga_project.logo = None  # free up memory of already imported file
+
+
+def get_workflow_ids_by_name(
+    workflows: list[Workflow],
+    workflow_names_old_to_new_mapping: dict[str, str],
+    status_names_old_to_new_mapping: dict[str, str],
+) -> dict[str | None, tuple[UUID, dict[str, UUID]]]:
+    workflow_names_new_to_old_mapping = {
+        v: k for k, v in workflow_names_old_to_new_mapping.items()
+    }
+    status_names_new_to_old_mapping = {
+        v: k for k, v in status_names_old_to_new_mapping.items()
+    }
+
+    workflow_ids_by_name: dict[str | None, tuple[UUID, dict[str, UUID]]] = {
+        workflow_names_new_to_old_mapping.get(workflow.name, None): (
+            workflow.id,
+            {
+                status_names_new_to_old_mapping[status.name]: status.id
+                for status in workflow.statuses.all()
+            },
+        )
+        for workflow in workflows
+    }
+    workflow_ids_by_name[None] = next(
+        iter(workflow_ids_by_name.values())
+    )  # handle the case of no swimlane
+    return workflow_ids_by_name
 
 
 async def do_import_taiga_project(
@@ -264,9 +321,12 @@ async def do_import_taiga_project(
         await update_project_importation(
             project_importation, {"status": ImportationStatus.ONGOING}
         )
-        template, roles_old_to_new_mapping = await get_template_from_taiga_project(
-            taiga_project
-        )
+        (
+            template,
+            roles_old_to_new_mapping,
+            workflow_names_old_to_new_mapping,
+            status_names_old_to_new_mapping,
+        ) = await get_template_from_taiga_project(taiga_project)
         roles = None
         if project_importation.project is None:
             async with transaction_atomic_async():
@@ -297,7 +357,12 @@ async def do_import_taiga_project(
                     project_id=project.id
                 )
                 await transaction_on_commit_async(sync_project_ids_to_taiga_import)(
-                    taiga_project, workflows, roles, roles_old_to_new_mapping["slug"]
+                    taiga_project,
+                    workflows,
+                    roles,
+                    roles_old_to_new_mapping["slug"],
+                    workflow_names_old_to_new_mapping,
+                    status_names_old_to_new_mapping,
                 )
         else:
             workflows = await workflows_services.list_workflows(
@@ -343,8 +408,17 @@ async def do_import_taiga_project(
                 "extra_data": {"progress_percentage": 5},
             },
         )
+        workflow_ids_by_name = get_workflow_ids_by_name(
+            workflows,
+            workflow_names_old_to_new_mapping,
+            status_names_old_to_new_mapping,
+        )
         await do_import_taiga_stories(
-            project_importation, workflows, taiga_project, pending_invites, story_tags
+            project_importation,
+            workflow_ids_by_name,
+            taiga_project,
+            pending_invites,
+            story_tags,
         )
         await close_importation(project_importation, taiga_project)
     except tuple(retry_exceptions) as e:
@@ -462,7 +536,7 @@ async def do_import_taiga_users(
 
 async def do_import_taiga_stories(
     project_importation: ProjectImportation,
-    workflows: list[Workflow],
+    workflow_ids_by_name: dict[str | None, tuple[UUID, dict[str, UUID]]],
     taiga_project: FullTaigaProjectImport,
     pending_invites: dict[LowerEmailStr, ProjectImportationPendingInvitation],
     project_story_tags: dict[str, StoryTag],
@@ -470,16 +544,6 @@ async def do_import_taiga_stories(
     processed_stories = 0
     total_stories = len(taiga_project.user_stories)
     current_percentage = project_importation.extra_data.get("progress_percentage", 0)
-    workflow_ids_by_name: dict[str | None, tuple[UUID, dict[str, UUID]]] = {
-        workflow.name: (
-            workflow.id,
-            {status.name: status.id for status in workflow.statuses.all()},
-        )
-        for workflow in workflows
-    }
-    workflow_ids_by_name[None] = next(
-        iter(workflow_ids_by_name.values())
-    )  # handle the case of no swimlane
     stories_to_create: list[Story] = []
     assignments_to_create: list[StoryAssignment] = []
     attachments_to_create: list[Attachment] = []
