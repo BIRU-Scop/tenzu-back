@@ -1,0 +1,98 @@
+publiccodeYmlVersion: 0.7.0
+name: Tenzu
+url: https://github.com/BIRU-Scop/tenzu-back
+isBasedOn: https://github.com/taigaio/taiga-back
+logo: https://tenzu.net/media/images/tenzu_logo_full_animated_ufu8CCw.original.svg
+platforms:
+  - web
+categories:
+  - agile-project-management
+  - business-process-management
+  - collaboration
+  - enterprise-project-management
+  - productivity-suite
+  - project-collaboration
+  - project-management
+  - task-management
+  - web-collaboration
+  - workflow-management
+roadmap: https://tenzu.net/roadmap
+developmentStatus: stable
+softwareType: standalone/web
+organisation:
+  uri: https://biru.sh/
+  name: BIRU
+description:
+  en:
+    shortDescription: Lightweight project management tool for agile teams. Features
+      workspaces and kanban boards.
+    longDescription: >-
+      Tenzu is an open-source project management tool made with agile teams in
+      mind.
+
+      Very lightweight and easy-to-use, it allows you to manage project spaces
+      and Kanban boards to organise teams’ work.
+
+      This tool allows you to customise your workflow with multiple boards and
+      personalised status to give you as much flexibility as you need.
+    documentation: https://tenzu.net/docs
+    apiDocumentation: https://api.tenzu.app/api/v1/docs
+    features:
+      - Project spaces
+      - kanban
+      - dark theme
+      - Permissions system
+      - SSO
+      - Multilanguages
+      - REST API
+      - Attachments
+      - comments
+      - live collaboration
+    screenshots:
+      - https://tenzu.net/media/images/tenzu_demo2025.original.webp
+  fr:
+    shortDescription: Outil de gestion de projet léger destiné aux équipes agiles.
+      Propose des espaces de travail et des tableaux Kanban.
+    longDescription: >-
+      Tenzu est un outil libre de gestion de projets conçu pour les équipes
+      agiles. 
+
+      Très léger et simple d’utilisation, il permet de gérer des espaces de
+      projet et des tableaux kanban pour organiser le travail des équipes.
+
+      Cet outil vous permet de personnaliser votre flux de travail sur plusieurs
+      boards avec des statuts personnalisés, afin de vous offrir toute la
+      flexibilité dont vous avez besoin.
+    features:
+      - Espace de projets
+      - kanban
+      - thème sombre
+      - Multilingue
+      - SSO
+      - Système de permissions
+      - Fichiers joints
+      - Commentaires
+      - API REST
+      - Collaboration temps réel
+legal:
+  license: AGPL-3.0-or-later
+  mainCopyrightOwner: BIRU
+maintenance:
+  type: contract
+  contractors:
+    - name: BIRU
+      until: 2027-12-31
+      email: ask@tenzu.net
+      website: https://tenzu.net
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - fr
+    - en
+    - es
+dependsOn:
+  open:
+    - name: PostgreSQL
+      versionMin: '15'
+    - name: Redis
+      versionMin: '7.1'
