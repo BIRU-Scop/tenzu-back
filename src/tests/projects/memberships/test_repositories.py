@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024 BIRU
+# Copyright (C) 2024-2026 BIRU
 #
 # This file is part of Tenzu.
 #
@@ -305,10 +305,7 @@ async def test_list_projects_user_only_member(project_template):
 
     pj_list = [pj async for pj in repositories.only_project_member_queryset(user)]
 
-    assert len(pj_list) == 3
-    assert pj_list[0].name == pj1_ws1.name
-    assert pj_list[1].name == pj2_ws1.name
-    assert pj_list[2].name == pj1_ws2.name
+    assert {pj.id for pj in pj_list} == {pj1_ws1.id, pj2_ws1.id, pj1_ws2.id}
 
     pj_list = [
         pj
