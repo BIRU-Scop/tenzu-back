@@ -104,7 +104,7 @@ CSRF_COOKIE_SECURE = True
 
 INSTALLED_APPS = [
     *(extra_dep.app for extra_dep in settings.EXTRA_DEPS if extra_dep.app is not None),
-    "whitenoise.runserver_nostatic",
+    "servestatic",
     "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -155,7 +155,7 @@ ADMIN_PROD_VISIBLE_MODELS = ["users.User", "feeds.FeedItem"]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "servestatic.middleware.ServeStaticMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",

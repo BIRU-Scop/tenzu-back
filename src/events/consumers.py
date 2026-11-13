@@ -25,13 +25,20 @@ import orjson
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from pycrdt import Doc, TransactionEvent, YMessageType, YSyncMessageType
 from pycrdt.websocket.django_channels_consumer import YjsConsumer
 from pydantic import ValidationError
 
 from commons.exceptions.api import ForbiddenError
 from commons.utils.uuid import decode_b64str_to_uuid
-from events.actions import Action, ActionResponse, SystemResponse, channel_login
+from events.actions import (
+    SIGNOUT_COMMAND,
+    Action,
+    ActionResponse,
+    SystemResponse,
+    channel_login,
+)
 from ninja_jwt.exceptions import AuthenticationFailed, InvalidToken
 from permissions import check_permissions
 from stories.stories.models import Story
@@ -47,8 +54,6 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
         self._subscribed_channels: set[str] = set()
 
     async def connect(self):
-        from django.contrib.auth.models import AnonymousUser
-
         self.scope["user"] = AnonymousUser()
         event_logger.debug("Connected")
         await self.accept()
@@ -90,11 +95,23 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
         use this to broadcast a action response
         """
         await self.channel_layer.group_send(
-            channel, {"type": "send_action_response", "data": action.model_dump()}
+            channel,
+            {
+                "type": "send_action_response",
+                "data": action.model_dump(),
+                "sender_channel_name": self.channel_name,
+            },
         )
 
     async def send_action_response(self, action: dict[str, Any]):
-        await self.send_json(action["data"])
+        data = action["data"]
+        if data.get("action", {}).get("command") != SIGNOUT_COMMAND:
+            await self.send_json(data)
+            return
+        if action.get("sender_channel_name") == self.channel_name:
+            return
+        await self.sign_out()
+        await self.send_json(data)
 
     async def send_without_broadcast_action_response(self, action: dict[str, Any]):
         await self.send_json(action)
@@ -106,6 +123,18 @@ class EventConsumer(AsyncJsonWebsocketConsumer):
     async def unsubscribe(self, channel: str):
         await self.channel_layer.group_discard(channel, self.channel_name)
         self._subscribed_channels.discard(channel)
+
+    def is_subscribed(self, channel: str) -> bool:
+        return channel in self._subscribed_channels
+
+    async def unsubscribe_all(self) -> None:
+        for channel in list(self._subscribed_channels):
+            await self.unsubscribe(channel)
+            event_logger.debug(f"Unsubscribe channel {channel}")
+
+    async def sign_out(self) -> None:
+        await self.unsubscribe_all()
+        self.scope["user"] = AnonymousUser()
 
     async def emit_event(self, event):
         await self.send_json(event["event"])
@@ -221,7 +250,7 @@ class CollaborationConsumer(YjsConsumer):
                 obj=self.story,
             )
             self._can_write_story = True
-        except ForbiddenError as e:
+        except ForbiddenError:
             self._can_write_story = False
 
     async def make_ydoc(self) -> Doc:

@@ -17,7 +17,6 @@
 #
 # You can contact BIRU at ask@biru.sh
 from enum import StrEnum
-from pathlib import Path
 
 from django.conf import global_settings as default_django_settings
 from pydantic import BaseModel, PositiveInt, model_validator
@@ -36,10 +35,10 @@ class StaticStorageBackends(StrEnum):
     ManifestStaticFilesStorage = (
         "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
     )
-    CompressedManifestWhitenoiseStorage = (
-        "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    CompressedManifestServeStaticStorage = (
+        "servestatic.storage.CompressedManifestStaticFilesStorage"
     )
-    CompressedWhitenoiseStorage = "whitenoise.storage.CompressedStaticFilesStorage"
+    CompressedServeStaticStorage = "servestatic.storage.CompressedStaticFilesStorage"
 
 
 class StorageSettings(BaseModel):
@@ -65,7 +64,7 @@ class StorageSettings(BaseModel):
     DAYS_TO_STORE_DELETED_STORAGED_OBJECTS: int = 90  # 90 day
     BACKEND_CLASS: StorageBackends = StorageBackends.FileSystemStorage
     STATIC_BACKEND_CLASS: StaticStorageBackends = (
-        StaticStorageBackends.CompressedManifestWhitenoiseStorage
+        StaticStorageBackends.CompressedManifestServeStaticStorage
     )
 
     IMPORTATION_MAX_UPLOAD_FILE_SIZE: PositiveInt | None = 20 * GIGABYTE

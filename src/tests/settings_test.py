@@ -19,6 +19,7 @@
 from configurations.settings import *  # noqa
 from configurations.settings import ACCOUNT, INSTALLED_APPS
 from configurations.utils import KILOBYTE
+from configurations.conf.events import PubSubBackendChoices
 
 DEBUG = True
 
@@ -64,3 +65,7 @@ MAX_UPLOAD_FILE_SIZE = 1 * KILOBYTE
 PROCRASTINATE_PERIODIC_DEFAULTS = {
     "max_delay": -1
 }  # prevent any periodic tasks from running in tests
+
+# There will be one channel layer per pytest-xdist worker; a shared Redis would leak groups
+# between workers.
+CHANNEL_LAYERS = {"default": {"BACKEND": PubSubBackendChoices.MEMORY.value}}
