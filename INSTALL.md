@@ -8,13 +8,17 @@
 > those kind of heavy requirements.
 
 ## Host config
+
 Edit your `/etc/hosts` file manually or do the following command:
+
 ```bash
 echo "127.0.0.1 local-tenzu.biru.ovh" >> /etc/hosts
 ```
 
 ## dependencies
+
 ### Docker
+
 You'll need to install [Docker](https://docs.docker.com/desktop/).
 
 ### Tasks
@@ -23,16 +27,19 @@ All the tasks must be executed within `buildrun/docker/docker-compose/dev-env` d
 
 Before using any of the tasks, [install go-task](https://taskfile.dev/installation/)
 
-This tools allows you to run sets of commands contained in the [Taskfile.yml](buildrun/docker/docker-compose/dev-env/Taskfile.yml).
+This tools allows you to run sets of commands contained in
+the [Taskfile.yml](buildrun/docker/docker-compose/dev-env/Taskfile.yml).
 
 ### Brew
-We use [brew](https://brew.sh/) to install some of our dependencies, which is available for Mac, 
+
+We use [brew](https://brew.sh/) to install some of our dependencies, which is available for Mac,
 Linux and WSL. If you don't use brew, please look at the
 `install-deps` task and install those by your preferred method.
 
 ### Dependencies bundle
 
 You can install the rest of the dependencies by simply running:
+
 ```shell
 # Installs pre-commit and ruff packages and installs pre-commit hooks.
 task install-deps
@@ -53,7 +60,7 @@ cp caddy/caddy_sample.env caddy/caddy.env
 > Ask your local raccoon for the secret tokens that are expected in those files.
 
 
-Use [dev.env](buildrun/docker/tenzu/dev.env) to override environment values that 
+Use [dev.env](buildrun/docker/tenzu/dev.env) to override environment values that
 should be versioned and [secrets.env](buildrun/docker/tenzu/secrets.env) for
 those that shouldn't (like API key and such).
 
@@ -63,16 +70,18 @@ But in case in modification of sensible variables like HOST parameters, we canno
 ## Run
 
 To run the project for the first time, you can initialize the app with:
+
 ```shell
 # don't forget to go to task folder
 cd buildrun/docker/docker-compose/dev-env
-# build the project with db and fixtures ready
+# build the project with db and fixtures ready, also useful to reinitialise everything
 task init-app
 ```
 
 # After setup
+
 ## Useful tasks
- 
+
 ```shell
 # don't forget to go to task folder
 cd buildrun/docker/docker-compose/dev-env
@@ -96,16 +105,21 @@ task test
 
 # launch ldap server if you want to test ldap auth
 task ldap
+
+# to create the e2e environment. Rerun after a migration or a sample data change
+task reload-all-data
 ```
 
 ## Dependencies management
 
 Add your dependencies to the corresponding requirement file:
+
 - [commons.in](buildrun/docker/tenzu/requirements/commons.in) for generic dependencies
 - [devel.in](buildrun/docker/tenzu/requirements/devel.in) for dev or test only dependencies
 - [prod.in](buildrun/docker/tenzu/requirements/prod.in) for production only dependencies
 
 The following commands are available:
+
 ```shell
 # Sync compiled requirement *.txt files and update the version while following any constraint specified in the corresponding *.in
 # Use "task compile-dep" only if you don't want to update the version of existing packages
@@ -124,7 +138,7 @@ Go to src/mjml, run `npm install` if you need to then call `npm run emails`. Thi
 update the files in src/emails/templates, which must never be edited otherwise.
 
 Useful translation commands:
- 
+
 ```shell
 # don't forget to go to task folder
 cd buildrun/docker/docker-compose/dev-env

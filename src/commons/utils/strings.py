@@ -20,6 +20,8 @@ from typing import Mapping
 
 from pydantic.alias_generators import to_camel, to_snake
 
+from commons.utils.slug import generate_incremental_int_suffix
+
 
 def to_kebab(msg: str) -> str:
     return to_snake(msg).replace("_", "-")
@@ -36,3 +38,18 @@ def dict_to_camel(value: Mapping | list | str):
 def orderby_to_snake(data: str):
     snake_data = to_snake(data)
     return f"-{snake_data[1:]}" if data.startswith("-") else snake_data
+
+
+def get_unique_string_with_max_length(
+    value: str, max_length: int, unique_values: set[str], prefix: str = ""
+):
+    """
+    get a new string with max_length while being unique in the given list
+    """
+    new_value = value[:max_length]
+    suffix_generator = generate_incremental_int_suffix()
+    while new_value in unique_values:
+        suffix = next(suffix_generator)
+        new_value = value[: max_length - len(prefix) - len(suffix)]
+        new_value = f"{prefix}{new_value}{suffix}"
+    return new_value

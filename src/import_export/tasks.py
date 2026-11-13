@@ -48,15 +48,17 @@ def import_taiga_project(job_context: JobContext, project_importation_id: str) -
         project_importation_id=decode_b64str_to_uuid(project_importation_id)
     )
 
-    def will_retry(exception: Exception):
+    def will_retry(exception: Exception) -> bool:
         return (
-            job_context.task.retry.get_retry_decision(
+            job_context.task.retry_strategy.get_retry_decision(
                 exception=exception, job=job_context.job
             )
             is not None
         )
 
-    async_to_sync(do_import_taiga_project)(importation, will_retry)
+    async_to_sync(do_import_taiga_project)(
+        importation, will_retry, job_context.task.retry_strategy.retry_exceptions
+    )
 
 
 @app.task()
